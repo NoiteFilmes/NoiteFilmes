@@ -17,7 +17,21 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: pan-x pan-y; }
-        body { background-color: #0a0a0a; overflow-x: hidden; }
+        body { background-color: #0a0a0a; overflow-x: hidden; transition: background 0.3s, color 0.3s; }
+        
+        /* Dark Mode (padrão) */
+        body.dark-mode { background-color: #0a0a0a; color: #e5e5e5; }
+        body.light-mode { background-color: #f5f5f5; color: #1a1a1a; }
+        body.light-mode .bg-gray-900 { background-color: #ffffff !important; }
+        body.light-mode .bg-gray-800 { background-color: #f0f0f0 !important; }
+        body.light-mode .bg-gray-700 { background-color: #e0e0e0 !important; }
+        body.light-mode .text-gray-200 { color: #1a1a1a !important; }
+        body.light-mode .text-gray-400 { color: #666 !important; }
+        body.light-mode .border-gray-800 { border-color: #ddd !important; }
+        body.light-mode .chat-container { background: #ffffff; }
+        body.light-mode .message-content { background: #e0e0e0; }
+        body.light-mode .my-message .message-content { background: #e50914; color: white; }
+        
         .player-wrapper { background: #000; position: relative; padding-bottom: 56.25%; height: 0; }
         .player-wrapper iframe, .player-wrapper video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
         .card-hover:hover { transform: scale(1.02); transition: 0.2s; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5); }
@@ -45,11 +59,7 @@
         .watermark i { color: #e50914; margin-right: 4px; font-size: 10px; }
         .genre-filter-active { background-color: #e50914 !important; color: white !important; }
         
-        /* Menu em duas linhas */
-        .logo-line {
-            padding: 8px 12px;
-            border-bottom: 1px solid #222;
-        }
+        .logo-line { padding: 8px 12px; border-bottom: 1px solid #222; }
         .menu-container {
             display: flex;
             overflow-x: auto;
@@ -78,7 +88,6 @@
         .nav-item:hover { background-color: rgba(229, 9, 20, 0.1); }
         .nav-item.active { color: #e50914; }
         
-        /* Chat expandido */
         .chat-container {
             position: fixed;
             bottom: 0;
@@ -98,9 +107,7 @@
             box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
             transform: translateY(100%);
         }
-        .chat-container.open {
-            transform: translateY(0);
-        }
+        .chat-container.open { transform: translateY(0); }
         .chat-header {
             padding: 12px 16px;
             background: linear-gradient(135deg, #1a1a2e, #16213e);
@@ -143,27 +150,11 @@
             border-radius: 12px;
             max-width: 70%;
         }
-        .message-username {
-            font-size: 11px;
-            color: #e50914;
-            font-weight: bold;
-            margin-bottom: 4px;
-        }
-        .message-text {
-            font-size: 13px;
-            word-wrap: break-word;
-        }
-        .message-time {
-            font-size: 9px;
-            color: #666;
-            margin-top: 4px;
-        }
-        .my-message {
-            flex-direction: row-reverse;
-        }
-        .my-message .message-content {
-            background: #e50914;
-        }
+        .message-username { font-size: 11px; color: #e50914; font-weight: bold; margin-bottom: 4px; }
+        .message-text { font-size: 13px; word-wrap: break-word; }
+        .message-time { font-size: 9px; color: #666; margin-top: 4px; }
+        .my-message { flex-direction: row-reverse; }
+        .my-message .message-content { background: #e50914; }
         .my-message .message-username { color: #fff; }
         .chat-input-area {
             padding: 12px;
@@ -257,6 +248,19 @@
             margin-top: 10px;
             font-size: 12px;
         }
+        .suggestions-box {
+            background: #2a2a2a;
+            border-radius: 8px;
+            margin-top: 5px;
+            padding: 5px;
+        }
+        .suggestion-item {
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+        .suggestion-item:hover { background: #e50914; }
         
         .carousel-container {
             position: relative;
@@ -405,7 +409,6 @@
         .search-result-item:hover { background: #2a2a2a; }
         .search-result-item img { width: 50px; height: 65px; object-fit: cover; border-radius: 8px; }
         
-        /* Modal de configurações (engrenagem) */
         .settings-modal {
             position: fixed;
             top: 0;
@@ -447,40 +450,82 @@
             cursor: pointer;
             margin-bottom: 10px;
         }
-        .logout-settings-btn {
+        .mode-btn {
             background: #333;
             color: white;
             padding: 10px;
             border: none;
             border-radius: 8px;
-            width: 100%;
+            width: 48%;
             cursor: pointer;
+            margin-top: 10px;
         }
-        .profile-icon {
-            text-align: center;
-            margin-bottom: 20px;
+        .mode-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
         }
-        .profile-icon i {
-            font-size: 60px;
-            color: #e50914;
+        .profile-icon { text-align: center; margin-bottom: 20px; }
+        .profile-icon i { font-size: 60px; color: #e50914; }
+        
+        /* Player flutuante próximo ao filme clicado */
+        .floating-player {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 800px;
+            z-index: 1100;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        .floating-player .player-wrapper { padding-bottom: 56.25%; }
+        .floating-player-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            border: none;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 10;
+        }
+        .floating-player-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 1099;
         }
     </style>
 </head>
-<body class="bg-black text-gray-200 font-sans">
+<body class="dark-mode">
 
     <div class="watermark">
         <i class="fab fa-instagram"></i> @NoiteFilmes
     </div>
 
-    <!-- Logo em uma linha -->
     <div class="logo-line">
-        <div class="flex items-center space-x-2">
-            <i class="fas fa-film text-red-600 text-xl"></i>
-            <h1 class="text-lg font-bold">Noite<span class="text-red-600">Filmes</span></h1>
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <i class="fas fa-film text-red-600 text-xl"></i>
+                <h1 class="text-lg font-bold">Noite<span class="text-red-600">Filmes</span></h1>
+            </div>
+            <div class="flex items-center gap-2">
+                <i class="fas fa-sun text-yellow-500 cursor-pointer" id="lightModeBtn" style="font-size: 18px;"></i>
+                <i class="fas fa-moon text-gray-400 cursor-pointer" id="darkModeBtn" style="font-size: 18px;"></i>
+            </div>
         </div>
     </div>
 
-    <!-- Menu em uma linha abaixo -->
     <div class="menu-container">
         <div class="nav-item" id="navCanaisBtn"><i class="fas fa-tv"></i><span>Canais</span></div>
         <div class="nav-item active" id="navFilmesBtn"><i class="fas fa-film"></i><span>Filmes</span></div>
@@ -504,23 +549,26 @@
             <div id="registerForm" class="hidden">
                 <input type="email" id="registerEmail" class="login-input" placeholder="Email">
                 <input type="password" id="registerPassword" class="login-input" placeholder="Senha">
+                <input type="text" id="registerNickname" class="login-input" placeholder="@Nickname (ex: @joaofilmes)">
+                <div id="nicknameSuggestions" class="suggestions-box hidden"></div>
                 <button id="doRegister" class="login-btn">Cadastrar</button>
                 <div class="switch-auth" id="showLogin">Já tem conta? Faça login</div>
             </div>
         </div>
     </div>
 
-    <!-- Modal de Configurações (engrenagem) com perfil e sair -->
     <div id="settingsModal" class="settings-modal hidden">
         <div class="settings-box">
-            <div class="profile-icon">
-                <i class="fas fa-user-circle"></i>
-            </div>
+            <div class="profile-icon"><i class="fas fa-user-circle"></i></div>
             <h3>Configurações</h3>
             <label class="text-xs text-gray-400">Nome de usuário</label>
             <input type="text" id="usernameInput" class="settings-input" placeholder="Seu nome">
             <button id="saveUsernameBtn" class="settings-btn">Salvar</button>
-            <button id="logoutSettingsBtn" class="logout-settings-btn">Sair da Conta</button>
+            <div class="mode-buttons">
+                <button id="darkModeSettingsBtn" class="mode-btn"><i class="fas fa-moon"></i> Dark</button>
+                <button id="lightModeSettingsBtn" class="mode-btn"><i class="fas fa-sun"></i> Light</button>
+            </div>
+            <button id="logoutSettingsBtn" class="logout-settings-btn settings-btn" style="background:#333;">Sair da Conta</button>
         </div>
     </div>
 
@@ -532,6 +580,23 @@
         <div class="relative">
             <div id="top10Carousel" class="carousel-container overflow-x-auto">
                 <div id="top10Track" class="carousel-track"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Player flutuante (aparece perto do filme clicado) -->
+    <div id="floatingPlayerOverlay" class="floating-player-overlay hidden"></div>
+    <div id="floatingPlayer" class="floating-player hidden">
+        <button id="closeFloatingPlayer" class="floating-player-close"><i class="fas fa-times"></i></button>
+        <div class="player-wrapper">
+            <div id="floatingYoutubePlayerDiv"></div>
+            <div id="floatingNoContent" class="absolute inset-0 flex items-center justify-center text-gray-500 bg-black text-sm">Carregando...</div>
+        </div>
+        <div class="p-2 bg-gray-800">
+            <h3 id="floatingMediaTitle" class="text-sm font-bold">Título</h3>
+            <div class="flex gap-2 text-xs text-gray-400">
+                <span id="floatingMediaYear"></span>
+                <span id="floatingMediaGenre"></span>
             </div>
         </div>
     </div>
@@ -576,12 +641,10 @@
         <div id="contentGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2"></div>
     </div>
 
-    <!-- Botão do Chat -->
     <div class="chat-toggle-btn" id="chatToggleBtn">
         <i class="fas fa-comment-dots text-white"></i>
     </div>
 
-    <!-- Chat Expandido -->
     <div id="chatContainer" class="chat-container">
         <div class="chat-header" id="chatHeader">
             <div class="flex items-center gap-2">
@@ -680,7 +743,6 @@
     </div>
 
     <script>
-        // Configuração do Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyAXQ_3yaVR6TgsAha6nU7uihHdd8NvrP78",
             authDomain: "noitefilmes26.firebaseapp.com",
@@ -703,6 +765,7 @@
         let currentMedia = null;
         let currentMediaType = 'filme';
         let ytPlayer = null;
+        let floatingYtPlayer = null;
         let progressSalvos = {};
         let currentNavTab = 'filmes';
         let currentGenreFilter = 'todos';
@@ -711,9 +774,9 @@
         let batchPreviewItems = [];
         let isAdminLogged = false;
         let editingItem = null;
-        let messages = [];
+        let currentUsername = localStorage.getItem('noitefilmes_username') || 'Cinéfilo';
+        let allNicknames = [];
         
-        // Função para gerar ID seguro sem caracteres especiais
         function generateSafeId() {
             return Date.now() + '-' + Math.random().toString(36).substring(2, 15);
         }
@@ -767,7 +830,121 @@
             setTimeout(() => toast.remove(), 3000);
         }
         
-        // Função para salvar filme individual com ID seguro
+        // Verificar disponibilidade de nickname
+        async function isNicknameAvailable(nickname) {
+            const snapshot = await database.ref('usuarios').orderByChild('nickname').equalTo(nickname).once('value');
+            return !snapshot.exists();
+        }
+        
+        async function generateSuggestions(baseNickname) {
+            const suggestions = [];
+            let counter = 1;
+            while(suggestions.length < 3 && counter < 100) {
+                const suggestion = `${baseNickname}${counter}`;
+                if(await isNicknameAvailable(suggestion)) {
+                    suggestions.push(suggestion);
+                }
+                counter++;
+            }
+            return suggestions;
+        }
+        
+        // Função para reproduzir em floating player (perto do filme)
+        function playInFloatingPlayer(item, type, elementRect) {
+            const floatingPlayer = document.getElementById('floatingPlayer');
+            const overlay = document.getElementById('floatingPlayerOverlay');
+            const videoId = extractYoutubeId(item.link);
+            
+            if(!videoId) {
+                showToast('Link inválido');
+                return;
+            }
+            
+            // Mostrar player flutuante
+            floatingPlayer.classList.remove('hidden');
+            overlay.classList.remove('hidden');
+            
+            // Posicionar próximo ao elemento clicado
+            if(elementRect) {
+                floatingPlayer.style.top = 'auto';
+                floatingPlayer.style.bottom = 'auto';
+                floatingPlayer.style.left = 'auto';
+                floatingPlayer.style.right = 'auto';
+            }
+            
+            document.getElementById('floatingMediaTitle').innerText = item.title;
+            document.getElementById('floatingMediaYear').innerHTML = item.year ? `📅 ${item.year}` : '';
+            document.getElementById('floatingMediaGenre').innerHTML = item.category ? `🎭 ${item.category}` : '';
+            
+            // Inicializar player flutuante
+            if(floatingYtPlayer) {
+                floatingYtPlayer.loadVideoById(videoId);
+            } else {
+                floatingYtPlayer = new YT.Player('floatingYoutubePlayerDiv', {
+                    height: '100%',
+                    width: '100%',
+                    videoId: videoId,
+                    playerVars: { 'autoplay': 1, 'controls': 1, 'modestbranding': 1, 'rel': 0, 'showinfo': 0, 'fs': 1, 'playsinline': 1 },
+                    events: {
+                        'onReady': (event) => { event.target.playVideo(); },
+                        'onStateChange': (event) => {
+                            if(event.data === YT.PlayerState.PLAYING) {
+                                document.getElementById('floatingNoContent').style.display = 'none';
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        
+        function closeFloatingPlayer() {
+            if(floatingYtPlayer) {
+                floatingYtPlayer.stopVideo();
+            }
+            document.getElementById('floatingPlayer').classList.add('hidden');
+            document.getElementById('floatingPlayerOverlay').classList.add('hidden');
+        }
+        
+        // Função de cadastro com nickname único
+        async function registerUser() {
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            let nickname = document.getElementById('registerNickname').value.trim();
+            
+            if(nickname.startsWith('@')) nickname = nickname.substring(1);
+            
+            if(!nickname) {
+                showToast('Digite um @nickname');
+                return;
+            }
+            
+            const available = await isNicknameAvailable(nickname);
+            if(!available) {
+                const suggestions = await generateSuggestions(nickname);
+                const suggestionsDiv = document.getElementById('nicknameSuggestions');
+                suggestionsDiv.classList.remove('hidden');
+                suggestionsDiv.innerHTML = '<div class="text-xs text-red-500 mb-1">Nickname indisponível! Sugestões:</div>' + 
+                    suggestions.map(s => `<div class="suggestion-item" onclick="document.getElementById('registerNickname').value='${s}'; document.getElementById('nicknameSuggestions').classList.add('hidden');">@${s}</div>`).join('');
+                return;
+            }
+            
+            try {
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+                await database.ref(`usuarios/${user.uid}`).set({
+                    email: email,
+                    nickname: nickname,
+                    createdAt: Date.now()
+                });
+                currentUsername = nickname;
+                localStorage.setItem('noitefilmes_username', currentUsername);
+                showToast(`✅ Cadastro realizado! Bem-vindo @${nickname}`);
+                document.getElementById('nicknameSuggestions').classList.add('hidden');
+            } catch(error) {
+                showToast('Erro: ' + error.message);
+            }
+        }
+        
         async function saveSingleItem() {
             const title = document.getElementById('itemTitle').value.trim();
             const link = document.getElementById('itemLink').value.trim();
@@ -831,7 +1008,6 @@
             }
         }
         
-        // Função para salvar lote com ID seguro
         async function previewBatch() {
             const linksText = document.getElementById('batchLinksInput').value;
             const links = linksText.split('\n').filter(l => l.trim() && extractYoutubeId(l.trim()));
@@ -980,8 +1156,15 @@
             });
         }
         
-        // Chat functions
-        let currentUsername = localStorage.getItem('noitefilmes_username') || 'Cinéfilo';
+        // Função para carregar nickname do usuário
+        async function loadUserNickname(userId) {
+            const snapshot = await database.ref(`usuarios/${userId}`).once('value');
+            const data = snapshot.val();
+            if(data && data.nickname) {
+                currentUsername = data.nickname;
+                localStorage.setItem('noitefilmes_username', currentUsername);
+            }
+        }
         
         function addMessageToChat(username, text, isSystem, time, saveToFirebase = true) {
             const container = document.getElementById('chatMessages');
@@ -992,7 +1175,7 @@
                     ${isSystem ? '<i class="fas fa-info-circle text-xs"></i>' : (username?.charAt(0).toUpperCase() || '?')}
                 </div>
                 <div class="message-content">
-                    ${!isSystem ? `<div class="message-username">${escapeHtml(username)}</div>` : ''}
+                    ${!isSystem ? `<div class="message-username">@${username}</div>` : ''}
                     <div class="message-text">${escapeHtml(text)}</div>
                     <div class="message-time">${time || new Date().toLocaleTimeString()}</div>
                 </div>
@@ -1027,7 +1210,6 @@
             return div.innerHTML;
         }
         
-        // Funções de autenticação
         function showLoginModal() {
             document.getElementById('loginModal').classList.remove('hidden');
         }
@@ -1046,7 +1228,10 @@
             if(newUsername) {
                 currentUsername = newUsername;
                 localStorage.setItem('noitefilmes_username', currentUsername);
-                showToast(`✅ Nome alterado para: ${currentUsername}`);
+                if(currentUser) {
+                    database.ref(`usuarios/${currentUser.uid}/nickname`).set(currentUsername);
+                }
+                showToast(`✅ Nome alterado para: @${currentUsername}`);
                 document.getElementById('settingsModal').classList.add('hidden');
             }
         }
@@ -1056,11 +1241,34 @@
             document.getElementById('settingsModal').classList.add('hidden');
         }
         
+        // Dark/Light Mode
+        function setDarkMode() {
+            document.body.classList.remove('light-mode');
+            document.body.classList.add('dark-mode');
+            localStorage.setItem('noitefilmes_theme', 'dark');
+        }
+        
+        function setLightMode() {
+            document.body.classList.remove('dark-mode');
+            document.body.classList.add('light-mode');
+            localStorage.setItem('noitefilmes_theme', 'light');
+        }
+        
+        function loadTheme() {
+            const theme = localStorage.getItem('noitefilmes_theme');
+            if(theme === 'light') {
+                setLightMode();
+            } else {
+                setDarkMode();
+            }
+        }
+        
         function updateUserUI(user) {
             if (user) {
                 hideLoginModal();
-                loadAllData();
-                // Carregar mensagens do chat
+                loadUserNickname(user.uid).then(() => {
+                    loadAllData();
+                });
                 database.ref('chat').limitToLast(100).off();
                 database.ref('chat').limitToLast(100).on('child_added', (snapshot) => {
                     const msg = snapshot.val();
@@ -1152,7 +1360,15 @@
             });
         }
         
-        function playMedia(item, type) {
+        // Função CORRIGIDA para reproduzir vídeo (agora funciona!)
+        function playMedia(item, type, elementRect = null) {
+            // Usar player flutuante se tiver posição
+            if(elementRect) {
+                playInFloatingPlayer(item, type, elementRect);
+                return;
+            }
+            
+            // Fallback para player normal
             const playerSection = document.getElementById('playerSection');
             playerSection.classList.remove('hidden');
             
@@ -1172,12 +1388,16 @@
             document.getElementById('mediaGenre').innerHTML = item.category ? `🎭 ${item.category}` : '';
             
             noContent.style.display = 'flex';
-            noContent.innerHTML = '🎬 Carregando...';
+            noContent.innerHTML = '🎬 Carregando vídeo...';
             
             if(type === 'filme' || type === 'serie') {
                 const vidId = extractYoutubeId(item.link);
                 if(vidId && ytPlayer) {
                     ytPlayer.loadVideoById(vidId);
+                    ytPlayer.playVideo();
+                    setTimeout(() => {
+                        noContent.style.display = 'none';
+                    }, 1000);
                     if(progressSalvos[item.id] && progressSalvos[item.id] > 5) {
                         setTimeout(() => {
                             if(ytPlayer && ytPlayer.seekTo) {
@@ -1213,10 +1433,14 @@
                     event.target.seekTo(savedTime, true);
                 }
                 event.target.playVideo();
+                document.getElementById('noContent').style.display = 'none';
             }
         }
         
         function onPlayerStateChange(event) {
+            if(event.data === YT.PlayerState.PLAYING) {
+                document.getElementById('noContent').style.display = 'none';
+            }
             if(event.data === YT.PlayerState.PLAYING && currentMedia && currentUser) {
                 if(window.progressInterval) clearInterval(window.progressInterval);
                 window.progressInterval = setInterval(() => {
@@ -1377,14 +1601,17 @@
             `).join('');
             
             document.querySelectorAll('#contentGrid > div').forEach(card => {
-                card.addEventListener('click', () => {
+                card.addEventListener('click', (event) => {
                     const id = card.getAttribute('data-id');
                     const type = card.getAttribute('data-type');
                     let item;
                     if(type === 'canal') item = canais.find(c => c.id === id);
                     else if(type === 'filme') item = filmes.find(f => f.id === id);
                     else item = series.find(s => s.id === id);
-                    if(item) playMedia(item, type);
+                    if(item) {
+                        const rect = card.getBoundingClientRect();
+                        playMedia(item, type, rect);
+                    }
                 });
             });
         }
@@ -1435,7 +1662,8 @@
                             const type = el.getAttribute('data-type');
                             const item = type === 'filme' ? filmes.find(f => f.id === id) : series.find(s => s.id === id);
                             if(item) {
-                                playMedia(item, type);
+                                const rect = { top: window.innerHeight / 2 };
+                                playMedia(item, type, rect);
                                 document.getElementById('searchPopup').classList.add('hidden');
                             }
                         });
@@ -1478,7 +1706,6 @@
             }
         }
         
-        // Chat toggle
         function toggleChat() {
             const chatContainer = document.getElementById('chatContainer');
             chatContainer.classList.toggle('open');
@@ -1499,25 +1726,27 @@
         document.getElementById('saveUsernameBtn').onclick = saveUsername;
         document.getElementById('logoutSettingsBtn').onclick = logoutUser;
         document.getElementById('castButton').onclick = () => showToast('Conecte-se a um Chromecast');
+        document.getElementById('closeFloatingPlayer').onclick = closeFloatingPlayer;
+        document.getElementById('floatingPlayerOverlay').onclick = closeFloatingPlayer;
         
-        // Chat events
+        // Dark/Light mode buttons
+        document.getElementById('darkModeBtn').onclick = setDarkMode;
+        document.getElementById('lightModeBtn').onclick = setLightMode;
+        document.getElementById('darkModeSettingsBtn').onclick = setDarkMode;
+        document.getElementById('lightModeSettingsBtn').onclick = setLightMode;
+        
         document.getElementById('chatToggleBtn').onclick = toggleChat;
         document.getElementById('closeChatBtn').onclick = toggleChat;
         document.getElementById('sendMessageBtn').onclick = sendChatMessage;
         document.getElementById('chatInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') sendChatMessage(); });
         
-        // Auth eventos
         document.getElementById('doLogin').onclick = () => {
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
             auth.signInWithEmailAndPassword(email, password).catch(e => showToast('Erro: ' + e.message));
         };
         
-        document.getElementById('doRegister').onclick = () => {
-            const email = document.getElementById('registerEmail').value;
-            const password = document.getElementById('registerPassword').value;
-            auth.createUserWithEmailAndPassword(email, password).catch(e => showToast('Erro: ' + e.message));
-        };
+        document.getElementById('doRegister').onclick = registerUser;
         
         document.getElementById('showRegister').onclick = () => {
             document.getElementById('loginForm').classList.add('hidden');
@@ -1529,7 +1758,6 @@
             document.getElementById('loginForm').classList.remove('hidden');
         };
         
-        // Admin modal
         const modal = document.getElementById('adminModal');
         document.getElementById('adminBtn').onclick = () => { modal.classList.remove('hidden'); document.getElementById('adminLoginArea').classList.remove('hidden'); document.getElementById('adminPanel').classList.add('hidden'); };
         document.getElementById('closeAdminModal').onclick = () => modal.classList.add('hidden');
@@ -1575,7 +1803,6 @@
         document.getElementById('saveBatchBtn').onclick = saveBatch;
         document.getElementById('saveEpisodesBtn').onclick = saveEpisodes;
         
-        // Fechar modais ao clicar fora
         document.getElementById('settingsModal').addEventListener('click', (e) => {
             if(e.target === document.getElementById('settingsModal')) {
                 document.getElementById('settingsModal').classList.add('hidden');
@@ -1588,7 +1815,6 @@
             }
         });
         
-        // Inicialização
         auth.onAuthStateChanged((user) => {
             currentUser = user;
             updateUserUI(user);
@@ -1596,6 +1822,7 @@
         
         setupSearchPopup();
         document.getElementById('batchSeriesArea').classList.add('hidden');
+        loadTheme();
         
         if(typeof YT === 'undefined') {
             window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
