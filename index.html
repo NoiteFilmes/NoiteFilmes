@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -716,7 +717,7 @@
                         <h3 class="font-semibold text-md mb-2" id="formTitle">Adicionar</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                             <input type="text" id="itemTitle" placeholder="Título" class="bg-gray-700 p-2 rounded text-sm">
-                            <input type="text" id="itemLink" placeholder="Link do YouTube" class="bg-gray-700 p-2 rounded text-sm">
+                            <input type="text" id="itemLink" placeholder="Link do YouTube (vídeo ou canal ao vivo)" class="bg-gray-700 p-2 rounded text-sm">
                             <input type="text" id="itemThumb" placeholder="Miniatura URL" class="bg-gray-700 p-2 rounded text-sm">
                             <input type="text" id="itemCategory" placeholder="Gênero" class="bg-gray-700 p-2 rounded text-sm">
                             <input type="text" id="itemYear" placeholder="Ano" class="bg-gray-700 p-2 rounded text-sm">
@@ -809,16 +810,53 @@
             return Date.now() + '-' + Math.random().toString(36).substring(2, 15);
         }
         
-        function extractYoutubeId(url) {
+        // FUNÇÃO CORRIGIDA PARA ACEITAR QUALQUER LINK DO YOUTUBE (VÍDEO, CANAL, LIVE)
+        function extractYoutubeEmbedUrl(url) {
             if(!url) return null;
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-            const match = url.match(regExp);
-            return (match && match[2].length === 11) ? match[2] : null;
+            
+            // Verificar se é um link de canal ao vivo (@canal ou /channel/UC...)
+            let channelMatch = url.match(/(?:youtube\.com\/@|youtube\.com\/channel\/)([^\/\?&]+)/);
+            if(channelMatch) {
+                const channelId = channelMatch[1];
+                return `https://www.youtube.com/embed/live_stream?channel=${channelId}`;
+            }
+            
+            // Verificar se é um link de vídeo normal
+            let videoMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^\/\?&]+)/);
+            if(videoMatch) {
+                const videoId = videoMatch[1];
+                return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+            }
+            
+            // Verificar se já é um embed
+            if(url.includes('youtube.com/embed/')) {
+                return url;
+            }
+            
+            return null;
+        }
+        
+        function extractYoutubeId(url) {
+            const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^\/\?&]+)/);
+            return match ? match[1] : null;
         }
         
         async function fetchYouTubeMetadata(url) {
             const videoId = extractYoutubeId(url);
-            if (!videoId) return null;
+            if (!videoId) {
+                // Se for canal ao vivo, retorna metadados básicos
+                if(url.includes('youtube.com/@') || url.includes('youtube.com/channel/')) {
+                    return {
+                        title: 'Canal ao vivo',
+                        thumb: 'https://via.placeholder.com/300x200?text=LIVE',
+                        description: 'Transmissão ao vivo do YouTube',
+                        year: new Date().getFullYear(),
+                        genre: 'Ao Vivo',
+                        link: url
+                    };
+                }
+                return null;
+            }
             try {
                 const oembedRes = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
                 const oembedData = await oembedRes.json();
@@ -829,7 +867,7 @@
                 }
                 let genre = 'Geral';
                 const title = oembedData.title || '';
-                const genres = ['Ação', 'Comédia', 'Drama', 'Terror', 'Ficção', 'Romance', 'Aventura', 'Suspense', 'Animação'];
+                const genres = ['Ação', 'Comédia', 'Drama', 'Terror', 'Ficção', 'Romance', 'Aventura', 'Suspense', 'Animação', 'Ao Vivo'];
                 for(let g of genres) {
                     if(title.toLowerCase().includes(g.toLowerCase())) {
                         genre = g;
@@ -858,29 +896,20 @@
             setTimeout(() => toast.remove(), 3000);
         }
         
-        // CARREGAR DADOS DO FIREBASE
         function loadFilmesFromFirebase() {
             setSyncStatus(true);
-            console.log("Carregando filmes do Firebase...");
-            
             database.ref('filmes').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if(data && Object.keys(data).length > 0) {
                     filmes = Object.values(data);
-                    console.log("✅ Filmes carregados:", filmes.length);
                     showToast(`📀 ${filmes.length} filmes carregados`);
                 } else {
-                    console.log("Nenhum filme encontrado, adicionando padrão...");
                     filmes = [];
                     addDefaultFilmes();
                 }
                 renderGrid();
                 generateWeeklyTop10();
                 updateGenreFilters();
-                setSyncStatus(false);
-            }, (error) => {
-                console.error("Erro ao carregar filmes:", error);
-                showToast("❌ Erro ao carregar filmes");
                 setSyncStatus(false);
             });
         }
@@ -914,7 +943,7 @@
             });
         }
         
-        // SALVAR FILME
+        // FUNÇÃO DE SALVAR CORRIGIDA - ACEITA QUALQUER LINK DO YOUTUBE
         async function saveSingleItem() {
             const title = document.getElementById('itemTitle').value.trim();
             const link = document.getElementById('itemLink').value.trim();
@@ -927,21 +956,36 @@
                 return;
             }
             
-            const videoId = extractYoutubeId(link);
-            if(!videoId) {
-                showToast('❌ Link do YouTube inválido');
+            // Verificar se o link é do YouTube (vídeo ou canal)
+            const isYoutubeLink = link.includes('youtube.com') || link.includes('youtu.be');
+            if(!isYoutubeLink && !link.includes('.m3u8')) {
+                showToast('❌ Apenas links do YouTube ou .m3u8 são suportados');
                 return;
             }
+            
+            const embedUrl = extractYoutubeEmbedUrl(link);
+            const finalLink = embedUrl || link;
             
             const activeAdminTab = document.querySelector('#adminPanel .admin-tab-btn.border-b-2.border-red-600')?.id;
             const safeId = generateSafeId();
             
+            let finalThumb = thumb;
+            if(!finalThumb && isYoutubeLink) {
+                const videoId = extractYoutubeId(link);
+                if(videoId) {
+                    finalThumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                } else {
+                    finalThumb = 'https://via.placeholder.com/300x200?text=LIVE';
+                }
+            }
+            
             const newItem = {
                 id: safeId,
                 title: title,
-                link: link,
-                thumb: thumb || `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
-                category: category || 'Geral',
+                link: finalLink,
+                originalLink: link,
+                thumb: finalThumb || 'https://via.placeholder.com/300x200',
+                category: category || (link.includes('@') || link.includes('/channel/') ? 'Ao Vivo' : 'Geral'),
                 year: year || new Date().getFullYear(),
                 description: title,
                 createdAt: Date.now()
@@ -952,7 +996,7 @@
             try {
                 if(activeAdminTab === 'adminTabCanais') {
                     await database.ref(`canais/${safeId}`).set(newItem);
-                    showToast('✅ Canal salvo!');
+                    showToast('✅ Canal ao vivo salvo!');
                     loadCanaisFromFirebase();
                 } else if(activeAdminTab === 'adminTabFilmes') {
                     await database.ref(`filmes/${safeId}`).set(newItem);
@@ -974,11 +1018,11 @@
         
         async function previewBatch() {
             const linksText = document.getElementById('batchLinksInput').value;
-            const links = linksText.split('\n').filter(l => l.trim() && extractYoutubeId(l.trim()));
+            const links = linksText.split('\n').filter(l => l.trim() && (l.includes('youtube.com') || l.includes('youtu.be')));
             const previewDiv = document.getElementById('batchPreview');
             
             if(links.length === 0) {
-                previewDiv.innerHTML = '<div class="text-yellow-500 text-xs">⚠️ Nenhum link válido</div>';
+                previewDiv.innerHTML = '<div class="text-yellow-500 text-xs">⚠️ Nenhum link válido do YouTube</div>';
                 return;
             }
             
@@ -1039,10 +1083,12 @@
             let salvos = 0;
             for(let item of newItems) {
                 const safeId = generateSafeId();
+                const embedUrl = extractYoutubeEmbedUrl(item.link);
                 await database.ref(`filmes/${safeId}`).set({
                     id: safeId,
                     title: item.title,
-                    link: item.link,
+                    link: embedUrl || item.link,
+                    originalLink: item.link,
                     thumb: item.thumb,
                     category: item.genre,
                     year: item.year,
@@ -1095,11 +1141,13 @@
                 }
                 
                 const metadata = await fetchYouTubeMetadata(link);
+                const embedUrl = extractYoutubeEmbedUrl(link);
                 const safeId = generateSafeId();
                 await database.ref(`series/${safeId}`).set({
                     id: safeId,
                     title: `${serieName} - ${episodeTitle}`,
-                    link: link,
+                    link: embedUrl || link,
+                    originalLink: link,
                     thumb: metadata?.thumb || 'https://via.placeholder.com/300x200',
                     category: metadata?.genre || 'Série',
                     year: metadata?.year || new Date().getFullYear(),
@@ -1117,7 +1165,141 @@
             setSyncStatus(false);
         }
         
-        // FUNÇÕES DE AUTENTICAÇÃO E CHAT
+        // FUNÇÃO DE REPRODUÇÃO CORRIGIDA - SUPORTA CANAIS AO VIVO
+        function playMedia(item, type, elementRect = null) {
+            if(elementRect) {
+                playInFloatingPlayer(item, type, elementRect);
+                return;
+            }
+            
+            const playerSection = document.getElementById('playerSection');
+            playerSection.classList.remove('hidden');
+            
+            const hlsVideo = document.getElementById('hlsPlayer');
+            const youtubeDiv = document.getElementById('youtubePlayerDiv');
+            const noContent = document.getElementById('noContent');
+            
+            youtubeDiv.style.display = 'block';
+            hlsVideo.style.display = 'none';
+            if(window.hlsInstance) { window.hlsInstance.destroy(); window.hlsInstance = null; }
+            
+            currentMedia = item;
+            currentMediaType = type;
+            document.getElementById('currentMediaTitle').innerText = item.title;
+            document.getElementById('currentMediaDesc').innerText = item.description || 'Sem descrição';
+            document.getElementById('mediaYear').innerHTML = item.year ? `📅 ${item.year}` : '';
+            document.getElementById('mediaGenre').innerHTML = item.category ? `🎭 ${item.category}` : '';
+            
+            noContent.style.display = 'flex';
+            noContent.innerHTML = '🎬 Carregando...';
+            
+            if(type === 'filme' || type === 'serie' || type === 'canal') {
+                const linkToUse = item.link;
+                
+                // Verificar se é um link do YouTube (vídeo ou canal ao vivo)
+                if(linkToUse.includes('youtube.com/embed/') || linkToUse.includes('youtube.com/watch')) {
+                    if(ytPlayer) {
+                        // Extrair ID do vídeo ou usar embed
+                        let videoId = extractYoutubeId(linkToUse);
+                        if(!videoId && linkToUse.includes('/embed/')) {
+                            const embedMatch = linkToUse.match(/embed\/([^\/\?&]+)/);
+                            videoId = embedMatch ? embedMatch[1] : null;
+                        }
+                        if(videoId) {
+                            ytPlayer.loadVideoById(videoId);
+                            ytPlayer.playVideo();
+                            setTimeout(() => {
+                                noContent.style.display = 'none';
+                            }, 1000);
+                        } else if(linkToUse.includes('live_stream')) {
+                            // Para canais ao vivo, usar o embed diretamente
+                            youtubeDiv.style.display = 'block';
+                            const iframe = document.createElement('iframe');
+                            iframe.src = linkToUse;
+                            iframe.style.width = '100%';
+                            iframe.style.height = '100%';
+                            iframe.style.border = 'none';
+                            youtubeDiv.innerHTML = '';
+                            youtubeDiv.appendChild(iframe);
+                            noContent.style.display = 'none';
+                        } else {
+                            ytPlayer.loadVideoById(linkToUse);
+                            ytPlayer.playVideo();
+                            setTimeout(() => {
+                                noContent.style.display = 'none';
+                            }, 1000);
+                        }
+                    }
+                } else if(linkToUse.includes('.m3u8')) {
+                    youtubeDiv.style.display = 'none';
+                    hlsVideo.style.display = 'block';
+                    if(Hls.isSupported()) {
+                        window.hlsInstance = new Hls();
+                        window.hlsInstance.loadSource(linkToUse);
+                        window.hlsInstance.attachMedia(hlsVideo);
+                        window.hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+                            hlsVideo.play();
+                            noContent.style.display = 'none';
+                        });
+                    }
+                } else {
+                    alert("Formato não suportado");
+                    noContent.style.display = 'none';
+                }
+            }
+        }
+        
+        function playInFloatingPlayer(item, type, elementRect) {
+            const floatingPlayer = document.getElementById('floatingPlayer');
+            const overlay = document.getElementById('floatingPlayerOverlay');
+            const linkToUse = item.link;
+            
+            floatingPlayer.classList.remove('hidden');
+            overlay.classList.remove('hidden');
+            
+            document.getElementById('floatingMediaTitle').innerText = item.title;
+            document.getElementById('floatingMediaYear').innerHTML = item.year ? `📅 ${item.year}` : '';
+            document.getElementById('floatingMediaGenre').innerHTML = item.category ? `🎭 ${item.category}` : '';
+            
+            if(floatingYtPlayer) {
+                let videoId = extractYoutubeId(linkToUse);
+                if(videoId) {
+                    floatingYtPlayer.loadVideoById(videoId);
+                    floatingYtPlayer.playVideo();
+                } else if(linkToUse.includes('live_stream')) {
+                    const iframe = document.getElementById('floatingYoutubePlayerDiv');
+                    iframe.innerHTML = `<iframe src="${linkToUse}" style="width:100%;height:100%;border:none;" allowfullscreen></iframe>`;
+                }
+            } else {
+                floatingYtPlayer = new YT.Player('floatingYoutubePlayerDiv', {
+                    height: '100%',
+                    width: '100%',
+                    videoId: extractYoutubeId(linkToUse) || '',
+                    playerVars: { 'autoplay': 1, 'controls': 1, 'modestbranding': 1, 'rel': 0, 'showinfo': 0, 'fs': 1, 'playsinline': 1 },
+                    events: {
+                        'onReady': (event) => { 
+                            event.target.playVideo();
+                            document.getElementById('floatingNoContent').style.display = 'none';
+                        },
+                        'onStateChange': (event) => {
+                            if(event.data === YT.PlayerState.PLAYING) {
+                                document.getElementById('floatingNoContent').style.display = 'none';
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        
+        function closeFloatingPlayer() {
+            if(floatingYtPlayer) {
+                floatingYtPlayer.stopVideo();
+            }
+            document.getElementById('floatingPlayer').classList.add('hidden');
+            document.getElementById('floatingPlayerOverlay').classList.add('hidden');
+        }
+        
+        // FUNÇÕES DE AUTENTICAÇÃO E CHAT (MANTIDAS)
         async function isNicknameAvailable(nickname) {
             const snapshot = await database.ref('usuarios').orderByChild('nickname').equalTo(nickname).once('value');
             return !snapshot.exists();
@@ -1277,104 +1459,6 @@
                 setLightMode();
             } else {
                 setDarkMode();
-            }
-        }
-        
-        function playInFloatingPlayer(item, type, elementRect) {
-            const floatingPlayer = document.getElementById('floatingPlayer');
-            const overlay = document.getElementById('floatingPlayerOverlay');
-            const videoId = extractYoutubeId(item.link);
-            
-            if(!videoId) {
-                showToast('Link inválido');
-                return;
-            }
-            
-            floatingPlayer.classList.remove('hidden');
-            overlay.classList.remove('hidden');
-            
-            document.getElementById('floatingMediaTitle').innerText = item.title;
-            document.getElementById('floatingMediaYear').innerHTML = item.year ? `📅 ${item.year}` : '';
-            document.getElementById('floatingMediaGenre').innerHTML = item.category ? `🎭 ${item.category}` : '';
-            
-            if(floatingYtPlayer) {
-                floatingYtPlayer.loadVideoById(videoId);
-                floatingYtPlayer.playVideo();
-            } else {
-                floatingYtPlayer = new YT.Player('floatingYoutubePlayerDiv', {
-                    height: '100%',
-                    width: '100%',
-                    videoId: videoId,
-                    playerVars: { 'autoplay': 1, 'controls': 1, 'modestbranding': 1, 'rel': 0, 'showinfo': 0, 'fs': 1, 'playsinline': 1 },
-                    events: {
-                        'onReady': (event) => { 
-                            event.target.playVideo();
-                            document.getElementById('floatingNoContent').style.display = 'none';
-                        },
-                        'onStateChange': (event) => {
-                            if(event.data === YT.PlayerState.PLAYING) {
-                                document.getElementById('floatingNoContent').style.display = 'none';
-                            }
-                        }
-                    }
-                });
-            }
-        }
-        
-        function closeFloatingPlayer() {
-            if(floatingYtPlayer) {
-                floatingYtPlayer.stopVideo();
-            }
-            document.getElementById('floatingPlayer').classList.add('hidden');
-            document.getElementById('floatingPlayerOverlay').classList.add('hidden');
-        }
-        
-        function playMedia(item, type, elementRect = null) {
-            if(elementRect) {
-                playInFloatingPlayer(item, type, elementRect);
-                return;
-            }
-            
-            const playerSection = document.getElementById('playerSection');
-            playerSection.classList.remove('hidden');
-            
-            const hlsVideo = document.getElementById('hlsPlayer');
-            const youtubeDiv = document.getElementById('youtubePlayerDiv');
-            const noContent = document.getElementById('noContent');
-            
-            youtubeDiv.style.display = 'block';
-            hlsVideo.style.display = 'none';
-            if(window.hlsInstance) { window.hlsInstance.destroy(); window.hlsInstance = null; }
-            
-            currentMedia = item;
-            currentMediaType = type;
-            document.getElementById('currentMediaTitle').innerText = item.title;
-            document.getElementById('currentMediaDesc').innerText = item.description || 'Sem descrição';
-            document.getElementById('mediaYear').innerHTML = item.year ? `📅 ${item.year}` : '';
-            document.getElementById('mediaGenre').innerHTML = item.category ? `🎭 ${item.category}` : '';
-            
-            noContent.style.display = 'flex';
-            noContent.innerHTML = '🎬 Carregando vídeo...';
-            
-            if(type === 'filme' || type === 'serie') {
-                const vidId = extractYoutubeId(item.link);
-                if(vidId && ytPlayer) {
-                    ytPlayer.loadVideoById(vidId);
-                    ytPlayer.playVideo();
-                    setTimeout(() => {
-                        noContent.style.display = 'none';
-                    }, 1000);
-                    if(progressSalvos[item.id] && progressSalvos[item.id] > 5) {
-                        setTimeout(() => {
-                            if(ytPlayer && ytPlayer.seekTo) {
-                                ytPlayer.seekTo(progressSalvos[item.id], true);
-                            }
-                        }, 1500);
-                    }
-                } else {
-                    alert("Link inválido");
-                    noContent.style.display = 'none';
-                }
             }
         }
         
@@ -1556,7 +1640,7 @@
             
             const grid = document.getElementById('contentGrid');
             if(items.length === 0) { 
-                grid.innerHTML = '<div class="col-span-full text-center py-6 text-gray-500 text-sm">📀 Nenhum filme encontrado. Adicione no Admin!</div>'; 
+                grid.innerHTML = '<div class="col-span-full text-center py-6 text-gray-500 text-sm">📀 Nenhum conteúdo encontrado. Adicione no Admin!</div>'; 
                 return; 
             }
             
@@ -1665,7 +1749,7 @@
         
         async function autoFillFromYoutubeLink() {
             const link = document.getElementById('itemLink').value.trim();
-            if(!link || !extractYoutubeId(link)) return;
+            if(!link || (!link.includes('youtube.com') && !link.includes('youtu.be'))) return;
             const metadata = await fetchYouTubeMetadata(link);
             if(metadata) {
                 document.getElementById('itemTitle').value = metadata.title;
