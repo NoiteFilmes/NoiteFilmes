@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>NoiteFilmes - com Firebase</title>
+    <title>NoiteFilmes - Rede Social para Cinéfilos</title>
+    <link rel="icon" type="image/png" href="https://via.placeholder.com/32x32?text=NF">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.8/dist/hls.min.js"></script>
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -15,7 +16,6 @@
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* Seus estilos existentes aqui */
         * { box-sizing: border-box; }
         body { background-color: #0a0a0a; overflow-x: hidden; }
         .player-wrapper { background: #000; position: relative; padding-bottom: 56.25%; height: 0; }
@@ -254,7 +254,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
         
-        /* Modal de Login */
         .login-modal {
             position: fixed;
             top: 0;
@@ -363,6 +362,22 @@
             cursor: pointer;
             font-size: 12px;
         }
+        .search-results-popup {
+            max-height: 500px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        .search-result-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .search-result-item:hover { background: #2a2a2a; }
+        .search-result-item img { width: 60px; height: 80px; object-fit: cover; border-radius: 8px; }
     </style>
 </head>
 <body class="bg-black text-gray-200 font-sans">
@@ -398,7 +413,6 @@
         </div>
     </header>
 
-    <!-- Modal de Login -->
     <div id="loginModal" class="login-modal">
         <div class="login-box">
             <h2 class="text-2xl font-bold mb-4 text-center">🎬 NoiteFilmes</h2>
@@ -471,7 +485,6 @@
         <div id="contentGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
     </div>
 
-    <!-- Chat Flutuante -->
     <div id="chatContainer" class="chat-container">
         <div class="chat-header" id="chatHeader">
             <div class="flex items-center gap-2">
@@ -570,18 +583,16 @@
     </div>
 
     <script>
-        // ==================== CONFIGURAÇÃO DO FIREBASE ====================
-        // COLE AQUI SUAS CONFIGURAÇÕES DO FIREBASE
-        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyAXQ_3yaVR6TgsAha6nU7uihHdd8NvrP78",
-  authDomain: "noitefilmes26.firebaseapp.com",
-  projectId: "noitefilmes26",
-  storageBucket: "noitefilmes26.firebasestorage.app",
-  messagingSenderId: "654439850210",
-  appId: "1:654439850210:web:6f00af60cde262aafcbebb",
-  measurementId: "G-Q9DCCZTQH9"
-};
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyAXQ_3yaVR6TgsAha6nU7uihHdd8NvrP78",
+            authDomain: "noitefilmes26.firebaseapp.com",
+            projectId: "noitefilmes26",
+            storageBucket: "noitefilmes26.firebasestorage.app",
+            messagingSenderId: "654439850210",
+            appId: "1:654439850210:web:6f00af60cde262aafcbebb",
+            measurementId: "G-Q9DCCZTQH9"
+        };
         
         // Inicializar Firebase
         firebase.initializeApp(firebaseConfig);
@@ -607,7 +618,215 @@ const firebaseConfig = {
         let isAdminLogged = false;
         let editingItem = null;
         
-        // Funções de Autenticação
+        function extractYoutubeId(url) {
+            if(!url) return null;
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+        
+        async function fetchYouTubeMetadata(url) {
+            const videoId = extractYoutubeId(url);
+            if (!videoId) return null;
+            try {
+                const oembedRes = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
+                const oembedData = await oembedRes.json();
+                let year = new Date().getFullYear();
+                if(oembedData.title) {
+                    const yearMatch = oembedData.title.match(/(19|20)\d{2}/);
+                    if(yearMatch) year = yearMatch[0];
+                }
+                let genre = 'Geral';
+                const title = oembedData.title || '';
+                const genres = ['Ação', 'Comédia', 'Drama', 'Terror', 'Ficção', 'Romance', 'Aventura', 'Suspense', 'Animação'];
+                for(let g of genres) {
+                    if(title.toLowerCase().includes(g.toLowerCase())) {
+                        genre = g;
+                        break;
+                    }
+                }
+                return {
+                    title: oembedData.title || 'Sem título',
+                    thumb: oembedData.thumbnail_url || `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+                    description: oembedData.title || 'Sem descrição',
+                    year: year,
+                    genre: genre,
+                    link: url
+                };
+            } catch(e) {
+                console.error("Erro ao buscar metadados:", e);
+                return null;
+            }
+        }
+        
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerText = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+        
+        // Função de salvar lote CORRIGIDA
+        async function previewBatch() {
+            const linksText = document.getElementById('batchLinksInput').value;
+            const links = linksText.split('\n').filter(l => l.trim() && extractYoutubeId(l.trim()));
+            const previewDiv = document.getElementById('batchPreview');
+            
+            if(links.length === 0) {
+                previewDiv.innerHTML = '<div class="text-yellow-500">⚠️ Nenhum link válido do YouTube encontrado</div>';
+                return;
+            }
+            
+            previewDiv.innerHTML = '<div class="text-yellow-500">🔄 Buscando dados dos vídeos...</div>';
+            
+            const items = [];
+            for(let i = 0; i < links.length; i++) {
+                const link = links[i].trim();
+                showToast(`Buscando vídeo ${i+1}/${links.length}...`);
+                const metadata = await fetchYouTubeMetadata(link);
+                if(metadata) {
+                    items.push(metadata);
+                }
+            }
+            batchPreviewItems = items;
+            
+            if(items.length === 0) {
+                previewDiv.innerHTML = '<div class="text-red-500">❌ Nenhum vídeo encontrado. Verifique os links.</div>';
+                return;
+            }
+            
+            const existingTitles = filmes.map(f => f.title);
+            const previewHtml = items.map((item, idx) => {
+                const isDuplicate = existingTitles.includes(item.title);
+                return `<div class="p-2 border-b border-gray-700 ${isDuplicate ? 'duplicate-item' : ''}">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <strong>${item.title}</strong><br>
+                            <span class="text-xs text-gray-400">${item.genre} • ${item.year}</span>
+                        </div>
+                        ${isDuplicate ? '<span class="text-red-500 text-xs">⚠️ DUPLICADO</span>' : '<span class="text-green-500 text-xs">✅ Novo</span>'}
+                    </div>
+                </div>`;
+            }).join('');
+            
+            previewDiv.innerHTML = `<div class="mb-2 text-sm">📊 Total: ${items.length} filmes | ${items.filter(i => existingTitles.includes(i.title)).length} duplicados</div>${previewHtml}`;
+            showToast(`✅ ${items.length} filmes carregados na prévia`);
+        }
+        
+        async function saveBatch() {
+            if(batchPreviewItems.length === 0) {
+                showToast('❌ Nenhum filme para salvar. Clique em "Pré-visualizar" primeiro.');
+                return;
+            }
+            
+            const existingTitles = filmes.map(f => f.title);
+            const newItems = batchPreviewItems.filter(item => !existingTitles.includes(item.title));
+            const duplicates = batchPreviewItems.filter(item => existingTitles.includes(item.title));
+            
+            if(duplicates.length > 0) {
+                const confirmMsg = `⚠️ ${duplicates.length} filmes duplicados encontrados!\n\n${duplicates.slice(0,5).map(d => d.title).join('\n')}${duplicates.length > 5 ? `\n... e mais ${duplicates.length-5}` : ''}\n\nDeseja adicionar apenas os ${newItems.length} filmes novos?`;
+                if(!confirm(confirmMsg)) return;
+            }
+            
+            if(newItems.length === 0) {
+                showToast('❌ Nenhum filme novo para adicionar');
+                return;
+            }
+            
+            showToast(`💾 Salvando ${newItems.length} filmes...`);
+            
+            let salvos = 0;
+            for(let item of newItems) {
+                const newId = Date.now() + '-' + Math.random().toString(36) + '-' + item.title.replace(/[^a-z0-9]/gi, '').substring(0,10);
+                await database.ref(`filmes/${newId}`).set({
+                    id: newId,
+                    title: item.title,
+                    link: item.link,
+                    thumb: item.thumb,
+                    category: item.genre,
+                    year: item.year,
+                    description: item.description
+                });
+                salvos++;
+            }
+            
+            showToast(`✅ ${salvos} filmes adicionados com sucesso! ${duplicates.length} duplicados ignorados.`);
+            
+            // Limpar campos
+            document.getElementById('batchLinksInput').value = '';
+            document.getElementById('batchPreview').innerHTML = '';
+            batchPreviewItems = [];
+            
+            // Recarregar dados
+            setTimeout(() => {
+                database.ref('filmes').once('value', (snapshot) => {
+                    const data = snapshot.val();
+                    filmes = data ? Object.values(data) : [];
+                    renderGrid();
+                    updateGenreFilters();
+                    generateWeeklyTop10();
+                });
+            }, 1000);
+        }
+        
+        async function saveEpisodes() {
+            const serieName = document.getElementById('serieTitle').value.trim();
+            const episodesText = document.getElementById('episodesLinksInput').value;
+            
+            if(!serieName) {
+                alert('Digite o nome da série');
+                return;
+            }
+            
+            const lines = episodesText.split('\n').filter(l => l.trim());
+            if(lines.length === 0) {
+                alert('Cole os episódios');
+                return;
+            }
+            
+            showToast(`💾 Salvando ${lines.length} episódios...`);
+            
+            let salvos = 0;
+            for(let line of lines) {
+                let episodeTitle = '';
+                let link = '';
+                
+                if(line.includes(':')) {
+                    const parts = line.split(':');
+                    episodeTitle = parts[0].trim();
+                    link = parts.slice(1).join(':').trim();
+                } else {
+                    link = line.trim();
+                    episodeTitle = `EP${String(salvos + 1).padStart(2, '0')}`;
+                }
+                
+                const metadata = await fetchYouTubeMetadata(link);
+                const newId = Date.now() + '-' + Math.random().toString(36);
+                await database.ref(`series/${newId}`).set({
+                    id: newId,
+                    title: `${serieName} - ${episodeTitle}`,
+                    link: link,
+                    thumb: metadata?.thumb || 'https://via.placeholder.com/300x200',
+                    category: metadata?.genre || 'Série',
+                    year: metadata?.year || new Date().getFullYear(),
+                    description: metadata?.description || `Episódio ${episodeTitle} de ${serieName}`
+                });
+                salvos++;
+            }
+            
+            showToast(`✅ ${salvos} episódios adicionados!`);
+            document.getElementById('serieTitle').value = '';
+            document.getElementById('episodesLinksInput').value = '';
+            
+            database.ref('series').once('value', (snapshot) => {
+                const data = snapshot.val();
+                series = data ? Object.values(data) : [];
+                renderGrid();
+            });
+        }
+        
+        // Funções de autenticação
         function showLoginModal() {
             document.getElementById('loginModal').classList.remove('hidden');
         }
@@ -630,39 +849,34 @@ const firebaseConfig = {
             }
         }
         
-        // Carregar dados do Firebase
-        async function loadAllData() {
+        function loadAllData() {
             showToast('🔄 Carregando dados do Firebase...');
             
-            // Carregar filmes
             database.ref('filmes').on('value', (snapshot) => {
                 const data = snapshot.val();
                 filmes = data ? Object.values(data) : [];
-                if (filmes.length === 0) loadDefaultFilmes();
+                if(filmes.length === 0) loadDefaultFilmes();
                 renderGrid();
                 generateWeeklyTop10();
                 updateGenreFilters();
             });
             
-            // Carregar séries
             database.ref('series').on('value', (snapshot) => {
                 const data = snapshot.val();
                 series = data ? Object.values(data) : [];
-                if (series.length === 0) loadDefaultSeries();
+                if(series.length === 0) loadDefaultSeries();
                 renderGrid();
                 generateWeeklyTop10();
             });
             
-            // Carregar canais
             database.ref('canais').on('value', (snapshot) => {
                 const data = snapshot.val();
                 canais = data ? Object.values(data) : [];
-                if (canais.length === 0) loadDefaultCanais();
-                if (currentNavTab === 'canais') renderGrid();
+                if(canais.length === 0) loadDefaultCanais();
+                if(currentNavTab === 'canais') renderGrid();
             });
             
-            // Carregar favoritos do usuário
-            if (currentUser) {
+            if(currentUser) {
                 database.ref(`favoritos/${currentUser.uid}`).on('value', (snapshot) => {
                     const data = snapshot.val();
                     favoritos = data ? Object.values(data) : [];
@@ -675,10 +889,9 @@ const firebaseConfig = {
                 });
             }
             
-            // Carregar Top 10
             database.ref('top10').on('value', (snapshot) => {
                 const data = snapshot.val();
-                if (data) {
+                if(data) {
                     top10List = data;
                     renderTop10Carousel();
                 } else {
@@ -686,7 +899,6 @@ const firebaseConfig = {
                 }
             });
             
-            // Carregar chat
             database.ref('chat').limitToLast(100).on('child_added', (snapshot) => {
                 const msg = snapshot.val();
                 addMessageToChat(msg.username, msg.text, msg.isSystem, msg.time, false);
@@ -722,7 +934,6 @@ const firebaseConfig = {
             });
         }
         
-        // Chat functions
         function addMessageToChat(username, text, isSystem, time, saveToFirebase = true) {
             const container = document.getElementById('chatMessages');
             const messageDiv = document.createElement('div');
@@ -732,7 +943,7 @@ const firebaseConfig = {
                     ${isSystem ? '<i class="fas fa-info-circle text-xs"></i>' : (username?.charAt(0).toUpperCase() || '?')}
                 </div>
                 <div class="message-content">
-                    ${!isSystem ? `<div class="message-username">${username}</div>` : ''}
+                    ${!isSystem ? `<div class="message-username">${escapeHtml(username)}</div>` : ''}
                     <div class="message-text">${escapeHtml(text)}</div>
                     <div class="message-time">${time || new Date().toLocaleTimeString()}</div>
                 </div>
@@ -740,7 +951,7 @@ const firebaseConfig = {
             container.appendChild(messageDiv);
             container.scrollTop = container.scrollHeight;
             
-            if (saveToFirebase && !isSystem) {
+            if (saveToFirebase && !isSystem && currentUser) {
                 database.ref('chat').push({
                     username: username,
                     text: text,
@@ -765,35 +976,6 @@ const firebaseConfig = {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
-        }
-        
-        // Funções existentes (adaptadas para Firebase)
-        function extractYoutubeId(url) {
-            if(!url) return null;
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-            const match = url.match(regExp);
-            return (match && match[2].length === 11) ? match[2] : null;
-        }
-        
-        async function fetchYouTubeMetadata(url) {
-            const videoId = extractYoutubeId(url);
-            if (!videoId) return null;
-            try {
-                const oembedRes = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
-                const oembedData = await oembedRes.json();
-                let year = new Date().getFullYear();
-                let genre = 'Geral';
-                return {
-                    title: oembedData.title || 'Sem título',
-                    thumb: oembedData.thumbnail_url || `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
-                    description: 'Sem descrição',
-                    year: year,
-                    genre: genre,
-                    link: url
-                };
-            } catch(e) {
-                return null;
-            }
         }
         
         function playMedia(item, type) {
@@ -932,12 +1114,13 @@ const firebaseConfig = {
             }
         }
         
-        function showToast(msg) {
-            const toast = document.createElement('div');
-            toast.className = 'toast';
-            toast.innerText = msg;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
+        function shareMedia() {
+            if(!currentMedia) { alert('Nada selecionado'); return; }
+            const text = encodeURIComponent(`Assista "${currentMedia.title}" no NoiteFilmes!`);
+            const choice = prompt(`Compartilhar:\n1-Facebook\n2-Twitter\n3-WhatsApp\n4-Telegram`);
+            const links = {'1':`https://www.facebook.com/sharer/sharer.php?u=${window.location.href}`,'2':`https://twitter.com/intent/tweet?text=${text}`,'3':`https://api.whatsapp.com/send?text=${text}`,'4':`https://t.me/share/url?url=${window.location.href}&text=${text}`};
+            if(links[choice]) window.open(links[choice], '_blank');
+            else showToast('Opção inválida');
         }
         
         function renderTop10Carousel() {
@@ -1088,7 +1271,6 @@ const firebaseConfig = {
             });
         }
         
-        // Admin functions
         function refreshAdminLists() {
             if(!isAdminLogged) return;
             document.getElementById('canaisAdminList').innerHTML = canais.map(c => `<div class="bg-gray-800 p-2 rounded flex justify-between"><div><strong>${c.title}</strong><br><span class="text-xs">${c.link.substring(0,40)}</span></div><div><button class="delete-canal text-red-500" data-id="${c.id}"><i class="fas fa-trash"></i></button></div></div>`).join('');
@@ -1103,74 +1285,6 @@ const firebaseConfig = {
             document.querySelectorAll('.delete-serie').forEach(btn => btn.addEventListener('click', () => { const id = btn.getAttribute('data-id'); database.ref(`series/${id}`).remove(); showToast('Episódio removido'); }));
         }
         
-        async function previewBatch() {
-            const linksText = document.getElementById('batchLinksInput').value;
-            const links = linksText.split('\n').filter(l => l.trim() && extractYoutubeId(l.trim()));
-            const previewDiv = document.getElementById('batchPreview');
-            previewDiv.innerHTML = '<div class="text-yellow-500">🔄 Buscando dados...</div>';
-            
-            const items = [];
-            for(let link of links) {
-                const metadata = await fetchYouTubeMetadata(link.trim());
-                if(metadata) items.push(metadata);
-            }
-            batchPreviewItems = items;
-            previewDiv.innerHTML = items.map((item, idx) => `<div class="p-2 border-b border-gray-700"><strong>${item.title}</strong><br><span class="text-xs text-gray-400">${item.genre} • ${item.year}</span></div>`).join('');
-        }
-        
-        async function saveBatch() {
-            if(batchPreviewItems.length === 0) { showToast('Pré-visualize primeiro'); return; }
-            for(let item of batchPreviewItems) {
-                const newId = Date.now() + '-' + Math.random().toString(36);
-                database.ref(`filmes/${newId}`).set({
-                    id: newId,
-                    title: item.title,
-                    link: item.link,
-                    thumb: item.thumb,
-                    category: item.genre,
-                    year: item.year,
-                    description: item.description
-                });
-            }
-            showToast(`✅ ${batchPreviewItems.length} filmes adicionados!`);
-            document.getElementById('batchLinksInput').value = '';
-            document.getElementById('batchPreview').innerHTML = '';
-            batchPreviewItems = [];
-        }
-        
-        async function saveEpisodes() {
-            const serieName = document.getElementById('serieTitle').value.trim();
-            const episodesText = document.getElementById('episodesLinksInput').value;
-            if(!serieName) { alert('Digite o nome da série'); return; }
-            
-            const lines = episodesText.split('\n').filter(l => l.trim());
-            for(let line of lines) {
-                let episodeTitle = '', link = '';
-                if(line.includes(':')) {
-                    const parts = line.split(':');
-                    episodeTitle = parts[0].trim();
-                    link = parts.slice(1).join(':').trim();
-                } else {
-                    link = line.trim();
-                    episodeTitle = `EP${Math.floor(Math.random() * 100)}`;
-                }
-                const metadata = await fetchYouTubeMetadata(link);
-                const newId = Date.now() + '-' + Math.random().toString(36);
-                database.ref(`series/${newId}`).set({
-                    id: newId,
-                    title: `${serieName} - ${episodeTitle}`,
-                    link: link,
-                    thumb: metadata?.thumb || 'https://via.placeholder.com/300x200',
-                    category: metadata?.genre || 'Série',
-                    year: metadata?.year || new Date().getFullYear(),
-                    description: metadata?.description || ''
-                });
-            }
-            showToast('Episódios adicionados!');
-            document.getElementById('serieTitle').value = '';
-            document.getElementById('episodesLinksInput').value = '';
-        }
-        
         async function saveItemFromForm() {
             const title = document.getElementById('itemTitle').value.trim();
             const link = document.getElementById('itemLink').value.trim();
@@ -1183,10 +1297,16 @@ const firebaseConfig = {
             const newId = Date.now() + '-' + Math.random().toString(36);
             const newItem = { id: newId, title, link, thumb: thumb || 'https://via.placeholder.com/300x200', category: category || 'Geral', year, description: 'Adicionado via Admin' };
             
-            if(activeAdminTab === 'adminTabCanais') database.ref(`canais/${newId}`).set(newItem);
-            else if(activeAdminTab === 'adminTabFilmes') database.ref(`filmes/${newId}`).set(newItem);
-            else if(activeAdminTab === 'adminTabSeries') database.ref(`series/${newId}`).set(newItem);
-            showToast('Conteúdo adicionado!');
+            if(activeAdminTab === 'adminTabCanais') {
+                await database.ref(`canais/${newId}`).set(newItem);
+                showToast('Canal adicionado!');
+            } else if(activeAdminTab === 'adminTabFilmes') {
+                await database.ref(`filmes/${newId}`).set(newItem);
+                showToast('Filme adicionado!');
+            } else if(activeAdminTab === 'adminTabSeries') {
+                await database.ref(`series/${newId}`).set(newItem);
+                showToast('Episódio adicionado!');
+            }
             resetForm();
         }
         
@@ -1209,6 +1329,7 @@ const firebaseConfig = {
                 document.getElementById('itemThumb').value = metadata.thumb;
                 document.getElementById('itemCategory').value = metadata.genre;
                 document.getElementById('itemYear').value = metadata.year;
+                showToast(`✅ Dados carregados: ${metadata.title}`);
             }
         }
         
@@ -1221,11 +1342,11 @@ const firebaseConfig = {
         document.getElementById('closePlayerBtn').onclick = () => document.getElementById('playerSection').classList.add('hidden');
         document.getElementById('likeButton').onclick = toggleLike;
         document.getElementById('saveButton').onclick = toggleSave;
+        document.getElementById('shareButton').onclick = shareMedia;
         document.getElementById('favoritesBtn').onclick = () => { const favs = favoritos.filter(f => f.saved); if(favs.length === 0) alert('Nenhum favorito'); else alert('Favoritos:\n' + favs.map(f => `⭐ ${f.title}`).join('\n')); };
         document.getElementById('sendMessageBtn').onclick = sendChatMessage;
         document.getElementById('chatInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') sendChatMessage(); });
         
-        // Minimizar chat
         let minimized = false;
         document.getElementById('chatHeader').onclick = () => {
             const container = document.getElementById('chatContainer');
@@ -1334,7 +1455,6 @@ const firebaseConfig = {
             }
         });
         
-        // Simular usuários online
         setInterval(() => {
             const onlineCount = Math.floor(Math.random() * 20) + 5;
             document.getElementById('onlineCount').innerHTML = `● ${onlineCount} online`;
@@ -1342,4 +1462,3 @@ const firebaseConfig = {
     </script>
 </body>
 </html>
-1111
