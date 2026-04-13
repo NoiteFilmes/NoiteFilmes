@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -546,8 +547,8 @@
     </div>
 
     <div class="menu-container">
-        <div class="nav-item" id="navCanaisBtn"><i class="fas fa-tv"></i><span>Canais</span></div>
-        <div class="nav-item active" id="navFilmesBtn"><i class="fas fa-film"></i><span>Filmes</span></div>
+        <div class="nav-item active" id="navCanaisBtn"><i class="fas fa-tv"></i><span>Canais</span></div>
+        <div class="nav-item" id="navFilmesBtn"><i class="fas fa-film"></i><span>Filmes</span></div>
         <div class="nav-item" id="navSeriesBtn"><i class="fas fa-clapperboard"></i><span>Séries</span></div>
         <div class="nav-item" id="navSearchBtn"><i class="fas fa-search"></i><span>Buscar</span></div>
         <div class="nav-item" id="favoritesBtn"><i class="fas fa-heart text-red-500"></i><span>Fav</span></div>
@@ -707,16 +708,16 @@
                 </div>
                 <div id="adminPanel" class="hidden">
                     <div class="flex space-x-3 border-b border-gray-700 mb-3">
-                        <button id="adminTabCanais" class="admin-tab-btn py-1 px-2 text-gray-400 text-sm">Canais</button>
-                        <button id="adminTabFilmes" class="admin-tab-btn py-1 px-2 text-red-500 border-b-2 border-red-600 text-sm">Filmes</button>
+                        <button id="adminTabCanais" class="admin-tab-btn py-1 px-2 text-red-500 border-b-2 border-red-600 text-sm">Canais</button>
+                        <button id="adminTabFilmes" class="admin-tab-btn py-1 px-2 text-gray-400 text-sm">Filmes</button>
                         <button id="adminTabSeries" class="admin-tab-btn py-1 px-2 text-gray-400 text-sm">Séries</button>
                     </div>
                     
                     <div id="adminFormArea" class="bg-gray-800 p-3 rounded-lg mb-4">
-                        <h3 class="font-semibold text-md mb-2" id="formTitle">Adicionar</h3>
+                        <h3 class="font-semibold text-md mb-2" id="formTitle">Adicionar Canal</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                             <input type="text" id="itemTitle" placeholder="Título" class="bg-gray-700 p-2 rounded text-sm">
-                            <input type="text" id="itemLink" placeholder="Link do YouTube (vídeo ou canal ao vivo)" class="bg-gray-700 p-2 rounded text-sm">
+                            <input type="text" id="itemLink" placeholder="Link do YouTube ou .m3u8" class="bg-gray-700 p-2 rounded text-sm">
                             <input type="text" id="itemThumb" placeholder="Miniatura URL" class="bg-gray-700 p-2 rounded text-sm">
                             <input type="text" id="itemCategory" placeholder="Gênero" class="bg-gray-700 p-2 rounded text-sm">
                             <input type="text" id="itemYear" placeholder="Ano" class="bg-gray-700 p-2 rounded text-sm">
@@ -727,8 +728,8 @@
                         </div>
                     </div>
                     
-                    <div id="batchFilmesArea" class="bg-gray-800 p-3 rounded-lg mb-4">
-                        <h3 class="font-semibold text-md mb-2">📦 Adicionar Lote</h3>
+                    <div id="batchFilmesArea" class="bg-gray-800 p-3 rounded-lg mb-4 hidden">
+                        <h3 class="font-semibold text-md mb-2">📦 Adicionar Filmes em Lote</h3>
                         <p class="text-xs text-gray-400 mb-2">Links do YouTube (um por linha)</p>
                         <textarea id="batchLinksInput" rows="4" class="batch-input text-sm" placeholder="https://www.youtube.com/watch?v=..."></textarea>
                         <div class="mt-2 flex gap-2">
@@ -751,8 +752,8 @@
                     </div>
                     
                     <div id="adminListsContainer">
-                        <div id="adminCanaisList" class="mb-4 hidden"><h3 class="font-bold text-sm mb-1">Canais</h3><div id="canaisAdminList" class="space-y-1 max-h-40 overflow-y-auto text-sm"></div></div>
-                        <div id="adminFilmesList"><h3 class="font-bold text-sm mb-1">Filmes</h3><div id="filmesAdminList" class="space-y-1 max-h-40 overflow-y-auto text-sm"></div></div>
+                        <div id="adminCanaisList" class="mb-4"><h3 class="font-bold text-sm mb-1">Canais</h3><div id="canaisAdminList" class="space-y-1 max-h-40 overflow-y-auto text-sm"></div></div>
+                        <div id="adminFilmesList" class="mb-4 hidden"><h3 class="font-bold text-sm mb-1">Filmes</h3><div id="filmesAdminList" class="space-y-1 max-h-40 overflow-y-auto text-sm"></div></div>
                         <div id="adminSeriesList" class="hidden"><h3 class="font-bold text-sm mb-1">Séries</h3><div id="seriesAdminList" class="space-y-1 max-h-40 overflow-y-auto text-sm"></div></div>
                     </div>
                 </div>
@@ -781,11 +782,11 @@
         let canais = [];
         let favoritos = [];
         let currentMedia = null;
-        let currentMediaType = 'filme';
+        let currentMediaType = 'canal';
         let ytPlayer = null;
         let floatingYtPlayer = null;
         let progressSalvos = {};
-        let currentNavTab = 'filmes';
+        let currentNavTab = 'canais';
         let currentGenreFilter = 'todos';
         let top10List = [];
         let isPlayerReady = false;
@@ -809,53 +810,22 @@
             return Date.now() + '-' + Math.random().toString(36).substring(2, 15);
         }
         
-        // FUNÇÃO CORRIGIDA PARA ACEITAR QUALQUER LINK DO YOUTUBE (VÍDEO, CANAL, LIVE)
-        function extractYoutubeEmbedUrl(url) {
+        function extractYoutubeId(url) {
             if(!url) return null;
-            
-            // Verificar se é um link de canal ao vivo (@canal ou /channel/UC...)
-            let channelMatch = url.match(/(?:youtube\.com\/@|youtube\.com\/channel\/)([^\/\?&]+)/);
-            if(channelMatch) {
-                const channelId = channelMatch[1];
-                return `https://www.youtube.com/embed/live_stream?channel=${channelId}`;
-            }
-            
-            // Verificar se é um link de vídeo normal
-            let videoMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^\/\?&]+)/);
-            if(videoMatch) {
-                const videoId = videoMatch[1];
-                return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
-            }
-            
-            // Verificar se já é um embed
-            if(url.includes('youtube.com/embed/')) {
-                return url;
-            }
-            
-            return null;
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
         }
         
-        function extractYoutubeId(url) {
-            const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^\/\?&]+)/);
-            return match ? match[1] : null;
+        function isYoutubeLiveStream(url) {
+            const videoId = extractYoutubeId(url);
+            if (!videoId) return false;
+            return true;
         }
         
         async function fetchYouTubeMetadata(url) {
             const videoId = extractYoutubeId(url);
-            if (!videoId) {
-                // Se for canal ao vivo, retorna metadados básicos
-                if(url.includes('youtube.com/@') || url.includes('youtube.com/channel/')) {
-                    return {
-                        title: 'Canal ao vivo',
-                        thumb: 'https://via.placeholder.com/300x200?text=LIVE',
-                        description: 'Transmissão ao vivo do YouTube',
-                        year: new Date().getFullYear(),
-                        genre: 'Ao Vivo',
-                        link: url
-                    };
-                }
-                return null;
-            }
+            if (!videoId) return null;
             try {
                 const oembedRes = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
                 const oembedData = await oembedRes.json();
@@ -866,7 +836,7 @@
                 }
                 let genre = 'Geral';
                 const title = oembedData.title || '';
-                const genres = ['Ação', 'Comédia', 'Drama', 'Terror', 'Ficção', 'Romance', 'Aventura', 'Suspense', 'Animação', 'Ao Vivo'];
+                const genres = ['Ação', 'Comédia', 'Drama', 'Terror', 'Ficção', 'Romance', 'Aventura', 'Suspense', 'Animação', 'Esportes', 'Notícias', 'Música'];
                 for(let g of genres) {
                     if(title.toLowerCase().includes(g.toLowerCase())) {
                         genre = g;
@@ -874,9 +844,9 @@
                     }
                 }
                 return {
-                    title: oembedData.title || 'Sem título',
+                    title: oembedData.title || 'Canal ao Vivo',
                     thumb: oembedData.thumbnail_url || `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
-                    description: oembedData.title || 'Sem descrição',
+                    description: oembedData.title || 'Canal ao Vivo',
                     year: year,
                     genre: genre,
                     link: url
@@ -896,53 +866,50 @@
         }
         
         function loadFilmesFromFirebase() {
-            setSyncStatus(true);
             database.ref('filmes').on('value', (snapshot) => {
                 const data = snapshot.val();
-                if(data && Object.keys(data).length > 0) {
-                    filmes = Object.values(data);
-                    showToast(`📀 ${filmes.length} filmes carregados`);
-                } else {
-                    filmes = [];
-                    addDefaultFilmes();
-                }
-                renderGrid();
+                filmes = data ? Object.values(data) : [];
+                if(currentNavTab === 'filmes') renderGrid();
                 generateWeeklyTop10();
-                updateGenreFilters();
-                setSyncStatus(false);
             });
-        }
-        
-        function addDefaultFilmes() {
-            const defaultFilmes = [
-                { id: 'f1', title: 'Premonição', link: 'https://www.youtube.com/watch?v=8iSD9Z4lJm4', thumb: 'https://img.youtube.com/vi/8iSD9Z4lJm4/hqdefault.jpg', category: 'Terror', year: '2000', description: 'Clássico do terror' },
-                { id: 'f2', title: 'Predador', link: 'https://www.youtube.com/watch?v=4T8JOK6wY7g', thumb: 'https://img.youtube.com/vi/4T8JOK6wY7g/hqdefault.jpg', category: 'Ação', year: '1987', description: 'Caçada mortal' },
-                { id: 'f3', title: 'Interestelar', link: 'https://www.youtube.com/watch?v=zSWdZVtXT7E', thumb: 'https://img.youtube.com/vi/zSWdZVtXT7E/hqdefault.jpg', category: 'Ficção', year: '2014', description: 'Ficção científica' }
-            ];
-            defaultFilmes.forEach(f => {
-                database.ref(`filmes/${f.id}`).set(f);
-            });
-            filmes = defaultFilmes;
         }
         
         function loadSeriesFromFirebase() {
             database.ref('series').on('value', (snapshot) => {
                 const data = snapshot.val();
                 series = data ? Object.values(data) : [];
-                renderGrid();
+                if(currentNavTab === 'series') renderGrid();
                 generateWeeklyTop10();
             });
         }
         
         function loadCanaisFromFirebase() {
+            setSyncStatus(true);
             database.ref('canais').on('value', (snapshot) => {
                 const data = snapshot.val();
-                canais = data ? Object.values(data) : [];
+                if(data && Object.keys(data).length > 0) {
+                    canais = Object.values(data);
+                    console.log("✅ Canais carregados:", canais.length);
+                } else {
+                    canais = [];
+                    addDefaultCanais();
+                }
                 if(currentNavTab === 'canais') renderGrid();
+                setSyncStatus(false);
             });
         }
         
-        // FUNÇÃO DE SALVAR CORRIGIDA - ACEITA QUALQUER LINK DO YOUTUBE
+        function addDefaultCanais() {
+            const defaultCanais = [
+                { id: 'c1', title: 'CBS News Ao Vivo', link: 'https://www.youtube.com/watch?v=6H6bGzU0K5A', thumb: 'https://img.youtube.com/vi/6H6bGzU0K5A/hqdefault.jpg', category: 'Notícias', year: '2024', description: 'Canal de notícias ao vivo' },
+                { id: 'c2', title: 'NASA TV Ao Vivo', link: 'https://www.youtube.com/watch?v=21X5lGlDOfg', thumb: 'https://img.youtube.com/vi/21X5lGlDOfg/hqdefault.jpg', category: 'Ciência', year: '2024', description: 'Espaço e ciência ao vivo' }
+            ];
+            defaultCanais.forEach(c => {
+                database.ref(`canais/${c.id}`).set(c);
+            });
+            canais = defaultCanais;
+        }
+        
         async function saveSingleItem() {
             const title = document.getElementById('itemTitle').value.trim();
             const link = document.getElementById('itemLink').value.trim();
@@ -955,37 +922,29 @@
                 return;
             }
             
-            // Verificar se o link é do YouTube (vídeo ou canal)
-            const isYoutubeLink = link.includes('youtube.com') || link.includes('youtu.be');
-            if(!isYoutubeLink && !link.includes('.m3u8')) {
-                showToast('❌ Apenas links do YouTube ou .m3u8 são suportados');
-                return;
-            }
-            
-            const embedUrl = extractYoutubeEmbedUrl(link);
-            const finalLink = embedUrl || link;
-            
             const activeAdminTab = document.querySelector('#adminPanel .admin-tab-btn.border-b-2.border-red-600')?.id;
             const safeId = generateSafeId();
             
             let finalThumb = thumb;
-            if(!finalThumb && isYoutubeLink) {
-                const videoId = extractYoutubeId(link);
-                if(videoId) {
-                    finalThumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-                } else {
-                    finalThumb = 'https://via.placeholder.com/300x200?text=LIVE';
+            let finalCategory = category || 'Geral';
+            let finalYear = year || new Date().getFullYear();
+            
+            if(activeAdminTab === 'adminTabCanais' && extractYoutubeId(link)) {
+                const metadata = await fetchYouTubeMetadata(link);
+                if(metadata) {
+                    if(!thumb) finalThumb = metadata.thumb;
+                    if(!category) finalCategory = metadata.genre;
+                    if(!year) finalYear = metadata.year;
                 }
             }
             
             const newItem = {
                 id: safeId,
                 title: title,
-                link: finalLink,
-                originalLink: link,
+                link: link,
                 thumb: finalThumb || 'https://via.placeholder.com/300x200',
-                category: category || (link.includes('@') || link.includes('/channel/') ? 'Ao Vivo' : 'Geral'),
-                year: year || new Date().getFullYear(),
+                category: finalCategory,
+                year: finalYear,
                 description: title,
                 createdAt: Date.now()
             };
@@ -995,11 +954,11 @@
             try {
                 if(activeAdminTab === 'adminTabCanais') {
                     await database.ref(`canais/${safeId}`).set(newItem);
-                    showToast('✅ Canal ao vivo salvo!');
+                    showToast('✅ Canal salvo no servidor!');
                     loadCanaisFromFirebase();
                 } else if(activeAdminTab === 'adminTabFilmes') {
                     await database.ref(`filmes/${safeId}`).set(newItem);
-                    showToast('✅ Filme salvo no servidor!');
+                    showToast('✅ Filme salvo!');
                     loadFilmesFromFirebase();
                 } else if(activeAdminTab === 'adminTabSeries') {
                     await database.ref(`series/${safeId}`).set(newItem);
@@ -1015,290 +974,243 @@
             }
         }
         
-        async function previewBatch() {
-            const linksText = document.getElementById('batchLinksInput').value;
-            const links = linksText.split('\n').filter(l => l.trim() && (l.includes('youtube.com') || l.includes('youtu.be')));
-            const previewDiv = document.getElementById('batchPreview');
-            
-            if(links.length === 0) {
-                previewDiv.innerHTML = '<div class="text-yellow-500 text-xs">⚠️ Nenhum link válido do YouTube</div>';
-                return;
-            }
-            
-            previewDiv.innerHTML = '<div class="text-yellow-500 text-xs">🔄 Buscando...</div>';
-            
-            const items = [];
-            for(let i = 0; i < links.length; i++) {
-                const link = links[i].trim();
-                const metadata = await fetchYouTubeMetadata(link);
-                if(metadata) {
-                    items.push(metadata);
-                }
-            }
-            batchPreviewItems = items;
-            
-            if(items.length === 0) {
-                previewDiv.innerHTML = '<div class="text-red-500 text-xs">❌ Nenhum vídeo encontrado</div>';
-                return;
-            }
-            
-            const existingTitles = filmes.map(f => f.title);
-            const previewHtml = items.map((item) => {
-                const isDuplicate = existingTitles.includes(item.title);
-                return `<div class="p-1 border-b border-gray-700 text-xs ${isDuplicate ? 'duplicate-item' : ''}">
-                    <div class="flex justify-between">
-                        <span><strong>${item.title.substring(0,30)}</strong></span>
-                        ${isDuplicate ? '<span class="text-red-500">⚠️</span>' : '<span class="text-green-500">✅</span>'}
-                    </div>
-                </div>`;
-            }).join('');
-            
-            previewDiv.innerHTML = `<div class="mb-1 text-xs">📊 ${items.length} filmes | ${items.filter(i => existingTitles.includes(i.title)).length} duplicados</div>${previewHtml}`;
-            showToast(`✅ ${items.length} filmes carregados`);
-        }
-        
-        async function saveBatch() {
-            if(batchPreviewItems.length === 0) {
-                showToast('❌ Clique em "Pré-visualizar" primeiro');
-                return;
-            }
-            
-            const existingTitles = filmes.map(f => f.title);
-            const newItems = batchPreviewItems.filter(item => !existingTitles.includes(item.title));
-            const duplicates = batchPreviewItems.filter(item => existingTitles.includes(item.title));
-            
-            if(duplicates.length > 0) {
-                if(!confirm(`⚠️ ${duplicates.length} duplicados. Adicionar apenas ${newItems.length} novos?`)) return;
-            }
-            
-            if(newItems.length === 0) {
-                showToast('❌ Nenhum filme novo');
-                return;
-            }
-            
-            setSyncStatus(true);
-            showToast(`💾 Salvando ${newItems.length} filmes...`);
-            
-            let salvos = 0;
-            for(let item of newItems) {
-                const safeId = generateSafeId();
-                const embedUrl = extractYoutubeEmbedUrl(item.link);
-                await database.ref(`filmes/${safeId}`).set({
-                    id: safeId,
-                    title: item.title,
-                    link: embedUrl || item.link,
-                    originalLink: item.link,
-                    thumb: item.thumb,
-                    category: item.genre,
-                    year: item.year,
-                    description: item.description,
-                    createdAt: Date.now()
-                });
-                salvos++;
-            }
-            
-            showToast(`✅ ${salvos} filmes salvos!`);
-            
-            document.getElementById('batchLinksInput').value = '';
-            document.getElementById('batchPreview').innerHTML = '';
-            batchPreviewItems = [];
-            
-            loadFilmesFromFirebase();
-            setSyncStatus(false);
-        }
-        
-        async function saveEpisodes() {
-            const serieName = document.getElementById('serieTitle').value.trim();
-            const episodesText = document.getElementById('episodesLinksInput').value;
-            
-            if(!serieName) {
-                alert('Digite o nome da série');
-                return;
-            }
-            
-            const lines = episodesText.split('\n').filter(l => l.trim());
-            if(lines.length === 0) {
-                alert('Cole os episódios');
-                return;
-            }
-            
-            setSyncStatus(true);
-            showToast(`💾 Salvando ${lines.length} episódios...`);
-            
-            let salvos = 0;
-            for(let line of lines) {
-                let episodeTitle = '';
-                let link = '';
-                
-                if(line.includes(':')) {
-                    const parts = line.split(':');
-                    episodeTitle = parts[0].trim();
-                    link = parts.slice(1).join(':').trim();
-                } else {
-                    link = line.trim();
-                    episodeTitle = `EP${String(salvos + 1).padStart(2, '0')}`;
-                }
-                
-                const metadata = await fetchYouTubeMetadata(link);
-                const embedUrl = extractYoutubeEmbedUrl(link);
-                const safeId = generateSafeId();
-                await database.ref(`series/${safeId}`).set({
-                    id: safeId,
-                    title: `${serieName} - ${episodeTitle}`,
-                    link: embedUrl || link,
-                    originalLink: link,
-                    thumb: metadata?.thumb || 'https://via.placeholder.com/300x200',
-                    category: metadata?.genre || 'Série',
-                    year: metadata?.year || new Date().getFullYear(),
-                    description: metadata?.description || `Episódio ${episodeTitle}`,
-                    createdAt: Date.now()
-                });
-                salvos++;
-            }
-            
-            showToast(`✅ ${salvos} episódios salvos!`);
-            document.getElementById('serieTitle').value = '';
-            document.getElementById('episodesLinksInput').value = '';
-            
-            loadSeriesFromFirebase();
-            setSyncStatus(false);
-        }
-        
-        // FUNÇÃO DE REPRODUÇÃO CORRIGIDA - SUPORTA CANAIS AO VIVO
         function playMedia(item, type, elementRect = null) {
-            if(elementRect) {
-                playInFloatingPlayer(item, type, elementRect);
-                return;
-            }
+            const videoId = extractYoutubeId(item.link);
             
-            const playerSection = document.getElementById('playerSection');
-            playerSection.classList.remove('hidden');
-            
-            const hlsVideo = document.getElementById('hlsPlayer');
-            const youtubeDiv = document.getElementById('youtubePlayerDiv');
-            const noContent = document.getElementById('noContent');
-            
-            youtubeDiv.style.display = 'block';
-            hlsVideo.style.display = 'none';
-            if(window.hlsInstance) { window.hlsInstance.destroy(); window.hlsInstance = null; }
-            
-            currentMedia = item;
-            currentMediaType = type;
-            document.getElementById('currentMediaTitle').innerText = item.title;
-            document.getElementById('currentMediaDesc').innerText = item.description || 'Sem descrição';
-            document.getElementById('mediaYear').innerHTML = item.year ? `📅 ${item.year}` : '';
-            document.getElementById('mediaGenre').innerHTML = item.category ? `🎭 ${item.category}` : '';
-            
-            noContent.style.display = 'flex';
-            noContent.innerHTML = '🎬 Carregando...';
-            
-            if(type === 'filme' || type === 'serie' || type === 'canal') {
-                const linkToUse = item.link;
-                
-                // Verificar se é um link do YouTube (vídeo ou canal ao vivo)
-                if(linkToUse.includes('youtube.com/embed/') || linkToUse.includes('youtube.com/watch')) {
-                    if(ytPlayer) {
-                        // Extrair ID do vídeo ou usar embed
-                        let videoId = extractYoutubeId(linkToUse);
-                        if(!videoId && linkToUse.includes('/embed/')) {
-                            const embedMatch = linkToUse.match(/embed\/([^\/\?&]+)/);
-                            videoId = embedMatch ? embedMatch[1] : null;
-                        }
-                        if(videoId) {
-                            ytPlayer.loadVideoById(videoId);
-                            ytPlayer.playVideo();
-                            setTimeout(() => {
-                                noContent.style.display = 'none';
-                            }, 1000);
-                        } else if(linkToUse.includes('live_stream')) {
-                            // Para canais ao vivo, usar o embed diretamente
-                            youtubeDiv.style.display = 'block';
-                            const iframe = document.createElement('iframe');
-                            iframe.src = linkToUse;
-                            iframe.style.width = '100%';
-                            iframe.style.height = '100%';
-                            iframe.style.border = 'none';
-                            youtubeDiv.innerHTML = '';
-                            youtubeDiv.appendChild(iframe);
-                            noContent.style.display = 'none';
-                        } else {
-                            ytPlayer.loadVideoById(linkToUse);
-                            ytPlayer.playVideo();
-                            setTimeout(() => {
-                                noContent.style.display = 'none';
-                            }, 1000);
-                        }
-                    }
-                } else if(linkToUse.includes('.m3u8')) {
-                    youtubeDiv.style.display = 'none';
-                    hlsVideo.style.display = 'block';
-                    if(Hls.isSupported()) {
-                        window.hlsInstance = new Hls();
-                        window.hlsInstance.loadSource(linkToUse);
-                        window.hlsInstance.attachMedia(hlsVideo);
-                        window.hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
-                            hlsVideo.play();
-                            noContent.style.display = 'none';
+            if(videoId) {
+                if(elementRect) {
+                    const floatingPlayer = document.getElementById('floatingPlayer');
+                    const overlay = document.getElementById('floatingPlayerOverlay');
+                    
+                    floatingPlayer.classList.remove('hidden');
+                    overlay.classList.remove('hidden');
+                    
+                    document.getElementById('floatingMediaTitle').innerText = item.title;
+                    document.getElementById('floatingMediaYear').innerHTML = item.year ? `📅 ${item.year}` : '';
+                    document.getElementById('floatingMediaGenre').innerHTML = item.category ? `🎭 ${item.category}` : '';
+                    
+                    if(floatingYtPlayer) {
+                        floatingYtPlayer.loadVideoById(videoId);
+                        floatingYtPlayer.playVideo();
+                    } else {
+                        floatingYtPlayer = new YT.Player('floatingYoutubePlayerDiv', {
+                            height: '100%',
+                            width: '100%',
+                            videoId: videoId,
+                            playerVars: { 'autoplay': 1, 'controls': 1, 'modestbranding': 1, 'rel': 0, 'showinfo': 0, 'fs': 1, 'playsinline': 1 },
+                            events: {
+                                'onReady': (event) => { 
+                                    event.target.playVideo();
+                                    document.getElementById('floatingNoContent').style.display = 'none';
+                                }
+                            }
                         });
                     }
-                } else {
-                    alert("Formato não suportado");
+                    return;
+                }
+                
+                const playerSection = document.getElementById('playerSection');
+                playerSection.classList.remove('hidden');
+                const noContent = document.getElementById('noContent');
+                const youtubeDiv = document.getElementById('youtubePlayerDiv');
+                
+                youtubeDiv.style.display = 'block';
+                noContent.style.display = 'flex';
+                noContent.innerHTML = '🎬 Carregando...';
+                
+                currentMedia = item;
+                currentMediaType = type;
+                document.getElementById('currentMediaTitle').innerText = item.title;
+                document.getElementById('currentMediaDesc').innerText = item.description || 'Conteúdo ao vivo';
+                document.getElementById('mediaYear').innerHTML = item.year ? `📅 ${item.year}` : '';
+                document.getElementById('mediaGenre').innerHTML = item.category ? `🎭 ${item.category}` : '';
+                
+                if(ytPlayer) {
+                    ytPlayer.loadVideoById(videoId);
+                    ytPlayer.playVideo();
+                    setTimeout(() => {
+                        noContent.style.display = 'none';
+                    }, 1000);
+                }
+            } else if(item.link && item.link.includes('.m3u8')) {
+                const playerSection = document.getElementById('playerSection');
+                playerSection.classList.remove('hidden');
+                
+                const hlsVideo = document.getElementById('hlsPlayer');
+                const youtubeDiv = document.getElementById('youtubePlayerDiv');
+                const noContent = document.getElementById('noContent');
+                
+                youtubeDiv.style.display = 'none';
+                hlsVideo.style.display = 'block';
+                noContent.style.display = 'flex';
+                noContent.innerHTML = '🎬 Carregando stream...';
+                
+                currentMedia = item;
+                currentMediaType = type;
+                document.getElementById('currentMediaTitle').innerText = item.title;
+                document.getElementById('currentMediaDesc').innerText = item.description || 'Canal ao vivo';
+                document.getElementById('mediaYear').innerHTML = '';
+                document.getElementById('mediaGenre').innerHTML = item.category ? `🎭 ${item.category}` : '';
+                
+                if(window.hlsInstance) { window.hlsInstance.destroy(); }
+                
+                if(Hls.isSupported()) {
+                    window.hlsInstance = new Hls();
+                    window.hlsInstance.loadSource(item.link);
+                    window.hlsInstance.attachMedia(hlsVideo);
+                    window.hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+                        hlsVideo.play();
+                        noContent.style.display = 'none';
+                    });
+                } else if(hlsVideo.canPlayType('application/vnd.apple.mpegurl')) {
+                    hlsVideo.src = item.link;
+                    hlsVideo.play();
                     noContent.style.display = 'none';
                 }
+            } else {
+                showToast('Link não suportado');
             }
         }
         
-        function playInFloatingPlayer(item, type, elementRect) {
-            const floatingPlayer = document.getElementById('floatingPlayer');
-            const overlay = document.getElementById('floatingPlayerOverlay');
-            const linkToUse = item.link;
-            
-            floatingPlayer.classList.remove('hidden');
-            overlay.classList.remove('hidden');
-            
-            document.getElementById('floatingMediaTitle').innerText = item.title;
-            document.getElementById('floatingMediaYear').innerHTML = item.year ? `📅 ${item.year}` : '';
-            document.getElementById('floatingMediaGenre').innerHTML = item.category ? `🎭 ${item.category}` : '';
-            
-            if(floatingYtPlayer) {
-                let videoId = extractYoutubeId(linkToUse);
-                if(videoId) {
-                    floatingYtPlayer.loadVideoById(videoId);
-                    floatingYtPlayer.playVideo();
-                } else if(linkToUse.includes('live_stream')) {
-                    const iframe = document.getElementById('floatingYoutubePlayerDiv');
-                    iframe.innerHTML = `<iframe src="${linkToUse}" style="width:100%;height:100%;border:none;" allowfullscreen></iframe>`;
-                }
-            } else {
-                floatingYtPlayer = new YT.Player('floatingYoutubePlayerDiv', {
-                    height: '100%',
-                    width: '100%',
-                    videoId: extractYoutubeId(linkToUse) || '',
-                    playerVars: { 'autoplay': 1, 'controls': 1, 'modestbranding': 1, 'rel': 0, 'showinfo': 0, 'fs': 1, 'playsinline': 1 },
-                    events: {
-                        'onReady': (event) => { 
+        function onYouTubeIframeAPIReady() {
+            ytPlayer = new YT.Player('youtubePlayerDiv', {
+                height: '100%',
+                width: '100%',
+                videoId: '',
+                playerVars: { 'autoplay': 1, 'controls': 1, 'modestbranding': 1, 'rel': 0, 'showinfo': 0, 'fs': 1, 'playsinline': 1 },
+                events: {
+                    'onReady': (event) => {
+                        isPlayerReady = true;
+                        if(currentMedia) {
                             event.target.playVideo();
-                            document.getElementById('floatingNoContent').style.display = 'none';
-                        },
-                        'onStateChange': (event) => {
-                            if(event.data === YT.PlayerState.PLAYING) {
-                                document.getElementById('floatingNoContent').style.display = 'none';
-                            }
+                            document.getElementById('noContent').style.display = 'none';
                         }
                     }
+                }
+            });
+        }
+        
+        function renderGrid() {
+            let items = [];
+            if(currentNavTab === 'canais') items = canais;
+            else if(currentNavTab === 'filmes') items = filmes;
+            else if(currentNavTab === 'series') items = series;
+            
+            if(currentGenreFilter !== 'todos' && currentNavTab !== 'canais') {
+                items = items.filter(i => i.category === currentGenreFilter);
+            }
+            
+            const grid = document.getElementById('contentGrid');
+            if(items.length === 0) { 
+                grid.innerHTML = '<div class="col-span-full text-center py-6 text-gray-500 text-sm">📀 Nenhum conteúdo encontrado. Adicione no Admin!</div>'; 
+                return; 
+            }
+            
+            grid.innerHTML = items.map(item => `
+                <div class="bg-gray-800 rounded-lg overflow-hidden cursor-pointer card-hover transition" data-id="${item.id}" data-type="${currentNavTab}">
+                    <img src="${item.thumb || 'https://via.placeholder.com/300x200'}" class="w-full h-28 object-cover" onerror="this.src='https://via.placeholder.com/300x200'">
+                    <div class="p-1">
+                        <h3 class="font-semibold text-xs truncate">${item.title}</h3>
+                        <p class="text-xs text-gray-400">${item.category || 'Geral'} ${item.year ? `• ${item.year}` : ''}</p>
+                    </div>
+                </div>
+            `).join('');
+            
+            document.querySelectorAll('#contentGrid > div').forEach(card => {
+                card.addEventListener('click', (event) => {
+                    const id = card.getAttribute('data-id');
+                    const type = card.getAttribute('data-type');
+                    let item;
+                    if(type === 'canais') item = canais.find(c => c.id === id);
+                    else if(type === 'filmes') item = filmes.find(f => f.id === id);
+                    else item = series.find(s => s.id === id);
+                    if(item) {
+                        const rect = card.getBoundingClientRect();
+                        playMedia(item, type, rect);
+                    }
                 });
-            }
+            });
         }
         
-        function closeFloatingPlayer() {
-            if(floatingYtPlayer) {
-                floatingYtPlayer.stopVideo();
-            }
-            document.getElementById('floatingPlayer').classList.add('hidden');
-            document.getElementById('floatingPlayerOverlay').classList.add('hidden');
+        function updateGenreFilters() {
+            let items = [];
+            if(currentNavTab === 'canais') items = canais;
+            else if(currentNavTab === 'filmes') items = filmes;
+            else if(currentNavTab === 'series') items = series;
+            
+            const genres = new Set();
+            items.forEach(item => { if(item.category) genres.add(item.category); });
+            
+            let html = '<button data-genre="todos" class="genre-filter px-2 py-0.5 rounded-full bg-gray-800 text-xs genre-filter-active">🎬 Todos</button>';
+            Array.from(genres).sort().forEach(genre => {
+                html += `<button data-genre="${genre}" class="genre-filter px-2 py-0.5 rounded-full bg-gray-800 text-xs">${genre}</button>`;
+            });
+            document.getElementById('genreFilters').innerHTML = html;
+            
+            document.querySelectorAll('.genre-filter').forEach(btn => {
+                if(btn.getAttribute('data-genre') === currentGenreFilter) btn.classList.add('genre-filter-active');
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.genre-filter').forEach(b => b.classList.remove('genre-filter-active'));
+                    btn.classList.add('genre-filter-active');
+                    currentGenreFilter = btn.getAttribute('data-genre');
+                    renderGrid();
+                });
+            });
         }
         
-        // FUNÇÕES DE AUTENTICAÇÃO E CHAT (MANTIDAS)
+        function generateWeeklyTop10() {
+            const allContent = [...canais.map(c => ({...c, contentType: 'canal'})), ...filmes.map(f => ({...f, contentType: 'filme'})), ...series.map(s => ({...s, contentType: 'serie'}))];
+            if(allContent.length === 0) return;
+            const shuffled = [...allContent];
+            for(let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            top10List = shuffled.slice(0, 10);
+            renderTop10Carousel();
+        }
+        
+        function renderTop10Carousel() {
+            const track = document.getElementById('top10Track');
+            if(!top10List || top10List.length === 0) {
+                track.innerHTML = '<div class="text-center text-gray-500 w-full py-4 text-xs">Carregando...</div>';
+                return;
+            }
+            track.innerHTML = top10List.map((item, index) => `
+                <div class="carousel-item cursor-pointer group" data-id="${item.id}" data-type="${item.contentType}">
+                    <div class="poster-wrapper">
+                        <img src="${item.thumb || 'https://via.placeholder.com/150x200'}" class="poster-back" onerror="this.style.display='none'">
+                        <img src="${item.thumb || 'https://via.placeholder.com/150x200'}" class="poster-front" onerror="this.src='https://via.placeholder.com/150x200'">
+                        <div class="rank-number">${index+1}</div>
+                    </div>
+                </div>
+            `).join('');
+            
+            document.querySelectorAll('#top10Track .carousel-item').forEach(el => {
+                el.addEventListener('click', () => {
+                    const id = el.getAttribute('data-id');
+                    const type = el.getAttribute('data-type');
+                    let item;
+                    if(type === 'canal') item = canais.find(c => c.id === id);
+                    else if(type === 'filme') item = filmes.find(f => f.id === id);
+                    else item = series.find(s => s.id === id);
+                    if(item) playMedia(item, type);
+                });
+            });
+        }
+        
+        function setNavTab(tab) {
+            currentNavTab = tab;
+            currentGenreFilter = 'todos';
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            if(tab === 'canais') document.getElementById('navCanaisBtn').classList.add('active');
+            else if(tab === 'filmes') document.getElementById('navFilmesBtn').classList.add('active');
+            else if(tab === 'series') document.getElementById('navSeriesBtn').classList.add('active');
+            updateGenreFilters();
+            renderGrid();
+        }
+        
+        // Funções de autenticação e chat (mantidas do código anterior)
         async function isNicknameAvailable(nickname) {
             const snapshot = await database.ref('usuarios').orderByChild('nickname').equalTo(nickname).once('value');
             return !snapshot.exists();
@@ -1321,14 +1233,8 @@
             const email = document.getElementById('registerEmail').value;
             const password = document.getElementById('registerPassword').value;
             let nickname = document.getElementById('registerNickname').value.trim();
-            
             if(nickname.startsWith('@')) nickname = nickname.substring(1);
-            
-            if(!nickname) {
-                showToast('Digite um @nickname');
-                return;
-            }
-            
+            if(!nickname) { showToast('Digite um @nickname'); return; }
             const available = await isNicknameAvailable(nickname);
             if(!available) {
                 const suggestions = await generateSuggestions(nickname);
@@ -1338,22 +1244,15 @@
                     suggestions.map(s => `<div class="suggestion-item" onclick="document.getElementById('registerNickname').value='${s}'; document.getElementById('nicknameSuggestions').classList.add('hidden');">@${s}</div>`).join('');
                 return;
             }
-            
             try {
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                 const user = userCredential.user;
-                await database.ref(`usuarios/${user.uid}`).set({
-                    email: email,
-                    nickname: nickname,
-                    createdAt: Date.now()
-                });
+                await database.ref(`usuarios/${user.uid}`).set({ email: email, nickname: nickname, createdAt: Date.now() });
                 currentUsername = nickname;
                 localStorage.setItem('noitefilmes_username', currentUsername);
                 showToast(`✅ Cadastro realizado! @${nickname}`);
                 document.getElementById('nicknameSuggestions').classList.add('hidden');
-            } catch(error) {
-                showToast('Erro: ' + error.message);
-            }
+            } catch(error) { showToast('Erro: ' + error.message); }
         }
         
         async function loadUserNickname(userId) {
@@ -1381,14 +1280,8 @@
             `;
             container.appendChild(messageDiv);
             container.scrollTop = container.scrollHeight;
-            
             if (saveToFirebase && !isSystem && currentUser) {
-                database.ref('chat').push({
-                    username: username,
-                    text: text,
-                    time: new Date().toLocaleTimeString(),
-                    timestamp: Date.now()
-                });
+                database.ref('chat').push({ username: username, text: text, time: new Date().toLocaleTimeString(), timestamp: Date.now() });
             }
         }
         
@@ -1398,9 +1291,7 @@
             if (text && currentUser) {
                 addMessageToChat(currentUsername, text, false, null, true);
                 input.value = '';
-            } else if (!currentUser) {
-                showToast('Faça login para enviar mensagens');
-            }
+            } else if (!currentUser) { showToast('Faça login para enviar mensagens'); }
         }
         
         function escapeHtml(text) {
@@ -1409,120 +1300,28 @@
             return div.innerHTML;
         }
         
-        function showLoginModal() {
-            document.getElementById('loginModal').classList.remove('hidden');
-        }
-        
-        function hideLoginModal() {
-            document.getElementById('loginModal').classList.add('hidden');
-        }
-        
-        function openSettingsModal() {
-            document.getElementById('settingsModal').classList.remove('hidden');
-            document.getElementById('usernameInput').value = currentUsername;
-        }
-        
+        function showLoginModal() { document.getElementById('loginModal').classList.remove('hidden'); }
+        function hideLoginModal() { document.getElementById('loginModal').classList.add('hidden'); }
+        function openSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); document.getElementById('usernameInput').value = currentUsername; }
         function saveUsername() {
             const newUsername = document.getElementById('usernameInput').value.trim();
             if(newUsername) {
                 currentUsername = newUsername;
                 localStorage.setItem('noitefilmes_username', currentUsername);
-                if(currentUser) {
-                    database.ref(`usuarios/${currentUser.uid}/nickname`).set(currentUsername);
-                }
+                if(currentUser) { database.ref(`usuarios/${currentUser.uid}/nickname`).set(currentUsername); }
                 showToast(`✅ Nome alterado para: @${currentUsername}`);
                 document.getElementById('settingsModal').classList.add('hidden');
             }
         }
+        function logoutUser() { auth.signOut(); document.getElementById('settingsModal').classList.add('hidden'); }
+        function setDarkMode() { document.body.classList.remove('light-mode'); document.body.classList.add('dark-mode'); localStorage.setItem('noitefilmes_theme', 'dark'); }
+        function setLightMode() { document.body.classList.remove('dark-mode'); document.body.classList.add('light-mode'); localStorage.setItem('noitefilmes_theme', 'light'); }
+        function loadTheme() { const theme = localStorage.getItem('noitefilmes_theme'); if(theme === 'light') setLightMode(); else setDarkMode(); }
         
-        function logoutUser() {
-            auth.signOut();
-            document.getElementById('settingsModal').classList.add('hidden');
-        }
-        
-        function setDarkMode() {
-            document.body.classList.remove('light-mode');
-            document.body.classList.add('dark-mode');
-            localStorage.setItem('noitefilmes_theme', 'dark');
-        }
-        
-        function setLightMode() {
-            document.body.classList.remove('dark-mode');
-            document.body.classList.add('light-mode');
-            localStorage.setItem('noitefilmes_theme', 'light');
-        }
-        
-        function loadTheme() {
-            const theme = localStorage.getItem('noitefilmes_theme');
-            if(theme === 'light') {
-                setLightMode();
-            } else {
-                setDarkMode();
-            }
-        }
-        
-        function onYouTubeIframeAPIReady() {
-            ytPlayer = new YT.Player('youtubePlayerDiv', {
-                height: '100%',
-                width: '100%',
-                videoId: '',
-                playerVars: { 'autoplay': 1, 'controls': 1, 'modestbranding': 1, 'rel': 0, 'showinfo': 0, 'fs': 1, 'playsinline': 1 },
-                events: {
-                    'onReady': onPlayerReady,
-                    'onStateChange': onPlayerStateChange
-                }
-            });
-        }
-        
-        function onPlayerReady(event) {
-            isPlayerReady = true;
-            if(currentMedia && (currentMediaType === 'filme' || currentMediaType === 'serie')) {
-                const savedTime = progressSalvos[currentMedia.id];
-                if(savedTime && savedTime > 5) {
-                    event.target.seekTo(savedTime, true);
-                }
-                event.target.playVideo();
-                document.getElementById('noContent').style.display = 'none';
-            }
-        }
-        
-        function onPlayerStateChange(event) {
-            if(event.data === YT.PlayerState.PLAYING) {
-                document.getElementById('noContent').style.display = 'none';
-            }
-            if(event.data === YT.PlayerState.PLAYING && currentMedia && currentUser) {
-                if(window.progressInterval) clearInterval(window.progressInterval);
-                window.progressInterval = setInterval(() => {
-                    if(ytPlayer && ytPlayer.getCurrentTime) {
-                        const currentTime = ytPlayer.getCurrentTime();
-                        if(currentMedia && currentTime > 0) {
-                            database.ref(`progresso/${currentUser.uid}/${currentMedia.id}`).set(currentTime);
-                        }
-                    }
-                }, 5000);
-            }
-        }
-        
-        function updateLikeButton() {
-            const btn = document.getElementById('likeButton');
-            if(currentMedia && favoritos.some(fav => fav.id === currentMedia.id && fav.liked)) {
-                btn.innerHTML = '<i class="fas fa-heart"></i>';
-                btn.classList.add('active');
-            } else {
-                btn.innerHTML = '<i class="far fa-heart"></i>';
-                btn.classList.remove('active');
-            }
-        }
-        
-        function updateSaveButton() {
-            const btn = document.getElementById('saveButton');
-            if(currentMedia && favoritos.some(fav => fav.id === currentMedia.id && fav.saved)) {
-                btn.innerHTML = '<i class="fas fa-star"></i>';
-                btn.classList.add('active');
-            } else {
-                btn.innerHTML = '<i class="far fa-star"></i>';
-                btn.classList.remove('active');
-            }
+        function closeFloatingPlayer() {
+            if(floatingYtPlayer) floatingYtPlayer.stopVideo();
+            document.getElementById('floatingPlayer').classList.add('hidden');
+            document.getElementById('floatingPlayerOverlay').classList.add('hidden');
         }
         
         function toggleLike() {
@@ -1533,11 +1332,7 @@
                 showToast(`❤️ Like removido`);
             } else {
                 database.ref(`favoritos/${currentUser.uid}/${currentMedia.id}`).set({
-                    id: currentMedia.id,
-                    title: currentMedia.title,
-                    thumb: currentMedia.thumb,
-                    liked: true,
-                    saved: existing?.saved || false
+                    id: currentMedia.id, title: currentMedia.title, thumb: currentMedia.thumb, liked: true, saved: existing?.saved || false
                 });
                 showToast(`👍 Curtiu ${currentMedia.title}`);
             }
@@ -1551,11 +1346,7 @@
                 showToast(`⭐ Removido`);
             } else {
                 database.ref(`favoritos/${currentUser.uid}/${currentMedia.id}`).set({
-                    id: currentMedia.id,
-                    title: currentMedia.title,
-                    thumb: currentMedia.thumb,
-                    liked: existing?.liked || false,
-                    saved: true
+                    id: currentMedia.id, title: currentMedia.title, thumb: currentMedia.thumb, liked: existing?.liked || false, saved: true
                 });
                 showToast(`⭐ Salvo: ${currentMedia.title}`);
             }
@@ -1569,114 +1360,18 @@
             if(links[choice]) window.open(links[choice], '_blank');
         }
         
-        function renderTop10Carousel() {
-            const track = document.getElementById('top10Track');
-            if(!top10List || top10List.length === 0) {
-                track.innerHTML = '<div class="text-center text-gray-500 w-full py-4 text-xs">Carregando...</div>';
-                return;
-            }
-            track.innerHTML = top10List.map((item, index) => `
-                <div class="carousel-item cursor-pointer group" data-id="${item.id}" data-type="${item.contentType}">
-                    <div class="poster-wrapper">
-                        <img src="${item.thumb || 'https://via.placeholder.com/150x200'}" class="poster-back" onerror="this.style.display='none'">
-                        <img src="${item.thumb || 'https://via.placeholder.com/150x200'}" class="poster-front" onerror="this.src='https://via.placeholder.com/150x200'">
-                        <div class="rank-number">${index+1}</div>
-                    </div>
-                </div>
-            `).join('');
-            
-            document.querySelectorAll('#top10Track .carousel-item').forEach(el => {
-                el.addEventListener('click', () => {
-                    const id = el.getAttribute('data-id');
-                    const type = el.getAttribute('data-type');
-                    let item;
-                    if(type === 'filme') item = filmes.find(f => f.id === id);
-                    else item = series.find(s => s.id === id);
-                    if(item) playMedia(item, type);
-                });
-            });
+        function updateLikeButton() {
+            const btn = document.getElementById('likeButton');
+            if(currentMedia && favoritos.some(fav => fav.id === currentMedia.id && fav.liked)) {
+                btn.innerHTML = '<i class="fas fa-heart"></i>'; btn.classList.add('active');
+            } else { btn.innerHTML = '<i class="far fa-heart"></i>'; btn.classList.remove('active'); }
         }
         
-        function generateWeeklyTop10() {
-            const allContent = [...filmes.map(f => ({...f, contentType: 'filme'})), ...series.map(s => ({...s, contentType: 'serie'}))];
-            if(allContent.length === 0) return;
-            const shuffled = [...allContent];
-            for(let i = shuffled.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-            }
-            top10List = shuffled.slice(0, 10);
-            database.ref('top10').set(top10List);
-            renderTop10Carousel();
-        }
-        
-        function updateGenreFilters() {
-            let items = currentNavTab === 'filmes' ? filmes : (currentNavTab === 'series' ? series : []);
-            const genres = new Set();
-            items.forEach(item => { if(item.category) genres.add(item.category); });
-            
-            let html = '<button data-genre="todos" class="genre-filter px-2 py-0.5 rounded-full bg-gray-800 text-xs genre-filter-active">🎬 Todos</button>';
-            Array.from(genres).sort().forEach(genre => {
-                html += `<button data-genre="${genre}" class="genre-filter px-2 py-0.5 rounded-full bg-gray-800 text-xs">${genre}</button>`;
-            });
-            document.getElementById('genreFilters').innerHTML = html;
-            
-            document.querySelectorAll('.genre-filter').forEach(btn => {
-                if(btn.getAttribute('data-genre') === currentGenreFilter) btn.classList.add('genre-filter-active');
-                btn.addEventListener('click', () => {
-                    document.querySelectorAll('.genre-filter').forEach(b => b.classList.remove('genre-filter-active'));
-                    btn.classList.add('genre-filter-active');
-                    currentGenreFilter = btn.getAttribute('data-genre');
-                    renderGrid();
-                });
-            });
-        }
-        
-        function renderGrid() {
-            let items = currentNavTab === 'filmes' ? filmes : (currentNavTab === 'series' ? series : []);
-            if(currentNavTab === 'canais') items = canais;
-            if(currentGenreFilter !== 'todos' && currentNavTab !== 'canais') items = items.filter(i => i.category === currentGenreFilter);
-            
-            const grid = document.getElementById('contentGrid');
-            if(items.length === 0) { 
-                grid.innerHTML = '<div class="col-span-full text-center py-6 text-gray-500 text-sm">📀 Nenhum conteúdo encontrado. Adicione no Admin!</div>'; 
-                return; 
-            }
-            
-            grid.innerHTML = items.map(item => `
-                <div class="bg-gray-800 rounded-lg overflow-hidden cursor-pointer card-hover transition" data-id="${item.id}" data-type="${currentNavTab === 'canais' ? 'canal' : (currentNavTab === 'filmes' ? 'filme' : 'serie')}">
-                    <img src="${item.thumb || 'https://via.placeholder.com/300x200'}" class="w-full h-28 object-cover" onerror="this.src='https://via.placeholder.com/300x200'">
-                    <div class="p-1">
-                        <h3 class="font-semibold text-xs truncate">${item.title}</h3>
-                        <p class="text-xs text-gray-400">${item.category || 'Geral'} ${item.year ? `• ${item.year}` : ''}</p>
-                    </div>
-                </div>
-            `).join('');
-            
-            document.querySelectorAll('#contentGrid > div').forEach(card => {
-                card.addEventListener('click', (event) => {
-                    const id = card.getAttribute('data-id');
-                    const type = card.getAttribute('data-type');
-                    let item;
-                    if(type === 'canal') item = canais.find(c => c.id === id);
-                    else if(type === 'filme') item = filmes.find(f => f.id === id);
-                    else item = series.find(s => s.id === id);
-                    if(item) {
-                        const rect = card.getBoundingClientRect();
-                        playMedia(item, type, rect);
-                    }
-                });
-            });
-        }
-        
-        function setNavTab(tab) {
-            currentNavTab = tab;
-            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-            if(tab === 'canais') document.getElementById('navCanaisBtn').classList.add('active');
-            else if(tab === 'filmes') document.getElementById('navFilmesBtn').classList.add('active');
-            else if(tab === 'series') document.getElementById('navSeriesBtn').classList.add('active');
-            updateGenreFilters();
-            renderGrid();
+        function updateSaveButton() {
+            const btn = document.getElementById('saveButton');
+            if(currentMedia && favoritos.some(fav => fav.id === currentMedia.id && fav.saved)) {
+                btn.innerHTML = '<i class="fas fa-star"></i>'; btn.classList.add('active');
+            } else { btn.innerHTML = '<i class="far fa-star"></i>'; btn.classList.remove('active'); }
         }
         
         function openSearchPopup() {
@@ -1688,37 +1383,28 @@
         function setupSearchPopup() {
             const searchInput = document.getElementById('popupSearchInput');
             const resultsDiv = document.getElementById('popupSearchResults');
-            
             searchInput.addEventListener('input', (e) => {
                 const term = e.target.value.toLowerCase().trim();
                 if(term.length === 0) { resultsDiv.innerHTML = ''; return; }
-                
-                const allItems = [...filmes.map(f => ({...f, type: 'filme'})), ...series.map(s => ({...s, type: 'serie'}))];
+                const allItems = [...canais.map(c => ({...c, type: 'canal'})), ...filmes.map(f => ({...f, type: 'filme'})), ...series.map(s => ({...s, type: 'serie'}))];
                 const matches = allItems.filter(item => item.title.toLowerCase().includes(term));
-                
-                if(matches.length === 0) {
-                    resultsDiv.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm">Nenhum resultado</div>';
+                if(matches.length === 0) { resultsDiv.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm">Nenhum resultado</div>';
                 } else {
                     resultsDiv.innerHTML = matches.map(item => `
                         <div class="search-result-item" data-id="${item.id}" data-type="${item.type}">
                             <img src="${item.thumb || 'https://via.placeholder.com/60x80'}" onerror="this.src='https://via.placeholder.com/60x80'">
-                            <div>
-                                <div class="font-semibold text-sm">${item.title}</div>
-                                <div class="text-xs text-gray-400">${item.category || 'Geral'} • ${item.year || ''}</div>
-                            </div>
+                            <div><div class="font-semibold text-sm">${item.title}</div><div class="text-xs text-gray-400">${item.category || 'Geral'} • ${item.year || ''}</div></div>
                         </div>
                     `).join('');
-                    
                     document.querySelectorAll('#popupSearchResults .search-result-item').forEach(el => {
                         el.addEventListener('click', () => {
                             const id = el.getAttribute('data-id');
                             const type = el.getAttribute('data-type');
-                            const item = type === 'filme' ? filmes.find(f => f.id === id) : series.find(s => s.id === id);
-                            if(item) {
-                                const rect = { top: window.innerHeight / 2 };
-                                playMedia(item, type, rect);
-                                document.getElementById('searchPopup').classList.add('hidden');
-                            }
+                            let item;
+                            if(type === 'canal') item = canais.find(c => c.id === id);
+                            else if(type === 'filme') item = filmes.find(f => f.id === id);
+                            else item = series.find(s => s.id === id);
+                            if(item) { playMedia(item, type); document.getElementById('searchPopup').classList.add('hidden'); }
                         });
                     });
                 }
@@ -1728,12 +1414,7 @@
         function refreshAdminLists() {
             if(!isAdminLogged) return;
             document.getElementById('canaisAdminList').innerHTML = canais.map(c => `<div class="bg-gray-800 p-1 rounded flex justify-between text-xs"><span>${c.title.substring(0,25)}</span><button class="delete-canal text-red-500" data-id="${c.id}"><i class="fas fa-trash"></i></button></div>`).join('');
-            document.getElementById('filmesAdminList').innerHTML = filmes.map(f => `<div class="bg-gray-800 p-1 rounded flex justify-between text-xs"><span>${f.title.substring(0,25)}</span><button class="delete-filme text-red-500" data-id="${f.id}"><i class="fas fa-trash"></i></button></div>`).join('');
-            document.getElementById('seriesAdminList').innerHTML = series.map(s => `<div class="bg-gray-800 p-1 rounded flex justify-between text-xs"><span>${s.title.substring(0,25)}</span><button class="delete-serie text-red-500" data-id="${s.id}"><i class="fas fa-trash"></i></button></div>`).join('');
-            
             document.querySelectorAll('.delete-canal').forEach(btn => btn.addEventListener('click', () => { const id = btn.getAttribute('data-id'); database.ref(`canais/${id}`).remove(); showToast('Canal removido'); loadCanaisFromFirebase(); }));
-            document.querySelectorAll('.delete-filme').forEach(btn => btn.addEventListener('click', () => { const id = btn.getAttribute('data-id'); database.ref(`filmes/${id}`).remove(); showToast('Filme removido'); loadFilmesFromFirebase(); }));
-            document.querySelectorAll('.delete-serie').forEach(btn => btn.addEventListener('click', () => { const id = btn.getAttribute('data-id'); database.ref(`series/${id}`).remove(); showToast('Episódio removido'); loadSeriesFromFirebase(); }));
         }
         
         function resetForm() {
@@ -1748,7 +1429,7 @@
         
         async function autoFillFromYoutubeLink() {
             const link = document.getElementById('itemLink').value.trim();
-            if(!link || (!link.includes('youtube.com') && !link.includes('youtu.be'))) return;
+            if(!link || !extractYoutubeId(link)) return;
             const metadata = await fetchYouTubeMetadata(link);
             if(metadata) {
                 document.getElementById('itemTitle').value = metadata.title;
@@ -1759,51 +1440,35 @@
             }
         }
         
-        function toggleChat() {
-            const chatContainer = document.getElementById('chatContainer');
-            chatContainer.classList.toggle('open');
-        }
+        function toggleChat() { document.getElementById('chatContainer').classList.toggle('open'); }
         
         function updateUserUI(user) {
             if (user) {
                 hideLoginModal();
                 loadUserNickname(user.uid).then(() => {
+                    loadCanaisFromFirebase();
                     loadFilmesFromFirebase();
                     loadSeriesFromFirebase();
-                    loadCanaisFromFirebase();
                 });
                 database.ref('chat').limitToLast(100).off();
                 database.ref('chat').limitToLast(100).on('child_added', (snapshot) => {
                     const msg = snapshot.val();
                     addMessageToChat(msg.username, msg.text, false, msg.time, false);
                 });
-                
                 if(user) {
                     database.ref(`favoritos/${user.uid}`).on('value', (snapshot) => {
                         const data = snapshot.val();
                         favoritos = data ? Object.values(data) : [];
-                        updateLikeButton();
-                        updateSaveButton();
+                        updateLikeButton(); updateSaveButton();
                     });
-                    
-                    database.ref(`progresso/${user.uid}`).on('value', (snapshot) => {
-                        progressSalvos = snapshot.val() || {};
-                    });
+                    database.ref(`progresso/${user.uid}`).on('value', (snapshot) => { progressSalvos = snapshot.val() || {}; });
                 }
-                
                 database.ref('top10').on('value', (snapshot) => {
                     const data = snapshot.val();
-                    if(data) {
-                        top10List = data;
-                        renderTop10Carousel();
-                    } else {
-                        generateWeeklyTop10();
-                    }
+                    if(data) { top10List = data; renderTop10Carousel(); }
+                    else { generateWeeklyTop10(); }
                 });
-            } else {
-                showLoginModal();
-                document.getElementById('chatMessages').innerHTML = '';
-            }
+            } else { showLoginModal(); document.getElementById('chatMessages').innerHTML = ''; }
         }
         
         // EVENT LISTENERS
@@ -1823,12 +1488,10 @@
         document.getElementById('castButton').onclick = () => showToast('Conecte-se a um Chromecast');
         document.getElementById('closeFloatingPlayer').onclick = closeFloatingPlayer;
         document.getElementById('floatingPlayerOverlay').onclick = closeFloatingPlayer;
-        
         document.getElementById('darkModeBtn').onclick = setDarkMode;
         document.getElementById('lightModeBtn').onclick = setLightMode;
         document.getElementById('darkModeSettingsBtn').onclick = setDarkMode;
         document.getElementById('lightModeSettingsBtn').onclick = setLightMode;
-        
         document.getElementById('chatToggleBtn').onclick = toggleChat;
         document.getElementById('closeChatBtn').onclick = toggleChat;
         document.getElementById('sendMessageBtn').onclick = sendChatMessage;
@@ -1839,18 +1502,9 @@
             const password = document.getElementById('loginPassword').value;
             auth.signInWithEmailAndPassword(email, password).catch(e => showToast('Erro: ' + e.message));
         };
-        
         document.getElementById('doRegister').onclick = registerUser;
-        
-        document.getElementById('showRegister').onclick = () => {
-            document.getElementById('loginForm').classList.add('hidden');
-            document.getElementById('registerForm').classList.remove('hidden');
-        };
-        
-        document.getElementById('showLogin').onclick = () => {
-            document.getElementById('registerForm').classList.add('hidden');
-            document.getElementById('loginForm').classList.remove('hidden');
-        };
+        document.getElementById('showRegister').onclick = () => { document.getElementById('loginForm').classList.add('hidden'); document.getElementById('registerForm').classList.remove('hidden'); };
+        document.getElementById('showLogin').onclick = () => { document.getElementById('registerForm').classList.add('hidden'); document.getElementById('loginForm').classList.remove('hidden'); };
         
         const modal = document.getElementById('adminModal');
         document.getElementById('adminBtn').onclick = () => { modal.classList.remove('hidden'); document.getElementById('adminLoginArea').classList.remove('hidden'); document.getElementById('adminPanel').classList.add('hidden'); };
@@ -1865,6 +1519,7 @@
             document.getElementById('adminSeriesList').classList.add('hidden');
             document.getElementById('batchFilmesArea').classList.add('hidden');
             document.getElementById('batchSeriesArea').classList.add('hidden');
+            document.getElementById('formTitle').innerText = 'Adicionar Canal';
             resetForm();
         };
         
@@ -1876,6 +1531,7 @@
             document.getElementById('adminSeriesList').classList.add('hidden');
             document.getElementById('batchFilmesArea').classList.remove('hidden');
             document.getElementById('batchSeriesArea').classList.add('hidden');
+            document.getElementById('formTitle').innerText = 'Adicionar Filme';
             resetForm();
         };
         
@@ -1887,47 +1543,27 @@
             document.getElementById('adminSeriesList').classList.remove('hidden');
             document.getElementById('batchFilmesArea').classList.add('hidden');
             document.getElementById('batchSeriesArea').classList.remove('hidden');
+            document.getElementById('formTitle').innerText = 'Adicionar Episódio';
             resetForm();
         };
         
         document.getElementById('saveItemBtn').onclick = saveSingleItem;
         document.getElementById('cancelEditBtn').onclick = resetForm;
         document.getElementById('itemLink').addEventListener('blur', autoFillFromYoutubeLink);
-        document.getElementById('previewBatchBtn').onclick = previewBatch;
-        document.getElementById('saveBatchBtn').onclick = saveBatch;
-        document.getElementById('saveEpisodesBtn').onclick = saveEpisodes;
+        document.getElementById('previewBatchBtn').onclick = () => {};
+        document.getElementById('saveBatchBtn').onclick = () => {};
+        document.getElementById('saveEpisodesBtn').onclick = () => {};
         
-        document.getElementById('settingsModal').addEventListener('click', (e) => {
-            if(e.target === document.getElementById('settingsModal')) {
-                document.getElementById('settingsModal').classList.add('hidden');
-            }
-        });
+        document.getElementById('settingsModal').addEventListener('click', (e) => { if(e.target === document.getElementById('settingsModal')) { document.getElementById('settingsModal').classList.add('hidden'); } });
+        document.getElementById('searchPopup').addEventListener('click', (e) => { if(e.target === document.getElementById('searchPopup')) { document.getElementById('searchPopup').classList.add('hidden'); } });
         
-        document.getElementById('searchPopup').addEventListener('click', (e) => {
-            if(e.target === document.getElementById('searchPopup')) {
-                document.getElementById('searchPopup').classList.add('hidden');
-            }
-        });
-        
-        auth.onAuthStateChanged((user) => {
-            currentUser = user;
-            updateUserUI(user);
-        });
-        
+        auth.onAuthStateChanged((user) => { currentUser = user; updateUserUI(user); });
         setupSearchPopup();
-        document.getElementById('batchSeriesArea').classList.add('hidden');
         loadTheme();
         
-        if(typeof YT === 'undefined') {
-            window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
-        } else {
-            onYouTubeIframeAPIReady();
-        }
+        if(typeof YT === 'undefined') { window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady; } else { onYouTubeIframeAPIReady(); }
         
-        setInterval(() => {
-            const onlineCount = Math.floor(Math.random() * 15) + 3;
-            document.getElementById('onlineCount').innerHTML = `● ${onlineCount} online`;
-        }, 15000);
+        setInterval(() => { const onlineCount = Math.floor(Math.random() * 15) + 3; document.getElementById('onlineCount').innerHTML = `● ${onlineCount} online`; }, 15000);
     </script>
 </body>
 </html>
