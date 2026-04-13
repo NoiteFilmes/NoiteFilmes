@@ -16,7 +16,7 @@
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: pan-x pan-y; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { background-color: #0a0a0a; overflow-x: hidden; transition: background 0.3s, color 0.3s; }
         
         body.dark-mode { background-color: #0a0a0a; color: #e5e5e5; }
@@ -508,7 +508,6 @@
             .floating-player { width: 95%; max-width: 95%; }
         }
         
-        /* Indicador de sincronização */
         .sync-status {
             position: fixed;
             bottom: 10px;
@@ -762,7 +761,6 @@
     </div>
 
     <script>
-        // Configuração do Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyAXQ_3yaVR6TgsAha6nU7uihHdd8NvrP78",
             authDomain: "noitefilmes26.firebaseapp.com",
@@ -796,7 +794,6 @@
         let editingItem = null;
         let currentUsername = localStorage.getItem('noitefilmes_username') || 'Cinéfilo';
         
-        // Função para atualizar status de sincronização
         function setSyncStatus(syncing) {
             const statusEl = document.getElementById('syncStatus');
             if (syncing) {
@@ -806,16 +803,6 @@
                 statusEl.innerHTML = '<i class="fas fa-check-circle"></i> Sincronizado';
                 statusEl.className = 'sync-status synced';
             }
-            setTimeout(() => {
-                if (!syncing) {
-                    setTimeout(() => {
-                        statusEl.style.opacity = '0.5';
-                        setTimeout(() => {
-                            statusEl.style.opacity = '1';
-                        }, 2000);
-                    }, 2000);
-                }
-            }, 1000);
         }
         
         function generateSafeId() {
@@ -871,7 +858,7 @@
             setTimeout(() => toast.remove(), 3000);
         }
         
-        // CARREGAMENTO DE DADOS DO FIREBASE - CORRIGIDO
+        // CARREGAR DADOS DO FIREBASE
         function loadFilmesFromFirebase() {
             setSyncStatus(true);
             console.log("Carregando filmes do Firebase...");
@@ -881,21 +868,33 @@
                 if(data && Object.keys(data).length > 0) {
                     filmes = Object.values(data);
                     console.log("✅ Filmes carregados:", filmes.length);
-                    showToast(`📀 ${filmes.length} filmes carregados do servidor`);
+                    showToast(`📀 ${filmes.length} filmes carregados`);
                 } else {
-                    console.log("Nenhum filme encontrado no Firebase, carregando padrão...");
+                    console.log("Nenhum filme encontrado, adicionando padrão...");
                     filmes = [];
-                    loadDefaultFilmes();
+                    addDefaultFilmes();
                 }
                 renderGrid();
                 generateWeeklyTop10();
                 updateGenreFilters();
                 setSyncStatus(false);
-            }).catch((error) => {
+            }, (error) => {
                 console.error("Erro ao carregar filmes:", error);
-                showToast("❌ Erro ao carregar filmes do servidor");
+                showToast("❌ Erro ao carregar filmes");
                 setSyncStatus(false);
             });
+        }
+        
+        function addDefaultFilmes() {
+            const defaultFilmes = [
+                { id: 'f1', title: 'Premonição', link: 'https://www.youtube.com/watch?v=8iSD9Z4lJm4', thumb: 'https://img.youtube.com/vi/8iSD9Z4lJm4/hqdefault.jpg', category: 'Terror', year: '2000', description: 'Clássico do terror' },
+                { id: 'f2', title: 'Predador', link: 'https://www.youtube.com/watch?v=4T8JOK6wY7g', thumb: 'https://img.youtube.com/vi/4T8JOK6wY7g/hqdefault.jpg', category: 'Ação', year: '1987', description: 'Caçada mortal' },
+                { id: 'f3', title: 'Interestelar', link: 'https://www.youtube.com/watch?v=zSWdZVtXT7E', thumb: 'https://img.youtube.com/vi/zSWdZVtXT7E/hqdefault.jpg', category: 'Ficção', year: '2014', description: 'Ficção científica' }
+            ];
+            defaultFilmes.forEach(f => {
+                database.ref(`filmes/${f.id}`).set(f);
+            });
+            filmes = defaultFilmes;
         }
         
         function loadSeriesFromFirebase() {
@@ -904,8 +903,6 @@
                 series = data ? Object.values(data) : [];
                 renderGrid();
                 generateWeeklyTop10();
-            }).catch((error) => {
-                console.error("Erro ao carregar séries:", error);
             });
         }
         
@@ -914,12 +911,10 @@
                 const data = snapshot.val();
                 canais = data ? Object.values(data) : [];
                 if(currentNavTab === 'canais') renderGrid();
-            }).catch((error) => {
-                console.error("Erro ao carregar canais:", error);
             });
         }
         
-        // Função para salvar filme individual - CORRIGIDA
+        // SALVAR FILME
         async function saveSingleItem() {
             const title = document.getElementById('itemTitle').value.trim();
             const link = document.getElementById('itemLink').value.trim();
@@ -957,7 +952,7 @@
             try {
                 if(activeAdminTab === 'adminTabCanais') {
                     await database.ref(`canais/${safeId}`).set(newItem);
-                    showToast('✅ Canal salvo no servidor!');
+                    showToast('✅ Canal salvo!');
                     loadCanaisFromFirebase();
                 } else if(activeAdminTab === 'adminTabFilmes') {
                     await database.ref(`filmes/${safeId}`).set(newItem);
@@ -965,13 +960,13 @@
                     loadFilmesFromFirebase();
                 } else if(activeAdminTab === 'adminTabSeries') {
                     await database.ref(`series/${safeId}`).set(newItem);
-                    showToast('✅ Episódio salvo no servidor!');
+                    showToast('✅ Episódio salvo!');
                     loadSeriesFromFirebase();
                 }
                 resetForm();
             } catch(error) {
                 console.error("Erro ao salvar:", error);
-                showToast('❌ Erro ao salvar: ' + error.message);
+                showToast('❌ Erro: ' + error.message);
             } finally {
                 setSyncStatus(false);
             }
@@ -1039,7 +1034,7 @@
             }
             
             setSyncStatus(true);
-            showToast(`💾 Salvando ${newItems.length} filmes no servidor...`);
+            showToast(`💾 Salvando ${newItems.length} filmes...`);
             
             let salvos = 0;
             for(let item of newItems) {
@@ -1057,7 +1052,7 @@
                 salvos++;
             }
             
-            showToast(`✅ ${salvos} filmes salvos no servidor!`);
+            showToast(`✅ ${salvos} filmes salvos!`);
             
             document.getElementById('batchLinksInput').value = '';
             document.getElementById('batchPreview').innerHTML = '';
@@ -1114,7 +1109,7 @@
                 salvos++;
             }
             
-            showToast(`✅ ${salvos} episódios salvos no servidor!`);
+            showToast(`✅ ${salvos} episódios salvos!`);
             document.getElementById('serieTitle').value = '';
             document.getElementById('episodesLinksInput').value = '';
             
@@ -1122,39 +1117,7 @@
             setSyncStatus(false);
         }
         
-        function loadDefaultFilmes() {
-            console.log("Carregando filmes padrão...");
-            const defaultFilmes = [
-                { id: 'f1', title: 'Premonição', link: 'https://www.youtube.com/watch?v=8iSD9Z4lJm4', thumb: 'https://img.youtube.com/vi/8iSD9Z4lJm4/hqdefault.jpg', category: 'Terror', year: '2000', description: 'Clássico do terror' },
-                { id: 'f2', title: 'Predador', link: 'https://www.youtube.com/watch?v=4T8JOK6wY7g', thumb: 'https://img.youtube.com/vi/4T8JOK6wY7g/hqdefault.jpg', category: 'Ação', year: '1987', description: 'Caçada mortal' },
-                { id: 'f3', title: 'Interestelar', link: 'https://www.youtube.com/watch?v=zSWdZVtXT7E', thumb: 'https://img.youtube.com/vi/zSWdZVtXT7E/hqdefault.jpg', category: 'Ficção', year: '2014', description: 'Ficção científica' }
-            ];
-            defaultFilmes.forEach(f => {
-                database.ref(`filmes/${f.id}`).set(f);
-            });
-            filmes = defaultFilmes;
-            renderGrid();
-        }
-        
-        function loadDefaultSeries() {
-            const defaultSeries = [
-                { id: 's1', title: 'Stranger Things - EP01', link: 'https://www.youtube.com/watch?v=b9EkMc79ZSU', thumb: 'https://img.youtube.com/vi/b9EkMc79ZSU/hqdefault.jpg', category: 'Ficção', year: '2016', description: 'Série' }
-            ];
-            defaultSeries.forEach(s => {
-                database.ref(`series/${s.id}`).set(s);
-            });
-        }
-        
-        function loadDefaultCanais() {
-            const defaultCanais = [
-                { id: 'c1', title: 'Canal Exemplo', link: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8', thumb: 'https://picsum.photos/id/20/300/200', category: 'Geral' }
-            ];
-            defaultCanais.forEach(c => {
-                database.ref(`canais/${c.id}`).set(c);
-            });
-        }
-        
-        // Funções de autenticação e chat (mantidas)
+        // FUNÇÕES DE AUTENTICAÇÃO E CHAT
         async function isNicknameAvailable(nickname) {
             const snapshot = await database.ref('usuarios').orderByChild('nickname').equalTo(nickname).once('value');
             return !snapshot.exists();
@@ -1205,7 +1168,7 @@
                 });
                 currentUsername = nickname;
                 localStorage.setItem('noitefilmes_username', currentUsername);
-                showToast(`✅ Cadastro realizado! Bem-vindo @${nickname}`);
+                showToast(`✅ Cadastro realizado! @${nickname}`);
                 document.getElementById('nicknameSuggestions').classList.add('hidden');
             } catch(error) {
                 showToast('Erro: ' + error.message);
@@ -1593,7 +1556,7 @@
             
             const grid = document.getElementById('contentGrid');
             if(items.length === 0) { 
-                grid.innerHTML = '<div class="col-span-full text-center py-6 text-gray-500 text-sm">📀 Nenhum filme encontrado. Adicione no painel Admin!</div>'; 
+                grid.innerHTML = '<div class="col-span-full text-center py-6 text-gray-500 text-sm">📀 Nenhum filme encontrado. Adicione no Admin!</div>'; 
                 return; 
             }
             
@@ -1760,7 +1723,7 @@
             }
         }
         
-        // Event Listeners
+        // EVENT LISTENERS
         document.getElementById('navCanaisBtn').onclick = () => setNavTab('canais');
         document.getElementById('navFilmesBtn').onclick = () => setNavTab('filmes');
         document.getElementById('navSeriesBtn').onclick = () => setNavTab('series');
