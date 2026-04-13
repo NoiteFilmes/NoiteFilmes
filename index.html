@@ -8,7 +8,6 @@
     <link rel="icon" type="image/png" href="https://via.placeholder.com/32x32?text=NF">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.8/dist/hls.min.js"></script>
-    <script src="https://www.youtube.com/iframe_api"></script>
     
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -521,6 +520,21 @@
         }
         .sync-status.synced { color: #4ade80; }
         .sync-status.syncing { color: #eab308; }
+        
+        /* Loading spinner */
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            border-top-color: #e50914;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="dark-mode">
@@ -783,13 +797,10 @@
         let favoritos = [];
         let currentMedia = null;
         let currentMediaType = 'filme';
-        let ytPlayer = null;
-        let floatingYtPlayer = null;
         let progressSalvos = {};
         let currentNavTab = 'filmes';
         let currentGenreFilter = 'todos';
         let top10List = [];
-        let isPlayerReady = false;
         let batchPreviewItems = [];
         let isAdminLogged = false;
         let editingItem = null;
@@ -810,14 +821,14 @@
             return Date.now() + '-' + Math.random().toString(36).substring(2, 15);
         }
         
-        // FUNÇÃO PARA EXTRAIR INFORMAÇÕES DO YOUTUBE (VÍDEO E CANAL)
+        // FUNÇÃO CORRIGIDA PARA BUSCAR DADOS DE CANAL AO VIVO
         async function fetchYouTubeData(url) {
-            // Extrair ID do vídeo ou nome do canal
+            // Extrair informações do link
             let videoId = null;
             let channelHandle = null;
             let channelId = null;
             
-            // Verificar se é vídeo
+            // Verificar se é vídeo normal
             let videoMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^\/\?&]+)/);
             if(videoMatch) {
                 videoId = videoMatch[1];
@@ -835,9 +846,10 @@
                 channelId = channelIdMatch[1];
             }
             
-            // Se for vídeo, buscar metadados
+            // Se for vídeo normal
             if(videoId) {
                 try {
+                    // Usar oembed para título e thumbnail
                     const oembedRes = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
                     const oembedData = await oembedRes.json();
                     
@@ -864,7 +876,8 @@
                         year: year,
                         genre: genre,
                         embedUrl: `https://www.youtube.com/embed/${videoId}?autoplay=1`,
-                        isLive: false
+                        isLive: false,
+                        success: true
                     };
                 } catch(e) {
                     console.error("Erro ao buscar vídeo:", e);
@@ -875,29 +888,52 @@
                         year: new Date().getFullYear(),
                         genre: 'Geral',
                         embedUrl: `https://www.youtube.com/embed/${videoId}?autoplay=1`,
-                        isLive: false
+                        isLive: false,
+                        success: true
                     };
                 }
             }
             
-            // Se for canal ao vivo
+            // Se for canal ao vivo - usar API alternativa para buscar nome do canal
             if(channelHandle || channelId) {
-                const channelIdentifier = channelHandle ? `@${channelHandle}` : channelId;
-                const channelName = channelHandle || (channelId ? `Canal ${channelId.substring(0,8)}` : 'Canal ao vivo');
+                const channelIdentifier = channelHandle || channelId;
+                const channelUrl = channelHandle ? `https://www.youtube.com/@${channelHandle}` : `https://www.youtube.com/channel/${channelId}`;
+                
+                // Tentar buscar título do canal via oembed (funciona para canais)
+                let channelName = channelHandle || (channelId ? `Canal` : 'Canal ao vivo');
+                let channelThumb = 'https://via.placeholder.com/300x200?text=🔴+LIVE';
+                
+                try {
+                    // Tentar buscar informações do canal via API pública
+                    const oembedRes = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(channelUrl)}&format=json`);
+                    const oembedData = await oembedRes.json();
+                    if(oembedData && oembedData.title) {
+                        channelName = oembedData.title;
+                        channelThumb = oembedData.thumbnail_url || channelThumb;
+                    }
+                } catch(e) {
+                    console.log("Não foi possível buscar nome do canal via oembed, usando fallback");
+                    // Se não conseguir, extrair nome da URL
+                    if(channelHandle) {
+                        channelName = channelHandle.charAt(0).toUpperCase() + channelHandle.slice(1);
+                    }
+                }
                 
                 return {
                     title: `${channelName} - Ao Vivo`,
-                    thumb: 'https://via.placeholder.com/300x200?text=🔴+LIVE',
+                    thumb: channelThumb,
                     description: `Transmissão ao vivo do canal ${channelName}`,
                     year: new Date().getFullYear(),
                     genre: 'Ao Vivo',
                     embedUrl: `https://www.youtube.com/embed/live_stream?channel=${channelIdentifier}&autoplay=1`,
                     isLive: true,
-                    channelIdentifier: channelIdentifier
+                    channelIdentifier: channelIdentifier,
+                    channelName: channelName,
+                    success: true
                 };
             }
             
-            return null;
+            return { success: false, error: 'Link não reconhecido' };
         }
         
         function extractYoutubeId(url) {
@@ -905,9 +941,10 @@
             return match ? match[1] : null;
         }
         
-        function showToast(msg) {
+        function showToast(msg, isError = false) {
             const toast = document.createElement('div');
             toast.className = 'toast';
+            toast.style.background = isError ? '#e50914' : '#333';
             toast.innerText = msg;
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
@@ -960,7 +997,7 @@
             });
         }
         
-        // FUNÇÃO DE SALVAR CORRIGIDA - BUSCA DADOS AUTOMATICAMENTE
+        // FUNÇÃO DE SALVAR CORRIGIDA
         async function saveSingleItem() {
             const title = document.getElementById('itemTitle').value.trim();
             const link = document.getElementById('itemLink').value.trim();
@@ -969,23 +1006,22 @@
             const year = document.getElementById('itemYear').value.trim();
             
             if(!link) {
-                showToast('❌ Preencha o link');
+                showToast('❌ Preencha o link', true);
                 return;
             }
             
             if(!link.includes('youtube.com') && !link.includes('youtu.be')) {
-                showToast('❌ Apenas links do YouTube são suportados');
+                showToast('❌ Apenas links do YouTube são suportados', true);
                 return;
             }
             
             setSyncStatus(true);
             showToast('🔍 Buscando informações do YouTube...');
             
-            // Buscar dados do YouTube
             const videoData = await fetchYouTubeData(link);
             
-            if(!videoData) {
-                showToast('❌ Não foi possível obter dados do link');
+            if(!videoData.success) {
+                showToast('❌ Não foi possível obter dados do link', true);
                 setSyncStatus(false);
                 return;
             }
@@ -1001,7 +1037,7 @@
             const newItem = {
                 id: safeId,
                 title: finalTitle,
-                link: link,
+                originalLink: link,
                 embedUrl: videoData.embedUrl,
                 thumb: finalThumb,
                 category: finalCategory,
@@ -1028,7 +1064,7 @@
                 resetForm();
             } catch(error) {
                 console.error("Erro ao salvar:", error);
-                showToast('❌ Erro: ' + error.message);
+                showToast('❌ Erro: ' + error.message, true);
             } finally {
                 setSyncStatus(false);
             }
@@ -1050,7 +1086,7 @@
             for(let i = 0; i < links.length; i++) {
                 const link = links[i].trim();
                 const data = await fetchYouTubeData(link);
-                if(data) {
+                if(data.success) {
                     items.push(data);
                 }
             }
@@ -1078,7 +1114,7 @@
         
         async function saveBatch() {
             if(batchPreviewItems.length === 0) {
-                showToast('❌ Clique em "Pré-visualizar" primeiro');
+                showToast('❌ Clique em "Pré-visualizar" primeiro', true);
                 return;
             }
             
@@ -1091,7 +1127,7 @@
             }
             
             if(newItems.length === 0) {
-                showToast('❌ Nenhum item novo');
+                showToast('❌ Nenhum item novo', true);
                 return;
             }
             
@@ -1104,7 +1140,7 @@
                 await database.ref(`filmes/${safeId}`).set({
                     id: safeId,
                     title: item.title,
-                    link: item.link || item.embedUrl,
+                    originalLink: item.link,
                     embedUrl: item.embedUrl,
                     thumb: item.thumb,
                     category: item.genre,
@@ -1163,7 +1199,7 @@
                 await database.ref(`series/${safeId}`).set({
                     id: safeId,
                     title: `${serieName} - ${episodeTitle}`,
-                    link: link,
+                    originalLink: link,
                     embedUrl: data?.embedUrl || link,
                     thumb: data?.thumb || 'https://via.placeholder.com/300x200',
                     category: data?.genre || 'Série',
@@ -1182,75 +1218,68 @@
             setSyncStatus(false);
         }
         
-        // FUNÇÃO DE REPRODUÇÃO CORRIGIDA
+        // FUNÇÃO DE REPRODUÇÃO
         function playMedia(item, type, elementRect = null) {
             const targetPlayer = elementRect ? 'floating' : 'normal';
             
-            if(targetPlayer === 'floating') {
-                playInFloatingPlayer(item, type);
-                return;
-            }
-            
             const playerSection = document.getElementById('playerSection');
-            playerSection.classList.remove('hidden');
-            
-            const hlsVideo = document.getElementById('hlsPlayer');
-            const youtubeDiv = document.getElementById('youtubePlayerDiv');
-            const noContent = document.getElementById('noContent');
-            
-            youtubeDiv.style.display = 'block';
-            hlsVideo.style.display = 'none';
-            if(window.hlsInstance) { window.hlsInstance.destroy(); window.hlsInstance = null; }
-            
-            currentMedia = item;
-            currentMediaType = type;
-            document.getElementById('currentMediaTitle').innerText = item.title;
-            document.getElementById('currentMediaDesc').innerText = item.description || 'Sem descrição';
-            document.getElementById('mediaYear').innerHTML = item.year ? `📅 ${item.year}` : '';
-            document.getElementById('mediaGenre').innerHTML = item.category ? `🎭 ${item.category}` : '';
-            
-            noContent.style.display = 'flex';
-            noContent.innerHTML = '🎬 Carregando...';
-            
-            // Usar embedUrl se disponível
-            const embedUrl = item.embedUrl || (item.link.includes('youtube.com') ? `https://www.youtube.com/embed/${extractYoutubeId(item.link)}?autoplay=1` : item.link);
-            
-            if(embedUrl.includes('youtube.com/embed/') || embedUrl.includes('live_stream')) {
-                youtubeDiv.innerHTML = `<iframe src="${embedUrl}" style="width:100%;height:100%;border:none;" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
-                noContent.style.display = 'none';
-            } else if(embedUrl.includes('.m3u8')) {
-                youtubeDiv.style.display = 'none';
-                hlsVideo.style.display = 'block';
-                if(Hls.isSupported()) {
-                    window.hlsInstance = new Hls();
-                    window.hlsInstance.loadSource(embedUrl);
-                    window.hlsInstance.attachMedia(hlsVideo);
-                    window.hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
-                        hlsVideo.play();
-                        noContent.style.display = 'none';
-                    });
-                }
-            } else {
-                alert("Formato não suportado");
-                noContent.style.display = 'none';
-            }
-        }
-        
-        function playInFloatingPlayer(item, type) {
             const floatingPlayer = document.getElementById('floatingPlayer');
             const overlay = document.getElementById('floatingPlayerOverlay');
             
-            floatingPlayer.classList.remove('hidden');
-            overlay.classList.remove('hidden');
-            
-            document.getElementById('floatingMediaTitle').innerText = item.title;
-            document.getElementById('floatingMediaYear').innerHTML = item.year ? `📅 ${item.year}` : '';
-            document.getElementById('floatingMediaGenre').innerHTML = item.category ? `🎭 ${item.category}` : '';
-            
-            const embedUrl = item.embedUrl || (item.link.includes('youtube.com') ? `https://www.youtube.com/embed/${extractYoutubeId(item.link)}?autoplay=1` : item.link);
-            const playerDiv = document.getElementById('floatingYoutubePlayerDiv');
-            playerDiv.innerHTML = `<iframe src="${embedUrl}" style="width:100%;height:100%;border:none;" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
-            document.getElementById('floatingNoContent').style.display = 'none';
+            if(targetPlayer === 'floating') {
+                floatingPlayer.classList.remove('hidden');
+                overlay.classList.remove('hidden');
+                document.getElementById('floatingMediaTitle').innerText = item.title;
+                document.getElementById('floatingMediaYear').innerHTML = item.year ? `📅 ${item.year}` : '';
+                document.getElementById('floatingMediaGenre').innerHTML = item.category ? `🎭 ${item.category}` : '';
+                
+                const embedUrl = item.embedUrl || (item.originalLink ? `https://www.youtube.com/embed/${extractYoutubeId(item.originalLink)}?autoplay=1` : '');
+                const playerDiv = document.getElementById('floatingYoutubePlayerDiv');
+                playerDiv.innerHTML = `<iframe src="${embedUrl}" style="width:100%;height:100%;border:none;" allow="autoplay; encrypted-media" allowfullscreen frameborder="0"></iframe>`;
+                document.getElementById('floatingNoContent').style.display = 'none';
+            } else {
+                playerSection.classList.remove('hidden');
+                
+                const hlsVideo = document.getElementById('hlsPlayer');
+                const youtubeDiv = document.getElementById('youtubePlayerDiv');
+                const noContent = document.getElementById('noContent');
+                
+                youtubeDiv.style.display = 'block';
+                hlsVideo.style.display = 'none';
+                if(window.hlsInstance) { window.hlsInstance.destroy(); window.hlsInstance = null; }
+                
+                currentMedia = item;
+                currentMediaType = type;
+                document.getElementById('currentMediaTitle').innerText = item.title;
+                document.getElementById('currentMediaDesc').innerText = item.description || 'Sem descrição';
+                document.getElementById('mediaYear').innerHTML = item.year ? `📅 ${item.year}` : '';
+                document.getElementById('mediaGenre').innerHTML = item.category ? `🎭 ${item.category}` : '';
+                
+                noContent.style.display = 'flex';
+                noContent.innerHTML = '🎬 Carregando...';
+                
+                const embedUrl = item.embedUrl || (item.originalLink ? `https://www.youtube.com/embed/${extractYoutubeId(item.originalLink)}?autoplay=1` : '');
+                
+                if(embedUrl) {
+                    youtubeDiv.innerHTML = `<iframe src="${embedUrl}" style="width:100%;height:100%;border:none;" allow="autoplay; encrypted-media" allowfullscreen frameborder="0"></iframe>`;
+                    noContent.style.display = 'none';
+                } else if(embedUrl.includes('.m3u8')) {
+                    youtubeDiv.style.display = 'none';
+                    hlsVideo.style.display = 'block';
+                    if(Hls.isSupported()) {
+                        window.hlsInstance = new Hls();
+                        window.hlsInstance.loadSource(embedUrl);
+                        window.hlsInstance.attachMedia(hlsVideo);
+                        window.hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+                            hlsVideo.play();
+                            noContent.style.display = 'none';
+                        });
+                    }
+                } else {
+                    alert("Formato não suportado");
+                    noContent.style.display = 'none';
+                }
+            }
         }
         
         function closeFloatingPlayer() {
@@ -1260,7 +1289,7 @@
             playerDiv.innerHTML = '';
         }
         
-        // FUNÇÕES DE AUTENTICAÇÃO E CHAT
+        // FUNÇÕES DE AUTENTICAÇÃO
         async function isNicknameAvailable(nickname) {
             const snapshot = await database.ref('usuarios').orderByChild('nickname').equalTo(nickname).once('value');
             return !snapshot.exists();
@@ -1287,7 +1316,7 @@
             if(nickname.startsWith('@')) nickname = nickname.substring(1);
             
             if(!nickname) {
-                showToast('Digite um @nickname');
+                showToast('Digite um @nickname', true);
                 return;
             }
             
@@ -1314,7 +1343,7 @@
                 showToast(`✅ Cadastro realizado! @${nickname}`);
                 document.getElementById('nicknameSuggestions').classList.add('hidden');
             } catch(error) {
-                showToast('Erro: ' + error.message);
+                showToast('Erro: ' + error.message, true);
             }
         }
         
@@ -1361,7 +1390,7 @@
                 addMessageToChat(currentUsername, text, false, null, true);
                 input.value = '';
             } else if (!currentUser) {
-                showToast('Faça login para enviar mensagens');
+                showToast('Faça login para enviar mensagens', true);
             }
         }
         
@@ -1423,10 +1452,6 @@
             }
         }
         
-        function onYouTubeIframeAPIReady() {
-            // API não é mais necessária, usando iframe direto
-        }
-        
         function updateLikeButton() {
             const btn = document.getElementById('likeButton');
             if(currentMedia && favoritos.some(fav => fav.id === currentMedia.id && fav.liked)) {
@@ -1450,7 +1475,7 @@
         }
         
         function toggleLike() {
-            if(!currentMedia || !currentUser) { showToast('Faça login'); return; }
+            if(!currentMedia || !currentUser) { showToast('Faça login', true); return; }
             const existing = favoritos.find(f => f.id === currentMedia.id);
             if(existing && existing.liked) {
                 database.ref(`favoritos/${currentUser.uid}/${currentMedia.id}`).remove();
@@ -1468,7 +1493,7 @@
         }
         
         function toggleSave() {
-            if(!currentMedia || !currentUser) { showToast('Faça login'); return; }
+            if(!currentMedia || !currentUser) { showToast('Faça login', true); return; }
             const existing = favoritos.find(f => f.id === currentMedia.id);
             if(existing && existing.saved) {
                 database.ref(`favoritos/${currentUser.uid}/${currentMedia.id}`).remove();
@@ -1676,14 +1701,14 @@
             
             showToast('🔍 Buscando informações...');
             const data = await fetchYouTubeData(link);
-            if(data) {
+            if(data.success) {
                 document.getElementById('itemTitle').value = data.title;
                 document.getElementById('itemThumb').value = data.thumb;
                 document.getElementById('itemCategory').value = data.genre;
                 document.getElementById('itemYear').value = data.year;
                 showToast(`✅ Dados carregados: ${data.title}`);
             } else {
-                showToast('❌ Não foi possível carregar os dados');
+                showToast('❌ Não foi possível carregar os dados', true);
             }
         }
         
@@ -1765,7 +1790,7 @@
         document.getElementById('doLogin').onclick = () => {
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
-            auth.signInWithEmailAndPassword(email, password).catch(e => showToast('Erro: ' + e.message));
+            auth.signInWithEmailAndPassword(email, password).catch(e => showToast('Erro: ' + e.message, true));
         };
         
         document.getElementById('doRegister').onclick = registerUser;
@@ -1845,9 +1870,6 @@
         setupSearchPopup();
         document.getElementById('batchSeriesArea').classList.add('hidden');
         loadTheme();
-        
-        // Não precisa mais do YouTube IFrame API
-        window.onYouTubeIframeAPIReady = function() {};
         
         setInterval(() => {
             const onlineCount = Math.floor(Math.random() * 15) + 3;
