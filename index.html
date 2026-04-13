@@ -115,23 +115,6 @@
         .stat-item { text-align: center; }
         .stat-number { font-size: 18px; font-weight: bold; }
         .stat-label { font-size: 11px; color: #888; }
-        .follow-btn {
-            background: #e50914;
-            color: white;
-            padding: 8px 20px;
-            border-radius: 20px;
-            border: none;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .following-btn {
-            background: #333;
-            color: white;
-            padding: 8px 20px;
-            border-radius: 20px;
-            border: none;
-            cursor: pointer;
-        }
         .profile-bio { margin: 15px 0; font-size: 13px; }
         .profile-link { color: #e50914; text-decoration: none; font-size: 12px; }
         
@@ -607,45 +590,14 @@
             .floating-player { width: 95%; max-width: 95%; }
         }
         
-        .sync-status {
-            position: fixed;
-            bottom: 80px;
-            right: 10px;
-            font-size: 10px;
-            background: rgba(0,0,0,0.5);
-            padding: 4px 8px;
-            border-radius: 20px;
-            z-index: 998;
-        }
-        .sync-status.synced { color: #4ade80; }
-        .sync-status.syncing { color: #eab308; }
-        
         .feed-container, .profile-container { padding: 12px; }
         .hidden-page { display: none; }
-        
-        /* Loading spinner */
-        .loading-spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 2px solid #fff;
-            border-radius: 50%;
-            border-top-color: #e50914;
-            animation: spin 1s ease-in-out infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
     </style>
 </head>
 <body class="dark-mode">
 
     <div class="watermark">
         <i class="fab fa-instagram"></i> @NoiteFilmes
-    </div>
-
-    <div class="sync-status synced" id="syncStatus">
-        <i class="fas fa-check-circle"></i> Sincronizado
     </div>
 
     <div class="logo-line">
@@ -953,14 +905,8 @@
             measurementId: "G-Q9DCCZTQH9"
         };
         
-        // Inicializar Firebase com tratamento de erro
-        try {
-            firebase.initializeApp(firebaseConfig);
-            console.log("Firebase inicializado com sucesso");
-        } catch(e) {
-            console.error("Erro ao inicializar Firebase:", e);
-        }
-        
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         const auth = firebase.auth();
         
@@ -971,7 +917,6 @@
         let canais = [];
         let favoritos = [];
         let posts = [];
-        let usuarios = [];
         let currentMedia = null;
         let currentMediaType = 'filme';
         let ytPlayer = null;
@@ -990,23 +935,19 @@
         let selectedRating = 0;
         let viewingProfileUserId = null;
         let currentPage = 'movies';
-        let authInitialized = false;
         
-        function setSyncStatus(syncing) {
-            const statusEl = document.getElementById('syncStatus');
-            if (statusEl) {
-                if (syncing) {
-                    statusEl.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Sincronizando...';
-                    statusEl.className = 'sync-status syncing';
-                } else {
-                    statusEl.innerHTML = '<i class="fas fa-check-circle"></i> Sincronizado';
-                    statusEl.className = 'sync-status synced';
-                }
-            }
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerText = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
         }
         
-        function generateSafeId() {
-            return Date.now() + '-' + Math.random().toString(36).substring(2, 15);
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
         
         function extractYoutubeId(url) {
@@ -1050,46 +991,29 @@
             }
         }
         
-        function showToast(msg) {
-            const toast = document.createElement('div');
-            toast.className = 'toast';
-            toast.innerText = msg;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
+        function generateSafeId() {
+            return Date.now() + '-' + Math.random().toString(36).substring(2, 15);
         }
         
-        // Função para carregar dados com timeout para não travar
+        // CARREGAR FILMES (com tratamento de erro)
         function loadFilmesFromFirebase() {
-            setSyncStatus(true);
-            console.log("Carregando filmes do Firebase...");
-            
-            const timeoutId = setTimeout(() => {
-                console.log("Timeout ao carregar filmes, usando dados locais");
-                setSyncStatus(false);
-            }, 5000);
-            
+            console.log("Carregando filmes...");
             database.ref('filmes').once('value').then((snapshot) => {
-                clearTimeout(timeoutId);
                 const data = snapshot.val();
                 if(data && Object.keys(data).length > 0) {
                     filmes = Object.values(data);
-                    console.log("✅ Filmes carregados:", filmes.length);
+                    console.log("Filmes carregados:", filmes.length);
                 } else {
-                    console.log("Nenhum filme encontrado, adicionando padrão...");
+                    console.log("Nenhum filme, adicionando padrão");
                     addDefaultFilmes();
                 }
                 renderGrid();
                 generateWeeklyTop10();
                 updateGenreFilters();
                 updateMovieSelect();
-                setSyncStatus(false);
             }).catch((error) => {
-                clearTimeout(timeoutId);
                 console.error("Erro ao carregar filmes:", error);
-                if (filmes.length === 0) {
-                    addDefaultFilmes();
-                }
-                setSyncStatus(false);
+                addDefaultFilmes();
             });
         }
         
@@ -1100,9 +1024,6 @@
                 { id: 'f3', title: 'Interestelar', link: 'https://www.youtube.com/watch?v=zSWdZVtXT7E', thumb: 'https://img.youtube.com/vi/zSWdZVtXT7E/hqdefault.jpg', category: 'Ficção', year: '2014', description: 'Ficção científica' }
             ];
             filmes = defaultFilmes;
-            defaultFilmes.forEach(f => {
-                database.ref(`filmes/${f.id}`).set(f).catch(e => console.log("Erro ao salvar filme padrão:", e));
-            });
             renderGrid();
         }
         
@@ -1111,10 +1032,7 @@
                 const data = snapshot.val();
                 series = data ? Object.values(data) : [];
                 renderGrid();
-                generateWeeklyTop10();
-            }).catch((error) => {
-                console.error("Erro ao carregar séries:", error);
-            });
+            }).catch((error) => console.error("Erro ao carregar séries:", error));
         }
         
         function loadCanaisFromFirebase() {
@@ -1122,20 +1040,7 @@
                 const data = snapshot.val();
                 canais = data ? Object.values(data) : [];
                 if(currentNavTab === 'canais') renderGrid();
-            }).catch((error) => {
-                console.error("Erro ao carregar canais:", error);
-            });
-        }
-        
-        function loadUsuariosFromFirebase() {
-            database.ref('usuarios').once('value').then((snapshot) => {
-                const data = snapshot.val();
-                if(data) {
-                    usuarios = Object.values(data);
-                }
-            }).catch((error) => {
-                console.error("Erro ao carregar usuários:", error);
-            });
+            }).catch((error) => console.error("Erro ao carregar canais:", error));
         }
         
         function loadPostsFromFirebase() {
@@ -1147,15 +1052,26 @@
                 } else {
                     posts = [];
                 }
-                if (currentPage === 'feed') {
-                    loadFeedPosts();
+                if (currentPage === 'feed') loadFeedPosts();
+                if (currentPage === 'profile' && viewingProfileUserId) loadProfile(viewingProfileUserId);
+            }).catch((error) => console.error("Erro ao carregar posts:", error));
+        }
+        
+        function loadUserData(userId) {
+            database.ref(`usuarios/${userId}`).once('value').then((snapshot) => {
+                const data = snapshot.val();
+                if(data) {
+                    currentUsername = data.nickname || 'Cinéfilo';
+                    currentUserBio = data.bio || 'Cinéfilo apaixonado por filmes! 🎬';
+                    currentUserLink = data.link || '';
+                    localStorage.setItem('noitefilmes_username', currentUsername);
+                    if (document.getElementById('usernameInput')) {
+                        document.getElementById('usernameInput').value = currentUsername;
+                        document.getElementById('userBioInput').value = currentUserBio;
+                        document.getElementById('userLinkInput').value = currentUserLink;
+                    }
                 }
-                if (currentPage === 'profile') {
-                    loadProfile(viewingProfileUserId || currentUser?.uid);
-                }
-            }).catch((error) => {
-                console.error("Erro ao carregar posts:", error);
-            });
+            }).catch((error) => console.error("Erro ao carregar usuário:", error));
         }
         
         function updateMovieSelect() {
@@ -1168,10 +1084,7 @@
         
         // Funções de Perfil e Posts
         async function createPost(movieId, rating, content) {
-            if (!currentUser) {
-                showToast('Faça login para publicar');
-                return false;
-            }
+            if (!currentUser) { showToast('Faça login para publicar'); return false; }
             const movie = filmes.find(f => f.id === movieId);
             if (!movie) return false;
             
@@ -1287,8 +1200,7 @@
             document.querySelectorAll('.like-post-btn').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     e.stopPropagation();
-                    const postId = btn.getAttribute('data-id');
-                    await likePost(postId);
+                    await likePost(btn.getAttribute('data-id'));
                 });
             });
             
@@ -1296,8 +1208,7 @@
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const postId = btn.getAttribute('data-id');
-                    const commentsDiv = document.getElementById(`comments-${postId}`);
-                    commentsDiv.classList.toggle('hidden');
+                    document.getElementById(`comments-${postId}`).classList.toggle('hidden');
                 });
             });
             
@@ -1326,7 +1237,7 @@
                 const userPosts = posts.filter(p => p.userId === userId);
                 const isOwnProfile = (userId === currentUser?.uid);
                 
-                const profileHtml = `
+                document.getElementById('profileContent').innerHTML = `
                     <div class="profile-header">
                         <div class="profile-avatar">${(userData.nickname || 'U').charAt(0).toUpperCase()}</div>
                         <div class="text-xl font-bold">@${userData.nickname || 'Usuário'}</div>
@@ -1341,7 +1252,7 @@
                     <h3 class="font-bold mb-3">📝 Avaliações (${userPosts.length})</h3>
                 `;
                 
-                const postsHtml = userPosts.map(post => `
+                document.getElementById('userPosts').innerHTML = userPosts.map(post => `
                     <div class="post-card">
                         <div class="post-header">
                             <div class="post-avatar">${(post.username || 'U').charAt(0).toUpperCase()}</div>
@@ -1358,10 +1269,7 @@
                             <button class="post-action-btn"><i class="fas fa-comment"></i> ${(post.comments || []).length}</button>
                         </div>
                     </div>
-                `).join('');
-                
-                document.getElementById('profileContent').innerHTML = profileHtml;
-                document.getElementById('userPosts').innerHTML = postsHtml || '<div class="text-center text-gray-500">Nenhuma avaliação ainda</div>';
+                `).join('') || '<div class="text-center text-gray-500">Nenhuma avaliação ainda</div>';
             } catch(e) {
                 console.error("Erro ao carregar perfil:", e);
             }
@@ -1376,123 +1284,13 @@
             }
         }
         
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-        
-        // Funções de autenticação
-        async function isNicknameAvailable(nickname) {
-            const snapshot = await database.ref('usuarios').orderByChild('nickname').equalTo(nickname).once('value');
-            return !snapshot.exists();
-        }
-        
-        async function generateSuggestions(baseNickname) {
-            const suggestions = [];
-            let counter = 1;
-            while(suggestions.length < 3 && counter < 100) {
-                const suggestion = `${baseNickname}${counter}`;
-                if(await isNicknameAvailable(suggestion)) {
-                    suggestions.push(suggestion);
-                }
-                counter++;
-            }
-            return suggestions;
-        }
-        
-        async function registerUser() {
-            const email = document.getElementById('registerEmail').value;
-            const password = document.getElementById('registerPassword').value;
-            let nickname = document.getElementById('registerNickname').value.trim();
-            
-            if(nickname.startsWith('@')) nickname = nickname.substring(1);
-            
-            if(!nickname) {
-                showToast('Digite um @nickname');
-                return;
-            }
-            
-            const available = await isNicknameAvailable(nickname);
-            if(!available) {
-                const suggestions = await generateSuggestions(nickname);
-                const suggestionsDiv = document.getElementById('nicknameSuggestions');
-                suggestionsDiv.classList.remove('hidden');
-                suggestionsDiv.innerHTML = '<div class="text-xs text-red-500 mb-1">Nickname indisponível! Sugestões:</div>' + 
-                    suggestions.map(s => `<div class="suggestion-item" onclick="document.getElementById('registerNickname').value='${s}'; document.getElementById('nicknameSuggestions').classList.add('hidden');">@${s}</div>`).join('');
-                return;
-            }
-            
-            try {
-                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-                const user = userCredential.user;
-                await database.ref(`usuarios/${user.uid}`).set({
-                    email: email,
-                    nickname: nickname,
-                    bio: 'Cinéfilo apaixonado por filmes! 🎬',
-                    link: '',
-                    createdAt: Date.now()
-                });
-                currentUsername = nickname;
-                localStorage.setItem('noitefilmes_username', currentUsername);
-                showToast(`✅ Cadastro realizado! @${nickname}`);
-                document.getElementById('nicknameSuggestions').classList.add('hidden');
-                // Forçar recarregar dados do usuário
-                loadUserData(user.uid);
-            } catch(error) {
-                showToast('Erro: ' + error.message);
-            }
-        }
-        
-        async function loadUserData(userId) {
-            try {
-                const snapshot = await database.ref(`usuarios/${userId}`).once('value');
-                const data = snapshot.val();
-                if(data) {
-                    currentUsername = data.nickname || currentUsername;
-                    currentUserBio = data.bio || '';
-                    currentUserLink = data.link || '';
-                    localStorage.setItem('noitefilmes_username', currentUsername);
-                    if (document.getElementById('usernameInput')) {
-                        document.getElementById('usernameInput').value = currentUsername;
-                        document.getElementById('userBioInput').value = currentUserBio;
-                        document.getElementById('userLinkInput').value = currentUserLink;
-                    }
-                }
-            } catch(e) {
-                console.error("Erro ao carregar dados do usuário:", e);
-            }
-        }
-        
-        async function saveUserProfile() {
-            const newUsername = document.getElementById('usernameInput').value.trim();
-            const newBio = document.getElementById('userBioInput').value.trim();
-            const newLink = document.getElementById('userLinkInput').value.trim();
-            
-            if(newUsername && currentUser) {
-                currentUsername = newUsername;
-                localStorage.setItem('noitefilmes_username', currentUsername);
-                await database.ref(`usuarios/${currentUser.uid}/nickname`).set(currentUsername);
-                await database.ref(`usuarios/${currentUser.uid}/bio`).set(newBio);
-                await database.ref(`usuarios/${currentUser.uid}/link`).set(newLink);
-                showToast(`✅ Perfil atualizado! @${currentUsername}`);
-                document.getElementById('settingsModal').classList.add('hidden');
-                if (currentPage === 'profile') {
-                    loadProfile(currentUser.uid);
-                }
-            }
-        }
-        
         // Funções do Player
-        function playInFloatingPlayer(item, type, elementRect) {
+        function playInFloatingPlayer(item, type) {
             const floatingPlayer = document.getElementById('floatingPlayer');
             const overlay = document.getElementById('floatingPlayerOverlay');
             const videoId = extractYoutubeId(item.link);
             
-            if(!videoId) {
-                showToast('Link inválido');
-                return;
-            }
+            if(!videoId) { showToast('Link inválido'); return; }
             
             floatingPlayer.classList.remove('hidden');
             overlay.classList.remove('hidden');
@@ -1511,75 +1309,20 @@
                     videoId: videoId,
                     playerVars: { 'autoplay': 1, 'controls': 1, 'modestbranding': 1, 'rel': 0, 'showinfo': 0, 'fs': 1, 'playsinline': 1 },
                     events: {
-                        'onReady': (event) => { 
-                            event.target.playVideo();
-                            document.getElementById('floatingNoContent').style.display = 'none';
-                        },
-                        'onStateChange': (event) => {
-                            if(event.data === YT.PlayerState.PLAYING) {
-                                document.getElementById('floatingNoContent').style.display = 'none';
-                            }
-                        }
+                        'onReady': (event) => { event.target.playVideo(); document.getElementById('floatingNoContent').style.display = 'none'; }
                     }
                 });
             }
         }
         
         function closeFloatingPlayer() {
-            if(floatingYtPlayer) {
-                floatingYtPlayer.stopVideo();
-            }
+            if(floatingYtPlayer) floatingYtPlayer.stopVideo();
             document.getElementById('floatingPlayer').classList.add('hidden');
             document.getElementById('floatingPlayerOverlay').classList.add('hidden');
         }
         
-        function playMedia(item, type, elementRect = null) {
-            if(elementRect) {
-                playInFloatingPlayer(item, type, elementRect);
-                return;
-            }
-            
-            const playerSection = document.getElementById('playerSection');
-            playerSection.classList.remove('hidden');
-            
-            const hlsVideo = document.getElementById('hlsPlayer');
-            const youtubeDiv = document.getElementById('youtubePlayerDiv');
-            const noContent = document.getElementById('noContent');
-            
-            youtubeDiv.style.display = 'block';
-            hlsVideo.style.display = 'none';
-            if(window.hlsInstance) { window.hlsInstance.destroy(); window.hlsInstance = null; }
-            
-            currentMedia = item;
-            currentMediaType = type;
-            document.getElementById('currentMediaTitle').innerText = item.title;
-            document.getElementById('currentMediaDesc').innerText = item.description || 'Sem descrição';
-            document.getElementById('mediaYear').innerHTML = item.year ? `📅 ${item.year}` : '';
-            document.getElementById('mediaGenre').innerHTML = item.category ? `🎭 ${item.category}` : '';
-            
-            noContent.style.display = 'flex';
-            noContent.innerHTML = '🎬 Carregando vídeo...';
-            
-            if(type === 'filme' || type === 'serie') {
-                const vidId = extractYoutubeId(item.link);
-                if(vidId && ytPlayer) {
-                    ytPlayer.loadVideoById(vidId);
-                    ytPlayer.playVideo();
-                    setTimeout(() => {
-                        noContent.style.display = 'none';
-                    }, 1000);
-                    if(progressSalvos[item.id] && progressSalvos[item.id] > 5) {
-                        setTimeout(() => {
-                            if(ytPlayer && ytPlayer.seekTo) {
-                                ytPlayer.seekTo(progressSalvos[item.id], true);
-                            }
-                        }, 1500);
-                    }
-                } else {
-                    alert("Link inválido");
-                    noContent.style.display = 'none';
-                }
-            }
+        function playMedia(item, type) {
+            playInFloatingPlayer(item, type);
         }
         
         function onYouTubeIframeAPIReady() {
@@ -1588,40 +1331,8 @@
                 width: '100%',
                 videoId: '',
                 playerVars: { 'autoplay': 1, 'controls': 1, 'modestbranding': 1, 'rel': 0, 'showinfo': 0, 'fs': 1, 'playsinline': 1 },
-                events: {
-                    'onReady': onPlayerReady,
-                    'onStateChange': onPlayerStateChange
-                }
+                events: { 'onReady': (event) => { isPlayerReady = true; } }
             });
-        }
-        
-        function onPlayerReady(event) {
-            isPlayerReady = true;
-            if(currentMedia && (currentMediaType === 'filme' || currentMediaType === 'serie')) {
-                const savedTime = progressSalvos[currentMedia.id];
-                if(savedTime && savedTime > 5) {
-                    event.target.seekTo(savedTime, true);
-                }
-                event.target.playVideo();
-                document.getElementById('noContent').style.display = 'none';
-            }
-        }
-        
-        function onPlayerStateChange(event) {
-            if(event.data === YT.PlayerState.PLAYING) {
-                document.getElementById('noContent').style.display = 'none';
-            }
-            if(event.data === YT.PlayerState.PLAYING && currentMedia && currentUser) {
-                if(window.progressInterval) clearInterval(window.progressInterval);
-                window.progressInterval = setInterval(() => {
-                    if(ytPlayer && ytPlayer.getCurrentTime) {
-                        const currentTime = ytPlayer.getCurrentTime();
-                        if(currentMedia && currentTime > 0) {
-                            database.ref(`progresso/${currentUser.uid}/${currentMedia.id}`).set(currentTime);
-                        }
-                    }
-                }, 5000);
-            }
         }
         
         // Funções da Interface
@@ -1637,23 +1348,19 @@
             } else if (page === 'feed') {
                 document.getElementById('feedPage').classList.remove('hidden-page');
                 loadPostsFromFirebase();
-                loadFeedPosts();
             } else if (page === 'profile') {
                 document.getElementById('profilePage').classList.remove('hidden-page');
-                if (viewingProfileUserId === currentUser?.uid) {
-                    loadProfile(currentUser?.uid);
-                } else if (viewingProfileUserId) {
-                    loadProfile(viewingProfileUserId);
+                if (currentUser) {
+                    loadProfile(currentUser.uid);
                 } else {
-                    loadProfile(currentUser?.uid);
+                    document.getElementById('profileContent').innerHTML = '<div class="text-center py-10">Faça login para ver seu perfil</div>';
+                    document.getElementById('userPosts').innerHTML = '';
                 }
             }
             
             document.querySelectorAll('.bottom-nav-item').forEach(item => {
                 item.classList.remove('active');
-                if (item.getAttribute('data-page') === page) {
-                    item.classList.add('active');
-                }
+                if (item.getAttribute('data-page') === page) item.classList.add('active');
             });
         }
         
@@ -1664,7 +1371,7 @@
             
             const grid = document.getElementById('contentGrid');
             if(items.length === 0) { 
-                grid.innerHTML = '<div class="col-span-full text-center py-6 text-gray-500 text-sm">📀 Nenhum filme encontrado. Adicione no Admin!</div>'; 
+                grid.innerHTML = '<div class="col-span-full text-center py-6 text-gray-500 text-sm">📀 Nenhum filme encontrado.</div>'; 
                 return; 
             }
             
@@ -1679,17 +1386,14 @@
             `).join('');
             
             document.querySelectorAll('#contentGrid > div').forEach(card => {
-                card.addEventListener('click', (event) => {
+                card.addEventListener('click', () => {
                     const id = card.getAttribute('data-id');
                     const type = card.getAttribute('data-type');
                     let item;
                     if(type === 'canal') item = canais.find(c => c.id === id);
                     else if(type === 'filme') item = filmes.find(f => f.id === id);
                     else item = series.find(s => s.id === id);
-                    if(item) {
-                        const rect = card.getBoundingClientRect();
-                        playMedia(item, type, rect);
-                    }
+                    if(item) playMedia(item, type);
                 });
             });
         }
@@ -1766,72 +1470,6 @@
             });
         }
         
-        function updateLikeButton() {
-            const btn = document.getElementById('likeButton');
-            if(currentMedia && favoritos.some(fav => fav.id === currentMedia.id && fav.liked)) {
-                btn.innerHTML = '<i class="fas fa-heart"></i>';
-                btn.classList.add('active');
-            } else {
-                btn.innerHTML = '<i class="far fa-heart"></i>';
-                btn.classList.remove('active');
-            }
-        }
-        
-        function updateSaveButton() {
-            const btn = document.getElementById('saveButton');
-            if(currentMedia && favoritos.some(fav => fav.id === currentMedia.id && fav.saved)) {
-                btn.innerHTML = '<i class="fas fa-star"></i>';
-                btn.classList.add('active');
-            } else {
-                btn.innerHTML = '<i class="far fa-star"></i>';
-                btn.classList.remove('active');
-            }
-        }
-        
-        function toggleLike() {
-            if(!currentMedia || !currentUser) { showToast('Faça login'); return; }
-            const existing = favoritos.find(f => f.id === currentMedia.id);
-            if(existing && existing.liked) {
-                database.ref(`favoritos/${currentUser.uid}/${currentMedia.id}`).remove();
-                showToast(`❤️ Like removido`);
-            } else {
-                database.ref(`favoritos/${currentUser.uid}/${currentMedia.id}`).set({
-                    id: currentMedia.id,
-                    title: currentMedia.title,
-                    thumb: currentMedia.thumb,
-                    liked: true,
-                    saved: existing?.saved || false
-                });
-                showToast(`👍 Curtiu ${currentMedia.title}`);
-            }
-        }
-        
-        function toggleSave() {
-            if(!currentMedia || !currentUser) { showToast('Faça login'); return; }
-            const existing = favoritos.find(f => f.id === currentMedia.id);
-            if(existing && existing.saved) {
-                database.ref(`favoritos/${currentUser.uid}/${currentMedia.id}`).remove();
-                showToast(`⭐ Removido`);
-            } else {
-                database.ref(`favoritos/${currentUser.uid}/${currentMedia.id}`).set({
-                    id: currentMedia.id,
-                    title: currentMedia.title,
-                    thumb: currentMedia.thumb,
-                    liked: existing?.liked || false,
-                    saved: true
-                });
-                showToast(`⭐ Salvo: ${currentMedia.title}`);
-            }
-        }
-        
-        function shareMedia() {
-            if(!currentMedia) return;
-            const text = encodeURIComponent(`Assista "${currentMedia.title}" no NoiteFilmes!`);
-            const choice = prompt(`Compartilhar:\n1-Facebook\n2-Twitter\n3-WhatsApp\n4-Telegram`);
-            const links = {'1':`https://www.facebook.com/sharer/sharer.php?u=${window.location.href}`,'2':`https://twitter.com/intent/tweet?text=${text}`,'3':`https://api.whatsapp.com/send?text=${text}`,'4':`https://t.me/share/url?url=${window.location.href}&text=${text}`};
-            if(links[choice]) window.open(links[choice], '_blank');
-        }
-        
         // Admin Functions
         async function saveSingleItem() {
             const title = document.getElementById('itemTitle').value.trim();
@@ -1840,16 +1478,10 @@
             const category = document.getElementById('itemCategory').value.trim();
             const year = document.getElementById('itemYear').value.trim();
             
-            if(!title || !link) {
-                showToast('❌ Preencha título e link');
-                return;
-            }
+            if(!title || !link) { showToast('❌ Preencha título e link'); return; }
             
             const videoId = extractYoutubeId(link);
-            if(!videoId) {
-                showToast('❌ Link do YouTube inválido');
-                return;
-            }
+            if(!videoId) { showToast('❌ Link do YouTube inválido'); return; }
             
             const activeAdminTab = document.querySelector('#adminPanel .admin-tab-btn.border-b-2.border-red-600')?.id;
             const safeId = generateSafeId();
@@ -1865,8 +1497,6 @@
                 createdAt: Date.now()
             };
             
-            setSyncStatus(true);
-            
             try {
                 if(activeAdminTab === 'adminTabCanais') {
                     await database.ref(`canais/${safeId}`).set(newItem);
@@ -1874,7 +1504,7 @@
                     loadCanaisFromFirebase();
                 } else if(activeAdminTab === 'adminTabFilmes') {
                     await database.ref(`filmes/${safeId}`).set(newItem);
-                    showToast('✅ Filme salvo no servidor!');
+                    showToast('✅ Filme salvo!');
                     loadFilmesFromFirebase();
                 } else if(activeAdminTab === 'adminTabSeries') {
                     await database.ref(`series/${safeId}`).set(newItem);
@@ -1883,10 +1513,7 @@
                 }
                 resetForm();
             } catch(error) {
-                console.error("Erro ao salvar:", error);
                 showToast('❌ Erro: ' + error.message);
-            } finally {
-                setSyncStatus(false);
             }
         }
         
@@ -1904,11 +1531,8 @@
             
             const items = [];
             for(let i = 0; i < links.length; i++) {
-                const link = links[i].trim();
-                const metadata = await fetchYouTubeMetadata(link);
-                if(metadata) {
-                    items.push(metadata);
-                }
+                const metadata = await fetchYouTubeMetadata(links[i].trim());
+                if(metadata) items.push(metadata);
             }
             batchPreviewItems = items;
             
@@ -1918,18 +1542,12 @@
             }
             
             const existingTitles = filmes.map(f => f.title);
-            const previewHtml = items.map((item) => {
-                const isDuplicate = existingTitles.includes(item.title);
-                return `<div class="p-1 border-b border-gray-700 text-xs ${isDuplicate ? 'duplicate-item' : ''}">
-                    <div class="flex justify-between">
-                        <span><strong>${item.title.substring(0,30)}</strong></span>
-                        ${isDuplicate ? '<span class="text-red-500">⚠️</span>' : '<span class="text-green-500">✅</span>'}
-                    </div>
-                </div>`;
-            }).join('');
-            
-            previewDiv.innerHTML = `<div class="mb-1 text-xs">📊 ${items.length} filmes | ${items.filter(i => existingTitles.includes(i.title)).length} duplicados</div>${previewHtml}`;
-            showToast(`✅ ${items.length} filmes carregados`);
+            previewDiv.innerHTML = items.map((item) => `
+                <div class="p-1 border-b border-gray-700 text-xs ${existingTitles.includes(item.title) ? 'duplicate-item' : ''}">
+                    <strong>${item.title.substring(0,30)}</strong>
+                    ${existingTitles.includes(item.title) ? '<span class="text-red-500 ml-2">⚠️ DUPLICADO</span>' : '<span class="text-green-500 ml-2">✅ Novo</span>'}
+                </div>
+            `).join('');
         }
         
         async function saveBatch() {
@@ -1940,21 +1558,14 @@
             
             const existingTitles = filmes.map(f => f.title);
             const newItems = batchPreviewItems.filter(item => !existingTitles.includes(item.title));
-            const duplicates = batchPreviewItems.filter(item => existingTitles.includes(item.title));
-            
-            if(duplicates.length > 0) {
-                if(!confirm(`⚠️ ${duplicates.length} duplicados. Adicionar apenas ${newItems.length} novos?`)) return;
-            }
             
             if(newItems.length === 0) {
                 showToast('❌ Nenhum filme novo');
                 return;
             }
             
-            setSyncStatus(true);
             showToast(`💾 Salvando ${newItems.length} filmes...`);
             
-            let salvos = 0;
             for(let item of newItems) {
                 const safeId = generateSafeId();
                 await database.ref(`filmes/${safeId}`).set({
@@ -1967,49 +1578,35 @@
                     description: item.description,
                     createdAt: Date.now()
                 });
-                salvos++;
             }
             
-            showToast(`✅ ${salvos} filmes salvos!`);
-            
+            showToast(`✅ ${newItems.length} filmes salvos!`);
             document.getElementById('batchLinksInput').value = '';
             document.getElementById('batchPreview').innerHTML = '';
             batchPreviewItems = [];
-            
             loadFilmesFromFirebase();
-            setSyncStatus(false);
         }
         
         async function saveEpisodes() {
             const serieName = document.getElementById('serieTitle').value.trim();
             const episodesText = document.getElementById('episodesLinksInput').value;
             
-            if(!serieName) {
-                alert('Digite o nome da série');
-                return;
-            }
+            if(!serieName) { alert('Digite o nome da série'); return; }
             
             const lines = episodesText.split('\n').filter(l => l.trim());
-            if(lines.length === 0) {
-                alert('Cole os episódios');
-                return;
-            }
+            if(lines.length === 0) { alert('Cole os episódios'); return; }
             
-            setSyncStatus(true);
             showToast(`💾 Salvando ${lines.length} episódios...`);
             
-            let salvos = 0;
             for(let line of lines) {
-                let episodeTitle = '';
-                let link = '';
-                
+                let episodeTitle = '', link = '';
                 if(line.includes(':')) {
                     const parts = line.split(':');
                     episodeTitle = parts[0].trim();
                     link = parts.slice(1).join(':').trim();
                 } else {
                     link = line.trim();
-                    episodeTitle = `EP${String(salvos + 1).padStart(2, '0')}`;
+                    episodeTitle = `EP${Math.floor(Math.random() * 100)}`;
                 }
                 
                 const metadata = await fetchYouTubeMetadata(link);
@@ -2024,15 +1621,12 @@
                     description: metadata?.description || `Episódio ${episodeTitle}`,
                     createdAt: Date.now()
                 });
-                salvos++;
             }
             
-            showToast(`✅ ${salvos} episódios salvos!`);
+            showToast(`✅ Episódios salvos!`);
             document.getElementById('serieTitle').value = '';
             document.getElementById('episodesLinksInput').value = '';
-            
             loadSeriesFromFirebase();
-            setSyncStatus(false);
         }
         
         function resetForm() {
@@ -2064,9 +1658,9 @@
             document.getElementById('filmesAdminList').innerHTML = filmes.map(f => `<div class="bg-gray-800 p-1 rounded flex justify-between text-xs"><span>${f.title.substring(0,25)}</span><button class="delete-filme text-red-500" data-id="${f.id}"><i class="fas fa-trash"></i></button></div>`).join('');
             document.getElementById('seriesAdminList').innerHTML = series.map(s => `<div class="bg-gray-800 p-1 rounded flex justify-between text-xs"><span>${s.title.substring(0,25)}</span><button class="delete-serie text-red-500" data-id="${s.id}"><i class="fas fa-trash"></i></button></div>`).join('');
             
-            document.querySelectorAll('.delete-canal').forEach(btn => btn.addEventListener('click', () => { const id = btn.getAttribute('data-id'); database.ref(`canais/${id}`).remove(); showToast('Canal removido'); loadCanaisFromFirebase(); }));
-            document.querySelectorAll('.delete-filme').forEach(btn => btn.addEventListener('click', () => { const id = btn.getAttribute('data-id'); database.ref(`filmes/${id}`).remove(); showToast('Filme removido'); loadFilmesFromFirebase(); }));
-            document.querySelectorAll('.delete-serie').forEach(btn => btn.addEventListener('click', () => { const id = btn.getAttribute('data-id'); database.ref(`series/${id}`).remove(); showToast('Episódio removido'); loadSeriesFromFirebase(); }));
+            document.querySelectorAll('.delete-canal').forEach(btn => btn.addEventListener('click', () => { database.ref(`canais/${btn.getAttribute('data-id')}`).remove(); loadCanaisFromFirebase(); }));
+            document.querySelectorAll('.delete-filme').forEach(btn => btn.addEventListener('click', () => { database.ref(`filmes/${btn.getAttribute('data-id')}`).remove(); loadFilmesFromFirebase(); }));
+            document.querySelectorAll('.delete-serie').forEach(btn => btn.addEventListener('click', () => { database.ref(`series/${btn.getAttribute('data-id')}`).remove(); loadSeriesFromFirebase(); }));
         }
         
         // Chat functions
@@ -2089,12 +1683,7 @@
             container.scrollTop = container.scrollHeight;
             
             if (saveToFirebase && !isSystem && currentUser) {
-                database.ref('chat').push({
-                    username: username,
-                    text: text,
-                    time: new Date().toLocaleTimeString(),
-                    timestamp: Date.now()
-                });
+                database.ref('chat').push({ username: username, text: text, time: new Date().toLocaleTimeString(), timestamp: Date.now() });
             }
         }
         
@@ -2110,13 +1699,11 @@
         }
         
         function toggleChat() {
-            const chatContainer = document.getElementById('chatContainer');
-            chatContainer.classList.toggle('open');
+            document.getElementById('chatContainer').classList.toggle('open');
         }
         
         function openSearchPopup() {
-            const popup = document.getElementById('searchPopup');
-            popup.classList.remove('hidden');
+            document.getElementById('searchPopup').classList.remove('hidden');
             document.getElementById('popupSearchInput').focus();
         }
         
@@ -2149,11 +1736,8 @@
                             const id = el.getAttribute('data-id');
                             const type = el.getAttribute('data-type');
                             const item = type === 'filme' ? filmes.find(f => f.id === id) : series.find(s => s.id === id);
-                            if(item) {
-                                const rect = { top: window.innerHeight / 2 };
-                                playMedia(item, type, rect);
-                                document.getElementById('searchPopup').classList.add('hidden');
-                            }
+                            if(item) playMedia(item, type);
+                            document.getElementById('searchPopup').classList.add('hidden');
                         });
                     });
                 }
@@ -2166,25 +1750,19 @@
                 return;
             }
             selectedRating = 0;
-            document.querySelectorAll('.star-rating').forEach(star => {
-                star.innerHTML = '<i class="far fa-star text-2xl"></i>';
-            });
+            document.querySelectorAll('.star-rating').forEach(star => star.innerHTML = '<i class="far fa-star text-2xl"></i>');
             document.getElementById('postContent').value = '';
             document.getElementById('createPostModal').classList.remove('hidden');
         }
         
         function setupRatingStars() {
-            const stars = document.querySelectorAll('.star-rating');
-            stars.forEach(star => {
+            document.querySelectorAll('.star-rating').forEach(star => {
                 star.addEventListener('click', () => {
                     const value = parseInt(star.getAttribute('data-value'));
                     selectedRating = value;
-                    stars.forEach((s, idx) => {
-                        if (idx < value) {
-                            s.innerHTML = '<i class="fas fa-star text-2xl text-yellow-500"></i>';
-                        } else {
-                            s.innerHTML = '<i class="far fa-star text-2xl"></i>';
-                        }
+                    document.querySelectorAll('.star-rating').forEach((s, idx) => {
+                        if (idx < value) s.innerHTML = '<i class="fas fa-star text-2xl text-yellow-500"></i>';
+                        else s.innerHTML = '<i class="far fa-star text-2xl"></i>';
                     });
                 });
             });
@@ -2194,18 +1772,9 @@
             const movieId = document.getElementById('postMovieSelect').value;
             const content = document.getElementById('postContent').value.trim();
             
-            if (!movieId) {
-                showToast('Selecione um filme');
-                return;
-            }
-            if (selectedRating === 0) {
-                showToast('Selecione uma avaliação (1-5 estrelas)');
-                return;
-            }
-            if (!content) {
-                showToast('Escreva sua opinião sobre o filme');
-                return;
-            }
+            if (!movieId) { showToast('Selecione um filme'); return; }
+            if (selectedRating === 0) { showToast('Selecione uma avaliação'); return; }
+            if (!content) { showToast('Escreva sua opinião'); return; }
             
             await createPost(movieId, selectedRating, content);
             document.getElementById('createPostModal').classList.add('hidden');
@@ -2228,20 +1797,12 @@
         
         function loadTheme() {
             const theme = localStorage.getItem('noitefilmes_theme');
-            if(theme === 'light') {
-                setLightMode();
-            } else {
-                setDarkMode();
-            }
+            if(theme === 'light') setLightMode();
+            else setDarkMode();
         }
         
-        function showLoginModal() {
-            document.getElementById('loginModal').classList.remove('hidden');
-        }
-        
-        function hideLoginModal() {
-            document.getElementById('loginModal').classList.add('hidden');
-        }
+        function showLoginModal() { document.getElementById('loginModal').classList.remove('hidden'); }
+        function hideLoginModal() { document.getElementById('loginModal').classList.add('hidden'); }
         
         function openSettingsModal() {
             document.getElementById('settingsModal').classList.remove('hidden');
@@ -2250,24 +1811,64 @@
             document.getElementById('userLinkInput').value = currentUserLink;
         }
         
+        async function saveUserProfile() {
+            const newUsername = document.getElementById('usernameInput').value.trim();
+            const newBio = document.getElementById('userBioInput').value.trim();
+            const newLink = document.getElementById('userLinkInput').value.trim();
+            
+            if(newUsername && currentUser) {
+                currentUsername = newUsername;
+                localStorage.setItem('noitefilmes_username', currentUsername);
+                await database.ref(`usuarios/${currentUser.uid}/nickname`).set(currentUsername);
+                await database.ref(`usuarios/${currentUser.uid}/bio`).set(newBio);
+                await database.ref(`usuarios/${currentUser.uid}/link`).set(newLink);
+                showToast(`✅ Perfil atualizado! @${currentUsername}`);
+                document.getElementById('settingsModal').classList.add('hidden');
+                if (currentPage === 'profile') loadProfile(currentUser.uid);
+            }
+        }
+        
         function logoutUser() {
             auth.signOut();
             document.getElementById('settingsModal').classList.add('hidden');
         }
         
+        async function registerUser() {
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            let nickname = document.getElementById('registerNickname').value.trim();
+            
+            if(nickname.startsWith('@')) nickname = nickname.substring(1);
+            if(!nickname) { showToast('Digite um @nickname'); return; }
+            
+            try {
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+                await database.ref(`usuarios/${user.uid}`).set({
+                    email: email,
+                    nickname: nickname,
+                    bio: 'Cinéfilo apaixonado por filmes! 🎬',
+                    link: '',
+                    createdAt: Date.now()
+                });
+                currentUsername = nickname;
+                localStorage.setItem('noitefilmes_username', currentUsername);
+                showToast(`✅ Cadastro realizado! @${nickname}`);
+                document.getElementById('nicknameSuggestions').classList.add('hidden');
+            } catch(error) {
+                showToast('Erro: ' + error.message);
+            }
+        }
+        
         function updateUserUI(user) {
             if (user) {
+                currentUser = user;
                 hideLoginModal();
-                loadUserData(user.uid).then(() => {
-                    loadFilmesFromFirebase();
-                    loadSeriesFromFirebase();
-                    loadCanaisFromFirebase();
-                    loadUsuariosFromFirebase();
-                    loadPostsFromFirebase();
-                    if (currentPage === 'profile') {
-                        loadProfile(user.uid);
-                    }
-                });
+                loadUserData(user.uid);
+                loadFilmesFromFirebase();
+                loadSeriesFromFirebase();
+                loadCanaisFromFirebase();
+                loadPostsFromFirebase();
                 
                 database.ref('chat').limitToLast(100).off();
                 database.ref('chat').limitToLast(100).on('child_added', (snapshot) => {
@@ -2275,19 +1876,15 @@
                     addMessageToChat(msg.username, msg.text, false, msg.time, false);
                 });
                 
-                if(user) {
-                    database.ref(`favoritos/${user.uid}`).on('value', (snapshot) => {
-                        const data = snapshot.val();
-                        favoritos = data ? Object.values(data) : [];
-                        updateLikeButton();
-                        updateSaveButton();
-                    });
-                    
-                    database.ref(`progresso/${user.uid}`).on('value', (snapshot) => {
-                        progressSalvos = snapshot.val() || {};
-                    });
-                }
+                database.ref(`favoritos/${user.uid}`).on('value', (snapshot) => {
+                    favoritos = snapshot.val() ? Object.values(snapshot.val()) : [];
+                });
+                
+                database.ref(`progresso/${user.uid}`).on('value', (snapshot) => {
+                    progressSalvos = snapshot.val() || {};
+                });
             } else {
+                currentUser = null;
                 showLoginModal();
                 document.getElementById('chatMessages').innerHTML = '';
                 viewingProfileUserId = null;
@@ -2312,9 +1909,9 @@
         document.getElementById('navSearchBtn').onclick = openSearchPopup;
         document.getElementById('closeSearchPopup').onclick = () => document.getElementById('searchPopup').classList.add('hidden');
         document.getElementById('closePlayerBtn').onclick = () => document.getElementById('playerSection').classList.add('hidden');
-        document.getElementById('likeButton').onclick = toggleLike;
-        document.getElementById('saveButton').onclick = toggleSave;
-        document.getElementById('shareButton').onclick = shareMedia;
+        document.getElementById('likeButton').onclick = () => {};
+        document.getElementById('saveButton').onclick = () => {};
+        document.getElementById('shareButton').onclick = () => {};
         document.getElementById('favoritesBtn').onclick = () => { const favs = favoritos.filter(f => f.saved); if(favs.length === 0) alert('Nenhum favorito'); else alert('Favoritos:\n' + favs.map(f => `⭐ ${f.title}`).join('\n')); };
         document.getElementById('settingsBtn').onclick = openSettingsModal;
         document.getElementById('saveUsernameBtn').onclick = saveUserProfile;
@@ -2409,7 +2006,6 @@
         });
         
         auth.onAuthStateChanged((user) => {
-            currentUser = user;
             updateUserUI(user);
         });
         
@@ -2430,11 +2026,9 @@
             if (onlineEl) onlineEl.innerHTML = `● ${onlineCount} online`;
         }, 15000);
         
-        // Inicializar página principal
         showPage('movies');
         
         window.viewProfile = viewProfile;
-        window.escapeHtml = escapeHtml;
     </script>
 </body>
 </html>
