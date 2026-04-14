@@ -113,7 +113,55 @@
             .video-info {
                 padding: 15px;
                 background: #1a1a1a;
-                min-height: 130px;
+            }
+            .video-title {
+                font-size: 18px;
+                font-weight: bold;
+                margin-bottom: 5px;
+            }
+            .video-meta {
+                display: flex;
+                gap: 15px;
+                font-size: 13px;
+                color: #aaa;
+                margin-bottom: 15px;
+            }
+            .action-buttons {
+                display: flex;
+                align-items: center;
+                gap: 25px;
+                flex-wrap: wrap;
+            }
+            .action-btn {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                background: none;
+                border: none;
+                color: #ccc;
+                font-size: 18px;
+                cursor: pointer;
+                transition: 0.2s;
+                padding: 8px 12px;
+                border-radius: 30px;
+            }
+            .action-btn:hover { background: #2a2a2a; color: #e50914; }
+            .action-btn.active { color: #e50914; }
+            .action-btn span { font-size: 13px; }
+            .rating-stars {
+                display: inline-flex;
+                gap: 5px;
+                align-items: center;
+            }
+            .rating-stars i {
+                font-size: 20px;
+                cursor: pointer;
+                transition: 0.1s;
+            }
+            .rating-percent {
+                font-size: 13px;
+                color: #ffc107;
+                margin-left: 10px;
             }
             .comments-section {
                 width: 380px;
@@ -125,34 +173,49 @@
                 border-left: 1px solid #333;
             }
             .comments-header {
-                padding: 12px 16px;
+                padding: 15px;
                 background: linear-gradient(135deg, #1a1a2e, #16213e);
                 border-bottom: 1px solid #e50914;
-            }
-            .rating-info {
-                padding: 10px 16px;
-                border-bottom: 1px solid #333;
-                font-size: 12px;
-                color: #ffc107;
+                font-weight: bold;
             }
             .comments-list {
                 flex: 1;
                 overflow-y: auto;
-                padding: 12px;
+                padding: 15px;
             }
-            .comment-input-area {
+            .comment-item {
                 padding: 12px;
+                border-bottom: 1px solid #333;
+                transition: background 0.2s;
+            }
+            .comment-item:hover { background: #2a2a2a; }
+            .comment-user { color: #e50914; font-weight: bold; font-size: 13px; }
+            .comment-text { color: #ccc; font-size: 14px; margin-top: 5px; line-height: 1.4; }
+            .comment-time { font-size: 11px; color: #666; margin-top: 5px; }
+            .comment-input-area {
+                padding: 15px;
                 border-top: 1px solid #333;
                 display: flex;
-                gap: 8px;
+                gap: 10px;
                 background: #1a1a1a;
             }
-            .action-buttons {
-                display: flex;
-                align-items: center;
-                gap: 20px;
-                flex-wrap: wrap;
-                margin-top: 12px;
+            .comment-input-area input {
+                flex: 1;
+                background: #2a2a2a;
+                border: none;
+                border-radius: 30px;
+                padding: 10px 15px;
+                color: white;
+                outline: none;
+            }
+            .comment-input-area button {
+                background: #e50914;
+                border: none;
+                border-radius: 30px;
+                padding: 10px 20px;
+                color: white;
+                cursor: pointer;
+                font-weight: bold;
             }
         }
         
@@ -180,6 +243,30 @@
                 padding: 12px;
                 background: #1a1a1a;
             }
+            .video-title { font-size: 16px; font-weight: bold; }
+            .video-meta { font-size: 12px; color: #aaa; margin: 5px 0 10px 0; display: flex; gap: 10px; }
+            .action-buttons {
+                display: flex;
+                align-items: center;
+                gap: 15px;
+                flex-wrap: wrap;
+                margin-top: 5px;
+            }
+            .action-btn {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                background: none;
+                border: none;
+                color: #ccc;
+                font-size: 16px;
+                cursor: pointer;
+                padding: 6px 10px;
+                border-radius: 25px;
+            }
+            .action-btn span { font-size: 12px; }
+            .rating-stars i { font-size: 16px; }
+            .rating-percent { font-size: 11px; margin-left: 5px; }
             .comments-section {
                 display: flex;
                 flex-direction: column;
@@ -191,74 +278,48 @@
                 padding: 10px 12px;
                 background: linear-gradient(135deg, #1a1a2e, #16213e);
                 border-bottom: 1px solid #e50914;
-            }
-            .rating-info {
-                padding: 8px 12px;
-                border-bottom: 1px solid #333;
-                font-size: 11px;
-                color: #ffc107;
+                font-weight: bold;
+                font-size: 14px;
             }
             .comments-list {
                 flex: 1;
                 overflow-y: auto;
                 padding: 10px;
-                max-height: 25vh;
             }
+            .comment-item { padding: 10px; border-bottom: 1px solid #333; }
+            .comment-user { font-size: 12px; }
+            .comment-text { font-size: 13px; margin-top: 4px; }
+            .comment-time { font-size: 10px; }
             .comment-input-area {
                 padding: 10px;
                 border-top: 1px solid #333;
                 display: flex;
                 gap: 8px;
-                background: #1a1a1a;
             }
-            .action-buttons {
-                display: flex;
-                align-items: center;
-                gap: 15px;
-                flex-wrap: wrap;
-                margin-top: 10px;
+            .comment-input-area input {
+                flex: 1;
+                background: #2a2a2a;
+                border: none;
+                border-radius: 25px;
+                padding: 8px 12px;
+                color: white;
+                outline: none;
+                font-size: 12px;
+            }
+            .comment-input-area button {
+                background: #e50914;
+                border: none;
+                border-radius: 25px;
+                padding: 8px 15px;
+                color: white;
+                cursor: pointer;
+                font-size: 12px;
             }
         }
         
-        .comments-list .comment-item {
-            padding: 10px;
-            border-bottom: 1px solid #333;
-            transition: background 0.2s;
-        }
-        .comments-list .comment-item:hover {
-            background: #2a2a2a;
-        }
-        .comment-user { color: #e50914; font-weight: bold; font-size: 12px; }
-        .comment-text { color: #ccc; font-size: 13px; margin-top: 4px; line-height: 1.4; }
-        .comment-time { font-size: 10px; color: #666; margin-top: 4px; }
-        
-        .rating-stars {
-            display: inline-flex;
-            gap: 4px;
-            cursor: pointer;
-        }
-        .rating-stars i {
-            font-size: 18px;
-            color: #555;
-            transition: 0.1s;
-        }
+        .action-btn i { font-size: inherit; }
+        .rating-stars i.far { color: #555; }
         .rating-stars i.fas { color: #ffc107; }
-        .rating-stars i:hover { color: #ffc107; text-shadow: 0 0 2px gold; }
-        
-        .action-btn {
-            background: none;
-            border: none;
-            color: #ccc;
-            font-size: 20px;
-            cursor: pointer;
-            transition: 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .action-btn:hover { color: #e50914; }
-        .action-btn.active { color: #e50914; }
-        .action-btn span { font-size: 12px; }
         
         .chat-container {
             position: fixed;
@@ -795,32 +856,43 @@
                 <div id="noContent" class="absolute inset-0 flex items-center justify-center text-gray-500 bg-black text-sm">Carregando...</div>
             </div>
             <div class="video-info">
-                <h3 id="videoTitle" class="text-md font-bold">Título</h3>
-                <div class="flex gap-2 text-xs text-gray-400 mt-1">
-                    <span id="videoYear"></span>
-                    <span id="videoGenre"></span>
+                <div class="video-title" id="videoTitle">Título do Vídeo</div>
+                <div class="video-meta">
+                    <span id="videoYear">Ano</span>
+                    <span id="videoGenre">Gênero</span>
                 </div>
-                <div class="action-buttons mt-3">
-                    <button id="likeBtn" class="action-btn like-btn"><i class="far fa-heart"></i> <span id="likeCount">0</span></button>
-                    <div id="ratingStarsContainer" class="rating-stars"></div>
-                    <button id="saveBtn" class="action-btn save-btn"><i class="far fa-star"></i></button>
-                    <button id="shareBtn" class="action-btn"><i class="fas fa-share-alt"></i></button>
+                <div class="action-buttons">
+                    <!-- Curtir -->
+                    <button id="likeBtn" class="action-btn like-btn">
+                        <i class="far fa-heart"></i>
+                        <span id="likeCount">0</span>
+                    </button>
+                    
+                    <!-- Avaliação (Estrelas 1-5) -->
+                    <div class="rating-stars" id="ratingStarsContainer"></div>
+                    
+                    <!-- Favoritar -->
+                    <button id="saveBtn" class="action-btn save-btn">
+                        <i class="far fa-star"></i>
+                    </button>
+                    
+                    <!-- Compartilhar -->
+                    <button id="shareBtn" class="action-btn">
+                        <i class="fas fa-share-alt"></i>
+                    </button>
                 </div>
             </div>
         </div>
         
-        <!-- Seção de Comentários (lado direito no desktop, abaixo no mobile) -->
+        <!-- Seção de Comentários -->
         <div class="comments-section">
             <div class="comments-header">
-                <div class="flex justify-between items-center">
-                    <span class="font-bold text-sm">💬 Comentários</span>
-                </div>
+                💬 Comentários
             </div>
-            <div id="ratingInfo" class="rating-info"></div>
             <div id="commentsList" class="comments-list"></div>
             <div class="comment-input-area">
-                <input type="text" id="newCommentInput" class="flex-1 bg-gray-700 rounded-full px-3 py-2 text-sm" placeholder="Adicione um comentário...">
-                <button id="submitCommentBtn" class="bg-red-600 px-4 py-2 rounded-full text-sm">Enviar</button>
+                <input type="text" id="newCommentInput" placeholder="Adicione um comentário...">
+                <button id="submitCommentBtn">Enviar</button>
             </div>
         </div>
     </div>
@@ -991,11 +1063,8 @@
             database.ref(`likes/${mediaId}`).on('value', (snapshot) => {
                 const data = snapshot.val();
                 likeCount = data ? Object.keys(data).length : 0;
-                const likeBtn = document.getElementById('likeBtn');
-                if (likeBtn) {
-                    const span = likeBtn.querySelector('span');
-                    if (span) span.innerText = likeCount;
-                }
+                const likeSpan = document.querySelector('#likeBtn span');
+                if (likeSpan) likeSpan.innerText = likeCount;
             });
         }
         
@@ -1009,7 +1078,6 @@
                 }
                 if (currentMedia && currentMedia.id === mediaId) {
                     updateRatingStarsDisplay(mediaId);
-                    updateRatingInfo(mediaId);
                 }
             });
         }
@@ -1019,14 +1087,6 @@
             if (!data || data.totalVotos === 0) return 0;
             const media = data.soma / data.totalVotos;
             return Math.round((media / 5) * 100);
-        }
-        
-        function updateRatingInfo(mediaId) {
-            const percent = calculateRatingPercentage(mediaId);
-            const totalVotos = avaliacoes[mediaId]?.totalVotos || 0;
-            const infoHtml = `<span>⭐ ${percent}% gostaram (${totalVotos} votos)</span>`;
-            const ratingInfo = document.getElementById('ratingInfo');
-            if (ratingInfo) ratingInfo.innerHTML = infoHtml;
         }
         
         function saveRating(mediaId, rating) {
@@ -1072,7 +1132,32 @@
                     database.ref(`likes/${mediaId}/${currentUser.uid}`).set(true);
                     showToast('👍 Curtiu!');
                 }
+                loadLikeCount(mediaId);
             });
+        }
+        
+        function toggleSaveMedia(mediaId) {
+            if (!currentUser) { showToast('Faça login para favoritar'); return; }
+            const existing = favoritos.find(f => f.id === mediaId);
+            if (existing && existing.saved) {
+                database.ref(`favoritos/${currentUser.uid}/${mediaId}`).remove();
+                showToast('⭐ Removido dos favoritos');
+            } else {
+                const media = filmes.find(f => f.id === mediaId) || series.find(s => s.id === mediaId) || canais.find(c => c.id === mediaId);
+                database.ref(`favoritos/${currentUser.uid}/${mediaId}`).set({
+                    id: mediaId, title: media?.title || '', thumb: media?.thumb || '', type: currentMediaType, saved: true
+                });
+                showToast('⭐ Adicionado aos favoritos');
+            }
+            updateSaveButtonUI(mediaId);
+        }
+        
+        function updateSaveButtonUI(mediaId) {
+            const saveBtn = document.getElementById('saveBtn');
+            if (!saveBtn) return;
+            const isSaved = favoritos.some(f => f.id === mediaId && f.saved);
+            saveBtn.innerHTML = isSaved ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>';
+            saveBtn.classList.toggle('active', isSaved);
         }
         
         function createRatingStars(containerId, mediaId) {
@@ -1103,17 +1188,15 @@
                 container.appendChild(star);
             }
             const percent = calculateRatingPercentage(mediaId);
-            const totalVotos = avaliacoes[mediaId]?.totalVotos || 0;
             const percentSpan = document.createElement('span');
-            percentSpan.className = 'text-xs text-gray-400 ml-2';
-            percentSpan.innerText = `${percent}% (${totalVotos})`;
+            percentSpan.className = 'rating-percent';
+            percentSpan.innerText = `${percent}% gostaram`;
             container.appendChild(percentSpan);
         }
         
         function updateRatingStarsDisplay(mediaId) {
             if (currentMedia && currentMedia.id === mediaId) {
                 createRatingStars('ratingStarsContainer', mediaId);
-                updateRatingInfo(mediaId);
             }
         }
         
@@ -1130,7 +1213,7 @@
                             <div class="comment-time">${c.time}</div>
                         </div>
                     `).join('');
-                    if (commentsList.length === 0) container.innerHTML = '<div class="text-center text-gray-500 text-xs py-4">Nenhum comentário ainda. Seja o primeiro!</div>';
+                    if (commentsList.length === 0) container.innerHTML = '<div class="text-center text-gray-500 text-sm py-4">Nenhum comentário ainda. Seja o primeiro!</div>';
                 }
             });
         }
@@ -1226,34 +1309,12 @@
             const saveBtn = document.getElementById('saveBtn');
             const shareBtn = document.getElementById('shareBtn');
             
-            function updateButtons() {
-                const isLiked = favoritos.some(f => f.id === item.id && f.liked);
-                likeBtn.querySelector('i').className = isLiked ? 'fas fa-heart' : 'far fa-heart';
-                likeBtn.classList.toggle('active', isLiked);
-                const isSaved = favoritos.some(f => f.id === item.id && f.saved);
-                saveBtn.innerHTML = isSaved ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>';
-                saveBtn.classList.toggle('active', isSaved);
-            }
-            
-            likeBtn.onclick = () => {
-                toggleLikeMedia(item.id);
-                setTimeout(() => loadLikeCount(item.id), 500);
-            };
-            saveBtn.onclick = () => {
-                if(!currentUser) { showToast('Faça login'); return; }
-                const existing = favoritos.find(f => f.id === item.id);
-                if(existing && existing.saved) {
-                    database.ref(`favoritos/${currentUser.uid}/${item.id}`).remove();
-                } else {
-                    database.ref(`favoritos/${currentUser.uid}/${item.id}`).set({
-                        id: item.id, title: item.title, thumb: item.thumb, type: type, liked: existing?.liked || false, saved: true
-                    });
-                }
-                updateButtons();
-            };
+            likeBtn.onclick = () => { toggleLikeMedia(item.id); };
+            saveBtn.onclick = () => { toggleSaveMedia(item.id); };
             shareBtn.onclick = () => { openShareModal(item); };
             
-            updateButtons();
+            // Atualizar UI do save
+            updateSaveButtonUI(item.id);
             
             loadRatingsFromFirebase(item.id);
             loadComments(item.id);
@@ -1309,9 +1370,7 @@
             stopRealtimeUpdates();
         }
         
-        function onYouTubeIframeAPIReady() {
-            // Player será criado dinamicamente no playMedia
-        }
+        function onYouTubeIframeAPIReady() { }
         
         function loadCanaisFromFirebase() {
             database.ref('canais').once('value', (snapshot) => {
@@ -1595,7 +1654,7 @@
                 loadUserNickname(user.uid).then(() => { loadCanaisFromFirebase(); loadFilmesFromFirebase(); loadSeriesFromFirebase(); });
                 database.ref('chat').limitToLast(100).off();
                 database.ref('chat').limitToLast(100).on('child_added', (snapshot) => { const msg = snapshot.val(); addMessageToChat(msg.username, msg.text, false, msg.time, false); });
-                database.ref(`favoritos/${user.uid}`).on('value', (snapshot) => { favoritos = snapshot.val() ? Object.values(snapshot.val()) : []; });
+                database.ref(`favoritos/${user.uid}`).on('value', (snapshot) => { favoritos = snapshot.val() ? Object.values(snapshot.val()) : []; updateSaveButtonUI(currentMedia?.id); });
                 database.ref('top10').on('value', (snapshot) => { const data = snapshot.val(); if(data) { top10List = data; renderTop10Carousel(); } else { generateWeeklyTop10(); } });
             } else { showLoginModal(); document.getElementById('chatMessages').innerHTML = ''; }
         }
