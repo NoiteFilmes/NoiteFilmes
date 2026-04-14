@@ -111,9 +111,9 @@
                 flex-shrink: 0;
             }
             .video-info {
-                padding: 16px;
+                padding: 15px;
                 background: #1a1a1a;
-                border-top: 1px solid #333;
+                min-height: 130px;
             }
             .comments-section {
                 width: 380px;
@@ -150,9 +150,9 @@
             .action-buttons {
                 display: flex;
                 align-items: center;
-                gap: 25px;
+                gap: 20px;
                 flex-wrap: wrap;
-                margin-top: 8px;
+                margin-top: 12px;
             }
         }
         
@@ -177,7 +177,7 @@
             }
             .video-section .player-wrapper { padding-bottom: 56.25%; }
             .video-info {
-                padding: 10px;
+                padding: 12px;
                 background: #1a1a1a;
             }
             .comments-section {
@@ -216,7 +216,7 @@
                 align-items: center;
                 gap: 15px;
                 flex-wrap: wrap;
-                margin-top: 6px;
+                margin-top: 10px;
             }
         }
         
@@ -254,13 +254,11 @@
             transition: 0.2s;
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            border-radius: 30px;
+            gap: 6px;
         }
-        .action-btn:hover { background: rgba(229, 9, 20, 0.2); color: #e50914; }
+        .action-btn:hover { color: #e50914; }
         .action-btn.active { color: #e50914; }
-        .action-btn span { font-size: 13px; font-weight: 500; }
+        .action-btn span { font-size: 12px; }
         
         .chat-container {
             position: fixed;
@@ -802,18 +800,11 @@
                     <span id="videoYear"></span>
                     <span id="videoGenre"></span>
                 </div>
-                <!-- BOTÕES DE AÇÃO (CURTIR, AVALIAÇÃO, FAVORITAR, COMPARTILHAR) -->
                 <div class="action-buttons mt-3">
-                    <button id="likeBtn" class="action-btn like-btn">
-                        <i class="far fa-heart"></i> <span id="likeCount">0</span>
-                    </button>
+                    <button id="likeBtn" class="action-btn like-btn"><i class="far fa-heart"></i> <span id="likeCount">0</span></button>
                     <div id="ratingStarsContainer" class="rating-stars"></div>
-                    <button id="saveBtn" class="action-btn save-btn">
-                        <i class="far fa-star"></i>
-                    </button>
-                    <button id="shareBtn" class="action-btn">
-                        <i class="fas fa-share-alt"></i>
-                    </button>
+                    <button id="saveBtn" class="action-btn save-btn"><i class="far fa-star"></i></button>
+                    <button id="shareBtn" class="action-btn"><i class="fas fa-share-alt"></i></button>
                 </div>
             </div>
         </div>
@@ -1000,8 +991,11 @@
             database.ref(`likes/${mediaId}`).on('value', (snapshot) => {
                 const data = snapshot.val();
                 likeCount = data ? Object.keys(data).length : 0;
-                const likeBtnSpan = document.querySelector('#likeBtn span');
-                if (likeBtnSpan) likeBtnSpan.innerText = likeCount;
+                const likeBtn = document.getElementById('likeBtn');
+                if (likeBtn) {
+                    const span = likeBtn.querySelector('span');
+                    if (span) span.innerText = likeCount;
+                }
             });
         }
         
@@ -1078,7 +1072,6 @@
                     database.ref(`likes/${mediaId}/${currentUser.uid}`).set(true);
                     showToast('👍 Curtiu!');
                 }
-                loadLikeCount(mediaId);
             });
         }
         
@@ -1235,8 +1228,7 @@
             
             function updateButtons() {
                 const isLiked = favoritos.some(f => f.id === item.id && f.liked);
-                const likeIcon = likeBtn.querySelector('i');
-                if (likeIcon) likeIcon.className = isLiked ? 'fas fa-heart' : 'far fa-heart';
+                likeBtn.querySelector('i').className = isLiked ? 'fas fa-heart' : 'far fa-heart';
                 likeBtn.classList.toggle('active', isLiked);
                 const isSaved = favoritos.some(f => f.id === item.id && f.saved);
                 saveBtn.innerHTML = isSaved ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>';
@@ -1245,6 +1237,7 @@
             
             likeBtn.onclick = () => {
                 toggleLikeMedia(item.id);
+                setTimeout(() => loadLikeCount(item.id), 500);
             };
             saveBtn.onclick = () => {
                 if(!currentUser) { showToast('Faça login'); return; }
@@ -1316,7 +1309,9 @@
             stopRealtimeUpdates();
         }
         
-        function onYouTubeIframeAPIReady() {}
+        function onYouTubeIframeAPIReady() {
+            // Player será criado dinamicamente no playMedia
+        }
         
         function loadCanaisFromFirebase() {
             database.ref('canais').once('value', (snapshot) => {
