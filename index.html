@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -808,7 +809,7 @@
             </div>
         </div>
         
-        <!-- Seção de Comentários (lado direito no desktop, abaixo no mobile) -->
+        <!-- Seção de Comentários -->
         <div class="comments-section">
             <div class="comments-header">
                 <div class="flex justify-between items-center">
@@ -936,6 +937,7 @@
     </div>
 
     <script>
+        // ==================== CONFIGURAÇÃO DO FIREBASE ====================
         const firebaseConfig = {
             apiKey: "AIzaSyAXQ_3yaVR6TgsAha6nU7uihHdd8NvrP78",
             authDomain: "noitefilmes26.firebaseapp.com",
@@ -967,7 +969,54 @@
         let avaliacoes = {};
         let likeCount = 0;
         let updateInterval = null;
+        let progressInterval = null;  // para controle do progresso do YouTube
         
+        // ==================== FUNÇÕES DE PROGRESSO ====================
+        function saveProgress(mediaId, currentTime) {
+            if (!currentUser) return;
+            database.ref(`progresso/${currentUser.uid}/${mediaId}`).set(currentTime);
+        }
+        
+        function loadProgress(mediaId, callback) {
+            if (!currentUser) { callback(0); return; }
+            database.ref(`progresso/${currentUser.uid}/${mediaId}`).once('value', (snapshot) => {
+                const savedTime = snapshot.val() || 0;
+                callback(savedTime);
+            });
+        }
+        
+        function startProgressTracking(mediaId, player, isYoutube = true) {
+            if (progressInterval) clearInterval(progressInterval);
+            if (!currentUser) return;
+            
+            if (isYoutube && player && typeof player.getCurrentTime === 'function') {
+                progressInterval = setInterval(() => {
+                    const currentTime = player.getCurrentTime();
+                    if (currentTime > 0) {
+                        saveProgress(mediaId, currentTime);
+                    }
+                }, 5000);
+            } else if (!isYoutube && player && player.tagName === 'VIDEO') {
+                const saveHandler = () => {
+                    saveProgress(mediaId, player.currentTime);
+                };
+                player.addEventListener('timeupdate', saveHandler);
+                player._progressHandler = saveHandler;
+            }
+        }
+        
+        function stopProgressTracking(player, isYoutube = true) {
+            if (progressInterval) {
+                clearInterval(progressInterval);
+                progressInterval = null;
+            }
+            if (!isYoutube && player && player._progressHandler) {
+                player.removeEventListener('timeupdate', player._progressHandler);
+                delete player._progressHandler;
+            }
+        }
+        
+        // ==================== ATUALIZAÇÕES EM TEMPO REAL ====================
         function startRealtimeUpdates(mediaId) {
             if (updateInterval) clearInterval(updateInterval);
             updateInterval = setInterval(() => {
@@ -1030,14 +1079,11 @@
             
             database.ref(`avaliacoes/${mediaId}/${currentUser.uid}`).once('value', (userSnapshot) => {
                 const oldRating = userSnapshot.val() || 0;
-                
                 if (oldRating === rating) {
                     showToast(`Sua avaliação continua ${rating}/5`);
                     return;
                 }
-                
                 database.ref(`avaliacoes/${mediaId}/${currentUser.uid}`).set(rating);
-                
                 database.ref(`avaliacoes/${mediaId}`).transaction((currentData) => {
                     if (!currentData) {
                         return { totalVotos: rating > 0 ? 1 : 0, soma: rating };
@@ -1074,7 +1120,6 @@
         function createRatingStars(containerId, mediaId) {
             const container = document.getElementById(containerId);
             if (!container) return;
-            
             if (currentUser) {
                 database.ref(`avaliacoes/${mediaId}/${currentUser.uid}`).once('value', (snapshot) => {
                     const userRating = snapshot.val() || 0;
@@ -1272,12 +1317,42 @@
                 youtubeDiv.style.display = 'block';
                 if(ytPlayer) {
                     ytPlayer.loadVideoById(videoId);
+                    // Carregar progresso e definir seek
+                    loadProgress(item.id, (savedTime) => {
+                        if (savedTime > 5) {
+                            ytPlayer.seekTo(savedTime, true);
+                            const minutes = Math.floor(savedTime / 60);
+                            const seconds = Math.floor(savedTime % 60);
+                            showToast(`⏯️ Continuando de onde parou: ${minutes}:${seconds.toString().padStart(2,'0')}`);
+                        }
+                        startProgressTracking(item.id, ytPlayer, true);
+                    });
                     ytPlayer.playVideo();
                 } else {
                     ytPlayer = new YT.Player('youtubePlayerDiv', {
                         height: '100%', width: '100%', videoId: videoId,
                         playerVars: { 'autoplay': 1, 'controls': 1, 'modestbranding': 1, 'rel': 0, 'showinfo': 0, 'fs': 1, 'playsinline': 1 },
-                        events: { 'onReady': (event) => { event.target.playVideo(); noContent.style.display = 'none'; } }
+                        events: {
+                            'onReady': (event) => {
+                                loadProgress(item.id, (savedTime) => {
+                                    if (savedTime > 5) {
+                                        event.target.seekTo(savedTime, true);
+                                        const minutes = Math.floor(savedTime / 60);
+                                        const seconds = Math.floor(savedTime % 60);
+                                        showToast(`⏯️ Continuando de onde parou: ${minutes}:${seconds.toString().padStart(2,'0')}`);
+                                    }
+                                    startProgressTracking(item.id, event.target, true);
+                                });
+                                event.target.playVideo();
+                                noContent.style.display = 'none';
+                            },
+                            'onStateChange': (event) => {
+                                if (event.data === YT.PlayerState.ENDED) {
+                                    database.ref(`progresso/${currentUser?.uid}/${item.id}`).remove();
+                                    stopProgressTracking(ytPlayer, true);
+                                }
+                            }
+                        }
                     });
                 }
                 noContent.style.display = 'none';
@@ -1287,11 +1362,38 @@
                     window.hlsInstance = new Hls();
                     window.hlsInstance.loadSource(item.link);
                     window.hlsInstance.attachMedia(hlsVideo);
-                    window.hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => { hlsVideo.play(); noContent.style.display = 'none'; });
+                    window.hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+                        loadProgress(item.id, (savedTime) => {
+                            if (savedTime > 5) {
+                                hlsVideo.currentTime = savedTime;
+                                showToast(`⏯️ Continuando de onde parou`);
+                            }
+                            startProgressTracking(item.id, hlsVideo, false);
+                        });
+                        hlsVideo.play();
+                        noContent.style.display = 'none';
+                    });
+                    hlsVideo.addEventListener('ended', () => {
+                        database.ref(`progresso/${currentUser?.uid}/${item.id}`).remove();
+                        stopProgressTracking(hlsVideo, false);
+                    });
                 } else if(hlsVideo.canPlayType('application/vnd.apple.mpegurl')) {
                     hlsVideo.src = item.link;
-                    hlsVideo.play();
-                    noContent.style.display = 'none';
+                    hlsVideo.addEventListener('loadedmetadata', () => {
+                        loadProgress(item.id, (savedTime) => {
+                            if (savedTime > 5) {
+                                hlsVideo.currentTime = savedTime;
+                                showToast(`⏯️ Continuando de onde parou`);
+                            }
+                            startProgressTracking(item.id, hlsVideo, false);
+                        });
+                        hlsVideo.play();
+                        noContent.style.display = 'none';
+                    });
+                    hlsVideo.addEventListener('ended', () => {
+                        database.ref(`progresso/${currentUser?.uid}/${item.id}`).remove();
+                        stopProgressTracking(hlsVideo, false);
+                    });
                 }
             } else {
                 showToast('Formato não suportado');
@@ -1299,17 +1401,24 @@
         }
         
         function closePlayer() {
-            if(ytPlayer) ytPlayer.stopVideo();
-            if(window.hlsInstance) window.hlsInstance.destroy();
+            if(ytPlayer) {
+                stopProgressTracking(ytPlayer, true);
+                ytPlayer.stopVideo();
+            }
+            if(window.hlsInstance) {
+                stopProgressTracking(document.getElementById('hlsPlayer'), false);
+                window.hlsInstance.destroy();
+            }
             document.getElementById('playerCommentsContainer').classList.add('hidden');
             document.getElementById('floatingPlayerOverlay').classList.add('hidden');
             stopRealtimeUpdates();
         }
         
         function onYouTubeIframeAPIReady() {
-            // Player será criado dinamicamente no playMedia
+            // ready
         }
         
+        // ==================== CARREGAMENTO DE DADOS ====================
         function loadCanaisFromFirebase() {
             database.ref('canais').once('value', (snapshot) => {
                 const data = snapshot.val();
@@ -1603,7 +1712,7 @@
             if(data && data.nickname) { currentUsername = data.nickname; localStorage.setItem('noitefilmes_username', currentUsername); }
         }
         
-        // Event Listeners
+        // ==================== EVENT LISTENERS ====================
         document.getElementById('navCanaisBtn').onclick = () => setNavTab('canais');
         document.getElementById('navFilmesBtn').onclick = () => setNavTab('filmes');
         document.getElementById('navSeriesBtn').onclick = () => setNavTab('series');
