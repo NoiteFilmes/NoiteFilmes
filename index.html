@@ -342,7 +342,7 @@
         .cast-btn:hover { background: #e50914; transform: scale(1.05); }
         .cast-btn.active { background: #e50914; color: white; }
         
-        .search-popup {
+        .search-popup, .favorites-popup {
             position: fixed;
             top: 0;
             left: 0;
@@ -356,7 +356,7 @@
             padding-top: 60px;
             backdrop-filter: blur(10px);
         }
-        .search-popup-content {
+        .search-popup-content, .favorites-popup-content {
             width: 90%;
             max-width: 700px;
             background: #1a1a1a;
@@ -364,7 +364,7 @@
             padding: 20px;
             border: 1px solid #333;
         }
-        .search-popup input {
+        .search-popup input, .favorites-popup input {
             width: 100%;
             padding: 12px 16px;
             font-size: 16px;
@@ -388,12 +388,12 @@
             background: rgba(229, 9, 20, 0.2);
             border-left: 3px solid #e50914;
         }
-        .search-results-popup {
+        .search-results-popup, .favorites-results-popup {
             max-height: 400px;
             overflow-y: auto;
             margin-top: 15px;
         }
-        .search-result-item {
+        .search-result-item, .favorite-item {
             display: flex;
             align-items: center;
             gap: 12px;
@@ -402,8 +402,8 @@
             cursor: pointer;
             transition: background 0.2s;
         }
-        .search-result-item:hover { background: #2a2a2a; }
-        .search-result-item img { width: 50px; height: 65px; object-fit: cover; border-radius: 8px; }
+        .search-result-item:hover, .favorite-item:hover { background: #2a2a2a; }
+        .search-result-item img, .favorite-item img { width: 50px; height: 65px; object-fit: cover; border-radius: 8px; }
         
         .settings-modal {
             position: fixed;
@@ -464,7 +464,6 @@
         .profile-icon { text-align: center; margin-bottom: 20px; }
         .profile-icon i { font-size: 60px; color: #e50914; }
         
-        /* Player flutuante - deslocado para topo (-20px abaixo do topo) */
         .floating-player {
             position: fixed;
             top: 60px;
@@ -502,7 +501,6 @@
             z-index: 1099;
         }
         
-        /* Container de comentários abaixo do player */
         .comments-section {
             margin-top: 10px;
             padding: 10px;
@@ -519,7 +517,6 @@
         .comment-text { color: #ccc; font-size: 12px; }
         .comment-time { font-size: 10px; color: #666; }
         
-        /* Estrelas de avaliação (1 a 5) */
         .rating-stars {
             display: inline-flex;
             gap: 4px;
@@ -656,7 +653,7 @@
         </div>
     </div>
 
-    <!-- Player flutuante (aparece ao clicar em qualquer conteúdo) -->
+    <!-- Player flutuante -->
     <div id="floatingPlayerOverlay" class="floating-player-overlay hidden"></div>
     <div id="floatingPlayer" class="floating-player hidden">
         <button id="closeFloatingPlayer" class="floating-player-close"><i class="fas fa-times"></i></button>
@@ -681,7 +678,6 @@
                     <button id="floatingShareBtn" class="share-btn"><i class="fas fa-share-alt"></i></button>
                 </div>
             </div>
-            <!-- Modal de compartilhamento -->
             <div id="shareModal" class="hidden" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1a1a1a; border-radius: 20px; padding: 20px; z-index: 1200; min-width: 280px;">
                 <div class="text-center mb-3 font-bold">Compartilhar</div>
                 <div class="share-buttons">
@@ -693,7 +689,6 @@
                 </div>
                 <button id="closeShareModal" class="mt-3 w-full bg-gray-700 py-1 rounded">Fechar</button>
             </div>
-            <!-- Seção de comentários abaixo do vídeo -->
             <div id="commentsSection" class="comments-section mt-2">
                 <div class="text-xs text-gray-400 mb-2">💬 Comentários</div>
                 <div id="commentsList"></div>
@@ -702,6 +697,18 @@
                     <button id="submitCommentBtn" class="bg-red-600 px-3 py-1 rounded-full text-xs">Enviar</button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Popup de Favoritos (estilizado igual à busca) -->
+    <div id="favoritesPopup" class="favorites-popup hidden">
+        <div class="favorites-popup-content">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-lg font-bold">❤️ Meus Favoritos</h3>
+                <button id="closeFavoritesPopup" class="text-gray-400 hover:text-white text-xl">&times;</button>
+            </div>
+            <input type="text" id="favoritesSearchInput" placeholder="Buscar nos favoritos..." autocomplete="off">
+            <div id="favoritesResults" class="favorites-results-popup"></div>
         </div>
     </div>
 
@@ -823,8 +830,7 @@
         let isAdminLogged = false;
         let currentUsername = localStorage.getItem('noitefilmes_username') || 'Cinéfilo';
         
-        // Avaliações (1 a 5) - calcular porcentagem
-        let ratings = {}; // { mediaId: { user: nota, totalVotos, soma } }
+        let ratings = {};
         
         function calculateRatingPercentage(mediaId) {
             const mediaRatings = ratings[mediaId];
@@ -880,7 +886,6 @@
             }
         }
         
-        // Comentários
         function loadComments(mediaId) {
             database.ref(`comentarios/${mediaId}`).once('value', (snapshot) => {
                 const data = snapshot.val();
@@ -920,7 +925,6 @@
             return div.innerHTML;
         }
         
-        // Compartilhar com ícones
         let currentShareMedia = null;
         function openShareModal(media) {
             currentShareMedia = media;
@@ -961,7 +965,6 @@
             return (match && match[2].length === 11) ? match[2] : null;
         }
         
-        // Função para abrir vídeo pelo ID (usado em favoritos)
         function playMediaById(mediaId, type) {
             let item;
             if (type === 'filme') item = filmes.find(f => f.id === mediaId);
@@ -986,7 +989,6 @@
             currentMedia = item;
             currentMediaType = type;
             
-            // Configurar botões
             const likeBtn = document.getElementById('floatingLikeBtn');
             const saveBtn = document.getElementById('floatingSaveBtn');
             const shareBtn = document.getElementById('floatingShareBtn');
@@ -1028,19 +1030,15 @@
             
             updateButtons();
             
-            // Carregar avaliação
             const rating = getUserRating(item.id);
             createRatingStars('floatingRatingStars', item.id, rating, (r) => saveRating(item.id, r));
             
-            // Carregar comentários
             loadComments(item.id);
             const submitComment = document.getElementById('submitCommentBtn');
             const newCommentInput = document.getElementById('newCommentInput');
-            const newSubmitHandler = () => addComment(item.id, newCommentInput.value);
-            submitComment.onclick = newSubmitHandler;
+            submitComment.onclick = () => addComment(item.id, newCommentInput.value);
             newCommentInput.onkeypress = (e) => { if(e.key === 'Enter') addComment(item.id, newCommentInput.value); };
             
-            // Player
             const youtubeDiv = document.getElementById('floatingYoutubePlayerDiv');
             const hlsVideo = document.getElementById('floatingHlsPlayer');
             const noContent = document.getElementById('floatingNoContent');
@@ -1089,7 +1087,6 @@
             ytPlayer = new YT.Player('youtubePlayerDiv', { height: '100%', width: '100%', videoId: '' });
         }
         
-        // Carregar dados
         function loadRatingsFromStorage() {
             const stored = localStorage.getItem('noitefilmes_ratings');
             if (stored) ratings = JSON.parse(stored);
@@ -1233,27 +1230,48 @@
             renderGrid();
         }
         
-        // Favoritos - ao clicar no nome do filme abre o vídeo
-        document.getElementById('favoritesBtn').onclick = () => {
-            const favs = favoritos.filter(f => f.saved);
-            if(favs.length === 0) { alert('Nenhum favorito'); return; }
-            const favList = favs.map((f, i) => `${i+1}. ${f.title} (${f.type || 'filme'})`).join('\n');
-            const selected = prompt(`Seus favoritos:\n${favList}\n\nDigite o número do filme que deseja assistir:`);
-            const num = parseInt(selected) - 1;
-            if (!isNaN(num) && favs[num]) {
-                playMediaById(favs[num].id, favs[num].type || 'filme');
+        // FAVORITOS: Abre popup estilizado (igual busca)
+        function openFavoritesPopup() {
+            if (!favoritos.length) {
+                showToast('Você ainda não tem favoritos');
+                return;
             }
-        };
-        
-        function playMediaById(mediaId, type) {
-            let item;
-            if (type === 'filme') item = filmes.find(f => f.id === mediaId);
-            else if (type === 'serie') item = series.find(s => s.id === mediaId);
-            else item = canais.find(c => c.id === mediaId);
-            if (item) playMedia(item, type);
+            const popup = document.getElementById('favoritesPopup');
+            popup.classList.remove('hidden');
+            renderFavoritesList(favoritos);
+            document.getElementById('favoritesSearchInput').focus();
         }
         
-        // Autenticação e chat
+        function renderFavoritesList(items, searchTerm = '') {
+            const container = document.getElementById('favoritesResults');
+            let filtered = items;
+            if (searchTerm) {
+                filtered = items.filter(item => item.title.toLowerCase().includes(searchTerm.toLowerCase()));
+            }
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm">Nenhum favorito encontrado</div>';
+                return;
+            }
+            container.innerHTML = filtered.map(item => `
+                <div class="favorite-item" data-id="${item.id}" data-type="${item.type || 'filme'}">
+                    <img src="${item.thumb || 'https://via.placeholder.com/60x80'}" onerror="this.src='https://via.placeholder.com/60x80'">
+                    <div>
+                        <div class="font-semibold text-sm">${item.title}</div>
+                        <div class="text-xs text-gray-400">${item.type === 'filme' ? '🎬 Filme' : (item.type === 'serie' ? '📺 Série' : '📡 Canal')}</div>
+                    </div>
+                </div>
+            `).join('');
+            document.querySelectorAll('.favorite-item').forEach(el => {
+                el.addEventListener('click', () => {
+                    const id = el.getAttribute('data-id');
+                    const type = el.getAttribute('data-type');
+                    playMediaById(id, type);
+                    document.getElementById('favoritesPopup').classList.add('hidden');
+                });
+            });
+        }
+        
+        // Funções de autenticação e chat
         async function registerUser() {
             const email = document.getElementById('registerEmail').value;
             const password = document.getElementById('registerPassword').value;
@@ -1386,12 +1404,16 @@
         document.getElementById('closeChatBtn').onclick = toggleChat;
         document.getElementById('sendMessageBtn').onclick = sendChatMessage;
         document.getElementById('chatInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') sendChatMessage(); });
+        document.getElementById('favoritesBtn').onclick = openFavoritesPopup;
+        document.getElementById('closeFavoritesPopup').onclick = () => document.getElementById('favoritesPopup').classList.add('hidden');
+        document.getElementById('favoritesSearchInput').addEventListener('input', (e) => {
+            renderFavoritesList(favoritos, e.target.value);
+        });
         document.getElementById('settingsBtn').onclick = openSettingsModal;
         document.getElementById('saveUsernameBtn').onclick = saveUsername;
         document.getElementById('logoutSettingsBtn').onclick = logoutUser;
         document.getElementById('castButton').onclick = () => showToast('Conecte-se a um Chromecast');
         
-        // Share modal events
         document.getElementById('closeShareModal').onclick = closeShareModal;
         document.querySelectorAll('.share-icon').forEach(icon => {
             icon.addEventListener('click', () => shareMedia(icon.getAttribute('data-platform')));
@@ -1419,6 +1441,7 @@
         
         document.getElementById('settingsModal').addEventListener('click', (e) => { if(e.target === document.getElementById('settingsModal')) document.getElementById('settingsModal').classList.add('hidden'); });
         document.getElementById('searchPopup').addEventListener('click', (e) => { if(e.target === document.getElementById('searchPopup')) document.getElementById('searchPopup').classList.add('hidden'); });
+        document.getElementById('favoritesPopup').addEventListener('click', (e) => { if(e.target === document.getElementById('favoritesPopup')) document.getElementById('favoritesPopup').classList.add('hidden'); });
         
         auth.onAuthStateChanged((user) => { currentUser = user; updateUserUI(user); });
         setupSearchPopup();
