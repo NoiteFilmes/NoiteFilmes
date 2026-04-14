@@ -8,15 +8,13 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.8/dist/hls.min.js"></script>
     <script src="https://www.youtube.com/iframe_api"></script>
-    
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { background-color: #0a0a0a; overflow-x: hidden; transition: background 0.3s, color 0.3s; }
+        body { background-color: #0a0a0a; overflow-x: hidden; transition: background 0.3s, color 0.3s; margin-top: 0; padding-top: 0; }
         
         body.dark-mode { background-color: #0a0a0a; color: #e5e5e5; }
         body.light-mode { background-color: #f5f5f5; color: #1a1a1a; }
@@ -466,11 +464,12 @@
         .profile-icon { text-align: center; margin-bottom: 20px; }
         .profile-icon i { font-size: 60px; color: #e50914; }
         
+        /* Player flutuante - deslocado para topo (-20px abaixo do topo) */
         .floating-player {
             position: fixed;
-            top: 50%;
+            top: 60px;
             left: 50%;
-            transform: translate(-50%, -50%);
+            transform: translateX(-50%);
             width: 90%;
             max-width: 800px;
             z-index: 1100;
@@ -503,8 +502,63 @@
             z-index: 1099;
         }
         
+        /* Container de comentários abaixo do player */
+        .comments-section {
+            margin-top: 10px;
+            padding: 10px;
+            background: #1a1a1a;
+            border-radius: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .comment-item {
+            padding: 8px;
+            border-bottom: 1px solid #333;
+        }
+        .comment-user { color: #e50914; font-weight: bold; font-size: 12px; }
+        .comment-text { color: #ccc; font-size: 12px; }
+        .comment-time { font-size: 10px; color: #666; }
+        
+        /* Estrelas de avaliação (1 a 5) */
+        .rating-stars {
+            display: inline-flex;
+            gap: 4px;
+            cursor: pointer;
+        }
+        .rating-stars i {
+            font-size: 18px;
+            color: #555;
+            transition: 0.1s;
+        }
+        .rating-stars i.fas { color: #ffc107; }
+        .rating-stars i:hover { color: #ffc107; text-shadow: 0 0 2px gold; }
+        
+        .share-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        .share-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 22px;
+        }
+        .share-icon:hover { transform: scale(1.1); }
+        .share-whatsapp { background: #25D366; color: white; }
+        .share-telegram { background: #0088cc; color: white; }
+        .share-facebook { background: #1877F2; color: white; }
+        .share-twitter { background: #1DA1F2; color: white; }
+        .share-copy { background: #333; color: white; }
+        
         @media (max-width: 768px) {
-            .floating-player { width: 95%; max-width: 95%; }
+            .floating-player { width: 95%; max-width: 95%; top: 55px; }
         }
         
         .sync-status {
@@ -519,70 +573,6 @@
         }
         .sync-status.synced { color: #4ade80; }
         .sync-status.syncing { color: #eab308; }
-        
-        /* Estrelas de avaliação */
-        .rating-stars {
-            display: inline-flex;
-            gap: 4px;
-            cursor: pointer;
-        }
-        .rating-stars i {
-            font-size: 18px;
-            color: #ffc107;
-            transition: 0.1s;
-        }
-        .rating-stars i:hover,
-        .rating-stars i.active {
-            color: #ffc107;
-            text-shadow: 0 0 2px gold;
-        }
-        .rating-stars i.inactive {
-            color: #555;
-        }
-        /* Modal de comentários */
-        .comment-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.95);
-            z-index: 1200;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .comment-box {
-            background: #1a1a1a;
-            border-radius: 20px;
-            padding: 20px;
-            width: 90%;
-            max-width: 500px;
-        }
-        .comment-textarea {
-            width: 100%;
-            padding: 10px;
-            background: #2a2a2a;
-            border: 1px solid #444;
-            border-radius: 12px;
-            color: white;
-            margin: 15px 0;
-            resize: vertical;
-        }
-        .comments-list {
-            max-height: 200px;
-            overflow-y: auto;
-            margin-bottom: 15px;
-        }
-        .comment-item {
-            background: #2a2a2a;
-            padding: 8px;
-            border-radius: 10px;
-            margin-bottom: 8px;
-            font-size: 12px;
-        }
-        .comment-user { color: #e50914; font-weight: bold; }
-        .comment-text { color: #ccc; }
     </style>
 </head>
 <body class="dark-mode">
@@ -686,39 +676,30 @@
                 </div>
                 <div class="flex gap-3 text-lg">
                     <button id="floatingLikeBtn" class="like-btn"><i class="far fa-heart"></i></button>
-                    <button id="floatingCommentBtn"><i class="far fa-comment"></i></button>
-                    <button id="floatingShareBtn"><i class="fas fa-share-alt"></i></button>
                     <div id="floatingRatingStars" class="rating-stars"></div>
                     <button id="floatingSaveBtn" class="save-btn"><i class="far fa-star"></i></button>
+                    <button id="floatingShareBtn" class="share-btn"><i class="fas fa-share-alt"></i></button>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <div id="playerSection" class="container mx-auto px-2 mt-2 hidden">
-        <div class="bg-gray-900 rounded-xl overflow-hidden shadow-2xl">
-            <div class="player-wrapper">
-                <div id="youtubePlayerDiv"></div>
-                <video id="hlsPlayer" controls style="display: none; width:100%; height:100%; background: black;"></video>
-                <div id="noContent" class="absolute inset-0 flex items-center justify-center text-gray-500 bg-black text-sm">Carregando...</div>
+            <!-- Modal de compartilhamento -->
+            <div id="shareModal" class="hidden" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1a1a1a; border-radius: 20px; padding: 20px; z-index: 1200; min-width: 280px;">
+                <div class="text-center mb-3 font-bold">Compartilhar</div>
+                <div class="share-buttons">
+                    <div class="share-icon share-whatsapp" data-platform="whatsapp"><i class="fab fa-whatsapp"></i></div>
+                    <div class="share-icon share-telegram" data-platform="telegram"><i class="fab fa-telegram-plane"></i></div>
+                    <div class="share-icon share-facebook" data-platform="facebook"><i class="fab fa-facebook-f"></i></div>
+                    <div class="share-icon share-twitter" data-platform="twitter"><i class="fab fa-twitter"></i></div>
+                    <div class="share-icon share-copy" data-platform="copy"><i class="fas fa-link"></i></div>
+                </div>
+                <button id="closeShareModal" class="mt-3 w-full bg-gray-700 py-1 rounded">Fechar</button>
             </div>
-            <div class="p-3 bg-gray-800">
-                <div class="flex justify-between items-start flex-wrap gap-2">
-                    <div class="flex-1">
-                        <h2 id="currentMediaTitle" class="text-sm font-bold">Nenhum conteúdo</h2>
-                        <p id="currentMediaDesc" class="text-xs text-gray-400">Detalhes</p>
-                        <div class="flex gap-2 text-xs text-gray-500">
-                            <span id="mediaYear"></span>
-                            <span id="mediaGenre"></span>
-                        </div>
-                    </div>
-                    <div class="flex gap-3 text-lg">
-                        <button id="likeButton" class="like-btn"><i class="far fa-heart"></i></button>
-                        <button id="commentButton"><i class="far fa-comment"></i></button>
-                        <button id="shareButton"><i class="fas fa-share-alt"></i></button>
-                        <div id="ratingStars" class="rating-stars"></div>
-                        <button id="saveButton" class="save-btn"><i class="far fa-star"></i></button>
-                    </div>
+            <!-- Seção de comentários abaixo do vídeo -->
+            <div id="commentsSection" class="comments-section mt-2">
+                <div class="text-xs text-gray-400 mb-2">💬 Comentários</div>
+                <div id="commentsList"></div>
+                <div class="flex gap-2 mt-2">
+                    <input type="text" id="newCommentInput" class="flex-1 bg-gray-700 rounded-full px-3 py-1 text-xs" placeholder="Adicione um comentário...">
+                    <button id="submitCommentBtn" class="bg-red-600 px-3 py-1 rounded-full text-xs">Enviar</button>
                 </div>
             </div>
         </div>
@@ -788,7 +769,6 @@
                         <button id="adminTabFilmes" class="admin-tab-btn py-1 px-2 text-gray-400 text-sm">Filmes</button>
                         <button id="adminTabSeries" class="admin-tab-btn py-1 px-2 text-gray-400 text-sm">Séries</button>
                     </div>
-                    
                     <div id="adminFormArea" class="bg-gray-800 p-3 rounded-lg mb-4">
                         <h3 class="font-semibold text-md mb-2" id="formTitle">Adicionar Canal</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -803,30 +783,6 @@
                             <button id="cancelEditBtn" class="bg-gray-600 hover:bg-gray-500 px-3 py-1 rounded text-sm hidden">Cancelar</button>
                         </div>
                     </div>
-                    
-                    <div id="batchFilmesArea" class="bg-gray-800 p-3 rounded-lg mb-4 hidden">
-                        <h3 class="font-semibold text-md mb-2">📦 Adicionar Filmes em Lote</h3>
-                        <p class="text-xs text-gray-400 mb-2">Links do YouTube (um por linha)</p>
-                        <textarea id="batchLinksInput" rows="4" class="batch-input text-sm" placeholder="https://www.youtube.com/watch?v=..."></textarea>
-                        <div class="mt-2 flex gap-2">
-                            <button id="previewBatchBtn" class="bg-blue-700 hover:bg-blue-800 px-3 py-1 rounded text-sm">🔍 Prévia</button>
-                            <button id="saveBatchBtn" class="bg-green-700 hover:bg-green-800 px-3 py-1 rounded text-sm">💾 Salvar Lote</button>
-                        </div>
-                        <div id="batchPreview" class="mt-2 max-h-40 overflow-y-auto text-sm"></div>
-                    </div>
-                    
-                    <div id="batchSeriesArea" class="bg-gray-800 p-3 rounded-lg mb-4 hidden">
-                        <h3 class="font-semibold text-md mb-2">📺 Adicionar Episódios</h3>
-                        <div class="grid grid-cols-1 gap-2">
-                            <input type="text" id="serieTitle" placeholder="Nome da Série" class="bg-gray-700 p-2 rounded text-sm">
-                            <textarea id="episodesLinksInput" rows="4" class="batch-input text-sm" placeholder="EP01: https://youtube.com/..."></textarea>
-                        </div>
-                        <div class="mt-2">
-                            <button id="saveEpisodesBtn" class="bg-green-700 hover:bg-green-800 px-3 py-1 rounded text-sm">💾 Salvar</button>
-                        </div>
-                        <div id="episodesPreview" class="mt-2 max-h-40 overflow-y-auto text-sm"></div>
-                    </div>
-                    
                     <div id="adminListsContainer">
                         <div id="adminCanaisList" class="mb-4"><h3 class="font-bold text-sm mb-1">Canais</h3><div id="canaisAdminList" class="space-y-1 max-h-40 overflow-y-auto text-sm"></div></div>
                         <div id="adminFilmesList" class="mb-4 hidden"><h3 class="font-bold text-sm mb-1">Filmes</h3><div id="filmesAdminList" class="space-y-1 max-h-40 overflow-y-auto text-sm"></div></div>
@@ -861,117 +817,100 @@
         let currentMediaType = 'filme';
         let ytPlayer = null;
         let floatingYtPlayer = null;
-        let progressSalvos = {};
         let currentNavTab = 'filmes';
         let currentGenreFilter = 'todos';
         let top10List = [];
-        let isPlayerReady = false;
-        let batchPreviewItems = [];
         let isAdminLogged = false;
-        let editingItem = null;
         let currentUsername = localStorage.getItem('noitefilmes_username') || 'Cinéfilo';
         
-        // Dados de avaliações e comentários
-        let ratings = {};   // { mediaId: { user: nota } }
-        let comments = {};  // { mediaId: [{ user, text, time }] }
+        // Avaliações (1 a 5) - calcular porcentagem
+        let ratings = {}; // { mediaId: { user: nota, totalVotos, soma } }
         
-        // Função para gerar estrelas de avaliação
-        function createRatingStars(containerId, mediaId, currentRating, onRate) {
-            const container = document.getElementById(containerId);
-            if (!container) return;
-            container.innerHTML = '';
-            for (let i = 1; i <= 10; i++) {
-                const star = document.createElement('i');
-                star.className = i <= currentRating ? 'fas fa-star active' : 'far fa-star inactive';
-                star.style.cursor = 'pointer';
-                star.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    onRate(i);
-                });
-                container.appendChild(star);
-            }
+        function calculateRatingPercentage(mediaId) {
+            const mediaRatings = ratings[mediaId];
+            if (!mediaRatings || !mediaRatings.totalVotos) return 0;
+            const media = mediaRatings.soma / mediaRatings.totalVotos;
+            return Math.round((media / 5) * 100);
         }
         
-        // Carregar avaliação do usuário para a mídia atual
-        function loadUserRating(mediaId) {
+        function getUserRating(mediaId) {
             if (!currentUser) return 0;
-            return ratings[`${mediaId}_${currentUser.uid}`] || 0;
+            const mediaRatings = ratings[mediaId];
+            if (mediaRatings && mediaRatings[currentUser.uid]) return mediaRatings[currentUser.uid];
+            return 0;
         }
         
         function saveRating(mediaId, rating) {
             if (!currentUser) { showToast('Faça login para avaliar'); return; }
-            const key = `${mediaId}_${currentUser.uid}`;
-            ratings[key] = rating;
+            const mediaRatings = ratings[mediaId] || {};
+            const oldRating = mediaRatings[currentUser.uid] || 0;
+            let soma = (mediaRatings.soma || 0) - oldRating + rating;
+            let totalVotos = (mediaRatings.totalVotos || 0);
+            if (oldRating === 0 && rating > 0) totalVotos++;
+            else if (oldRating > 0 && rating === 0) totalVotos--;
+            ratings[mediaId] = { ...mediaRatings, [currentUser.uid]: rating, soma, totalVotos };
             localStorage.setItem('noitefilmes_ratings', JSON.stringify(ratings));
-            // Salvar no Firebase opcional
-            if (currentUser) {
-                database.ref(`avaliacoes/${mediaId}/${currentUser.uid}`).set(rating);
-            }
-            showToast(`Avaliação ${rating}/10 salva!`);
+            if (currentUser) database.ref(`avaliacoes/${mediaId}/${currentUser.uid}`).set(rating);
             updateRatingStarsDisplay(mediaId);
+            showToast(`Avaliação ${rating}/5 salva! (${calculateRatingPercentage(mediaId)}% gostaram)`);
+        }
+        
+        function createRatingStars(containerId, mediaId, currentRating, onRate) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = '';
+            for (let i = 1; i <= 5; i++) {
+                const star = document.createElement('i');
+                star.className = i <= currentRating ? 'fas fa-star' : 'far fa-star';
+                star.style.cursor = 'pointer';
+                star.addEventListener('click', (e) => { e.stopPropagation(); onRate(i); });
+                container.appendChild(star);
+            }
+            const percent = calculateRatingPercentage(mediaId);
+            const percentSpan = document.createElement('span');
+            percentSpan.className = 'text-xs text-gray-400 ml-2';
+            percentSpan.innerText = `${percent}% gostaram`;
+            container.appendChild(percentSpan);
         }
         
         function updateRatingStarsDisplay(mediaId) {
-            const currentRating = loadUserRating(mediaId);
-            // Atualizar stars no player principal e flutuante se for o mesmo media
             if (currentMedia && currentMedia.id === mediaId) {
-                createRatingStars('ratingStars', mediaId, currentRating, (r) => saveRating(mediaId, r));
-                createRatingStars('floatingRatingStars', mediaId, currentRating, (r) => saveRating(mediaId, r));
+                const rating = getUserRating(mediaId);
+                createRatingStars('floatingRatingStars', mediaId, rating, (r) => saveRating(mediaId, r));
             }
         }
         
-        // Carregar comentários do Firebase
-        function loadComments(mediaId, callback) {
+        // Comentários
+        function loadComments(mediaId) {
             database.ref(`comentarios/${mediaId}`).once('value', (snapshot) => {
                 const data = snapshot.val();
                 const commentsList = data ? Object.values(data) : [];
-                callback(commentsList);
+                const container = document.getElementById('commentsList');
+                if (container) {
+                    container.innerHTML = commentsList.map(c => `
+                        <div class="comment-item">
+                            <span class="comment-user">@${c.user}</span>
+                            <span class="comment-text">${escapeHtml(c.text)}</span>
+                            <div class="comment-time">${c.time}</div>
+                        </div>
+                    `).join('');
+                    if (commentsList.length === 0) container.innerHTML = '<div class="text-center text-gray-500 text-xs">Nenhum comentário ainda.</div>';
+                }
             });
         }
         
         function addComment(mediaId, text) {
             if (!currentUser) { showToast('Faça login para comentar'); return; }
-            const comment = {
+            if (!text.trim()) return;
+            database.ref(`comentarios/${mediaId}`).push({
                 user: currentUsername,
                 text: text,
                 time: new Date().toLocaleString(),
                 userId: currentUser.uid
-            };
-            database.ref(`comentarios/${mediaId}`).push(comment).then(() => {
+            }).then(() => {
                 showToast('Comentário adicionado!');
-            });
-        }
-        
-        function openCommentModal(mediaId) {
-            if (!currentUser) { showToast('Faça login para comentar'); return; }
-            loadComments(mediaId, (commentsList) => {
-                const modalHtml = `
-                    <div id="commentModal" class="comment-modal">
-                        <div class="comment-box">
-                            <div class="flex justify-between items-center mb-2">
-                                <h3 class="font-bold">Comentários</h3>
-                                <button id="closeCommentModal" class="text-gray-400 hover:text-white">&times;</button>
-                            </div>
-                            <div class="comments-list" id="commentsList">
-                                ${commentsList.map(c => `<div class="comment-item"><span class="comment-user">@${c.user}</span>: <span class="comment-text">${escapeHtml(c.text)}</span><div class="text-right text-xs text-gray-500">${c.time}</div></div>`).join('')}
-                                ${commentsList.length === 0 ? '<div class="text-center text-gray-500">Nenhum comentário ainda.</div>' : ''}
-                            </div>
-                            <textarea id="newCommentText" class="comment-textarea" rows="3" placeholder="Escreva seu comentário..."></textarea>
-                            <button id="submitCommentBtn" class="bg-red-600 w-full py-2 rounded-lg">Enviar</button>
-                        </div>
-                    </div>
-                `;
-                document.body.insertAdjacentHTML('beforeend', modalHtml);
-                document.getElementById('closeCommentModal').onclick = () => document.getElementById('commentModal').remove();
-                document.getElementById('submitCommentBtn').onclick = () => {
-                    const text = document.getElementById('newCommentText').value.trim();
-                    if (text) {
-                        addComment(mediaId, text);
-                        document.getElementById('commentModal').remove();
-                    } else {
-                        showToast('Digite um comentário');
-                    }
-                };
+                loadComments(mediaId);
+                document.getElementById('newCommentInput').value = '';
             });
         }
         
@@ -981,36 +920,30 @@
             return div.innerHTML;
         }
         
-        // Carregar avaliações salvas do localStorage/Firebase
-        function loadRatingsFromStorage() {
-            const stored = localStorage.getItem('noitefilmes_ratings');
-            if (stored) ratings = JSON.parse(stored);
-            if (currentUser) {
-                // Opcional: sincronizar do Firebase
+        // Compartilhar com ícones
+        let currentShareMedia = null;
+        function openShareModal(media) {
+            currentShareMedia = media;
+            const shareModal = document.getElementById('shareModal');
+            shareModal.classList.remove('hidden');
+        }
+        
+        function closeShareModal() { document.getElementById('shareModal').classList.add('hidden'); }
+        
+        function shareMedia(platform) {
+            if (!currentShareMedia) return;
+            const url = encodeURIComponent(`${window.location.origin}${window.location.pathname}?media=${currentShareMedia.id}`);
+            const text = encodeURIComponent(`Assista "${currentShareMedia.title}" no NoiteFilmes!`);
+            let shareUrl = '';
+            switch(platform) {
+                case 'whatsapp': shareUrl = `https://api.whatsapp.com/send?text=${text}%20${url}`; break;
+                case 'telegram': shareUrl = `https://t.me/share/url?url=${url}&text=${text}`; break;
+                case 'facebook': shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`; break;
+                case 'twitter': shareUrl = `https://twitter.com/intent/tweet?text=${text}&url=${url}`; break;
+                case 'copy': navigator.clipboard.writeText(decodeURIComponent(url)); showToast('Link copiado!'); return;
             }
-        }
-        
-        // Funções existentes (adaptadas para usar os novos botões unificados)
-        function setSyncStatus(syncing) {
-            const statusEl = document.getElementById('syncStatus');
-            if (syncing) {
-                statusEl.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Sincronizando...';
-                statusEl.className = 'sync-status syncing';
-            } else {
-                statusEl.innerHTML = '<i class="fas fa-check-circle"></i> Sincronizado';
-                statusEl.className = 'sync-status synced';
-            }
-        }
-        
-        function generateSafeId() {
-            return Date.now() + '-' + Math.random().toString(36).substring(2, 15);
-        }
-        
-        function extractYoutubeId(url) {
-            if(!url) return null;
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-            const match = url.match(regExp);
-            return (match && match[2].length === 11) ? match[2] : null;
+            if (shareUrl) window.open(shareUrl, '_blank');
+            closeShareModal();
         }
         
         function showToast(msg) {
@@ -1021,25 +954,151 @@
             setTimeout(() => toast.remove(), 3000);
         }
         
-        // Lista de canais padrão (resumida para evitar repetição)
-        const canaisLista = [
-            { title: "GLOBO SP", link: "http://95.211.149.215:8081/look/sptv/playlist.m3u8", thumb: "http://s17.postimg.org/w75u3yg1n/globo2.png", category: "TV ABERTA" },
-            { title: "GLOBO NEWS", link: "http://5.79.68.138:8081/look/globonews/playlist.m3u8", thumb: "https://goo.gl/IQS0pJ", category: "Notícias" },
-            { title: "SBT SP", link: "http://gbbrlive2.sambatech.com.br/liveevent/sbtabr_8fcdc5f0f8df8d4de56b22a2c6660470/livestream2/playlist.m3u8", thumb: "http://s32.postimg.org/5fmicyl3p/SBT1.png", category: "TV ABERTA" }
-        ];
+        function extractYoutubeId(url) {
+            if(!url) return null;
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+        
+        // Função para abrir vídeo pelo ID (usado em favoritos)
+        function playMediaById(mediaId, type) {
+            let item;
+            if (type === 'filme') item = filmes.find(f => f.id === mediaId);
+            else if (type === 'serie') item = series.find(s => s.id === mediaId);
+            else item = canais.find(c => c.id === mediaId);
+            if (item) playMedia(item, type);
+        }
+        
+        function playMedia(item, type) {
+            const videoId = extractYoutubeId(item.link);
+            const isHls = item.link && (item.link.includes('.m3u8') || item.link.includes('playlist') || item.link.includes('sdp'));
+            
+            const floatingPlayer = document.getElementById('floatingPlayer');
+            const overlay = document.getElementById('floatingPlayerOverlay');
+            floatingPlayer.classList.remove('hidden');
+            overlay.classList.remove('hidden');
+            
+            document.getElementById('floatingMediaTitle').innerText = item.title;
+            document.getElementById('floatingMediaYear').innerHTML = item.year ? `📅 ${item.year}` : '';
+            document.getElementById('floatingMediaGenre').innerHTML = item.category ? `🎭 ${item.category}` : '';
+            
+            currentMedia = item;
+            currentMediaType = type;
+            
+            // Configurar botões
+            const likeBtn = document.getElementById('floatingLikeBtn');
+            const saveBtn = document.getElementById('floatingSaveBtn');
+            const shareBtn = document.getElementById('floatingShareBtn');
+            
+            function updateButtons() {
+                const isLiked = favoritos.some(f => f.id === item.id && f.liked);
+                likeBtn.innerHTML = isLiked ? '<i class="fas fa-heart"></i>' : '<i class="far fa-heart"></i>';
+                likeBtn.classList.toggle('active', isLiked);
+                const isSaved = favoritos.some(f => f.id === item.id && f.saved);
+                saveBtn.innerHTML = isSaved ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>';
+                saveBtn.classList.toggle('active', isSaved);
+            }
+            
+            likeBtn.onclick = () => {
+                if(!currentUser) { showToast('Faça login'); return; }
+                const existing = favoritos.find(f => f.id === item.id);
+                if(existing && existing.liked) {
+                    database.ref(`favoritos/${currentUser.uid}/${item.id}`).remove();
+                } else {
+                    database.ref(`favoritos/${currentUser.uid}/${item.id}`).set({
+                        id: item.id, title: item.title, thumb: item.thumb, type: type, liked: true, saved: existing?.saved || false
+                    });
+                }
+                updateButtons();
+            };
+            saveBtn.onclick = () => {
+                if(!currentUser) { showToast('Faça login'); return; }
+                const existing = favoritos.find(f => f.id === item.id);
+                if(existing && existing.saved) {
+                    database.ref(`favoritos/${currentUser.uid}/${item.id}`).remove();
+                } else {
+                    database.ref(`favoritos/${currentUser.uid}/${item.id}`).set({
+                        id: item.id, title: item.title, thumb: item.thumb, type: type, liked: existing?.liked || false, saved: true
+                    });
+                }
+                updateButtons();
+            };
+            shareBtn.onclick = () => { openShareModal(item); };
+            
+            updateButtons();
+            
+            // Carregar avaliação
+            const rating = getUserRating(item.id);
+            createRatingStars('floatingRatingStars', item.id, rating, (r) => saveRating(item.id, r));
+            
+            // Carregar comentários
+            loadComments(item.id);
+            const submitComment = document.getElementById('submitCommentBtn');
+            const newCommentInput = document.getElementById('newCommentInput');
+            const newSubmitHandler = () => addComment(item.id, newCommentInput.value);
+            submitComment.onclick = newSubmitHandler;
+            newCommentInput.onkeypress = (e) => { if(e.key === 'Enter') addComment(item.id, newCommentInput.value); };
+            
+            // Player
+            const youtubeDiv = document.getElementById('floatingYoutubePlayerDiv');
+            const hlsVideo = document.getElementById('floatingHlsPlayer');
+            const noContent = document.getElementById('floatingNoContent');
+            youtubeDiv.style.display = 'none';
+            hlsVideo.style.display = 'none';
+            if(window.floatingHlsInstance) window.floatingHlsInstance.destroy();
+            
+            if(videoId) {
+                youtubeDiv.style.display = 'block';
+                if(floatingYtPlayer) {
+                    floatingYtPlayer.loadVideoById(videoId);
+                    floatingYtPlayer.playVideo();
+                } else {
+                    floatingYtPlayer = new YT.Player('floatingYoutubePlayerDiv', {
+                        height: '100%', width: '100%', videoId: videoId,
+                        playerVars: { 'autoplay': 1, 'controls': 1, 'modestbranding': 1, 'rel': 0, 'showinfo': 0, 'fs': 1, 'playsinline': 1 },
+                        events: { 'onReady': (event) => { event.target.playVideo(); noContent.style.display = 'none'; } }
+                    });
+                }
+                noContent.style.display = 'none';
+            } else if(isHls) {
+                hlsVideo.style.display = 'block';
+                if(Hls.isSupported()) {
+                    window.floatingHlsInstance = new Hls();
+                    window.floatingHlsInstance.loadSource(item.link);
+                    window.floatingHlsInstance.attachMedia(hlsVideo);
+                    window.floatingHlsInstance.on(Hls.Events.MANIFEST_PARSED, () => { hlsVideo.play(); noContent.style.display = 'none'; });
+                } else if(hlsVideo.canPlayType('application/vnd.apple.mpegurl')) {
+                    hlsVideo.src = item.link;
+                    hlsVideo.play();
+                    noContent.style.display = 'none';
+                }
+            } else {
+                showToast('Formato não suportado');
+            }
+        }
+        
+        function closeFloatingPlayer() {
+            if(floatingYtPlayer) floatingYtPlayer.stopVideo();
+            if(window.floatingHlsInstance) window.floatingHlsInstance.destroy();
+            document.getElementById('floatingPlayer').classList.add('hidden');
+            document.getElementById('floatingPlayerOverlay').classList.add('hidden');
+        }
+        
+        function onYouTubeIframeAPIReady() {
+            ytPlayer = new YT.Player('youtubePlayerDiv', { height: '100%', width: '100%', videoId: '' });
+        }
+        
+        // Carregar dados
+        function loadRatingsFromStorage() {
+            const stored = localStorage.getItem('noitefilmes_ratings');
+            if (stored) ratings = JSON.parse(stored);
+        }
         
         function loadCanaisFromFirebase() {
             database.ref('canais').once('value', (snapshot) => {
                 const data = snapshot.val();
-                if(data && Object.keys(data).length > 0) {
-                    canais = Object.values(data);
-                } else {
-                    canaisLista.forEach(canal => {
-                        const safeId = generateSafeId();
-                        database.ref(`canais/${safeId}`).set({ ...canal, id: safeId, year: "2024", description: canal.title, createdAt: Date.now() });
-                    });
-                    canais = canaisLista;
-                }
+                canais = data ? Object.values(data) : [];
                 if(currentNavTab === 'canais') renderGrid();
                 generateWeeklyTop10();
                 updateGenreFilters();
@@ -1064,144 +1123,6 @@
             });
         }
         
-        // Função unificada de play (para todos os tipos)
-        function playMedia(item, type, elementRect = null) {
-            const videoId = extractYoutubeId(item.link);
-            const isHls = item.link && (item.link.includes('.m3u8') || item.link.includes('playlist') || item.link.includes('sdp'));
-            
-            const floatingPlayer = document.getElementById('floatingPlayer');
-            const overlay = document.getElementById('floatingPlayerOverlay');
-            floatingPlayer.classList.remove('hidden');
-            overlay.classList.remove('hidden');
-            
-            document.getElementById('floatingMediaTitle').innerText = item.title;
-            document.getElementById('floatingMediaYear').innerHTML = item.year ? `📅 ${item.year}` : '';
-            document.getElementById('floatingMediaGenre').innerHTML = item.category ? `🎭 ${item.category}` : '';
-            
-            // Configurar botões do player flutuante
-            const likeBtn = document.getElementById('floatingLikeBtn');
-            const saveBtn = document.getElementById('floatingSaveBtn');
-            const commentBtn = document.getElementById('floatingCommentBtn');
-            const shareBtn = document.getElementById('floatingShareBtn');
-            
-            // Atualizar like/save baseado nos favoritos existentes
-            function updateFloatingButtons() {
-                const isLiked = favoritos.some(f => f.id === item.id && f.liked);
-                likeBtn.innerHTML = isLiked ? '<i class="fas fa-heart"></i>' : '<i class="far fa-heart"></i>';
-                likeBtn.classList.toggle('active', isLiked);
-                const isSaved = favoritos.some(f => f.id === item.id && f.saved);
-                saveBtn.innerHTML = isSaved ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>';
-                saveBtn.classList.toggle('active', isSaved);
-            }
-            
-            likeBtn.onclick = (e) => { e.stopPropagation(); toggleLikeMedia(item, type, updateFloatingButtons); };
-            saveBtn.onclick = (e) => { e.stopPropagation(); toggleSaveMedia(item, type, updateFloatingButtons); };
-            commentBtn.onclick = (e) => { e.stopPropagation(); openCommentModal(item.id); };
-            shareBtn.onclick = (e) => { e.stopPropagation(); shareMediaItem(item); };
-            
-            updateFloatingButtons();
-            
-            // Carregar avaliação
-            const currentRating = loadUserRating(item.id);
-            createRatingStars('floatingRatingStars', item.id, currentRating, (r) => saveRating(item.id, r));
-            
-            // Player
-            const youtubeDiv = document.getElementById('floatingYoutubePlayerDiv');
-            const hlsVideo = document.getElementById('floatingHlsPlayer');
-            const noContent = document.getElementById('floatingNoContent');
-            
-            youtubeDiv.style.display = 'none';
-            hlsVideo.style.display = 'none';
-            if(window.floatingHlsInstance) window.floatingHlsInstance.destroy();
-            
-            if(videoId) {
-                youtubeDiv.style.display = 'block';
-                if(floatingYtPlayer) {
-                    floatingYtPlayer.loadVideoById(videoId);
-                    floatingYtPlayer.playVideo();
-                } else {
-                    floatingYtPlayer = new YT.Player('floatingYoutubePlayerDiv', {
-                        height: '100%',
-                        width: '100%',
-                        videoId: videoId,
-                        playerVars: { 'autoplay': 1, 'controls': 1, 'modestbranding': 1, 'rel': 0, 'showinfo': 0, 'fs': 1, 'playsinline': 1 },
-                        events: { 'onReady': (event) => { event.target.playVideo(); noContent.style.display = 'none'; } }
-                    });
-                }
-                noContent.style.display = 'none';
-            } else if(isHls) {
-                hlsVideo.style.display = 'block';
-                if(Hls.isSupported()) {
-                    window.floatingHlsInstance = new Hls();
-                    window.floatingHlsInstance.loadSource(item.link);
-                    window.floatingHlsInstance.attachMedia(hlsVideo);
-                    window.floatingHlsInstance.on(Hls.Events.MANIFEST_PARSED, () => { hlsVideo.play(); noContent.style.display = 'none'; });
-                } else if(hlsVideo.canPlayType('application/vnd.apple.mpegurl')) {
-                    hlsVideo.src = item.link;
-                    hlsVideo.play();
-                    noContent.style.display = 'none';
-                }
-            } else {
-                showToast('Formato não suportado');
-            }
-            
-            currentMedia = item;
-            currentMediaType = type;
-        }
-        
-        function toggleLikeMedia(item, type, callback) {
-            if(!currentUser) { showToast('Faça login'); return; }
-            const existing = favoritos.find(f => f.id === item.id);
-            if(existing && existing.liked) {
-                database.ref(`favoritos/${currentUser.uid}/${item.id}`).remove();
-                showToast(`❤️ Like removido`);
-            } else {
-                database.ref(`favoritos/${currentUser.uid}/${item.id}`).set({
-                    id: item.id, title: item.title, thumb: item.thumb, liked: true, saved: existing?.saved || false
-                });
-                showToast(`👍 Curtiu ${item.title}`);
-            }
-            if(callback) callback();
-        }
-        
-        function toggleSaveMedia(item, type, callback) {
-            if(!currentUser) { showToast('Faça login'); return; }
-            const existing = favoritos.find(f => f.id === item.id);
-            if(existing && existing.saved) {
-                database.ref(`favoritos/${currentUser.uid}/${item.id}`).remove();
-                showToast(`⭐ Removido dos salvos`);
-            } else {
-                database.ref(`favoritos/${currentUser.uid}/${item.id}`).set({
-                    id: item.id, title: item.title, thumb: item.thumb, liked: existing?.liked || false, saved: true
-                });
-                showToast(`⭐ Salvo: ${item.title}`);
-            }
-            if(callback) callback();
-        }
-        
-        function shareMediaItem(item) {
-            const text = encodeURIComponent(`Assista "${item.title}" no NoiteFilmes!`);
-            const choice = prompt(`Compartilhar:\n1-Facebook\n2-Twitter\n3-WhatsApp\n4-Telegram`);
-            const links = {'1':`https://www.facebook.com/sharer/sharer.php?u=${window.location.href}`,'2':`https://twitter.com/intent/tweet?text=${text}`,'3':`https://api.whatsapp.com/send?text=${text}`,'4':`https://t.me/share/url?url=${window.location.href}&text=${text}`};
-            if(links[choice]) window.open(links[choice], '_blank');
-        }
-        
-        function closeFloatingPlayer() {
-            if(floatingYtPlayer) floatingYtPlayer.stopVideo();
-            if(window.floatingHlsInstance) window.floatingHlsInstance.destroy();
-            document.getElementById('floatingPlayer').classList.add('hidden');
-            document.getElementById('floatingPlayerOverlay').classList.add('hidden');
-        }
-        
-        function onYouTubeIframeAPIReady() {
-            ytPlayer = new YT.Player('youtubePlayerDiv', {
-                height: '100%',
-                width: '100%',
-                videoId: '',
-                playerVars: { 'autoplay': 1, 'controls': 1, 'modestbranding': 1, 'rel': 0, 'showinfo': 0, 'fs': 1, 'playsinline': 1 }
-            });
-        }
-        
         function renderGrid() {
             let items = [];
             if(currentNavTab === 'canais') items = canais;
@@ -1213,10 +1134,7 @@
             }
             
             const grid = document.getElementById('contentGrid');
-            if(items.length === 0) { 
-                grid.innerHTML = '<div class="col-span-full text-center py-6 text-gray-500 text-sm">📀 Nenhum conteúdo encontrado.</div>'; 
-                return; 
-            }
+            if(items.length === 0) { grid.innerHTML = '<div class="col-span-full text-center py-6 text-gray-500 text-sm">📀 Nenhum conteúdo encontrado.</div>'; return; }
             
             grid.innerHTML = items.map(item => `
                 <div class="bg-gray-800 rounded-lg overflow-hidden cursor-pointer card-hover transition" data-id="${item.id}" data-type="${currentNavTab}">
@@ -1229,7 +1147,7 @@
             `).join('');
             
             document.querySelectorAll('#contentGrid > div').forEach(card => {
-                card.addEventListener('click', (event) => {
+                card.addEventListener('click', () => {
                     const id = card.getAttribute('data-id');
                     const type = card.getAttribute('data-type');
                     let item;
@@ -1281,10 +1199,7 @@
         
         function renderTop10Carousel() {
             const track = document.getElementById('top10Track');
-            if(!top10List || top10List.length === 0) {
-                track.innerHTML = '<div class="text-center text-gray-500 w-full py-4 text-xs">Carregando...</div>';
-                return;
-            }
+            if(!top10List || top10List.length === 0) { track.innerHTML = '<div class="text-center text-gray-500 w-full py-4 text-xs">Carregando...</div>'; return; }
             track.innerHTML = top10List.map((item, index) => `
                 <div class="carousel-item cursor-pointer group" data-id="${item.id}" data-type="${item.contentType}">
                     <div class="poster-wrapper">
@@ -1294,7 +1209,6 @@
                     </div>
                 </div>
             `).join('');
-            
             document.querySelectorAll('#top10Track .carousel-item').forEach(el => {
                 el.addEventListener('click', () => {
                     const id = el.getAttribute('data-id');
@@ -1319,38 +1233,33 @@
             renderGrid();
         }
         
-        // Autenticação e chat (mantido igual)
-        async function isNicknameAvailable(nickname) {
-            const snapshot = await database.ref('usuarios').orderByChild('nickname').equalTo(nickname).once('value');
-            return !snapshot.exists();
-        }
-        
-        async function generateSuggestions(baseNickname) {
-            const suggestions = [];
-            let counter = 1;
-            while(suggestions.length < 3 && counter < 100) {
-                const suggestion = `${baseNickname}${counter}`;
-                if(await isNicknameAvailable(suggestion)) suggestions.push(suggestion);
-                counter++;
+        // Favoritos - ao clicar no nome do filme abre o vídeo
+        document.getElementById('favoritesBtn').onclick = () => {
+            const favs = favoritos.filter(f => f.saved);
+            if(favs.length === 0) { alert('Nenhum favorito'); return; }
+            const favList = favs.map((f, i) => `${i+1}. ${f.title} (${f.type || 'filme'})`).join('\n');
+            const selected = prompt(`Seus favoritos:\n${favList}\n\nDigite o número do filme que deseja assistir:`);
+            const num = parseInt(selected) - 1;
+            if (!isNaN(num) && favs[num]) {
+                playMediaById(favs[num].id, favs[num].type || 'filme');
             }
-            return suggestions;
+        };
+        
+        function playMediaById(mediaId, type) {
+            let item;
+            if (type === 'filme') item = filmes.find(f => f.id === mediaId);
+            else if (type === 'serie') item = series.find(s => s.id === mediaId);
+            else item = canais.find(c => c.id === mediaId);
+            if (item) playMedia(item, type);
         }
         
+        // Autenticação e chat
         async function registerUser() {
             const email = document.getElementById('registerEmail').value;
             const password = document.getElementById('registerPassword').value;
             let nickname = document.getElementById('registerNickname').value.trim();
             if(nickname.startsWith('@')) nickname = nickname.substring(1);
             if(!nickname) { showToast('Digite um @nickname'); return; }
-            const available = await isNicknameAvailable(nickname);
-            if(!available) {
-                const suggestions = await generateSuggestions(nickname);
-                const suggestionsDiv = document.getElementById('nicknameSuggestions');
-                suggestionsDiv.classList.remove('hidden');
-                suggestionsDiv.innerHTML = '<div class="text-xs text-red-500 mb-1">Nickname indisponível! Sugestões:</div>' + 
-                    suggestions.map(s => `<div class="suggestion-item" onclick="document.getElementById('registerNickname').value='${s}'; document.getElementById('nicknameSuggestions').classList.add('hidden');">@${s}</div>`).join('');
-                return;
-            }
             try {
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                 const user = userCredential.user;
@@ -1358,47 +1267,24 @@
                 currentUsername = nickname;
                 localStorage.setItem('noitefilmes_username', currentUsername);
                 showToast(`✅ Cadastro realizado! @${nickname}`);
-                document.getElementById('nicknameSuggestions').classList.add('hidden');
             } catch(error) { showToast('Erro: ' + error.message); }
-        }
-        
-        async function loadUserNickname(userId) {
-            const snapshot = await database.ref(`usuarios/${userId}`).once('value');
-            const data = snapshot.val();
-            if(data && data.nickname) {
-                currentUsername = data.nickname;
-                localStorage.setItem('noitefilmes_username', currentUsername);
-            }
         }
         
         function addMessageToChat(username, text, isSystem, time, saveToFirebase = true) {
             const container = document.getElementById('chatMessages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${username === currentUsername && !isSystem ? 'my-message' : ''}`;
-            messageDiv.innerHTML = `
-                <div class="message-avatar" style="background: ${isSystem ? '#555' : '#e50914'}">
-                    ${isSystem ? '<i class="fas fa-info-circle text-xs"></i>' : (username?.charAt(0).toUpperCase() || '?')}
-                </div>
-                <div class="message-content">
-                    ${!isSystem ? `<div class="message-username">@${username}</div>` : ''}
-                    <div class="message-text">${escapeHtml(text)}</div>
-                    <div class="message-time">${time || new Date().toLocaleTimeString()}</div>
-                </div>
-            `;
+            messageDiv.innerHTML = `<div class="message-avatar">${isSystem ? '<i class="fas fa-info-circle text-xs"></i>' : (username?.charAt(0).toUpperCase() || '?')}</div><div class="message-content">${!isSystem ? `<div class="message-username">@${username}</div>` : ''}<div class="message-text">${escapeHtml(text)}</div><div class="message-time">${time || new Date().toLocaleTimeString()}</div></div>`;
             container.appendChild(messageDiv);
             container.scrollTop = container.scrollHeight;
-            if (saveToFirebase && !isSystem && currentUser) {
-                database.ref('chat').push({ username, text, time: new Date().toLocaleTimeString(), timestamp: Date.now() });
-            }
+            if (saveToFirebase && !isSystem && currentUser) database.ref('chat').push({ username, text, time: new Date().toLocaleTimeString(), timestamp: Date.now() });
         }
         
         function sendChatMessage() {
             const input = document.getElementById('chatInput');
             const text = input.value.trim();
-            if (text && currentUser) {
-                addMessageToChat(currentUsername, text, false, null, true);
-                input.value = '';
-            } else if (!currentUser) { showToast('Faça login para enviar mensagens'); }
+            if (text && currentUser) { addMessageToChat(currentUsername, text, false, null, true); input.value = ''; }
+            else if (!currentUser) showToast('Faça login para enviar mensagens');
         }
         
         function showLoginModal() { document.getElementById('loginModal').classList.remove('hidden'); }
@@ -1406,25 +1292,14 @@
         function openSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); document.getElementById('usernameInput').value = currentUsername; }
         function saveUsername() {
             const newUsername = document.getElementById('usernameInput').value.trim();
-            if(newUsername) {
-                currentUsername = newUsername;
-                localStorage.setItem('noitefilmes_username', currentUsername);
-                if(currentUser) { database.ref(`usuarios/${currentUser.uid}/nickname`).set(currentUsername); }
-                showToast(`✅ Nome alterado para: @${currentUsername}`);
-                document.getElementById('settingsModal').classList.add('hidden');
-            }
+            if(newUsername) { currentUsername = newUsername; localStorage.setItem('noitefilmes_username', currentUsername); if(currentUser) database.ref(`usuarios/${currentUser.uid}/nickname`).set(currentUsername); showToast(`✅ Nome alterado para: @${currentUsername}`); document.getElementById('settingsModal').classList.add('hidden'); }
         }
         function logoutUser() { auth.signOut(); document.getElementById('settingsModal').classList.add('hidden'); }
         function setDarkMode() { document.body.classList.remove('light-mode'); document.body.classList.add('dark-mode'); localStorage.setItem('noitefilmes_theme', 'dark'); }
         function setLightMode() { document.body.classList.remove('dark-mode'); document.body.classList.add('light-mode'); localStorage.setItem('noitefilmes_theme', 'light'); }
         function loadTheme() { const theme = localStorage.getItem('noitefilmes_theme'); if(theme === 'light') setLightMode(); else setDarkMode(); }
         
-        function openSearchPopup() {
-            const popup = document.getElementById('searchPopup');
-            popup.classList.remove('hidden');
-            document.getElementById('popupSearchInput').focus();
-        }
-        
+        function openSearchPopup() { document.getElementById('searchPopup').classList.remove('hidden'); document.getElementById('popupSearchInput').focus(); }
         function setupSearchPopup() {
             const searchInput = document.getElementById('popupSearchInput');
             const resultsDiv = document.getElementById('popupSearchResults');
@@ -1433,14 +1308,9 @@
                 if(term.length === 0) { resultsDiv.innerHTML = ''; return; }
                 const allItems = [...canais.map(c => ({...c, type: 'canal'})), ...filmes.map(f => ({...f, type: 'filme'})), ...series.map(s => ({...s, type: 'serie'}))];
                 const matches = allItems.filter(item => item.title.toLowerCase().includes(term));
-                if(matches.length === 0) { resultsDiv.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm">Nenhum resultado</div>';
-                } else {
-                    resultsDiv.innerHTML = matches.map(item => `
-                        <div class="search-result-item" data-id="${item.id}" data-type="${item.type}">
-                            <img src="${item.thumb || 'https://via.placeholder.com/60x80'}" onerror="this.src='https://via.placeholder.com/60x80'">
-                            <div><div class="font-semibold text-sm">${item.title}</div><div class="text-xs text-gray-400">${item.category || 'Geral'} • ${item.year || ''}</div></div>
-                        </div>
-                    `).join('');
+                if(matches.length === 0) resultsDiv.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm">Nenhum resultado</div>';
+                else {
+                    resultsDiv.innerHTML = matches.map(item => `<div class="search-result-item" data-id="${item.id}" data-type="${item.type}"><img src="${item.thumb || 'https://via.placeholder.com/60x80'}" onerror="this.src='https://via.placeholder.com/60x80'"><div><div class="font-semibold text-sm">${item.title}</div><div class="text-xs text-gray-400">${item.category || 'Geral'} • ${item.year || ''}</div></div></div>`).join('');
                     document.querySelectorAll('#popupSearchResults .search-result-item').forEach(el => {
                         el.addEventListener('click', () => {
                             const id = el.getAttribute('data-id');
@@ -1472,54 +1342,32 @@
             const activeAdminTab = document.querySelector('#adminPanel .admin-tab-btn.border-b-2.border-red-600')?.id;
             const safeId = generateSafeId();
             const newItem = { id: safeId, title, link, thumb: thumb || 'https://via.placeholder.com/300x200', category: category || 'Geral', year: year || '2024', description: title, createdAt: Date.now() };
-            setSyncStatus(true);
-            if(activeAdminTab === 'adminTabCanais') {
-                database.ref(`canais/${safeId}`).set(newItem).then(() => { showToast('✅ Canal salvo!'); loadCanaisFromFirebase(); });
-            } else if(activeAdminTab === 'adminTabFilmes') {
-                database.ref(`filmes/${safeId}`).set(newItem).then(() => { showToast('✅ Filme salvo!'); loadFilmesFromFirebase(); });
-            } else if(activeAdminTab === 'adminTabSeries') {
-                database.ref(`series/${safeId}`).set(newItem).then(() => { showToast('✅ Episódio salvo!'); loadSeriesFromFirebase(); });
-            }
-            setSyncStatus(false);
+            if(activeAdminTab === 'adminTabCanais') database.ref(`canais/${safeId}`).set(newItem).then(() => { showToast('✅ Canal salvo!'); loadCanaisFromFirebase(); });
+            else if(activeAdminTab === 'adminTabFilmes') database.ref(`filmes/${safeId}`).set(newItem).then(() => { showToast('✅ Filme salvo!'); loadFilmesFromFirebase(); });
+            else if(activeAdminTab === 'adminTabSeries') database.ref(`series/${safeId}`).set(newItem).then(() => { showToast('✅ Episódio salvo!'); loadSeriesFromFirebase(); });
             resetForm();
         }
         
-        function resetForm() {
-            document.getElementById('itemTitle').value = '';
-            document.getElementById('itemLink').value = '';
-            document.getElementById('itemThumb').value = '';
-            document.getElementById('itemCategory').value = '';
-            document.getElementById('itemYear').value = '';
-            editingItem = null;
-            document.getElementById('cancelEditBtn').classList.add('hidden');
-        }
-        
+        function resetForm() { document.getElementById('itemTitle').value = ''; document.getElementById('itemLink').value = ''; document.getElementById('itemThumb').value = ''; document.getElementById('itemCategory').value = ''; document.getElementById('itemYear').value = ''; editingItem = null; document.getElementById('cancelEditBtn').classList.add('hidden'); }
+        function generateSafeId() { return Date.now() + '-' + Math.random().toString(36).substring(2, 15); }
         function toggleChat() { document.getElementById('chatContainer').classList.toggle('open'); }
         
         function updateUserUI(user) {
             if (user) {
                 hideLoginModal();
-                loadUserNickname(user.uid).then(() => {
-                    loadCanaisFromFirebase();
-                    loadFilmesFromFirebase();
-                    loadSeriesFromFirebase();
-                });
+                loadUserNickname(user.uid).then(() => { loadCanaisFromFirebase(); loadFilmesFromFirebase(); loadSeriesFromFirebase(); });
                 database.ref('chat').limitToLast(100).off();
-                database.ref('chat').limitToLast(100).on('child_added', (snapshot) => {
-                    const msg = snapshot.val();
-                    addMessageToChat(msg.username, msg.text, false, msg.time, false);
-                });
-                database.ref(`favoritos/${user.uid}`).on('value', (snapshot) => {
-                    const data = snapshot.val();
-                    favoritos = data ? Object.values(data) : [];
-                });
-                database.ref('top10').on('value', (snapshot) => {
-                    const data = snapshot.val();
-                    if(data) { top10List = data; renderTop10Carousel(); }
-                    else { generateWeeklyTop10(); }
-                });
+                database.ref('chat').limitToLast(100).on('child_added', (snapshot) => { const msg = snapshot.val(); addMessageToChat(msg.username, msg.text, false, msg.time, false); });
+                database.ref(`favoritos/${user.uid}`).on('value', (snapshot) => { favoritos = snapshot.val() ? Object.values(snapshot.val()) : []; });
+                database.ref('top10').on('value', (snapshot) => { const data = snapshot.val(); if(data) { top10List = data; renderTop10Carousel(); } else { generateWeeklyTop10(); } });
                 loadRatingsFromStorage();
             } else { showLoginModal(); document.getElementById('chatMessages').innerHTML = ''; }
+        }
+        
+        async function loadUserNickname(userId) {
+            const snapshot = await database.ref(`usuarios/${userId}`).once('value');
+            const data = snapshot.val();
+            if(data && data.nickname) { currentUsername = data.nickname; localStorage.setItem('noitefilmes_username', currentUsername); }
         }
         
         // Event Listeners
@@ -1538,11 +1386,16 @@
         document.getElementById('closeChatBtn').onclick = toggleChat;
         document.getElementById('sendMessageBtn').onclick = sendChatMessage;
         document.getElementById('chatInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') sendChatMessage(); });
-        document.getElementById('favoritesBtn').onclick = () => { const favs = favoritos.filter(f => f.saved); if(favs.length === 0) alert('Nenhum favorito'); else alert('Favoritos:\n' + favs.map(f => `⭐ ${f.title}`).join('\n')); };
         document.getElementById('settingsBtn').onclick = openSettingsModal;
         document.getElementById('saveUsernameBtn').onclick = saveUsername;
         document.getElementById('logoutSettingsBtn').onclick = logoutUser;
         document.getElementById('castButton').onclick = () => showToast('Conecte-se a um Chromecast');
+        
+        // Share modal events
+        document.getElementById('closeShareModal').onclick = closeShareModal;
+        document.querySelectorAll('.share-icon').forEach(icon => {
+            icon.addEventListener('click', () => shareMedia(icon.getAttribute('data-platform')));
+        });
         
         document.getElementById('doLogin').onclick = () => {
             const email = document.getElementById('loginEmail').value;
@@ -1558,47 +1411,11 @@
         document.getElementById('closeAdminModal').onclick = () => modal.classList.add('hidden');
         document.getElementById('loginAdminBtn').onclick = () => { if(document.getElementById('adminPassword').value === 'admin123') { isAdminLogged = true; document.getElementById('adminLoginArea').classList.add('hidden'); document.getElementById('adminPanel').classList.remove('hidden'); refreshAdminLists(); } else alert('Senha incorreta'); };
         
-        document.getElementById('adminTabCanais').onclick = () => { 
-            document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); 
-            document.getElementById('adminTabCanais').classList.add('border-b-2', 'border-red-600', 'text-red-500');
-            document.getElementById('adminCanaisList').classList.remove('hidden');
-            document.getElementById('adminFilmesList').classList.add('hidden');
-            document.getElementById('adminSeriesList').classList.add('hidden');
-            document.getElementById('batchFilmesArea').classList.add('hidden');
-            document.getElementById('batchSeriesArea').classList.add('hidden');
-            document.getElementById('formTitle').innerText = 'Adicionar Canal';
-            resetForm();
-        };
-        
-        document.getElementById('adminTabFilmes').onclick = () => { 
-            document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); 
-            document.getElementById('adminTabFilmes').classList.add('border-b-2', 'border-red-600', 'text-red-500');
-            document.getElementById('adminCanaisList').classList.add('hidden');
-            document.getElementById('adminFilmesList').classList.remove('hidden');
-            document.getElementById('adminSeriesList').classList.add('hidden');
-            document.getElementById('batchFilmesArea').classList.remove('hidden');
-            document.getElementById('batchSeriesArea').classList.add('hidden');
-            document.getElementById('formTitle').innerText = 'Adicionar Filme';
-            resetForm();
-        };
-        
-        document.getElementById('adminTabSeries').onclick = () => { 
-            document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); 
-            document.getElementById('adminTabSeries').classList.add('border-b-2', 'border-red-600', 'text-red-500');
-            document.getElementById('adminCanaisList').classList.add('hidden');
-            document.getElementById('adminFilmesList').classList.add('hidden');
-            document.getElementById('adminSeriesList').classList.remove('hidden');
-            document.getElementById('batchFilmesArea').classList.add('hidden');
-            document.getElementById('batchSeriesArea').classList.remove('hidden');
-            document.getElementById('formTitle').innerText = 'Adicionar Episódio';
-            resetForm();
-        };
-        
+        document.getElementById('adminTabCanais').onclick = () => { document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); document.getElementById('adminTabCanais').classList.add('border-b-2', 'border-red-600', 'text-red-500'); document.getElementById('adminCanaisList').classList.remove('hidden'); document.getElementById('adminFilmesList').classList.add('hidden'); document.getElementById('adminSeriesList').classList.add('hidden'); document.getElementById('formTitle').innerText = 'Adicionar Canal'; resetForm(); };
+        document.getElementById('adminTabFilmes').onclick = () => { document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); document.getElementById('adminTabFilmes').classList.add('border-b-2', 'border-red-600', 'text-red-500'); document.getElementById('adminCanaisList').classList.add('hidden'); document.getElementById('adminFilmesList').classList.remove('hidden'); document.getElementById('adminSeriesList').classList.add('hidden'); document.getElementById('formTitle').innerText = 'Adicionar Filme'; resetForm(); };
+        document.getElementById('adminTabSeries').onclick = () => { document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); document.getElementById('adminTabSeries').classList.add('border-b-2', 'border-red-600', 'text-red-500'); document.getElementById('adminCanaisList').classList.add('hidden'); document.getElementById('adminFilmesList').classList.add('hidden'); document.getElementById('adminSeriesList').classList.remove('hidden'); document.getElementById('formTitle').innerText = 'Adicionar Episódio'; resetForm(); };
         document.getElementById('saveItemBtn').onclick = saveSingleItem;
         document.getElementById('cancelEditBtn').onclick = resetForm;
-        document.getElementById('previewBatchBtn').onclick = () => {};
-        document.getElementById('saveBatchBtn').onclick = () => {};
-        document.getElementById('saveEpisodesBtn').onclick = () => {};
         
         document.getElementById('settingsModal').addEventListener('click', (e) => { if(e.target === document.getElementById('settingsModal')) document.getElementById('settingsModal').classList.add('hidden'); });
         document.getElementById('searchPopup').addEventListener('click', (e) => { if(e.target === document.getElementById('searchPopup')) document.getElementById('searchPopup').classList.add('hidden'); });
