@@ -85,7 +85,7 @@
         @media (min-width: 769px) {
             .player-comments-container {
                 position: fixed;
-                top: 60px;
+                top: 80px;
                 right: 20px;
                 width: calc(100% - 40px);
                 max-width: 1400px;
@@ -97,7 +97,8 @@
                 z-index: 1100;
                 box-shadow: 0 10px 40px rgba(0,0,0,0.5);
                 overflow: hidden;
-                height: calc(100vh - 80px);
+                height: calc(100vh - 100px);
+                bottom: 10px;
             }
             .video-section {
                 flex: 1;
@@ -159,7 +160,7 @@
         @media (max-width: 768px) {
             .player-comments-container {
                 position: fixed;
-                top: 60px;
+                top: 80px;
                 left: 2.5%;
                 width: 95%;
                 background: #1a1a1a;
@@ -170,6 +171,7 @@
                 box-shadow: 0 10px 40px rgba(0,0,0,0.5);
                 overflow: hidden;
                 max-height: 85vh;
+                bottom: 10px;
             }
             .video-section {
                 flex-shrink: 0;
@@ -969,7 +971,6 @@
         let likeCount = 0;
         let updateInterval = null;
         
-        // Função para buscar dados em tempo real a cada 1 segundo
         function startRealtimeUpdates(mediaId) {
             if (updateInterval) clearInterval(updateInterval);
             updateInterval = setInterval(() => {
@@ -1221,7 +1222,6 @@
             currentMedia = item;
             currentMediaType = type;
             
-            // Iniciar atualizações em tempo real
             startRealtimeUpdates(item.id);
             
             const likeBtn = document.getElementById('likeBtn');
