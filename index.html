@@ -464,69 +464,114 @@
         .profile-icon { text-align: center; margin-bottom: 20px; }
         .profile-icon i { font-size: 60px; color: #e50914; }
         
-        .floating-player {
-            position: fixed;
-            top: 60px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 90%;
-            max-width: 800px;
-            z-index: 1100;
-            background: #000;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-        }
-        .floating-player .player-wrapper { padding-bottom: 56.25%; }
-        .floating-player-close {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0,0,0,0.7);
-            border: none;
-            color: white;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            cursor: pointer;
-            z-index: 10;
-        }
-        .floating-player-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.8);
-            z-index: 1099;
+        /* ========== LAYOUT DESKTOP (vídeo esquerda -20px, comentários direita) ========== */
+        @media (min-width: 769px) {
+            .floating-player {
+                position: fixed;
+                top: 60px;
+                left: calc(50% - 20px);
+                transform: translateX(-50%);
+                width: 55%;
+                max-width: 700px;
+                z-index: 1100;
+                background: #000;
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            }
+            .floating-player .player-wrapper { padding-bottom: 56.25%; }
+            
+            /* Container de comentários na lateral direita do desktop */
+            .desktop-comments-container {
+                position: fixed;
+                top: 60px;
+                right: 20px;
+                width: 38%;
+                max-width: 450px;
+                height: calc(100vh - 80px);
+                background: #1a1a1a;
+                border-radius: 12px;
+                display: flex;
+                flex-direction: column;
+                z-index: 1100;
+                overflow: hidden;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            }
+            .desktop-comments-container .comments-section {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                margin-top: 0;
+                border-radius: 12px;
+            }
+            .desktop-comments-container .comments-list-container {
+                flex: 1;
+                overflow-y: auto;
+                padding: 10px;
+            }
+            .mobile-only { display: none !important; }
+            .floating-player .mobile-comments { display: none; }
         }
         
-        /* Seção de comentários com scroll FUNCIONAL */
+        /* ========== LAYOUT MOBILE (vídeo no topo, comentários ocupando até bottom:20px) ========== */
+        @media (max-width: 768px) {
+            .floating-player {
+                position: fixed;
+                top: 55px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 95%;
+                max-width: 95%;
+                z-index: 1100;
+                background: #000;
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            }
+            .floating-player .player-wrapper { padding-bottom: 56.25%; }
+            
+            /* Comentários ocupam até bottom:20px no mobile */
+            .comments-section {
+                margin-top: 10px;
+                background: #1a1a1a;
+                border-radius: 12px;
+                max-height: calc(100vh - 280px);
+                min-height: 200px;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                display: flex;
+                flex-direction: column;
+            }
+            .comments-list-container {
+                flex: 1;
+                overflow-y: auto;
+                padding: 10px;
+            }
+            .desktop-comments-container { display: none !important; }
+        }
+        
+        /* Estilos gerais dos comentários */
         .comments-section {
-            margin-top: 10px;
             background: #1a1a1a;
             border-radius: 12px;
-            max-height: 250px;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
             display: flex;
             flex-direction: column;
         }
-        .comments-section::-webkit-scrollbar {
+        .comments-list-container {
+            overflow-y: auto;
+            padding: 10px;
+        }
+        .comments-list-container::-webkit-scrollbar {
             width: 4px;
         }
-        .comments-section::-webkit-scrollbar-track {
+        .comments-list-container::-webkit-scrollbar-track {
             background: #2a2a2a;
             border-radius: 10px;
         }
-        .comments-section::-webkit-scrollbar-thumb {
+        .comments-list-container::-webkit-scrollbar-thumb {
             background: #e50914;
             border-radius: 10px;
-        }
-        .comments-list-container {
-            flex: 1;
-            overflow-y: auto;
-            padding: 10px;
         }
         .comment-item {
             padding: 8px;
@@ -579,11 +624,6 @@
         .share-twitter { background: #1DA1F2; color: white; }
         .share-copy { background: #333; color: white; }
         
-        @media (max-width: 768px) {
-            .floating-player { width: 95%; max-width: 95%; top: 55px; }
-            .comments-section { max-height: 200px; }
-        }
-        
         .sync-status {
             position: fixed;
             bottom: 10px;
@@ -596,6 +636,8 @@
         }
         .sync-status.synced { color: #4ade80; }
         .sync-status.syncing { color: #eab308; }
+        
+        .hidden { display: none; }
     </style>
 </head>
 <body class="dark-mode">
@@ -679,7 +721,7 @@
         </div>
     </div>
 
-    <!-- Player flutuante -->
+    <!-- Player flutuante (desktop: esquerda -20px, mobile: topo) -->
     <div id="floatingPlayerOverlay" class="floating-player-overlay hidden"></div>
     <div id="floatingPlayer" class="floating-player hidden">
         <button id="closeFloatingPlayer" class="floating-player-close"><i class="fas fa-times"></i></button>
@@ -704,25 +746,26 @@
                     <button id="floatingShareBtn" class="share-btn"><i class="fas fa-share-alt"></i></button>
                 </div>
             </div>
-            <div id="shareModal" class="hidden" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1a1a1a; border-radius: 20px; padding: 20px; z-index: 1200; min-width: 280px;">
-                <div class="text-center mb-3 font-bold">Compartilhar</div>
-                <div class="share-buttons">
-                    <div class="share-icon share-whatsapp" data-platform="whatsapp"><i class="fab fa-whatsapp"></i></div>
-                    <div class="share-icon share-telegram" data-platform="telegram"><i class="fab fa-telegram-plane"></i></div>
-                    <div class="share-icon share-facebook" data-platform="facebook"><i class="fab fa-facebook-f"></i></div>
-                    <div class="share-icon share-twitter" data-platform="twitter"><i class="fab fa-twitter"></i></div>
-                    <div class="share-icon share-copy" data-platform="copy"><i class="fas fa-link"></i></div>
-                </div>
-                <button id="closeShareModal" class="mt-3 w-full bg-gray-700 py-1 rounded">Fechar</button>
-            </div>
-            <!-- Seção de comentários com scroll FUNCIONAL -->
-            <div id="commentsSection" class="comments-section mt-2">
+            <!-- Comentários mobile (aparecem dentro do player no mobile) -->
+            <div id="mobileCommentsSection" class="comments-section mt-2 mobile-only">
                 <div class="text-xs text-gray-400 px-3 pt-2">💬 Comentários</div>
-                <div id="commentsList" class="comments-list-container"></div>
+                <div id="mobileCommentsList" class="comments-list-container"></div>
                 <div class="comment-input-area">
-                    <input type="text" id="newCommentInput" class="flex-1 bg-gray-700 rounded-full px-3 py-1 text-xs" placeholder="Adicione um comentário...">
-                    <button id="submitCommentBtn" class="bg-red-600 px-3 py-1 rounded-full text-xs">Enviar</button>
+                    <input type="text" id="mobileNewCommentInput" class="flex-1 bg-gray-700 rounded-full px-3 py-1 text-xs" placeholder="Adicione um comentário...">
+                    <button id="mobileSubmitCommentBtn" class="bg-red-600 px-3 py-1 rounded-full text-xs">Enviar</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Container de comentários para desktop (lateral direita) -->
+    <div id="desktopCommentsContainer" class="desktop-comments-container hidden">
+        <div class="comments-section" style="height: 100%;">
+            <div class="text-xs text-gray-400 px-3 pt-2">💬 Comentários</div>
+            <div id="desktopCommentsList" class="comments-list-container"></div>
+            <div class="comment-input-area">
+                <input type="text" id="desktopNewCommentInput" class="flex-1 bg-gray-700 rounded-full px-3 py-1 text-xs" placeholder="Adicione um comentário...">
+                <button id="desktopSubmitCommentBtn" class="bg-red-600 px-3 py-1 rounded-full text-xs">Enviar</button>
             </div>
         </div>
     </div>
@@ -859,6 +902,7 @@
         
         // Avaliações - estrutura para salvar no Firebase
         let avaliacoes = {}; // { mediaId: { totalVotos, soma } }
+        let userRatings = {}; // cache para evitar múltiplas chamadas
         
         // Carregar avaliações do Firebase em tempo real
         function loadRatingsFromFirebase(mediaId, callback) {
@@ -892,8 +936,14 @@
                     resolve(0);
                     return;
                 }
+                if (userRatings[`${mediaId}_${currentUser.uid}`] !== undefined) {
+                    resolve(userRatings[`${mediaId}_${currentUser.uid}`]);
+                    return;
+                }
                 database.ref(`avaliacoes/${mediaId}/${currentUser.uid}`).once('value', (snapshot) => {
-                    resolve(snapshot.val() || 0);
+                    const rating = snapshot.val() || 0;
+                    userRatings[`${mediaId}_${currentUser.uid}`] = rating;
+                    resolve(rating);
                 });
             });
         }
@@ -901,7 +951,7 @@
         function saveRating(mediaId, rating) {
             if (!currentUser) { showToast('Faça login para avaliar'); return; }
             
-            // Primeiro, buscar a nota atual do usuário
+            // Buscar a nota atual do usuário
             database.ref(`avaliacoes/${mediaId}/${currentUser.uid}`).once('value', (userSnapshot) => {
                 const oldRating = userSnapshot.val() || 0;
                 
@@ -913,20 +963,28 @@
                 
                 // Atualizar avaliação do usuário
                 database.ref(`avaliacoes/${mediaId}/${currentUser.uid}`).set(rating);
+                userRatings[`${mediaId}_${currentUser.uid}`] = rating;
                 
-                // Atualizar soma e total de votos
+                // Atualizar soma e total de votos - apenas se a nota mudou
                 database.ref(`avaliacoes/${mediaId}`).transaction((currentData) => {
                     if (!currentData) {
                         return { totalVotos: rating > 0 ? 1 : 0, soma: rating };
                     }
                     let totalVotos = currentData.totalVotos || 0;
                     let soma = currentData.soma || 0;
-                    if (oldRating === 0 && rating > 0) totalVotos++;
-                    else if (oldRating > 0 && rating === 0) totalVotos--;
-                    soma = soma - oldRating + rating;
+                    
+                    if (oldRating === 0 && rating > 0) {
+                        totalVotos++;
+                        soma += rating;
+                    } else if (oldRating > 0 && rating === 0) {
+                        totalVotos--;
+                        soma -= oldRating;
+                    } else if (oldRating > 0 && rating > 0) {
+                        soma = soma - oldRating + rating;
+                    }
                     return { totalVotos, soma };
                 }).then(() => {
-                    showToast(`Avaliação alterada para ${rating}/5!`);
+                    showToast(`Avaliação ${rating}/5 salva!`);
                     loadRatingsFromFirebase(mediaId);
                 });
             });
@@ -974,26 +1032,34 @@
             }
         }
         
-        // Comentários
+        // Comentários - atualiza mobile e desktop
+        let currentMediaId = null;
+        
         function loadComments(mediaId) {
+            currentMediaId = mediaId;
             database.ref(`comentarios/${mediaId}`).once('value', (snapshot) => {
                 const data = snapshot.val();
                 const commentsList = data ? Object.values(data) : [];
-                const container = document.getElementById('commentsList');
-                if (container) {
-                    container.innerHTML = commentsList.map(c => `
-                        <div class="comment-item">
-                            <span class="comment-user">@${c.user}</span>
-                            <span class="comment-text">${escapeHtml(c.text)}</span>
-                            <div class="comment-time">${c.time}</div>
-                        </div>
-                    `).join('');
-                    if (commentsList.length === 0) container.innerHTML = '<div class="text-center text-gray-500 text-xs py-4">Nenhum comentário ainda. Seja o primeiro!</div>';
-                }
+                const html = commentsList.map(c => `
+                    <div class="comment-item">
+                        <span class="comment-user">@${c.user}</span>
+                        <span class="comment-text">${escapeHtml(c.text)}</span>
+                        <div class="comment-time">${c.time}</div>
+                    </div>
+                `).join('');
+                const emptyHtml = '<div class="text-center text-gray-500 text-xs py-4">Nenhum comentário ainda. Seja o primeiro!</div>';
+                const finalHtml = commentsList.length === 0 ? emptyHtml : html;
+                
+                // Atualizar mobile
+                const mobileList = document.getElementById('mobileCommentsList');
+                if (mobileList) mobileList.innerHTML = finalHtml;
+                // Atualizar desktop
+                const desktopList = document.getElementById('desktopCommentsList');
+                if (desktopList) desktopList.innerHTML = finalHtml;
             });
         }
         
-        function addComment(mediaId, text) {
+        function addComment(mediaId, text, isDesktop = false) {
             if (!currentUser) { showToast('Faça login para comentar'); return; }
             if (!text.trim()) return;
             database.ref(`comentarios/${mediaId}`).push({
@@ -1004,7 +1070,11 @@
             }).then(() => {
                 showToast('Comentário adicionado!');
                 loadComments(mediaId);
-                document.getElementById('newCommentInput').value = '';
+                if (isDesktop) {
+                    document.getElementById('desktopNewCommentInput').value = '';
+                } else {
+                    document.getElementById('mobileNewCommentInput').value = '';
+                }
             });
         }
         
@@ -1068,8 +1138,18 @@
             
             const floatingPlayer = document.getElementById('floatingPlayer');
             const overlay = document.getElementById('floatingPlayerOverlay');
+            const desktopComments = document.getElementById('desktopCommentsContainer');
+            const isDesktop = window.innerWidth >= 769;
+            
             floatingPlayer.classList.remove('hidden');
             overlay.classList.remove('hidden');
+            
+            // Mostrar container de comentários desktop apenas em desktop
+            if (isDesktop) {
+                desktopComments.classList.remove('hidden');
+            } else {
+                desktopComments.classList.add('hidden');
+            }
             
             document.getElementById('floatingMediaTitle').innerText = item.title;
             document.getElementById('floatingMediaYear').innerHTML = item.year ? `📅 ${item.year}` : '';
@@ -1124,11 +1204,23 @@
                 createRatingStars('floatingRatingStars', item.id);
             });
             
+            // Carregar comentários
             loadComments(item.id);
-            const submitComment = document.getElementById('submitCommentBtn');
-            const newCommentInput = document.getElementById('newCommentInput');
-            submitComment.onclick = () => addComment(item.id, newCommentInput.value);
-            newCommentInput.onkeypress = (e) => { if(e.key === 'Enter') addComment(item.id, newCommentInput.value); };
+            
+            // Configurar eventos de comentários mobile e desktop
+            const mobileSubmit = document.getElementById('mobileSubmitCommentBtn');
+            const mobileInput = document.getElementById('mobileNewCommentInput');
+            const desktopSubmit = document.getElementById('desktopSubmitCommentBtn');
+            const desktopInput = document.getElementById('desktopNewCommentInput');
+            
+            if (mobileSubmit) {
+                mobileSubmit.onclick = () => addComment(item.id, mobileInput.value, false);
+                mobileInput.onkeypress = (e) => { if(e.key === 'Enter') addComment(item.id, mobileInput.value, false); };
+            }
+            if (desktopSubmit) {
+                desktopSubmit.onclick = () => addComment(item.id, desktopInput.value, true);
+                desktopInput.onkeypress = (e) => { if(e.key === 'Enter') addComment(item.id, desktopInput.value, true); };
+            }
             
             const youtubeDiv = document.getElementById('floatingYoutubePlayerDiv');
             const hlsVideo = document.getElementById('floatingHlsPlayer');
@@ -1172,6 +1264,7 @@
             if(window.floatingHlsInstance) window.floatingHlsInstance.destroy();
             document.getElementById('floatingPlayer').classList.add('hidden');
             document.getElementById('floatingPlayerOverlay').classList.add('hidden');
+            document.getElementById('desktopCommentsContainer').classList.add('hidden');
         }
         
         function onYouTubeIframeAPIReady() {
