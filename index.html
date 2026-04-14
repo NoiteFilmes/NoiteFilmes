@@ -10,7 +10,6 @@
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.8/dist/hls.min.js"></script>
     <script src="https://www.youtube.com/iframe_api"></script>
     
-    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -795,6 +794,38 @@
         let editingItem = null;
         let currentUsername = localStorage.getItem('noitefilmes_username') || 'Cinéfilo';
         
+        // Lista de canais para adicionar automaticamente
+        const canaisLista = [
+            { title: "GLOBO SP", link: "http://95.211.149.215:8081/look/sptv/playlist.m3u8", thumb: "http://s17.postimg.org/w75u3yg1n/globo2.png", category: "TV ABERTA" },
+            { title: "GLOBO NEWS", link: "http://5.79.68.138:8081/look/globonews/playlist.m3u8", thumb: "https://goo.gl/IQS0pJ", category: "Notícias" },
+            { title: "SBT SP", link: "http://gbbrlive2.sambatech.com.br/liveevent/sbtabr_8fcdc5f0f8df8d4de56b22a2c6660470/livestream2/playlist.m3u8", thumb: "http://s32.postimg.org/5fmicyl3p/SBT1.png", category: "TV ABERTA" },
+            { title: "SBT HD", link: "http://srv6.zoeweb.tv:1935/z343-live/stream/playlist.m3u8", thumb: "http://s32.postimg.org/5fmicyl3p/SBT1.png", category: "TV ABERTA" },
+            { title: "BAND NEWS", link: "http://5.79.68.138:8081/look/bandnews/playlist.m3u8", thumb: "https://goo.gl/ig4JdX", category: "NOTICIAS" },
+            { title: "BAND SP", link: "http://5.79.68.138:8081/look/band/playlist.m3u8", thumb: "http://s15.postimg.org/nvhe10jzb/band3.png", category: "TV ABERTA" },
+            { title: "REDETV HD", link: "http://evp.mm.uol.com.br:1935/redetv1/redetv1/playlist.m3u8", thumb: "https://lut.im/sR9hSAYmhq/eyVOxg3CkXmhVvFZ.png", category: "CANAL ABERTO" },
+            { title: "RECORD NEWS", link: "http://v1.fabricahost.com.br:1935/tvguara/tvguara/playlist.m3u8", thumb: "http://i.imgur.com/P0XMqwI.jpg", category: "ABERTAS-NOTICIAS" },
+            { title: "RECORD SP", link: "http://wz3.dnip.com.br/tvgazetamt/tvgazetamt.sdp/tv.m3u8", thumb: "http://s20.postimg.org/s2r5c8fxp/record.png", category: "TV ABERTA" },
+            { title: "TV CULTURA", link: "http://wz-brasil1.comets.com.br/tvbaiana/aovivo/playlist.m3u8", thumb: "http://s20.postimg.org/m7orza8x9/TV_Cultura.png", category: "TV ABERTA" },
+            { title: "REDE BRASIL", link: "http://173.236.10.10:1935/rbtv/rbtv/playlist.m3u8", thumb: "https://lut.im/4LeikAY7IP/CmMDuTuJ9MVPbJIc.png", category: "CANAL ABERTO" },
+            { title: "TV BRASIL", link: "http://stream2.ba.gov.br:80/hls-live/livepkgr/_definst_/irdeb/pgm-2.m3u8", thumb: "http://s20.postimg.org/lgw1ti6jx/TV_Brasil.png", category: "TV ABERTA" },
+            { title: "TV APARECIDA", link: "http://caikrondatacenter.com.br:1935/tvaparecida/tvaparecida.stream/playlist.m3u8", thumb: "https://lut.im/4dpYzeY5ga/LxqrxrjkXcIeOSn1.png", category: "RELIGIOSO" },
+            { title: "REDE VIDA", link: "http://rtmp.cdn.upx.net.br:1935/74cc/myStream.sdp/live.m3u8", thumb: "https://goo.gl/H4GFo1", category: "RELIGIOSO" },
+            { title: "CANÇÃO NOVA", link: "http://cancaonova-push-live.hls.adaptive.level3.net:80/hls-live/cancaonova-channel01/_definst_/live/stream1.m3u8", thumb: "https://goo.gl/63ISSk", category: "CATOLICO" },
+            { title: "MULTISHOW", link: "http://m3u.me/baP", thumb: "http://s32.postimg.org/7wouj3pht/multishow.png", category: "GloboSat" },
+            { title: "ESPN BRASIL", link: "http://5.79.68.138:8081/look/espn/playlist.m3u8", thumb: "https://s31.postimg.org/jnhiwkp97/ESPN.png", category: "ESPORTES" },
+            { title: "SPORTV", link: "http://5.79.68.138:8081/look/sportv/playlist.m3u8", thumb: "https://s19.postimg.org/72a42n79v/sportv.png", category: "esportes" },
+            { title: "COMBATE", link: "http://95.211.149.215:8081/look/combate/playlist.m3u8", thumb: "https://s32.postimg.org/7yy5aszit/combate2.png", category: "canais digitalsbl 2" },
+            { title: "HISTORY CHANNEL", link: "http://5.79.68.138:8081/look/history/playlist.m3u8", thumb: "http://s20.postimg.org/plh7s2h6x/History_Channel.png", category: "canais digitalsbl 2" },
+            { title: "DISCOVERY THEATER", link: "http://5.79.68.138:8081/look/discovery/playlist.m3u8", thumb: "http://www.vectorsland.com/imgd/l7230-discovery-hd-theater-logo-96334.png", category: "variedades" },
+            { title: "MEGAPIX", link: "http://5.79.68.138:8081/look/megapix/playlist.m3u8", thumb: "http://s20.postimg.org/7rlpqry4p/Megapix.png", category: "Filmes" },
+            { title: "TELECINE ACTION", link: "http://live-s101.abweb.com/liveabs101/ngrp:action.stream_bis/chunklist_f1tv_b1096000.m3u8", thumb: "http://s9.postimg.org/vd00n5o4b/telecineaction.png", category: "Filmes" },
+            { title: "AXN HD", link: "http://r.dcs.redcdn.pl/hls/o2/redefine/nlive/AXN_Spin_HD_1/2282/0/tv-ss/live.isml/playlist.m3u8", thumb: "https://s15.postimg.org/tzhnubsmz/axn.png", category: "SERIES" },
+            { title: "CARTOON NETWORK", link: "http://95.211.149.215:8081/look/cartoon/playlist.m3u8", thumb: "https://goo.gl/SkSqFt", category: "Desenhos" },
+            { title: "NICKELODEON", link: "http://tv.ec.cx:1935/BY8EMBQP/myStream/playlist.m3u8", thumb: "http://s20.postimg.org/e7rgp8w3t/nick.png", category: "Infantil" },
+            { title: "EI MAX HD", link: "http://5.79.68.138:8081/look/eimax/playlist.m3u8", thumb: "http://s20.postimg.org/4v476zfkd/eimaxx.png", category: "Esportes" },
+            { title: "FOX SPORTS", link: "http://95.211.149.215:8081/look/espnbr/playlist.m3u8", thumb: "https://s31.postimg.org/3rvcvwf8b/Fox_Sports.png", category: "ESPORTES" }
+        ];
+        
         function setSyncStatus(syncing) {
             const statusEl = document.getElementById('syncStatus');
             if (syncing) {
@@ -817,46 +848,6 @@
             return (match && match[2].length === 11) ? match[2] : null;
         }
         
-        function isYoutubeLiveStream(url) {
-            const videoId = extractYoutubeId(url);
-            if (!videoId) return false;
-            return true;
-        }
-        
-        async function fetchYouTubeMetadata(url) {
-            const videoId = extractYoutubeId(url);
-            if (!videoId) return null;
-            try {
-                const oembedRes = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
-                const oembedData = await oembedRes.json();
-                let year = new Date().getFullYear();
-                if(oembedData.title) {
-                    const yearMatch = oembedData.title.match(/(19|20)\d{2}/);
-                    if(yearMatch) year = yearMatch[0];
-                }
-                let genre = 'Geral';
-                const title = oembedData.title || '';
-                const genres = ['Ação', 'Comédia', 'Drama', 'Terror', 'Ficção', 'Romance', 'Aventura', 'Suspense', 'Animação', 'Esportes', 'Notícias', 'Música'];
-                for(let g of genres) {
-                    if(title.toLowerCase().includes(g.toLowerCase())) {
-                        genre = g;
-                        break;
-                    }
-                }
-                return {
-                    title: oembedData.title || 'Canal ao Vivo',
-                    thumb: oembedData.thumbnail_url || `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
-                    description: oembedData.title || 'Canal ao Vivo',
-                    year: year,
-                    genre: genre,
-                    link: url
-                };
-            } catch(e) {
-                console.error("Erro:", e);
-                return null;
-            }
-        }
-        
         function showToast(msg) {
             const toast = document.createElement('div');
             toast.className = 'toast';
@@ -865,8 +856,48 @@
             setTimeout(() => toast.remove(), 3000);
         }
         
+        // Carregar canais do Firebase e adicionar lista padrão se vazio
+        function loadCanaisFromFirebase() {
+            setSyncStatus(true);
+            database.ref('canais').once('value', (snapshot) => {
+                const data = snapshot.val();
+                if(data && Object.keys(data).length > 0) {
+                    canais = Object.values(data);
+                    console.log("✅ Canais carregados:", canais.length);
+                } else {
+                    console.log("Nenhum canal encontrado, adicionando lista padrão...");
+                    adicionarCanaisPadrao();
+                }
+                if(currentNavTab === 'canais') renderGrid();
+                generateWeeklyTop10();
+                updateGenreFilters();
+                setSyncStatus(false);
+            });
+        }
+        
+        function adicionarCanaisPadrao() {
+            canaisLista.forEach(canal => {
+                const safeId = generateSafeId();
+                database.ref(`canais/${safeId}`).set({
+                    id: safeId,
+                    title: canal.title,
+                    link: canal.link,
+                    thumb: canal.thumb,
+                    category: canal.category,
+                    year: "2024",
+                    description: canal.title,
+                    createdAt: Date.now()
+                });
+            });
+            canais = canaisLista;
+            if(currentNavTab === 'canais') renderGrid();
+            generateWeeklyTop10();
+            updateGenreFilters();
+            showToast(`✅ ${canaisLista.length} canais adicionados!`);
+        }
+        
         function loadFilmesFromFirebase() {
-            database.ref('filmes').on('value', (snapshot) => {
+            database.ref('filmes').once('value', (snapshot) => {
                 const data = snapshot.val();
                 filmes = data ? Object.values(data) : [];
                 if(currentNavTab === 'filmes') renderGrid();
@@ -875,39 +906,12 @@
         }
         
         function loadSeriesFromFirebase() {
-            database.ref('series').on('value', (snapshot) => {
+            database.ref('series').once('value', (snapshot) => {
                 const data = snapshot.val();
                 series = data ? Object.values(data) : [];
                 if(currentNavTab === 'series') renderGrid();
                 generateWeeklyTop10();
             });
-        }
-        
-        function loadCanaisFromFirebase() {
-            setSyncStatus(true);
-            database.ref('canais').on('value', (snapshot) => {
-                const data = snapshot.val();
-                if(data && Object.keys(data).length > 0) {
-                    canais = Object.values(data);
-                    console.log("✅ Canais carregados:", canais.length);
-                } else {
-                    canais = [];
-                    addDefaultCanais();
-                }
-                if(currentNavTab === 'canais') renderGrid();
-                setSyncStatus(false);
-            });
-        }
-        
-        function addDefaultCanais() {
-            const defaultCanais = [
-                { id: 'c1', title: 'CBS News Ao Vivo', link: 'https://www.youtube.com/watch?v=6H6bGzU0K5A', thumb: 'https://img.youtube.com/vi/6H6bGzU0K5A/hqdefault.jpg', category: 'Notícias', year: '2024', description: 'Canal de notícias ao vivo' },
-                { id: 'c2', title: 'NASA TV Ao Vivo', link: 'https://www.youtube.com/watch?v=21X5lGlDOfg', thumb: 'https://img.youtube.com/vi/21X5lGlDOfg/hqdefault.jpg', category: 'Ciência', year: '2024', description: 'Espaço e ciência ao vivo' }
-            ];
-            defaultCanais.forEach(c => {
-                database.ref(`canais/${c.id}`).set(c);
-            });
-            canais = defaultCanais;
         }
         
         async function saveSingleItem() {
@@ -925,26 +929,13 @@
             const activeAdminTab = document.querySelector('#adminPanel .admin-tab-btn.border-b-2.border-red-600')?.id;
             const safeId = generateSafeId();
             
-            let finalThumb = thumb;
-            let finalCategory = category || 'Geral';
-            let finalYear = year || new Date().getFullYear();
-            
-            if(activeAdminTab === 'adminTabCanais' && extractYoutubeId(link)) {
-                const metadata = await fetchYouTubeMetadata(link);
-                if(metadata) {
-                    if(!thumb) finalThumb = metadata.thumb;
-                    if(!category) finalCategory = metadata.genre;
-                    if(!year) finalYear = metadata.year;
-                }
-            }
-            
             const newItem = {
                 id: safeId,
                 title: title,
                 link: link,
-                thumb: finalThumb || 'https://via.placeholder.com/300x200',
-                category: finalCategory,
-                year: finalYear,
+                thumb: thumb || 'https://via.placeholder.com/300x200',
+                category: category || 'Geral',
+                year: year || '2024',
                 description: title,
                 createdAt: Date.now()
             };
@@ -954,7 +945,7 @@
             try {
                 if(activeAdminTab === 'adminTabCanais') {
                     await database.ref(`canais/${safeId}`).set(newItem);
-                    showToast('✅ Canal salvo no servidor!');
+                    showToast('✅ Canal salvo!');
                     loadCanaisFromFirebase();
                 } else if(activeAdminTab === 'adminTabFilmes') {
                     await database.ref(`filmes/${safeId}`).set(newItem);
@@ -1021,7 +1012,7 @@
                 currentMedia = item;
                 currentMediaType = type;
                 document.getElementById('currentMediaTitle').innerText = item.title;
-                document.getElementById('currentMediaDesc').innerText = item.description || 'Conteúdo ao vivo';
+                document.getElementById('currentMediaDesc').innerText = item.description || 'Canal ao vivo';
                 document.getElementById('mediaYear').innerHTML = item.year ? `📅 ${item.year}` : '';
                 document.getElementById('mediaGenre').innerHTML = item.category ? `🎭 ${item.category}` : '';
                 
@@ -1032,7 +1023,7 @@
                         noContent.style.display = 'none';
                     }, 1000);
                 }
-            } else if(item.link && item.link.includes('.m3u8')) {
+            } else if(item.link && (item.link.includes('.m3u8') || item.link.includes('playlist') || item.link.includes('sdp'))) {
                 const playerSection = document.getElementById('playerSection');
                 playerSection.classList.remove('hidden');
                 
@@ -1061,6 +1052,10 @@
                     window.hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
                         hlsVideo.play();
                         noContent.style.display = 'none';
+                    });
+                    window.hlsInstance.on(Hls.Events.ERROR, (event, data) => {
+                        console.error("HLS Error:", data);
+                        noContent.innerHTML = 'Erro no stream. Tentando novamente...';
                     });
                 } else if(hlsVideo.canPlayType('application/vnd.apple.mpegurl')) {
                     hlsVideo.src = item.link;
@@ -1102,7 +1097,7 @@
             
             const grid = document.getElementById('contentGrid');
             if(items.length === 0) { 
-                grid.innerHTML = '<div class="col-span-full text-center py-6 text-gray-500 text-sm">📀 Nenhum conteúdo encontrado. Adicione no Admin!</div>'; 
+                grid.innerHTML = '<div class="col-span-full text-center py-6 text-gray-500 text-sm">📀 Nenhum conteúdo encontrado.</div>'; 
                 return; 
             }
             
@@ -1210,7 +1205,7 @@
             renderGrid();
         }
         
-        // Funções de autenticação e chat (mantidas do código anterior)
+        // Funções de autenticação
         async function isNicknameAvailable(nickname) {
             const snapshot = await database.ref('usuarios').orderByChild('nickname').equalTo(nickname).once('value');
             return !snapshot.exists();
@@ -1427,19 +1422,6 @@
             document.getElementById('cancelEditBtn').classList.add('hidden');
         }
         
-        async function autoFillFromYoutubeLink() {
-            const link = document.getElementById('itemLink').value.trim();
-            if(!link || !extractYoutubeId(link)) return;
-            const metadata = await fetchYouTubeMetadata(link);
-            if(metadata) {
-                document.getElementById('itemTitle').value = metadata.title;
-                document.getElementById('itemThumb').value = metadata.thumb;
-                document.getElementById('itemCategory').value = metadata.genre;
-                document.getElementById('itemYear').value = metadata.year;
-                showToast(`✅ Dados carregados: ${metadata.title}`);
-            }
-        }
-        
         function toggleChat() { document.getElementById('chatContainer').classList.toggle('open'); }
         
         function updateUserUI(user) {
@@ -1549,7 +1531,6 @@
         
         document.getElementById('saveItemBtn').onclick = saveSingleItem;
         document.getElementById('cancelEditBtn').onclick = resetForm;
-        document.getElementById('itemLink').addEventListener('blur', autoFillFromYoutubeLink);
         document.getElementById('previewBatchBtn').onclick = () => {};
         document.getElementById('saveBatchBtn').onclick = () => {};
         document.getElementById('saveEpisodesBtn').onclick = () => {};
