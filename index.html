@@ -965,11 +965,9 @@
         let currentUsername = localStorage.getItem('noitefilmes_username') || 'Cinéfilo';
         
         let avaliacoes = {};
-        let comentarios = [];
         let likeCount = 0;
         let updateInterval = null;
         
-        // Função para buscar dados em tempo real a cada 1 segundo
         function startRealtimeUpdates(mediaId) {
             if (updateInterval) clearInterval(updateInterval);
             updateInterval = setInterval(() => {
@@ -992,11 +990,8 @@
             database.ref(`likes/${mediaId}`).on('value', (snapshot) => {
                 const data = snapshot.val();
                 likeCount = data ? Object.keys(data).length : 0;
-                const likeBtn = document.getElementById('likeBtn');
-                if (likeBtn) {
-                    const span = likeBtn.querySelector('span');
-                    if (span) span.innerText = likeCount;
-                }
+                const likeBtnSpan = document.querySelector('#likeBtn span');
+                if (likeBtnSpan) likeBtnSpan.innerText = likeCount;
             });
         }
         
@@ -1221,7 +1216,6 @@
             currentMedia = item;
             currentMediaType = type;
             
-            // Iniciar atualizações em tempo real
             startRealtimeUpdates(item.id);
             
             const likeBtn = document.getElementById('likeBtn');
@@ -1230,7 +1224,8 @@
             
             function updateButtons() {
                 const isLiked = favoritos.some(f => f.id === item.id && f.liked);
-                likeBtn.querySelector('i').className = isLiked ? 'fas fa-heart' : 'far fa-heart';
+                const likeIcon = likeBtn.querySelector('i');
+                if (likeIcon) likeIcon.className = isLiked ? 'fas fa-heart' : 'far fa-heart';
                 likeBtn.classList.toggle('active', isLiked);
                 const isSaved = favoritos.some(f => f.id === item.id && f.saved);
                 saveBtn.innerHTML = isSaved ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>';
@@ -1311,9 +1306,7 @@
             stopRealtimeUpdates();
         }
         
-        function onYouTubeIframeAPIReady() {
-            // Player será criado dinamicamente no playMedia
-        }
+        function onYouTubeIframeAPIReady() {}
         
         function loadCanaisFromFirebase() {
             database.ref('canais').once('value', (snapshot) => {
