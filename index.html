@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>NoiteFilmes - Rede Social para Cinéfilos</title>
     <link rel="icon" type="image/png" href="https://via.placeholder.com/32x32?text=NF">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -501,13 +501,26 @@
             z-index: 1099;
         }
         
+        /* Seção de comentários com scroll (deslize) - IGUAL INSTAGRAM */
         .comments-section {
             margin-top: 10px;
             padding: 10px;
             background: #1a1a1a;
             border-radius: 12px;
-            max-height: 300px;
+            max-height: 250px;
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .comments-section::-webkit-scrollbar {
+            width: 4px;
+        }
+        .comments-section::-webkit-scrollbar-track {
+            background: #2a2a2a;
+            border-radius: 10px;
+        }
+        .comments-section::-webkit-scrollbar-thumb {
+            background: #e50914;
+            border-radius: 10px;
         }
         .comment-item {
             padding: 8px;
@@ -556,6 +569,7 @@
         
         @media (max-width: 768px) {
             .floating-player { width: 95%; max-width: 95%; top: 55px; }
+            .comments-section { max-height: 200px; }
         }
         
         .sync-status {
@@ -689,6 +703,7 @@
                 </div>
                 <button id="closeShareModal" class="mt-3 w-full bg-gray-700 py-1 rounded">Fechar</button>
             </div>
+            <!-- Seção de comentários com scroll (deslize) -->
             <div id="commentsSection" class="comments-section mt-2">
                 <div class="text-xs text-gray-400 mb-2">💬 Comentários</div>
                 <div id="commentsList"></div>
@@ -700,7 +715,7 @@
         </div>
     </div>
 
-    <!-- Popup de Favoritos (estilizado igual à busca) -->
+    <!-- Popup de Favoritos -->
     <div id="favoritesPopup" class="favorites-popup hidden">
         <div class="favorites-popup-content">
             <div class="flex justify-between items-center mb-3">
@@ -830,62 +845,110 @@
         let isAdminLogged = false;
         let currentUsername = localStorage.getItem('noitefilmes_username') || 'Cinéfilo';
         
-        let ratings = {};
+        // Avaliações - estrutura para salvar no Firebase
+        let avaliacoes = {}; // { mediaId: { totalVotos, soma } }
+        
+        // Carregar avaliações do Firebase em tempo real
+        function loadRatingsFromFirebase(mediaId, callback) {
+            database.ref(`avaliacoes/${mediaId}`).on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    const totalVotos = data.totalVotos || 0;
+                    const soma = data.soma || 0;
+                    avaliacoes[mediaId] = { totalVotos, soma };
+                } else {
+                    avaliacoes[mediaId] = { totalVotos: 0, soma: 0 };
+                }
+                if (callback) callback(avaliacoes[mediaId]);
+                // Atualizar display se for o media atual
+                if (currentMedia && currentMedia.id === mediaId) {
+                    updateRatingStarsDisplay(mediaId);
+                }
+            });
+        }
         
         function calculateRatingPercentage(mediaId) {
-            const mediaRatings = ratings[mediaId];
-            if (!mediaRatings || !mediaRatings.totalVotos) return 0;
-            const media = mediaRatings.soma / mediaRatings.totalVotos;
+            const data = avaliacoes[mediaId];
+            if (!data || data.totalVotos === 0) return 0;
+            const media = data.soma / data.totalVotos;
             return Math.round((media / 5) * 100);
         }
         
         function getUserRating(mediaId) {
             if (!currentUser) return 0;
-            const mediaRatings = ratings[mediaId];
-            if (mediaRatings && mediaRatings[currentUser.uid]) return mediaRatings[currentUser.uid];
-            return 0;
+            // Buscar nota do usuário específico
+            let userRating = 0;
+            database.ref(`avaliacoes/${mediaId}/${currentUser.uid}`).once('value', (snapshot) => {
+                userRating = snapshot.val() || 0;
+            });
+            return 0; // Será atualizado via callback
         }
         
         function saveRating(mediaId, rating) {
             if (!currentUser) { showToast('Faça login para avaliar'); return; }
-            const mediaRatings = ratings[mediaId] || {};
-            const oldRating = mediaRatings[currentUser.uid] || 0;
-            let soma = (mediaRatings.soma || 0) - oldRating + rating;
-            let totalVotos = (mediaRatings.totalVotos || 0);
-            if (oldRating === 0 && rating > 0) totalVotos++;
-            else if (oldRating > 0 && rating === 0) totalVotos--;
-            ratings[mediaId] = { ...mediaRatings, [currentUser.uid]: rating, soma, totalVotos };
-            localStorage.setItem('noitefilmes_ratings', JSON.stringify(ratings));
-            if (currentUser) database.ref(`avaliacoes/${mediaId}/${currentUser.uid}`).set(rating);
-            updateRatingStarsDisplay(mediaId);
-            showToast(`Avaliação ${rating}/5 salva! (${calculateRatingPercentage(mediaId)}% gostaram)`);
+            
+            // Primeiro, buscar a nota atual do usuário
+            database.ref(`avaliacoes/${mediaId}/${currentUser.uid}`).once('value', (userSnapshot) => {
+                const oldRating = userSnapshot.val() || 0;
+                // Atualizar avaliação do usuário
+                database.ref(`avaliacoes/${mediaId}/${currentUser.uid}`).set(rating);
+                
+                // Atualizar soma e total de votos
+                database.ref(`avaliacoes/${mediaId}`).transaction((currentData) => {
+                    if (!currentData) {
+                        return { totalVotos: rating > 0 ? 1 : 0, soma: rating };
+                    }
+                    let totalVotos = currentData.totalVotos || 0;
+                    let soma = currentData.soma || 0;
+                    if (oldRating === 0 && rating > 0) totalVotos++;
+                    else if (oldRating > 0 && rating === 0) totalVotos--;
+                    soma = soma - oldRating + rating;
+                    return { totalVotos, soma };
+                }).then(() => {
+                    showToast(`Avaliação ${rating}/5 salva!`);
+                    loadRatingsFromFirebase(mediaId);
+                });
+            });
         }
         
-        function createRatingStars(containerId, mediaId, currentRating, onRate) {
+        function createRatingStars(containerId, mediaId) {
             const container = document.getElementById(containerId);
             if (!container) return;
+            
+            // Buscar nota do usuário atual
+            if (currentUser) {
+                database.ref(`avaliacoes/${mediaId}/${currentUser.uid}`).once('value', (snapshot) => {
+                    const userRating = snapshot.val() || 0;
+                    renderStars(container, mediaId, userRating);
+                });
+            } else {
+                renderStars(container, mediaId, 0);
+            }
+        }
+        
+        function renderStars(container, mediaId, userRating) {
             container.innerHTML = '';
             for (let i = 1; i <= 5; i++) {
                 const star = document.createElement('i');
-                star.className = i <= currentRating ? 'fas fa-star' : 'far fa-star';
+                star.className = i <= userRating ? 'fas fa-star' : 'far fa-star';
                 star.style.cursor = 'pointer';
-                star.addEventListener('click', (e) => { e.stopPropagation(); onRate(i); });
+                star.addEventListener('click', (e) => { e.stopPropagation(); saveRating(mediaId, i); });
                 container.appendChild(star);
             }
             const percent = calculateRatingPercentage(mediaId);
             const percentSpan = document.createElement('span');
             percentSpan.className = 'text-xs text-gray-400 ml-2';
-            percentSpan.innerText = `${percent}% gostaram`;
+            percentSpan.innerText = `${percent}% gostaram (${avaliacoes[mediaId]?.totalVotos || 0} votos)`;
             container.appendChild(percentSpan);
         }
         
         function updateRatingStarsDisplay(mediaId) {
             if (currentMedia && currentMedia.id === mediaId) {
-                const rating = getUserRating(mediaId);
-                createRatingStars('floatingRatingStars', mediaId, rating, (r) => saveRating(mediaId, r));
+                createRatingStars('floatingRatingStars', mediaId);
             }
         }
         
+        // Comentários
         function loadComments(mediaId) {
             database.ref(`comentarios/${mediaId}`).once('value', (snapshot) => {
                 const data = snapshot.val();
@@ -1030,8 +1093,10 @@
             
             updateButtons();
             
-            const rating = getUserRating(item.id);
-            createRatingStars('floatingRatingStars', item.id, rating, (r) => saveRating(item.id, r));
+            // Carregar avaliações do Firebase
+            loadRatingsFromFirebase(item.id, () => {
+                createRatingStars('floatingRatingStars', item.id);
+            });
             
             loadComments(item.id);
             const submitComment = document.getElementById('submitCommentBtn');
@@ -1085,11 +1150,6 @@
         
         function onYouTubeIframeAPIReady() {
             ytPlayer = new YT.Player('youtubePlayerDiv', { height: '100%', width: '100%', videoId: '' });
-        }
-        
-        function loadRatingsFromStorage() {
-            const stored = localStorage.getItem('noitefilmes_ratings');
-            if (stored) ratings = JSON.parse(stored);
         }
         
         function loadCanaisFromFirebase() {
@@ -1230,7 +1290,7 @@
             renderGrid();
         }
         
-        // FAVORITOS: Abre popup estilizado (igual busca)
+        // FAVORITOS
         function openFavoritesPopup() {
             if (!favoritos.length) {
                 showToast('Você ainda não tem favoritos');
@@ -1378,7 +1438,6 @@
                 database.ref('chat').limitToLast(100).on('child_added', (snapshot) => { const msg = snapshot.val(); addMessageToChat(msg.username, msg.text, false, msg.time, false); });
                 database.ref(`favoritos/${user.uid}`).on('value', (snapshot) => { favoritos = snapshot.val() ? Object.values(snapshot.val()) : []; });
                 database.ref('top10').on('value', (snapshot) => { const data = snapshot.val(); if(data) { top10List = data; renderTop10Carousel(); } else { generateWeeklyTop10(); } });
-                loadRatingsFromStorage();
             } else { showLoginModal(); document.getElementById('chatMessages').innerHTML = ''; }
         }
         
