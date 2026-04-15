@@ -14,7 +14,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* (estilos permanecem iguais ao anterior) */
+        /* (estilos mantidos exatamente iguais ao original - omitidos por brevidade, mas completos na resposta final) */
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { background-color: #0a0a0a; overflow-x: hidden; transition: background 0.3s, color 0.3s; margin-top: 0; padding-top: 0; }
         body.dark-mode { background-color: #0a0a0a; color: #e5e5e5; }
@@ -461,9 +461,14 @@
         let isAdminLogged = false;
         let currentUsername = localStorage.getItem('noitefilmes_username') || 'Cinéfilo';
         let editingItem = null;
-        let dataLoaded = false;
+        
+        // Controle de carregamento dos dados
+        let canaisLoaded = false;
+        let filmesLoaded = false;
+        let seriesLoaded = false;
         let pendingMediaId = null;
         let pendingMediaType = null;
+        let urlCheckAttempts = 0;
         
         let avaliacoes = {};
         let likeCount = 0;
@@ -740,16 +745,25 @@
         }
         
         function playMediaById(mediaId, type) {
-            let item;
-            if (type === 'filme') item = filmes.find(f => f.id === mediaId);
-            else if (type === 'serie') item = series.find(s => s.id === mediaId);
-            else item = canais.find(c => c.id === mediaId);
+            // Tentar encontrar o item em qualquer lista, independente do tipo informado
+            let item = filmes.find(f => f.id === mediaId);
+            let foundType = 'filme';
+            if (!item) {
+                item = series.find(s => s.id === mediaId);
+                foundType = 'serie';
+            }
+            if (!item) {
+                item = canais.find(c => c.id === mediaId);
+                foundType = 'canal';
+            }
+            
             if (item) {
-                playMedia(item, type);
-                const newUrl = `${window.location.pathname}?mediaId=${mediaId}&type=${type}`;
-                window.history.pushState({ mediaId, type }, '', newUrl);
+                playMedia(item, foundType);
+                const newUrl = `${window.location.pathname}?mediaId=${mediaId}&type=${foundType}`;
+                window.history.pushState({ mediaId, type: foundType }, '', newUrl);
             } else {
-                showToast('Conteúdo não encontrado');
+                console.log('Item não encontrado para ID:', mediaId);
+                showToast('Conteúdo não encontrado. Pode ter sido removido.');
             }
         }
         
@@ -937,11 +951,12 @@
             database.ref('canais').once('value', (snapshot) => {
                 const data = snapshot.val();
                 canais = data ? Object.values(data).filter(i => !i.hidden) : [];
+                canaisLoaded = true;
                 if(currentNavTab === 'canais') renderGrid();
                 generateWeeklyTop10();
                 updateGenreFilters();
                 if(isAdminLogged) refreshAdminLists();
-                checkDataLoaded();
+                checkAllDataLoaded();
             });
         }
         
@@ -949,10 +964,11 @@
             database.ref('filmes').once('value', (snapshot) => {
                 const data = snapshot.val();
                 filmes = data ? Object.values(data).filter(i => !i.hidden) : [];
+                filmesLoaded = true;
                 if(currentNavTab === 'filmes') renderGrid();
                 generateWeeklyTop10();
                 if(isAdminLogged) refreshAdminLists();
-                checkDataLoaded();
+                checkAllDataLoaded();
             });
         }
         
@@ -960,36 +976,27 @@
             database.ref('series').once('value', (snapshot) => {
                 const data = snapshot.val();
                 series = data ? Object.values(data).filter(i => !i.hidden) : [];
+                seriesLoaded = true;
                 if(currentNavTab === 'series') renderGrid();
                 generateWeeklyTop10();
                 if(isAdminLogged) refreshAdminLists();
-                checkDataLoaded();
+                checkAllDataLoaded();
             });
         }
         
-        function checkDataLoaded() {
-            if (canais.length > 0 || filmes.length > 0 || series.length > 0) {
-                dataLoaded = true;
-                if (pendingMediaId && pendingMediaType) {
-                    setTimeout(() => {
-                        playMediaById(pendingMediaId, pendingMediaType);
-                        pendingMediaId = null;
-                        pendingMediaType = null;
-                    }, 300);
-                }
-            }
-        }
-        
-        function checkUrlForMedia() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const mediaId = urlParams.get('mediaId');
-            const type = urlParams.get('type');
-            if (mediaId && type) {
-                if (dataLoaded) {
+        function checkAllDataLoaded() {
+            if (canaisLoaded && filmesLoaded && seriesLoaded) {
+                // Todos os dados carregados, verificar URL pendente
+                const urlParams = new URLSearchParams(window.location.search);
+                const mediaId = urlParams.get('mediaId');
+                const type = urlParams.get('type');
+                if (mediaId && type) {
+                    console.log('Dados carregados, abrindo conteúdo:', mediaId, type);
                     playMediaById(mediaId, type);
-                } else {
-                    pendingMediaId = mediaId;
-                    pendingMediaType = type;
+                } else if (pendingMediaId && pendingMediaType) {
+                    playMediaById(pendingMediaId, pendingMediaType);
+                    pendingMediaId = null;
+                    pendingMediaType = null;
                 }
             }
         }
@@ -1490,7 +1497,9 @@
         function updateUserUI(user) {
             if (user) {
                 hideLoginModal();
-                loadUserNickname(user.uid).then(() => { loadCanaisFromFirebase(); loadFilmesFromFirebase(); loadSeriesFromFirebase(); });
+                loadUserNickname(user.uid).then(() => { 
+                    // Já carregando normalmente
+                });
                 database.ref('chat').limitToLast(100).off();
                 database.ref('chat').limitToLast(100).on('child_added', (snapshot) => { const msg = snapshot.val(); addMessageToChat(msg.username, msg.text, false, msg.time, false); });
                 database.ref(`favoritos/${user.uid}`).on('value', (snapshot) => { favoritos = snapshot.val() ? Object.values(snapshot.val()) : []; });
@@ -1498,9 +1507,6 @@
             } else { 
                 showLoginModal(); 
                 document.getElementById('chatMessages').innerHTML = '';
-                loadCanaisFromFirebase(); 
-                loadFilmesFromFirebase(); 
-                loadSeriesFromFirebase();
             }
         }
         
@@ -1605,6 +1611,11 @@
         document.getElementById('searchPopup').addEventListener('click', (e) => { if(e.target === document.getElementById('searchPopup')) document.getElementById('searchPopup').classList.add('hidden'); });
         document.getElementById('favoritesPopup').addEventListener('click', (e) => { if(e.target === document.getElementById('favoritesPopup')) document.getElementById('favoritesPopup').classList.add('hidden'); });
         
+        // Iniciar carregamento de dados
+        loadCanaisFromFirebase();
+        loadFilmesFromFirebase();
+        loadSeriesFromFirebase();
+        
         auth.onAuthStateChanged((user) => { currentUser = user; updateUserUI(user); });
         setupSearchPopup();
         loadTheme();
@@ -1618,13 +1629,6 @@
                 closePlayer();
             }
         });
-        
-        // Iniciar verificação da URL após carregar os dados
-        setTimeout(() => {
-            if (!dataLoaded) {
-                checkUrlForMedia();
-            }
-        }, 1000);
     </script>
 </body>
 </html>
