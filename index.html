@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -1962,17 +1963,15 @@
                 return;
             }
             
-            let allSelectedItems = [];
+            container.innerHTML = '';
             
             duplicates.forEach((dup, groupIndex) => {
-                // Preserva o primeiro item (não será exibido para exclusão)
-                const itemsToShow = dup.items.slice(1); // Mostra apenas os duplicados (exceto o primeiro)
+                const itemsToShow = dup.items.slice(1);
                 
                 if(itemsToShow.length === 0) return;
                 
-                const groupId = `group_${groupIndex}`;
                 const groupHtml = `
-                    <div class="duplicate-group" data-group-id="${groupId}">
+                    <div class="duplicate-group" data-group-id="group_${groupIndex}">
                         <div class="duplicate-header">
                             <img src="${dup.thumb || 'https://via.placeholder.com/50x65'}" onerror="this.src='https://via.placeholder.com/50x65'">
                             <div>
@@ -1980,10 +1979,10 @@
                                 <div class="text-xs text-gray-400">Total: ${dup.items.length} cópias | <span class="text-green-500">1 preservado</span> | ${itemsToShow.length} para excluir</div>
                             </div>
                         </div>
-                        <div class="duplicate-items-list" id="${groupId}_list">
+                        <div class="duplicate-items-list" id="group_${groupIndex}_list">
                             ${itemsToShow.map((item, idx) => `
                                 <label class="duplicate-checkbox-item" data-item-id="${item.id}" data-item-type="${item.type}">
-                                    <input type="checkbox" class="duplicate-checkbox" data-id="${item.id}" data-type="${item.type}" data-group="${groupId}">
+                                    <input type="checkbox" class="duplicate-checkbox" data-id="${item.id}" data-type="${item.type}" data-group="group_${groupIndex}">
                                     <img src="${item.thumb || 'https://via.placeholder.com/40x50'}" onerror="this.src='https://via.placeholder.com/40x50'">
                                     <div class="flex-1">
                                         <div class="text-sm">${item.title}</div>
@@ -1997,7 +1996,6 @@
                 container.innerHTML += groupHtml;
             });
             
-            // Adiciona botões de seleção em massa e exclusão
             const buttonBar = document.createElement('div');
             buttonBar.className = 'mb-4 sticky top-0 bg-gray-900 p-2 rounded';
             buttonBar.innerHTML = `
@@ -2041,10 +2039,10 @@
                     
                     Promise.all(deletions).then(() => {
                         showToast(`${selected.length} item(s) duplicado(s) removido(s) com sucesso!`);
-                        if(type === 'canais') loadCanaisFromFirebase();
-                        else if(type === 'filmes') loadFilmesFromFirebase();
-                        else if(type === 'series') loadSeriesFromFirebase();
-                        renderDuplicatesList(); // Recarrega a lista
+                        loadCanaisFromFirebase();
+                        loadFilmesFromFirebase();
+                        loadSeriesFromFirebase();
+                        renderDuplicatesList();
                     }).catch(error => {
                         showToast('Erro ao excluir itens: ' + error.message);
                     });
