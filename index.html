@@ -1440,17 +1440,24 @@
         
         function shareMedia(platform) {
             if (!currentShareMedia) return;
-            const url = encodeURIComponent(`${window.location.origin}${window.location.pathname}?media=${currentShareMedia.id}`);
-            const text = encodeURIComponent(`Assista "${currentShareMedia.title}" no NoiteFilmes!`);
-            let shareUrl = '';
+            // Gerar link único para o conteúdo
+            const shareUrl = `${window.location.origin}${window.location.pathname}?mediaId=${currentShareMedia.id}&type=${currentMediaType}`;
+            const encodedUrl = encodeURIComponent(shareUrl);
+            const text = encodeURIComponent(`🎬 "${currentShareMedia.title}" - Assista agora no NoiteFilmes!`);
+            
+            let shareLink = '';
             switch(platform) {
-                case 'whatsapp': shareUrl = `https://api.whatsapp.com/send?text=${text}%20${url}`; break;
-                case 'telegram': shareUrl = `https://t.me/share/url?url=${url}&text=${text}`; break;
-                case 'facebook': shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`; break;
-                case 'twitter': shareUrl = `https://twitter.com/intent/tweet?text=${text}&url=${url}`; break;
-                case 'copy': navigator.clipboard.writeText(decodeURIComponent(url)); showToast('Link copiado!'); return;
+                case 'whatsapp': shareLink = `https://api.whatsapp.com/send?text=${text}%20${encodedUrl}`; break;
+                case 'telegram': shareLink = `https://t.me/share/url?url=${encodedUrl}&text=${text}`; break;
+                case 'facebook': shareLink = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`; break;
+                case 'twitter': shareLink = `https://twitter.com/intent/tweet?text=${text}&url=${encodedUrl}`; break;
+                case 'copy': 
+                    navigator.clipboard.writeText(shareUrl);
+                    showToast('Link copiado! Compartilhe com seus amigos.');
+                    closeShareModal();
+                    return;
             }
-            if (shareUrl) window.open(shareUrl, '_blank');
+            if (shareLink) window.open(shareLink, '_blank');
             closeShareModal();
         }
         
@@ -1474,7 +1481,14 @@
             if (type === 'filme') item = filmes.find(f => f.id === mediaId);
             else if (type === 'serie') item = series.find(s => s.id === mediaId);
             else item = canais.find(c => c.id === mediaId);
-            if (item) playMedia(item, type);
+            if (item) {
+                playMedia(item, type);
+                // Atualizar URL sem recarregar a página
+                const newUrl = `${window.location.pathname}?mediaId=${mediaId}&type=${type}`;
+                window.history.pushState({ mediaId, type }, '', newUrl);
+            } else {
+                showToast('Conteúdo não encontrado');
+            }
         }
         
         function playMedia(item, type) {
@@ -1648,6 +1662,11 @@
             document.getElementById('playerCommentsContainer').classList.add('hidden');
             document.getElementById('floatingPlayerOverlay').classList.add('hidden');
             stopRealtimeUpdates();
+            // Limpar parâmetros da URL quando fechar o player
+            const url = new URL(window.location);
+            url.searchParams.delete('mediaId');
+            url.searchParams.delete('type');
+            window.history.pushState({}, '', url);
         }
         
         function onYouTubeIframeAPIReady() {}
@@ -1661,6 +1680,7 @@
                 generateWeeklyTop10();
                 updateGenreFilters();
                 if(isAdminLogged) refreshAdminLists();
+                checkUrlForMedia();
             });
         }
         
@@ -1671,6 +1691,7 @@
                 if(currentNavTab === 'filmes') renderGrid();
                 generateWeeklyTop10();
                 if(isAdminLogged) refreshAdminLists();
+                checkUrlForMedia();
             });
         }
         
@@ -1681,7 +1702,28 @@
                 if(currentNavTab === 'series') renderGrid();
                 generateWeeklyTop10();
                 if(isAdminLogged) refreshAdminLists();
+                checkUrlForMedia();
             });
+        }
+        
+        function checkUrlForMedia() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const mediaId = urlParams.get('mediaId');
+            const type = urlParams.get('type');
+            if (mediaId && type) {
+                // Aguardar um pouco para garantir que os dados foram carregados
+                setTimeout(() => {
+                    let item;
+                    if (type === 'canal') item = canais.find(c => c.id === mediaId);
+                    else if (type === 'filme') item = filmes.find(f => f.id === mediaId);
+                    else if (type === 'serie') item = series.find(s => s.id === mediaId);
+                    if (item) {
+                        playMedia(item, type);
+                    } else {
+                        console.log('Item não encontrado para o link compartilhado');
+                    }
+                }, 500);
+            }
         }
         
         function renderGrid() {
@@ -2294,6 +2336,15 @@
         loadTheme();
         if(typeof YT === 'undefined') { window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady; } else { onYouTubeIframeAPIReady(); }
         setInterval(() => { const onlineCount = Math.floor(Math.random() * 15) + 3; document.getElementById('onlineCount').innerHTML = `● ${onlineCount} online`; }, 15000);
+        
+        // Escutar mudanças na pilha de histórico (botão voltar/avançar)
+        window.addEventListener('popstate', (event) => {
+            if (event.state && event.state.mediaId && event.state.type) {
+                playMediaById(event.state.mediaId, event.state.type);
+            } else {
+                closePlayer();
+            }
+        });
     </script>
 </body>
 </html>
