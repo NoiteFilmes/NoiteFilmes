@@ -119,6 +119,9 @@
                 display: flex;
                 flex-direction: column;
                 gap: 8px;
+
+                overflow-y: auto;   /* 👈 importante */
+                min-height: 0;      /* 👈 crucial em flexbox */
             }
             /* Linha 1 - Nome do filme (fonte menor) */
             .video-title {
