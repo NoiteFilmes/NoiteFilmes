@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -118,8 +119,8 @@
                 display: flex;
                 flex-direction: column;
                 gap: 12px;
-                overflow-y: auto;
-                min-height: 0;
+                overflow: visible;
+                min-height: auto;
             }
             /* Linha 1 - Nome do filme (uma única linha) */
             .video-title {
@@ -271,7 +272,7 @@
             }
         }
         
-        /* ========== LAYOUT MOBILE HORIZONTAL (tablet/celular em paisagem) ========== */
+        /* ========== LAYOUT MOBILE HORIZONTAL ========== */
         @media (max-width: 1024px) and (orientation: landscape) {
             .player-comments-container {
                 position: fixed;
@@ -308,8 +309,8 @@
                 display: flex;
                 flex-direction: column;
                 gap: 12px;
-                overflow-y: auto;
-                min-height: 0;
+                overflow: visible;
+                min-height: auto;
             }
             .video-title {
                 font-size: 1.1rem;
@@ -414,7 +415,6 @@
         .action-btn.active { color: #e50914; }
         .action-btn span { font-size: 12px; }
         
-        /* Estilo para o percentual de avaliação */
         .rating-percent {
             font-size: 12px;
             color: #ffc107;
@@ -958,7 +958,7 @@
             </div>
             <div class="video-info">
                 <!-- LINHA 1: Nome do filme (uma única linha) -->
-                <h3 id="videoTitle" class="video-title">Título</h3>
+                <h3 id="videoTitle" class="video-title">Carregando...</h3>
                 
                 <!-- LINHA 2: Ano/Gênero à esquerda e botões de ação à direita -->
                 <div class="info-actions-row">
@@ -1419,9 +1419,15 @@
             container.classList.remove('hidden');
             overlay.classList.remove('hidden');
             
-            document.getElementById('videoTitle').innerText = item.title;
-            document.getElementById('videoYear').innerHTML = item.year ? `📅 ${item.year}` : '';
-            document.getElementById('videoGenre').innerHTML = item.category ? `🎭 ${item.category}` : '';
+            // Atualiza o título e as informações
+            const titleEl = document.getElementById('videoTitle');
+            if (titleEl) titleEl.innerText = item.title;
+            
+            const yearEl = document.getElementById('videoYear');
+            if (yearEl) yearEl.innerHTML = item.year ? `📅 ${item.year}` : '';
+            
+            const genreEl = document.getElementById('videoGenre');
+            if (genreEl) genreEl.innerHTML = item.category ? `🎭 ${item.category}` : '';
             
             currentMedia = item;
             currentMediaType = type;
