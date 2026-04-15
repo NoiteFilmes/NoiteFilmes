@@ -117,30 +117,42 @@
                 background: #1a1a1a;
                 display: flex;
                 flex-direction: column;
-                gap: 8px;
+                gap: 12px;
                 overflow-y: auto;
                 min-height: 0;
             }
+            /* Linha 1 - Nome do filme (uma única linha) */
             .video-title {
-                font-size: 1.1rem;
+                font-size: 1.2rem;
                 font-weight: bold;
                 margin: 0;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
             }
+            /* Linha 2 - Container flex com espaço entre os grupos */
+            .info-actions-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 16px;
+            }
+            /* Grupo esquerdo: Ano e Gênero */
             .video-meta {
                 display: flex;
                 gap: 16px;
-                font-size: 0.8rem;
+                font-size: 0.85rem;
                 color: #aaa;
+                margin: 0;
             }
+            /* Grupo direito: Todos os botões de ação */
             .action-buttons {
                 display: flex;
                 align-items: center;
-                gap: 24px;
+                gap: 20px;
                 flex-wrap: wrap;
-                margin-top: 4px;
+                margin: 0;
             }
             .comments-section {
                 width: 380px;
@@ -176,8 +188,8 @@
             }
         }
         
-        /* ========== LAYOUT MOBILE (vertical) ========== */
-        @media (max-width: 768px) and (orientation: portrait) {
+        /* ========== LAYOUT MOBILE ========== */
+        @media (max-width: 768px) {
             .player-comments-container {
                 position: fixed;
                 top: 60px;
@@ -203,17 +215,22 @@
             .video-title {
                 font-size: 1rem;
                 font-weight: bold;
-                margin: 0 0 4px 0;
+                margin: 0 0 8px 0;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
+            }
+            .info-actions-row {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
             }
             .video-meta {
                 display: flex;
                 gap: 12px;
                 font-size: 0.7rem;
                 color: #aaa;
-                margin-bottom: 8px;
             }
             .action-buttons {
                 display: flex;
@@ -253,7 +270,7 @@
                 background: #1a1a1a;
             }
         }
-
+        
         /* ========== LAYOUT MOBILE HORIZONTAL (tablet/celular em paisagem) ========== */
         @media (max-width: 1024px) and (orientation: landscape) {
             .player-comments-container {
@@ -290,7 +307,7 @@
                 background: #1a1a1a;
                 display: flex;
                 flex-direction: column;
-                gap: 8px;
+                gap: 12px;
                 overflow-y: auto;
                 min-height: 0;
             }
@@ -302,18 +319,26 @@
                 overflow: hidden;
                 text-overflow: ellipsis;
             }
+            .info-actions-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 16px;
+            }
             .video-meta {
                 display: flex;
                 gap: 16px;
                 font-size: 0.8rem;
                 color: #aaa;
+                margin: 0;
             }
             .action-buttons {
                 display: flex;
                 align-items: center;
-                gap: 24px;
+                gap: 20px;
                 flex-wrap: wrap;
-                margin-top: 4px;
+                margin: 0;
             }
             .comments-section {
                 width: 380px;
@@ -388,6 +413,14 @@
         .action-btn:hover { color: #e50914; }
         .action-btn.active { color: #e50914; }
         .action-btn span { font-size: 12px; }
+        
+        /* Estilo para o percentual de avaliação */
+        .rating-percent {
+            font-size: 12px;
+            color: #ffc107;
+            margin-left: 4px;
+            white-space: nowrap;
+        }
         
         .chat-container {
             position: fixed;
@@ -924,17 +957,19 @@
                 <div id="noContent" class="absolute inset-0 flex items-center justify-center text-gray-500 bg-black text-sm">Carregando...</div>
             </div>
             <div class="video-info">
-                <!-- LINHA 1: Nome do filme (fonte menor, uma única linha) -->
+                <!-- LINHA 1: Nome do filme (uma única linha) -->
                 <h3 id="videoTitle" class="video-title">Título</h3>
-                <!-- LINHA 2: Ano e Gênero à esquerda + Botões de ação à direita -->
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-                    <div class="video-meta" style="margin:0;">
+                
+                <!-- LINHA 2: Ano/Gênero à esquerda e botões de ação à direita -->
+                <div class="info-actions-row">
+                    <div class="video-meta">
                         <span id="videoYear"></span>
                         <span id="videoGenre"></span>
                     </div>
-                    <div class="action-buttons" style="margin:0;">
+                    <div class="action-buttons">
                         <button id="likeBtn" class="action-btn like-btn"><i class="far fa-heart"></i> <span id="likeCount">0</span></button>
                         <div id="ratingStarsContainer" class="rating-stars"></div>
+                        <span id="ratingPercentDisplay" class="rating-percent">0%</span>
                         <button id="saveBtn" class="action-btn save-btn"><i class="far fa-star"></i></button>
                         <button id="shareBtn" class="action-btn"><i class="fas fa-share-alt"></i></button>
                     </div>
@@ -1187,6 +1222,7 @@
                 if (currentMedia && currentMedia.id === mediaId) {
                     updateRatingStarsDisplay(mediaId);
                     updateRatingInfo(mediaId);
+                    updateRatingPercentDisplay(mediaId);
                 }
             });
         }
@@ -1196,6 +1232,12 @@
             if (!data || data.totalVotos === 0) return 0;
             const media = data.soma / data.totalVotos;
             return Math.round((media / 5) * 100);
+        }
+        
+        function updateRatingPercentDisplay(mediaId) {
+            const percent = calculateRatingPercentage(mediaId);
+            const percentSpan = document.getElementById('ratingPercentDisplay');
+            if (percentSpan) percentSpan.innerText = `${percent}%`;
         }
         
         function updateRatingInfo(mediaId) {
@@ -1270,18 +1312,14 @@
                 });
                 container.appendChild(star);
             }
-            const percent = calculateRatingPercentage(mediaId);
-            const totalVotos = avaliacoes[mediaId]?.totalVotos || 0;
-            const percentSpan = document.createElement('span');
-            percentSpan.className = 'text-xs text-gray-400 ml-2';
-            percentSpan.innerText = `${percent}% (${totalVotos})`;
-            container.appendChild(percentSpan);
+            updateRatingPercentDisplay(mediaId);
         }
         
         function updateRatingStarsDisplay(mediaId) {
             if (currentMedia && currentMedia.id === mediaId) {
                 createRatingStars('ratingStarsContainer', mediaId);
                 updateRatingInfo(mediaId);
+                updateRatingPercentDisplay(mediaId);
             }
         }
         
