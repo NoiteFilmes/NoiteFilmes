@@ -81,7 +81,7 @@
         .nav-item:hover { background-color: rgba(229, 9, 20, 0.1); }
         .nav-item.active { color: #e50914; }
         
-        /* ========== LAYOUT DESKTOP - CORRIGIDO ========== */
+        /* ========== LAYOUT DESKTOP ========== */
         @media (min-width: 769px) {
             .player-comments-container {
                 position: fixed;
@@ -105,7 +105,6 @@
                 min-height: 0;
                 flex: 1.5;
             }
-            /* PLAYER MAIOR - OCUPA MAIS ESPAÇO */
             .video-section .player-wrapper {
                 flex: 3;
                 min-height: 0;
@@ -116,21 +115,39 @@
                 height: 100%;
                 object-fit: contain;
             }
-            /* ÁREA DE INFORMAÇÕES - MAIS COMPACTA PARA SOBRAR ESPAÇO */
             .video-info {
-                padding: 8px 16px;        /* Diminui o padding vertical de 16px para 8px */
+                padding: 8px 16px;
                 background: #1a1a1a;
                 display: flex;
                 flex-direction: column;
-                justify-content: center;   /* Muda de space-between para center */
-                gap: 4px;                  /* Adiciona espaçamento pequeno entre as linhas */
-                min-height: 90px;          /* Altura mínima fixa */
+                justify-content: center;
+                gap: 4px;
+                min-height: 90px;
             }
+            /* NOME DO FILME - UMA LINHA COM SCROLL HORIZONTAL */
             .video-title {
-                font-size: 0.8rem;
+                font-size: 0.9rem;
                 font-weight: bold;
                 margin: 0;
                 line-height: 1.3;
+                white-space: nowrap;
+                overflow-x: auto;
+                overflow-y: hidden;
+                scrollbar-width: thin;
+                -webkit-overflow-scrolling: touch;
+                cursor: pointer;
+                padding-bottom: 2px;
+            }
+            .video-title::-webkit-scrollbar {
+                height: 3px;
+            }
+            .video-title::-webkit-scrollbar-track {
+                background: #333;
+                border-radius: 10px;
+            }
+            .video-title::-webkit-scrollbar-thumb {
+                background: #e50914;
+                border-radius: 10px;
             }
             .video-meta {
                 display: flex;
@@ -138,7 +155,6 @@
                 font-size: 0.75rem;
                 color: #aaa;
             }
-            /* BOTÕES - TODOS VISÍVEIS NA TERCEIRA LINHA */
             .action-buttons {
                 display: flex;
                 align-items: center;
@@ -208,6 +224,14 @@
                 font-size: 1rem;
                 font-weight: bold;
                 margin: 0 0 4px 0;
+                white-space: nowrap;
+                overflow-x: auto;
+                overflow-y: hidden;
+                scrollbar-width: thin;
+                cursor: pointer;
+            }
+            .video-title::-webkit-scrollbar {
+                height: 3px;
             }
             .video-meta {
                 display: flex;
@@ -870,14 +894,14 @@
                 <div id="noContent" class="absolute inset-0 flex items-center justify-center text-gray-500 bg-black text-sm">Carregando...</div>
             </div>
             <div class="video-info">
-                <!-- LINHA 1: Nome do filme (fonte menor) -->
+                <!-- LINHA 1: Nome do filme - UMA LINHA COM SCROLL HORIZONTAL -->
                 <h3 id="videoTitle" class="video-title">Título</h3>
                 <!-- LINHA 2: Ano e Gênero -->
                 <div class="video-meta">
                     <span id="videoYear"></span>
                     <span id="videoGenre"></span>
                 </div>
-                <!-- LINHA 3: Botões de ação - TODOS VISÍVEIS -->
+                <!-- LINHA 3: Botões de ação -->
                 <div class="action-buttons">
                     <button id="likeBtn" class="action-btn like-btn"><i class="far fa-heart"></i> <span id="likeCount">0</span></button>
                     <div id="ratingStarsContainer" class="rating-stars"></div>
