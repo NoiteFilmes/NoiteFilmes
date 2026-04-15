@@ -81,7 +81,6 @@
         .nav-item:hover { background-color: rgba(229, 9, 20, 0.1); }
         .nav-item.active { color: #e50914; }
         
-        /* ========== LAYOUT DESKTOP ========== */
         @media (min-width: 769px) {
             .player-comments-container {
                 position: fixed;
@@ -715,12 +714,56 @@
             font-family: monospace;
             font-size: 11px;
         }
-        .duplicate-item {
-            background: rgba(229, 9, 20, 0.2);
+        .duplicate-group {
+            background: rgba(229, 9, 20, 0.1);
             border-left: 3px solid #e50914;
-            margin-bottom: 8px;
-            padding: 8px;
+            margin-bottom: 16px;
+            padding: 12px;
             border-radius: 8px;
+        }
+        .duplicate-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #333;
+        }
+        .duplicate-header img {
+            width: 50px;
+            height: 65px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+        .duplicate-items-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-left: 20px;
+        }
+        .duplicate-checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px;
+            background: #2a2a2a;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .duplicate-checkbox-item:hover {
+            background: #3a3a3a;
+        }
+        .duplicate-checkbox-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #e50914;
+        }
+        .duplicate-checkbox-item img {
+            width: 40px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 6px;
         }
         .search-results-popup, .favorites-results-popup {
             max-height: 400px;
@@ -874,6 +917,19 @@
         .delete-item-btn { color: #ef4444; }
         .edit-item-btn:hover { background: rgba(74,222,128,0.2); }
         .delete-item-btn:hover { background: rgba(239,68,68,0.2); }
+        
+        .select-all-btn, .delete-selected-btn {
+            background: #e50914;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-bottom: 12px;
+            margin-right: 8px;
+        }
+        .select-all-btn { background: #4a5568; }
+        .delete-selected-btn { background: #dc2626; }
     </style>
 </head>
 <body class="dark-mode">
@@ -1599,7 +1655,7 @@
         function loadCanaisFromFirebase() {
             database.ref('canais').once('value', (snapshot) => {
                 const data = snapshot.val();
-                canais = data ? Object.values(data) : [];
+                canais = data ? Object.values(data).filter(i => !i.hidden) : [];
                 if(currentNavTab === 'canais') renderGrid();
                 generateWeeklyTop10();
                 updateGenreFilters();
@@ -1610,7 +1666,7 @@
         function loadFilmesFromFirebase() {
             database.ref('filmes').once('value', (snapshot) => {
                 const data = snapshot.val();
-                filmes = data ? Object.values(data) : [];
+                filmes = data ? Object.values(data).filter(i => !i.hidden) : [];
                 if(currentNavTab === 'filmes') renderGrid();
                 generateWeeklyTop10();
                 if(isAdminLogged) refreshAdminLists();
@@ -1620,7 +1676,7 @@
         function loadSeriesFromFirebase() {
             database.ref('series').once('value', (snapshot) => {
                 const data = snapshot.val();
-                series = data ? Object.values(data) : [];
+                series = data ? Object.values(data).filter(i => !i.hidden) : [];
                 if(currentNavTab === 'series') renderGrid();
                 generateWeeklyTop10();
                 if(isAdminLogged) refreshAdminLists();
@@ -1886,7 +1942,11 @@
             
             titleMap.forEach((items, title) => {
                 if(items.length > 1) {
-                    duplicates.push({ title: items[0].title, items: items });
+                    duplicates.push({ 
+                        title: items[0].title, 
+                        items: items,
+                        thumb: items[0].thumb
+                    });
                 }
             });
             
@@ -1902,120 +1962,173 @@
                 return;
             }
             
-            container.innerHTML = duplicates.map(dup => `
-                <div class="duplicate-item">
-                    <div class="font-bold text-red-500 mb-2">📌 "${dup.title}" (${dup.items.length} duplicados)</div>
-                    ${dup.items.map(item => `
-                        <div class="flex justify-between items-center py-2 px-2 bg-gray-800 rounded mb-1">
-                            <div class="flex-1">
-                                <span class="text-sm">${item.type === 'canais' ? '📡' : (item.type === 'filmes' ? '🎬' : '📺')} ${item.title}</span>
-                                <span class="text-xs text-gray-400 ml-2">${item.category || 'Sem gênero'}</span>
-                            </div>
-                            <div class="admin-item-actions">
-                                <button class="edit-item-btn" data-type="${item.type}" data-id="${item.id}"><i class="fas fa-edit"></i> Editar</button>
-                                <button class="delete-item-btn" data-type="${item.type}" data-id="${item.id}"><i class="fas fa-trash"></i> Excluir</button>
-                                <button class="hide-item-btn text-yellow-500" data-type="${item.type}" data-id="${item.id}"><i class="fas fa-eye-slash"></i> Ocultar</button>
+            let allSelectedItems = [];
+            
+            duplicates.forEach((dup, groupIndex) => {
+                // Preserva o primeiro item (não será exibido para exclusão)
+                const itemsToShow = dup.items.slice(1); // Mostra apenas os duplicados (exceto o primeiro)
+                
+                if(itemsToShow.length === 0) return;
+                
+                const groupId = `group_${groupIndex}`;
+                const groupHtml = `
+                    <div class="duplicate-group" data-group-id="${groupId}">
+                        <div class="duplicate-header">
+                            <img src="${dup.thumb || 'https://via.placeholder.com/50x65'}" onerror="this.src='https://via.placeholder.com/50x65'">
+                            <div>
+                                <div class="font-bold text-red-500">📌 "${dup.title}"</div>
+                                <div class="text-xs text-gray-400">Total: ${dup.items.length} cópias | <span class="text-green-500">1 preservado</span> | ${itemsToShow.length} para excluir</div>
                             </div>
                         </div>
-                    `).join('')}
-                </div>
-            `).join('');
-            
-            container.querySelectorAll('.edit-item-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const type = btn.getAttribute('data-type');
-                    const id = btn.getAttribute('data-id');
-                    let item;
-                    if(type === 'canais') item = canais.find(c => c.id === id);
-                    else if(type === 'filmes') item = filmes.find(f => f.id === id);
-                    else item = series.find(s => s.id === id);
-                    if(item) editItem(item, type, id);
-                });
+                        <div class="duplicate-items-list" id="${groupId}_list">
+                            ${itemsToShow.map((item, idx) => `
+                                <label class="duplicate-checkbox-item" data-item-id="${item.id}" data-item-type="${item.type}">
+                                    <input type="checkbox" class="duplicate-checkbox" data-id="${item.id}" data-type="${item.type}" data-group="${groupId}">
+                                    <img src="${item.thumb || 'https://via.placeholder.com/40x50'}" onerror="this.src='https://via.placeholder.com/40x50'">
+                                    <div class="flex-1">
+                                        <div class="text-sm">${item.title}</div>
+                                        <div class="text-xs text-gray-400">${item.type === 'canais' ? '📡 Canal' : (item.type === 'filmes' ? '🎬 Filme' : '📺 Série')} • ${item.category || 'Sem gênero'}</div>
+                                    </div>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += groupHtml;
             });
             
-            container.querySelectorAll('.delete-item-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const type = btn.getAttribute('data-type');
-                    const id = btn.getAttribute('data-id');
-                    deleteItem(type, id);
-                });
+            // Adiciona botões de seleção em massa e exclusão
+            const buttonBar = document.createElement('div');
+            buttonBar.className = 'mb-4 sticky top-0 bg-gray-900 p-2 rounded';
+            buttonBar.innerHTML = `
+                <button id="selectAllDuplicatesBtn" class="select-all-btn"><i class="fas fa-check-double"></i> Selecionar Todos</button>
+                <button id="deleteSelectedDuplicatesBtn" class="delete-selected-btn"><i class="fas fa-trash"></i> Excluir Selecionados</button>
+                <span id="selectedCount" class="text-xs text-gray-400 ml-2">0 selecionados</span>
+            `;
+            container.insertBefore(buttonBar, container.firstChild);
+            
+            function updateSelectedCount() {
+                const checkboxes = document.querySelectorAll('.duplicate-checkbox:checked');
+                const countSpan = document.getElementById('selectedCount');
+                if(countSpan) countSpan.innerText = `${checkboxes.length} selecionado(s)`;
+            }
+            
+            document.querySelectorAll('.duplicate-checkbox').forEach(cb => {
+                cb.addEventListener('change', updateSelectedCount);
             });
             
-            container.querySelectorAll('.hide-item-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const type = btn.getAttribute('data-type');
-                    const id = btn.getAttribute('data-id');
-                    if(confirm('Ocultar este item? Ele não aparecerá para os usuários, mas poderá ser restaurado.')) {
-                        database.ref(`${type}/${id}/hidden`).set(true).then(() => {
-                            showToast('Item ocultado com sucesso!');
-                            if(type === 'canais') loadCanaisFromFirebase();
-                            else if(type === 'filmes') loadFilmesFromFirebase();
-                            else if(type === 'series') loadSeriesFromFirebase();
-                        });
-                    }
-                });
+            document.getElementById('selectAllDuplicatesBtn')?.addEventListener('click', () => {
+                const allCheckboxes = document.querySelectorAll('.duplicate-checkbox');
+                const areAllChecked = Array.from(allCheckboxes).every(cb => cb.checked);
+                allCheckboxes.forEach(cb => cb.checked = !areAllChecked);
+                updateSelectedCount();
             });
+            
+            document.getElementById('deleteSelectedDuplicatesBtn')?.addEventListener('click', () => {
+                const selected = document.querySelectorAll('.duplicate-checkbox:checked');
+                if(selected.length === 0) {
+                    showToast('Selecione pelo menos um item para excluir');
+                    return;
+                }
+                
+                if(confirm(`Tem certeza que deseja excluir ${selected.length} item(s) duplicado(s)? O original será preservado.`)) {
+                    let deletions = [];
+                    selected.forEach(cb => {
+                        const id = cb.getAttribute('data-id');
+                        const type = cb.getAttribute('data-type');
+                        deletions.push(database.ref(`${type}/${id}`).remove());
+                    });
+                    
+                    Promise.all(deletions).then(() => {
+                        showToast(`${selected.length} item(s) duplicado(s) removido(s) com sucesso!`);
+                        if(type === 'canais') loadCanaisFromFirebase();
+                        else if(type === 'filmes') loadFilmesFromFirebase();
+                        else if(type === 'series') loadSeriesFromFirebase();
+                        renderDuplicatesList(); // Recarrega a lista
+                    }).catch(error => {
+                        showToast('Erro ao excluir itens: ' + error.message);
+                    });
+                }
+            });
+            
+            updateSelectedCount();
         }
         
         function refreshAdminLists() {
             if(!isAdminLogged) return;
             
-            const filterHidden = (items) => items.filter(i => !i.hidden);
-            const visibleCanais = filterHidden(canais);
-            const visibleFilmes = filterHidden(filmes);
-            const visibleSeries = filterHidden(series);
+            const allCanais = [];
+            const allFilmes = [];
+            const allSeries = [];
             
-            document.getElementById('canaisAdminList').innerHTML = visibleCanais.map(c => `
-                <div class="bg-gray-800 p-2 rounded flex justify-between items-center text-xs">
-                    <span class="truncate flex-1">${c.title.substring(0,30)}</span>
-                    <div class="admin-item-actions">
-                        <button class="edit-item-btn text-green-500" data-type="canais" data-id="${c.id}"><i class="fas fa-edit"></i></button>
-                        <button class="delete-item-btn text-red-500" data-type="canais" data-id="${c.id}"><i class="fas fa-trash"></i></button>
-                    </div>
-                </div>
-            `).join('');
-            
-            document.getElementById('filmesAdminList').innerHTML = visibleFilmes.map(f => `
-                <div class="bg-gray-800 p-2 rounded flex justify-between items-center text-xs">
-                    <span class="truncate flex-1">${f.title.substring(0,30)}</span>
-                    <div class="admin-item-actions">
-                        <button class="edit-item-btn text-green-500" data-type="filmes" data-id="${f.id}"><i class="fas fa-edit"></i></button>
-                        <button class="delete-item-btn text-red-500" data-type="filmes" data-id="${f.id}"><i class="fas fa-trash"></i></button>
-                    </div>
-                </div>
-            `).join('');
-            
-            document.getElementById('seriesAdminList').innerHTML = visibleSeries.map(s => `
-                <div class="bg-gray-800 p-2 rounded flex justify-between items-center text-xs">
-                    <span class="truncate flex-1">${s.title.substring(0,30)}</span>
-                    <div class="admin-item-actions">
-                        <button class="edit-item-btn text-green-500" data-type="series" data-id="${s.id}"><i class="fas fa-edit"></i></button>
-                        <button class="delete-item-btn text-red-500" data-type="series" data-id="${s.id}"><i class="fas fa-trash"></i></button>
-                    </div>
-                </div>
-            `).join('');
-            
-            document.querySelectorAll('#canaisAdminList .edit-item-btn, #filmesAdminList .edit-item-btn, #seriesAdminList .edit-item-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const type = btn.getAttribute('data-type');
-                    const id = btn.getAttribute('data-id');
-                    let item;
-                    if(type === 'canais') item = canais.find(c => c.id === id);
-                    else if(type === 'filmes') item = filmes.find(f => f.id === id);
-                    else item = series.find(s => s.id === id);
-                    if(item) editItem(item, type, id);
-                });
+            database.ref('canais').once('value', (snapshot) => {
+                const data = snapshot.val();
+                if(data) Object.assign(allCanais, data);
+            });
+            database.ref('filmes').once('value', (snapshot) => {
+                const data = snapshot.val();
+                if(data) Object.assign(allFilmes, data);
+            });
+            database.ref('series').once('value', (snapshot) => {
+                const data = snapshot.val();
+                if(data) Object.assign(allSeries, data);
             });
             
-            document.querySelectorAll('#canaisAdminList .delete-item-btn, #filmesAdminList .delete-item-btn, #seriesAdminList .delete-item-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const type = btn.getAttribute('data-type');
-                    const id = btn.getAttribute('data-id');
-                    deleteItem(type, id);
+            setTimeout(() => {
+                const canaisList = Object.values(allCanais);
+                const filmesList = Object.values(allFilmes);
+                const seriesList = Object.values(allSeries);
+                
+                document.getElementById('canaisAdminList').innerHTML = canaisList.map(c => `
+                    <div class="bg-gray-800 p-2 rounded flex justify-between items-center text-xs">
+                        <span class="truncate flex-1">${c.title.substring(0,30)} ${c.hidden ? '(oculto)' : ''}</span>
+                        <div class="admin-item-actions">
+                            <button class="edit-item-btn text-green-500" data-type="canais" data-id="${c.id}"><i class="fas fa-edit"></i></button>
+                            <button class="delete-item-btn text-red-500" data-type="canais" data-id="${c.id}"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                `).join('');
+                
+                document.getElementById('filmesAdminList').innerHTML = filmesList.map(f => `
+                    <div class="bg-gray-800 p-2 rounded flex justify-between items-center text-xs">
+                        <span class="truncate flex-1">${f.title.substring(0,30)} ${f.hidden ? '(oculto)' : ''}</span>
+                        <div class="admin-item-actions">
+                            <button class="edit-item-btn text-green-500" data-type="filmes" data-id="${f.id}"><i class="fas fa-edit"></i></button>
+                            <button class="delete-item-btn text-red-500" data-type="filmes" data-id="${f.id}"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                `).join('');
+                
+                document.getElementById('seriesAdminList').innerHTML = seriesList.map(s => `
+                    <div class="bg-gray-800 p-2 rounded flex justify-between items-center text-xs">
+                        <span class="truncate flex-1">${s.title.substring(0,30)} ${s.hidden ? '(oculto)' : ''}</span>
+                        <div class="admin-item-actions">
+                            <button class="edit-item-btn text-green-500" data-type="series" data-id="${s.id}"><i class="fas fa-edit"></i></button>
+                            <button class="delete-item-btn text-red-500" data-type="series" data-id="${s.id}"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                `).join('');
+                
+                document.querySelectorAll('#canaisAdminList .edit-item-btn, #filmesAdminList .edit-item-btn, #seriesAdminList .edit-item-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const type = btn.getAttribute('data-type');
+                        const id = btn.getAttribute('data-id');
+                        let item;
+                        if(type === 'canais') item = canais.find(c => c.id === id);
+                        else if(type === 'filmes') item = filmes.find(f => f.id === id);
+                        else item = series.find(s => s.id === id);
+                        if(item) editItem(item, type, id);
+                    });
                 });
-            });
-            
-            renderDuplicatesList();
+                
+                document.querySelectorAll('#canaisAdminList .delete-item-btn, #filmesAdminList .delete-item-btn, #seriesAdminList .delete-item-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const type = btn.getAttribute('data-type');
+                        const id = btn.getAttribute('data-id');
+                        deleteItem(type, id);
+                    });
+                });
+            }, 500);
         }
         
         function saveSingleItem() {
