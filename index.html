@@ -115,26 +115,28 @@
                 background: #1a1a1a;
                 display: flex;
                 flex-direction: column;
-                gap: 12px;
+                gap: 8px;
             }
-            .video-info h3 {
+            /* Linha 1 - Nome do filme (fonte menor) */
+            .video-title {
                 font-size: 1.1rem;
                 font-weight: bold;
                 margin: 0;
             }
-            .video-info .meta-info {
+            /* Linha 2 - Ano e Gênero */
+            .video-meta {
                 display: flex;
-                gap: 12px;
-                font-size: 0.75rem;
-                color: #9ca3af;
+                gap: 16px;
+                font-size: 0.8rem;
+                color: #aaa;
             }
+            /* Linha 3 - Botões de ação */
             .action-buttons {
                 display: flex;
                 align-items: center;
                 gap: 24px;
                 flex-wrap: wrap;
                 margin-top: 4px;
-                width: 100%;
             }
             .comments-section {
                 width: 380px;
@@ -194,9 +196,24 @@
                 padding: 12px;
                 background: #1a1a1a;
             }
-            .video-info h3 { font-size: 1rem; }
-            .video-info .meta-info { gap: 8px; font-size: 0.7rem; }
-            .action-buttons { gap: 15px; margin-top: 8px; }
+            .video-title {
+                font-size: 1rem;
+                font-weight: bold;
+                margin: 0 0 4px 0;
+            }
+            .video-meta {
+                display: flex;
+                gap: 12px;
+                font-size: 0.7rem;
+                color: #aaa;
+                margin-bottom: 8px;
+            }
+            .action-buttons {
+                display: flex;
+                align-items: center;
+                gap: 15px;
+                flex-wrap: wrap;
+            }
             .comments-section {
                 display: flex;
                 flex-direction: column;
@@ -259,7 +276,7 @@
             background: none;
             border: none;
             color: #ccc;
-            font-size: 20px;
+            font-size: 18px;
             cursor: pointer;
             transition: 0.2s;
             display: inline-flex;
@@ -805,11 +822,14 @@
                 <div id="noContent" class="absolute inset-0 flex items-center justify-center text-gray-500 bg-black text-sm">Carregando...</div>
             </div>
             <div class="video-info">
-                <h3 id="videoTitle" class="text-md font-bold">Título</h3>
-                <div class="meta-info">
+                <!-- LINHA 1: Nome do filme (fonte menor) -->
+                <h3 id="videoTitle" class="video-title">Título</h3>
+                <!-- LINHA 2: Ano e Gênero -->
+                <div class="video-meta">
                     <span id="videoYear"></span>
                     <span id="videoGenre"></span>
                 </div>
+                <!-- LINHA 3: Botões de ação -->
                 <div class="action-buttons">
                     <button id="likeBtn" class="action-btn like-btn"><i class="far fa-heart"></i> <span id="likeCount">0</span></button>
                     <div id="ratingStarsContainer" class="rating-stars"></div>
