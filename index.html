@@ -2246,6 +2246,7 @@
             document.getElementById('adminFilmesList').classList.add('hidden'); 
             document.getElementById('adminSeriesList').classList.add('hidden'); 
             document.getElementById('adminDuplicadosList').classList.add('hidden');
+            document.getElementById('adminFormArea').classList.remove('hidden');
             document.getElementById('formTitle').innerText = 'Adicionar Canal'; 
             resetForm(); 
         };
@@ -2256,6 +2257,7 @@
             document.getElementById('adminFilmesList').classList.remove('hidden'); 
             document.getElementById('adminSeriesList').classList.add('hidden'); 
             document.getElementById('adminDuplicadosList').classList.add('hidden');
+            document.getElementById('adminFormArea').classList.remove('hidden');
             document.getElementById('formTitle').innerText = 'Adicionar Filme'; 
             resetForm(); 
         };
@@ -2266,6 +2268,7 @@
             document.getElementById('adminFilmesList').classList.add('hidden'); 
             document.getElementById('adminSeriesList').classList.remove('hidden'); 
             document.getElementById('adminDuplicadosList').classList.add('hidden');
+            document.getElementById('adminFormArea').classList.remove('hidden');
             document.getElementById('formTitle').innerText = 'Adicionar Episódio'; 
             resetForm(); 
         };
@@ -2276,6 +2279,7 @@
             document.getElementById('adminFilmesList').classList.add('hidden');
             document.getElementById('adminSeriesList').classList.add('hidden');
             document.getElementById('adminDuplicadosList').classList.remove('hidden');
+            document.getElementById('adminFormArea').classList.add('hidden');
             renderDuplicatesList();
         };
         document.getElementById('saveItemBtn').onclick = saveSingleItem;
