@@ -115,52 +115,49 @@
                 height: 100%;
                 object-fit: contain;
             }
+            /* ÁREA DE INFORMAÇÕES - CORRIGIDA */
             .video-info {
                 padding: 8px 16px;
                 background: #1a1a1a;
                 display: flex;
                 flex-direction: column;
                 justify-content: center;
-                gap: 4px;
+                gap: 6px;
                 min-height: 90px;
             }
-            /* NOME DO FILME - UMA LINHA COM SCROLL HORIZONTAL */
+            /* LINHA 1 - Nome do filme (uma única linha) */
             .video-title {
                 font-size: 0.9rem;
                 font-weight: bold;
                 margin: 0;
                 line-height: 1.3;
                 white-space: nowrap;
-                overflow-x: auto;
-                overflow-y: hidden;
-                scrollbar-width: thin;
-                -webkit-overflow-scrolling: touch;
-                cursor: pointer;
-                padding-bottom: 2px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                width: 100%;
             }
-            .video-title::-webkit-scrollbar {
-                height: 3px;
-            }
-            .video-title::-webkit-scrollbar-track {
-                background: #333;
-                border-radius: 10px;
-            }
-            .video-title::-webkit-scrollbar-thumb {
-                background: #e50914;
-                border-radius: 10px;
+            /* LINHA 2 - Ano/Gênero à esquerda e botões à direita */
+            .video-meta-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                width: 100%;
+                gap: 10px;
             }
             .video-meta {
                 display: flex;
                 gap: 16px;
                 font-size: 0.75rem;
                 color: #aaa;
+                flex-shrink: 0;
             }
             .action-buttons {
                 display: flex;
                 align-items: center;
                 gap: 16px;
                 flex-wrap: wrap;
-                margin-top: 2px;
+                justify-content: flex-end;
+                flex-shrink: 0;
             }
             .comments-section {
                 width: 380px;
@@ -224,14 +221,6 @@
                 font-size: 1rem;
                 font-weight: bold;
                 margin: 0 0 4px 0;
-                white-space: nowrap;
-                overflow-x: auto;
-                overflow-y: hidden;
-                scrollbar-width: thin;
-                cursor: pointer;
-            }
-            .video-title::-webkit-scrollbar {
-                height: 3px;
             }
             .video-meta {
                 display: flex;
@@ -894,19 +883,20 @@
                 <div id="noContent" class="absolute inset-0 flex items-center justify-center text-gray-500 bg-black text-sm">Carregando...</div>
             </div>
             <div class="video-info">
-                <!-- LINHA 1: Nome do filme - UMA LINHA COM SCROLL HORIZONTAL -->
+                <!-- LINHA 1: Nome do filme (uma única linha) -->
                 <h3 id="videoTitle" class="video-title">Título</h3>
-                <!-- LINHA 2: Ano e Gênero -->
-                <div class="video-meta">
-                    <span id="videoYear"></span>
-                    <span id="videoGenre"></span>
-                </div>
-                <!-- LINHA 3: Botões de ação -->
-                <div class="action-buttons">
-                    <button id="likeBtn" class="action-btn like-btn"><i class="far fa-heart"></i> <span id="likeCount">0</span></button>
-                    <div id="ratingStarsContainer" class="rating-stars"></div>
-                    <button id="saveBtn" class="action-btn save-btn"><i class="far fa-star"></i></button>
-                    <button id="shareBtn" class="action-btn"><i class="fas fa-share-alt"></i></button>
+                <!-- LINHA 2: Ano/Gênero à esquerda e botões à direita -->
+                <div class="video-meta-row">
+                    <div class="video-meta">
+                        <span id="videoYear"></span>
+                        <span id="videoGenre"></span>
+                    </div>
+                    <div class="action-buttons">
+                        <button id="likeBtn" class="action-btn like-btn"><i class="far fa-heart"></i> <span id="likeCount">0</span></button>
+                        <div id="ratingStarsContainer" class="rating-stars"></div>
+                        <button id="saveBtn" class="action-btn save-btn"><i class="far fa-star"></i></button>
+                        <button id="shareBtn" class="action-btn"><i class="fas fa-share-alt"></i></button>
+                    </div>
                 </div>
             </div>
         </div>
