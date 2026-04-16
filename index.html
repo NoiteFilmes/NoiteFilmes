@@ -81,7 +81,6 @@
         .nav-item:hover { background-color: rgba(229, 9, 20, 0.1); }
         .nav-item.active { color: #e50914; }
         
-        /* ========== LAYOUT DESKTOP ========== */
         @media (min-width: 769px) {
             .player-comments-container {
                 position: fixed;
@@ -184,7 +183,6 @@
             }
         }
         
-        /* ========== LAYOUT MOBILE ========== */
         @media (max-width: 768px) {
             .player-comments-container {
                 position: fixed;
@@ -267,7 +265,6 @@
             }
         }
         
-        /* ========== LAYOUT MOBILE HORIZONTAL ========== */
         @media (max-width: 1024px) and (orientation: landscape) {
             .player-comments-container {
                 position: fixed;
@@ -674,8 +671,6 @@
         }
         .cast-btn:hover { background: #e50914; transform: scale(1.05); }
         .cast-btn.active { background: #e50914; color: white; }
-        .cast-btn.casting { background: #e50914; color: white; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
         
         .search-popup, .favorites-popup {
             position: fixed;
@@ -1205,155 +1200,10 @@
         let currentUsername = localStorage.getItem('noitefilmes_username') || 'Cinéfilo';
         let editingItem = null;
         
-        let canaisLoaded = false;
-        let filmesLoaded = false;
-        let seriesLoaded = false;
-        
         let avaliacoes = {};
         let likeCount = 0;
         let updateInterval = null;
         let progressInterval = null;
-        
-        // ==================== FUNÇÕES DE CAST (CHROMECAST / SMART TV) ====================
-        let castSession = null;
-        let castContext = null;
-        let castInitialized = false;
-        
-        function loadCastSDK() {
-            if (document.getElementById('cast-sdk')) return;
-            const script = document.createElement('script');
-            script.id = 'cast-sdk';
-            script.src = 'https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1';
-            script.async = true;
-            document.head.appendChild(script);
-        }
-        
-        function initializeCastFramework() {
-            if (!window.chrome || !chrome.cast || !chrome.cast.isAvailable) {
-                console.log('Cast API não disponível ainda, aguardando...');
-                setTimeout(initializeCastFramework, 1000);
-                return;
-            }
-            try {
-                castContext = cast.framework.CastContext.getInstance();
-                castContext.setOptions({
-                    receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
-                    autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
-                });
-                
-                castContext.addEventListener(cast.framework.CastContextEventType.SESSION_STATE_CHANGED, (event) => {
-                    const castBtn = document.getElementById('castButton');
-                    if (event.sessionState === cast.framework.SessionState.SESSION_STARTED) {
-                        castSession = castContext.getCurrentSession();
-                        castBtn.classList.add('casting');
-                        castBtn.innerHTML = '<i class="fas fa-stop"></i>';
-                        showToast('✅ Conectado ao Chromecast/Smart TV');
-                        if (currentMedia) {
-                            loadCurrentMediaToCast();
-                        }
-                    } else if (event.sessionState === cast.framework.SessionState.SESSION_ENDED) {
-                        castSession = null;
-                        castBtn.classList.remove('casting');
-                        castBtn.innerHTML = '<i class="fas fa-tv"></i>';
-                        showToast('❌ Desconectado do Chromecast');
-                    }
-                });
-                castInitialized = true;
-                console.log('Cast framework inicializado com sucesso');
-            } catch (error) {
-                console.error('Erro ao inicializar Cast:', error);
-                showToast('Erro ao inicializar Chromecast. Verifique a extensão.');
-            }
-        }
-        
-        function toggleCast() {
-            if (!castInitialized) {
-                showToast('⏳ Aguarde, inicializando Chromecast...');
-                loadCastSDK();
-                setTimeout(() => {
-                    if (!castInitialized) initializeCastFramework();
-                    setTimeout(() => toggleCast(), 1000);
-                }, 1000);
-                return;
-            }
-            if (!castContext) {
-                showToast('Chromecast não disponível. Certifique-se de que a extensão Google Cast está instalada e o site está em HTTPS.');
-                return;
-            }
-            if (castSession) {
-                castSession.endSession(true);
-            } else {
-                castContext.requestSession()
-                    .then(() => {
-                        console.log('Sessão solicitada com sucesso');
-                    })
-                    .catch((error) => {
-                        console.error('Erro ao solicitar sessão:', error);
-                        if (error.code === 'cancel') {
-                            showToast('Solicitação cancelada pelo usuário.');
-                        } else {
-                            showToast('Não foi possível conectar. Verifique se há um dispositivo Chromecast na mesma rede Wi-Fi.');
-                        }
-                    });
-            }
-        }
-        
-        function loadCurrentMediaToCast() {
-            if (!castSession || !currentMedia) return;
-            
-            const videoId = extractYoutubeId(currentMedia.link);
-            const isHls = currentMedia.link && (currentMedia.link.includes('.m3u8') || currentMedia.link.includes('playlist'));
-            
-            let mediaUrl = currentMedia.link;
-            let mediaType = 'video/mp4';
-            
-            if (videoId) {
-                mediaUrl = `https://www.youtube.com/watch?v=${videoId}`;
-                mediaType = 'video/mp4';
-            } else if (isHls) {
-                mediaType = 'application/x-mpegURL';
-            }
-            
-            const mediaInfo = new chrome.cast.media.MediaInfo(mediaUrl, mediaType);
-            mediaInfo.metadata = new chrome.cast.media.GenericMediaMetadata();
-            mediaInfo.metadata.title = currentMedia.title;
-            mediaInfo.metadata.images = [{ url: currentMedia.thumb || 'https://via.placeholder.com/300x200' }];
-            
-            const request = new chrome.cast.media.LoadRequest(mediaInfo);
-            request.autoplay = true;
-            request.currentTime = 0;
-            
-            castSession.loadMedia(request).then(() => {
-                showToast(`📺 Transmitindo: ${currentMedia.title}`);
-            }).catch((error) => {
-                console.error('Erro ao carregar mídia:', error);
-                showToast('Erro ao transmitir. Tente novamente.');
-            });
-        }
-        
-        // Verificar se o site está em HTTPS
-        if (location.protocol !== 'https:' && location.hostname !== 'localhost' && !location.hostname.includes('127.0.0.1')) {
-            showToast('⚠️ Para usar o Chromecast, o site precisa estar em HTTPS. Algumas funções podem não funcionar.');
-        }
-        
-        // Carregar SDK do Cast e inicializar
-        loadCastSDK();
-        window.__onGCastApiAvailable = function(isAvailable) {
-            if (isAvailable) {
-                console.log('Google Cast API disponível');
-                initializeCastFramework();
-            } else {
-                console.log('Google Cast API NÃO disponível');
-                showToast('Extensão Google Cast não encontrada. Instale a extensão "Google Cast" no Chrome.');
-            }
-        };
-        
-        // Fallback: tentar inicializar após 3 segundos caso o evento não dispare
-        setTimeout(() => {
-            if (!castInitialized && window.chrome && chrome.cast && chrome.cast.isAvailable) {
-                initializeCastFramework();
-            }
-        }, 3000);
         
         // ==================== FUNÇÕES DE PROGRESSO ====================
         function saveProgress(mediaId, currentTime) {
@@ -1589,23 +1439,17 @@
         
         function shareMedia(platform) {
             if (!currentShareMedia) return;
-            const shareUrl = `${window.location.origin}${window.location.pathname}?mediaId=${currentShareMedia.id}&type=${currentMediaType}`;
-            const encodedUrl = encodeURIComponent(shareUrl);
-            const text = encodeURIComponent(`🎬 "${currentShareMedia.title}" - Assista agora no NoiteFilmes!`);
-            
-            let shareLink = '';
+            const url = encodeURIComponent(`${window.location.origin}${window.location.pathname}?media=${currentShareMedia.id}`);
+            const text = encodeURIComponent(`Assista "${currentShareMedia.title}" no NoiteFilmes!`);
+            let shareUrl = '';
             switch(platform) {
-                case 'whatsapp': shareLink = `https://api.whatsapp.com/send?text=${text}%20${encodedUrl}`; break;
-                case 'telegram': shareLink = `https://t.me/share/url?url=${encodedUrl}&text=${text}`; break;
-                case 'facebook': shareLink = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`; break;
-                case 'twitter': shareLink = `https://twitter.com/intent/tweet?text=${text}&url=${encodedUrl}`; break;
-                case 'copy': 
-                    navigator.clipboard.writeText(shareUrl);
-                    showToast('Link copiado! Compartilhe com seus amigos.');
-                    closeShareModal();
-                    return;
+                case 'whatsapp': shareUrl = `https://api.whatsapp.com/send?text=${text}%20${url}`; break;
+                case 'telegram': shareUrl = `https://t.me/share/url?url=${url}&text=${text}`; break;
+                case 'facebook': shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`; break;
+                case 'twitter': shareUrl = `https://twitter.com/intent/tweet?text=${text}&url=${url}`; break;
+                case 'copy': navigator.clipboard.writeText(decodeURIComponent(url)); showToast('Link copiado!'); return;
             }
-            if (shareLink) window.open(shareLink, '_blank');
+            if (shareUrl) window.open(shareUrl, '_blank');
             closeShareModal();
         }
         
@@ -1625,23 +1469,11 @@
         }
         
         function playMediaById(mediaId, type) {
-            let item = filmes.find(f => f.id === mediaId);
-            let foundType = 'filme';
-            if (!item) {
-                item = series.find(s => s.id === mediaId);
-                foundType = 'serie';
-            }
-            if (!item) {
-                item = canais.find(c => c.id === mediaId);
-                foundType = 'canal';
-            }
-            if (item) {
-                playMedia(item, foundType);
-                const newUrl = `${window.location.pathname}?mediaId=${mediaId}&type=${foundType}`;
-                window.history.pushState({ mediaId, type: foundType }, '', newUrl);
-            } else {
-                showToast('Conteúdo não encontrado');
-            }
+            let item;
+            if (type === 'filme') item = filmes.find(f => f.id === mediaId);
+            else if (type === 'serie') item = series.find(s => s.id === mediaId);
+            else item = canais.find(c => c.id === mediaId);
+            if (item) playMedia(item, type);
         }
         
         function playMedia(item, type) {
@@ -1801,10 +1633,6 @@
             } else {
                 showToast('Formato não suportado');
             }
-            
-            if (castSession) {
-                loadCurrentMediaToCast();
-            }
         }
         
         function closePlayer() {
@@ -1819,10 +1647,6 @@
             document.getElementById('playerCommentsContainer').classList.add('hidden');
             document.getElementById('floatingPlayerOverlay').classList.add('hidden');
             stopRealtimeUpdates();
-            const url = new URL(window.location);
-            url.searchParams.delete('mediaId');
-            url.searchParams.delete('type');
-            window.history.pushState({}, '', url);
         }
         
         function onYouTubeIframeAPIReady() {}
@@ -1832,12 +1656,10 @@
             database.ref('canais').once('value', (snapshot) => {
                 const data = snapshot.val();
                 canais = data ? Object.values(data).filter(i => !i.hidden) : [];
-                canaisLoaded = true;
                 if(currentNavTab === 'canais') renderGrid();
                 generateWeeklyTop10();
                 updateGenreFilters();
                 if(isAdminLogged) refreshAdminLists();
-                checkAllDataLoaded();
             });
         }
         
@@ -1845,11 +1667,9 @@
             database.ref('filmes').once('value', (snapshot) => {
                 const data = snapshot.val();
                 filmes = data ? Object.values(data).filter(i => !i.hidden) : [];
-                filmesLoaded = true;
                 if(currentNavTab === 'filmes') renderGrid();
                 generateWeeklyTop10();
                 if(isAdminLogged) refreshAdminLists();
-                checkAllDataLoaded();
             });
         }
         
@@ -1857,23 +1677,10 @@
             database.ref('series').once('value', (snapshot) => {
                 const data = snapshot.val();
                 series = data ? Object.values(data).filter(i => !i.hidden) : [];
-                seriesLoaded = true;
                 if(currentNavTab === 'series') renderGrid();
                 generateWeeklyTop10();
                 if(isAdminLogged) refreshAdminLists();
-                checkAllDataLoaded();
             });
-        }
-        
-        function checkAllDataLoaded() {
-            if (canaisLoaded && filmesLoaded && seriesLoaded) {
-                const urlParams = new URLSearchParams(window.location.search);
-                const mediaId = urlParams.get('mediaId');
-                const type = urlParams.get('type');
-                if (mediaId && type) {
-                    playMediaById(mediaId, type);
-                }
-            }
         }
         
         function renderGrid() {
@@ -2155,15 +1962,17 @@
                 return;
             }
             
-            container.innerHTML = '';
+            let allSelectedItems = [];
             
             duplicates.forEach((dup, groupIndex) => {
-                const itemsToShow = dup.items.slice(1);
+                // Preserva o primeiro item (não será exibido para exclusão)
+                const itemsToShow = dup.items.slice(1); // Mostra apenas os duplicados (exceto o primeiro)
                 
                 if(itemsToShow.length === 0) return;
                 
+                const groupId = `group_${groupIndex}`;
                 const groupHtml = `
-                    <div class="duplicate-group" data-group-id="group_${groupIndex}">
+                    <div class="duplicate-group" data-group-id="${groupId}">
                         <div class="duplicate-header">
                             <img src="${dup.thumb || 'https://via.placeholder.com/50x65'}" onerror="this.src='https://via.placeholder.com/50x65'">
                             <div>
@@ -2171,10 +1980,10 @@
                                 <div class="text-xs text-gray-400">Total: ${dup.items.length} cópias | <span class="text-green-500">1 preservado</span> | ${itemsToShow.length} para excluir</div>
                             </div>
                         </div>
-                        <div class="duplicate-items-list" id="group_${groupIndex}_list">
+                        <div class="duplicate-items-list" id="${groupId}_list">
                             ${itemsToShow.map((item, idx) => `
                                 <label class="duplicate-checkbox-item" data-item-id="${item.id}" data-item-type="${item.type}">
-                                    <input type="checkbox" class="duplicate-checkbox" data-id="${item.id}" data-type="${item.type}" data-group="group_${groupIndex}">
+                                    <input type="checkbox" class="duplicate-checkbox" data-id="${item.id}" data-type="${item.type}" data-group="${groupId}">
                                     <img src="${item.thumb || 'https://via.placeholder.com/40x50'}" onerror="this.src='https://via.placeholder.com/40x50'">
                                     <div class="flex-1">
                                         <div class="text-sm">${item.title}</div>
@@ -2188,6 +1997,7 @@
                 container.innerHTML += groupHtml;
             });
             
+            // Adiciona botões de seleção em massa e exclusão
             const buttonBar = document.createElement('div');
             buttonBar.className = 'mb-4 sticky top-0 bg-gray-900 p-2 rounded';
             buttonBar.innerHTML = `
@@ -2231,10 +2041,10 @@
                     
                     Promise.all(deletions).then(() => {
                         showToast(`${selected.length} item(s) duplicado(s) removido(s) com sucesso!`);
-                        loadCanaisFromFirebase();
-                        loadFilmesFromFirebase();
-                        loadSeriesFromFirebase();
-                        renderDuplicatesList();
+                        if(type === 'canais') loadCanaisFromFirebase();
+                        else if(type === 'filmes') loadFilmesFromFirebase();
+                        else if(type === 'series') loadSeriesFromFirebase();
+                        renderDuplicatesList(); // Recarrega a lista
                     }).catch(error => {
                         showToast('Erro ao excluir itens: ' + error.message);
                     });
@@ -2372,15 +2182,12 @@
         function updateUserUI(user) {
             if (user) {
                 hideLoginModal();
-                loadUserNickname(user.uid);
+                loadUserNickname(user.uid).then(() => { loadCanaisFromFirebase(); loadFilmesFromFirebase(); loadSeriesFromFirebase(); });
                 database.ref('chat').limitToLast(100).off();
                 database.ref('chat').limitToLast(100).on('child_added', (snapshot) => { const msg = snapshot.val(); addMessageToChat(msg.username, msg.text, false, msg.time, false); });
                 database.ref(`favoritos/${user.uid}`).on('value', (snapshot) => { favoritos = snapshot.val() ? Object.values(snapshot.val()) : []; });
                 database.ref('top10').on('value', (snapshot) => { const data = snapshot.val(); if(data) { top10List = data; renderTop10Carousel(); } else { generateWeeklyTop10(); } });
-            } else { 
-                showLoginModal(); 
-                document.getElementById('chatMessages').innerHTML = '';
-            }
+            } else { showLoginModal(); document.getElementById('chatMessages').innerHTML = ''; }
         }
         
         async function loadUserNickname(userId) {
@@ -2413,7 +2220,7 @@
         document.getElementById('settingsBtn').onclick = openSettingsModal;
         document.getElementById('saveUsernameBtn').onclick = saveUsername;
         document.getElementById('logoutSettingsBtn').onclick = logoutUser;
-        document.getElementById('castButton').onclick = toggleCast;
+        document.getElementById('castButton').onclick = () => showToast('Conecte-se a um Chromecast');
         
         document.getElementById('closeShareModal').onclick = closeShareModal;
         document.querySelectorAll('.share-icon').forEach(icon => {
@@ -2441,7 +2248,6 @@
             document.getElementById('adminFilmesList').classList.add('hidden'); 
             document.getElementById('adminSeriesList').classList.add('hidden'); 
             document.getElementById('adminDuplicadosList').classList.add('hidden');
-            document.getElementById('adminFormArea').classList.remove('hidden');
             document.getElementById('formTitle').innerText = 'Adicionar Canal'; 
             resetForm(); 
         };
@@ -2452,7 +2258,6 @@
             document.getElementById('adminFilmesList').classList.remove('hidden'); 
             document.getElementById('adminSeriesList').classList.add('hidden'); 
             document.getElementById('adminDuplicadosList').classList.add('hidden');
-            document.getElementById('adminFormArea').classList.remove('hidden');
             document.getElementById('formTitle').innerText = 'Adicionar Filme'; 
             resetForm(); 
         };
@@ -2463,7 +2268,6 @@
             document.getElementById('adminFilmesList').classList.add('hidden'); 
             document.getElementById('adminSeriesList').classList.remove('hidden'); 
             document.getElementById('adminDuplicadosList').classList.add('hidden');
-            document.getElementById('adminFormArea').classList.remove('hidden');
             document.getElementById('formTitle').innerText = 'Adicionar Episódio'; 
             resetForm(); 
         };
@@ -2474,7 +2278,6 @@
             document.getElementById('adminFilmesList').classList.add('hidden');
             document.getElementById('adminSeriesList').classList.add('hidden');
             document.getElementById('adminDuplicadosList').classList.remove('hidden');
-            document.getElementById('adminFormArea').classList.add('hidden');
             renderDuplicatesList();
         };
         document.getElementById('saveItemBtn').onclick = saveSingleItem;
@@ -2484,24 +2287,11 @@
         document.getElementById('searchPopup').addEventListener('click', (e) => { if(e.target === document.getElementById('searchPopup')) document.getElementById('searchPopup').classList.add('hidden'); });
         document.getElementById('favoritesPopup').addEventListener('click', (e) => { if(e.target === document.getElementById('favoritesPopup')) document.getElementById('favoritesPopup').classList.add('hidden'); });
         
-        // Iniciar carregamento de dados
-        loadCanaisFromFirebase();
-        loadFilmesFromFirebase();
-        loadSeriesFromFirebase();
-        
         auth.onAuthStateChanged((user) => { currentUser = user; updateUserUI(user); });
         setupSearchPopup();
         loadTheme();
         if(typeof YT === 'undefined') { window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady; } else { onYouTubeIframeAPIReady(); }
         setInterval(() => { const onlineCount = Math.floor(Math.random() * 15) + 3; document.getElementById('onlineCount').innerHTML = `● ${onlineCount} online`; }, 15000);
-        
-        window.addEventListener('popstate', (event) => {
-            if (event.state && event.state.mediaId && event.state.type) {
-                playMediaById(event.state.mediaId, event.state.type);
-            } else {
-                closePlayer();
-            }
-        });
     </script>
 </body>
 </html>
