@@ -129,15 +129,6 @@
                 overflow: hidden;
                 text-overflow: ellipsis;
             }
-            .video-description {
-                font-size: 0.8rem;
-                color: #aaa;
-                margin: 4px 0;
-                line-height: 1.4;
-                max-height: 60px;
-                overflow-y: auto;
-                padding-right: 8px;
-            }
             .info-actions-row {
                 display: flex;
                 justify-content: space-between;
@@ -224,14 +215,6 @@
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
-            }
-            .video-description {
-                font-size: 0.75rem;
-                color: #aaa;
-                margin: 4px 0 8px 0;
-                line-height: 1.3;
-                max-height: 50px;
-                overflow-y: auto;
             }
             .info-actions-row {
                 display: flex;
@@ -331,14 +314,6 @@
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
-            }
-            .video-description {
-                font-size: 0.75rem;
-                color: #aaa;
-                margin: 2px 0;
-                line-height: 1.3;
-                max-height: 50px;
-                overflow-y: auto;
             }
             .info-actions-row {
                 display: flex;
@@ -1055,7 +1030,6 @@
             </div>
             <div class="video-info">
                 <h3 id="videoTitle" class="video-title">Carregando...</h3>
-                <div id="videoDescription" class="video-description"></div>
                 <div class="info-actions-row">
                     <div class="video-meta">
                         <span id="videoYear"></span>
@@ -1183,7 +1157,6 @@
                             <input type="text" id="itemThumb" placeholder="Miniatura URL" class="bg-gray-700 p-2 rounded text-sm">
                             <input type="text" id="itemCategory" placeholder="Gênero" class="bg-gray-700 p-2 rounded text-sm">
                             <input type="text" id="itemYear" placeholder="Ano" class="bg-gray-700 p-2 rounded text-sm">
-                            <textarea id="itemDescription" placeholder="Descrição do vídeo" rows="3" class="bg-gray-700 p-2 rounded text-sm col-span-2"></textarea>
                         </div>
                         <div class="mt-2 flex gap-2">
                             <button id="saveItemBtn" class="bg-green-700 hover:bg-green-800 px-3 py-1 rounded text-sm">Salvar</button>
@@ -1240,34 +1213,6 @@
         let likeCount = 0;
         let updateInterval = null;
         let progressInterval = null;
-        
-        // ==================== FUNÇÃO PARA BUSCAR DESCRIÇÃO DO VÍDEO ====================
-        async function fetchVideoDescription(videoUrl, title) {
-            const videoId = extractYoutubeId(videoUrl);
-            if (videoId) {
-                try {
-                    const apiKey = 'AIzaSyD7wE6M3k7xJ5pLqR2tY9uI8oP1zXcVbN'; // Chave pública para busca de dados
-                    const response = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${apiKey}`);
-                    const data = await response.json();
-                    if (data.items && data.items[0] && data.items[0].snippet && data.items[0].snippet.description) {
-                        let description = data.items[0].snippet.description;
-                        if (description.length > 500) description = description.substring(0, 500) + '...';
-                        return description;
-                    }
-                } catch (error) {
-                    console.log('Erro ao buscar descrição do YouTube:', error);
-                }
-                return `🎬 ${title} - Assista este vídeo incrível no NoiteFilmes! Compartilhe com seus amigos.`;
-            }
-            return `📺 ${title} - Conteúdo exclusivo disponível no NoiteFilmes. Aproveite!`;
-        }
-        
-        function updateVideoDescription(description) {
-            const descEl = document.getElementById('videoDescription');
-            if (descEl) {
-                descEl.innerHTML = description || 'Sem descrição disponível.';
-            }
-        }
         
         // ==================== FUNÇÕES DE CAST (CHROMECAST / SMART TV) ====================
         let castSession = null;
@@ -1386,10 +1331,12 @@
             });
         }
         
+        // Verificar se o site está em HTTPS
         if (location.protocol !== 'https:' && location.hostname !== 'localhost' && !location.hostname.includes('127.0.0.1')) {
             showToast('⚠️ Para usar o Chromecast, o site precisa estar em HTTPS. Algumas funções podem não funcionar.');
         }
         
+        // Carregar SDK do Cast e inicializar
         loadCastSDK();
         window.__onGCastApiAvailable = function(isAvailable) {
             if (isAvailable) {
@@ -1401,6 +1348,7 @@
             }
         };
         
+        // Fallback: tentar inicializar após 3 segundos caso o evento não dispare
         setTimeout(() => {
             if (!castInitialized && window.chrome && chrome.cast && chrome.cast.isAvailable) {
                 initializeCastFramework();
@@ -1676,7 +1624,7 @@
             return (match && match[2].length === 11) ? match[2] : null;
         }
         
-        async function playMediaById(mediaId, type) {
+        function playMediaById(mediaId, type) {
             let item = filmes.find(f => f.id === mediaId);
             let foundType = 'filme';
             if (!item) {
@@ -1688,7 +1636,7 @@
                 foundType = 'canal';
             }
             if (item) {
-                await playMedia(item, foundType);
+                playMedia(item, foundType);
                 const newUrl = `${window.location.pathname}?mediaId=${mediaId}&type=${foundType}`;
                 window.history.pushState({ mediaId, type: foundType }, '', newUrl);
             } else {
@@ -1696,7 +1644,7 @@
             }
         }
         
-        async function playMedia(item, type) {
+        function playMedia(item, type) {
             const videoId = extractYoutubeId(item.link);
             const isHls = item.link && (item.link.includes('.m3u8') || item.link.includes('playlist') || item.link.includes('sdp'));
             
@@ -1713,20 +1661,6 @@
             
             const genreEl = document.getElementById('videoGenre');
             if (genreEl) genreEl.innerHTML = item.category ? `🎭 ${item.category}` : '';
-            
-            // Buscar e exibir descrição
-            let description = item.description || '';
-            if (!description || description === '') {
-                showToast('🔍 Buscando descrição do vídeo...');
-                description = await fetchVideoDescription(item.link, item.title);
-                // Salvar descrição no item para uso futuro
-                item.description = description;
-                if (item.id) {
-                    const refPath = type === 'filme' ? `filmes/${item.id}` : (type === 'serie' ? `series/${item.id}` : `canais/${item.id}`);
-                    database.ref(refPath).update({ description: description });
-                }
-            }
-            updateVideoDescription(description);
             
             currentMedia = item;
             currentMediaType = type;
@@ -2164,7 +2098,6 @@
             document.getElementById('itemThumb').value = item.thumb || '';
             document.getElementById('itemCategory').value = item.category || '';
             document.getElementById('itemYear').value = item.year || '';
-            document.getElementById('itemDescription').value = item.description || '';
             editingItem = { id: id, type: type };
             document.getElementById('cancelEditBtn').classList.remove('hidden');
             document.getElementById('saveItemBtn').innerHTML = 'Atualizar';
@@ -2394,7 +2327,6 @@
             const thumb = document.getElementById('itemThumb').value.trim();
             const category = document.getElementById('itemCategory').value.trim();
             const year = document.getElementById('itemYear').value.trim();
-            const description = document.getElementById('itemDescription').value.trim();
             if(!title || !link) { showToast('❌ Preencha título e link'); return; }
             
             const activeAdminTab = document.querySelector('#adminPanel .admin-tab-btn.border-b-2.border-red-600')?.id;
@@ -2402,7 +2334,7 @@
             if(editingItem) {
                 const updates = {
                     title, link, thumb: thumb || 'https://via.placeholder.com/300x200',
-                    category: category || 'Geral', year: year || '2024', description: description || title
+                    category: category || 'Geral', year: year || '2024'
                 };
                 database.ref(`${editingItem.type}/${editingItem.id}`).update(updates).then(() => {
                     showToast('✅ Item atualizado com sucesso!');
@@ -2415,7 +2347,7 @@
             }
             
             const safeId = generateSafeId();
-            const newItem = { id: safeId, title, link, thumb: thumb || 'https://via.placeholder.com/300x200', category: category || 'Geral', year: year || '2024', description: description || title, createdAt: Date.now(), hidden: false };
+            const newItem = { id: safeId, title, link, thumb: thumb || 'https://via.placeholder.com/300x200', category: category || 'Geral', year: year || '2024', description: title, createdAt: Date.now(), hidden: false };
             
             if(activeAdminTab === 'adminTabCanais') database.ref(`canais/${safeId}`).set(newItem).then(() => { showToast('✅ Canal salvo!'); loadCanaisFromFirebase(); });
             else if(activeAdminTab === 'adminTabFilmes') database.ref(`filmes/${safeId}`).set(newItem).then(() => { showToast('✅ Filme salvo!'); loadFilmesFromFirebase(); });
@@ -2429,7 +2361,6 @@
             document.getElementById('itemThumb').value = ''; 
             document.getElementById('itemCategory').value = ''; 
             document.getElementById('itemYear').value = ''; 
-            document.getElementById('itemDescription').value = '';
             editingItem = null; 
             document.getElementById('cancelEditBtn').classList.add('hidden');
             document.getElementById('saveItemBtn').innerHTML = 'Salvar';
@@ -2553,6 +2484,7 @@
         document.getElementById('searchPopup').addEventListener('click', (e) => { if(e.target === document.getElementById('searchPopup')) document.getElementById('searchPopup').classList.add('hidden'); });
         document.getElementById('favoritesPopup').addEventListener('click', (e) => { if(e.target === document.getElementById('favoritesPopup')) document.getElementById('favoritesPopup').classList.add('hidden'); });
         
+        // Iniciar carregamento de dados
         loadCanaisFromFirebase();
         loadFilmesFromFirebase();
         loadSeriesFromFirebase();
