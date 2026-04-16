@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: pan-x pan-y; }
-        body { background-color: #0a0a0a; overflow-x: hidden; transition: background 0.3s, color 0.3s; margin-top: 0; padding-top: 0; touch-action: pan-x pan-y; }
+        body { background-color: #0a0a0a; overflow-x: hidden; transition: background 0.3s, color 0.3s; margin-top: 0; padding-top: 0; padding-bottom: 70px; /* espaço para o menu inferior */ touch-action: pan-x pan-y; }
         
         body.dark-mode { background-color: #0a0a0a; color: #e5e5e5; }
         body.light-mode { background-color: #f5f5f5; color: #1a1a1a; }
@@ -32,11 +32,11 @@
         .active-tab { color: #e50914 !important; }
         .like-btn.active { color: #ff4d4d; }
         .save-btn.active { color: #ffd700; }
-        .toast { position: fixed; bottom: 20px; right: 20px; background: #333; color: white; padding: 10px 20px; border-radius: 8px; z-index: 1000; animation: fadeOut 3s forwards; }
+        .toast { position: fixed; bottom: 80px; right: 20px; background: #333; color: white; padding: 10px 20px; border-radius: 8px; z-index: 1000; animation: fadeOut 3s forwards; }
         @keyframes fadeOut { 0% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
         .watermark {
             position: fixed;
-            bottom: 10px;
+            bottom: 80px;
             left: 10px;
             z-index: 999;
             background: rgba(0,0,0,0.5);
@@ -445,7 +445,7 @@
         
         .chat-container {
             position: fixed;
-            bottom: 0;
+            bottom: 70px;
             right: 0;
             width: 100%;
             max-width: 400px;
@@ -542,7 +542,7 @@
         }
         .chat-toggle-btn {
             position: fixed;
-            bottom: 20px;
+            bottom: 80px;
             right: 20px;
             background: #e50914;
             width: 50px;
@@ -898,7 +898,7 @@
         
         .sync-status {
             position: fixed;
-            bottom: 10px;
+            bottom: 80px;
             right: 10px;
             font-size: 10px;
             background: rgba(0,0,0,0.5);
@@ -1089,6 +1089,211 @@
             white-space: nowrap;
             flex-shrink: 0;
         }
+        
+        /* ========== MENU INFERIOR (BOTTOM NAVIGATION) ========== */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #111;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 8px 12px;
+            border-top: 1px solid #333;
+            z-index: 1002;
+            backdrop-filter: blur(10px);
+            background: rgba(17,17,17,0.95);
+        }
+        body.light-mode .bottom-nav {
+            background: rgba(240,240,240,0.95);
+            border-top: 1px solid #ddd;
+        }
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            cursor: pointer;
+            transition: all 0.2s;
+            padding: 4px 12px;
+            border-radius: 8px;
+            color: #888;
+        }
+        .bottom-nav-item i {
+            font-size: 22px;
+        }
+        .bottom-nav-item span {
+            font-size: 10px;
+            font-weight: 500;
+        }
+        .bottom-nav-item.active {
+            color: #e50914;
+        }
+        .bottom-nav-item:hover {
+            background-color: rgba(229, 9, 20, 0.1);
+        }
+        
+        /* Abas de conteúdo */
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active-tab-content {
+            display: block;
+        }
+        
+        /* Estilos para o Feed */
+        .feed-post {
+            background: #1a1a1a;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            overflow: hidden;
+            border: 1px solid #333;
+        }
+        body.light-mode .feed-post {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+        }
+        .post-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+        }
+        .post-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e50914;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+        }
+        .post-username {
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .post-time {
+            font-size: 10px;
+            color: #888;
+        }
+        .post-content {
+            padding: 0 12px 12px 12px;
+        }
+        .post-text {
+            font-size: 14px;
+            line-height: 1.4;
+            margin-bottom: 8px;
+        }
+        .post-image {
+            width: 100%;
+            border-radius: 12px;
+            max-height: 300px;
+            object-fit: cover;
+            margin-top: 8px;
+        }
+        .post-actions {
+            display: flex;
+            gap: 24px;
+            padding: 8px 12px;
+            border-top: 1px solid #333;
+            border-bottom: 1px solid #333;
+        }
+        .post-action-btn {
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+        }
+        .post-action-btn.active { color: #e50914; }
+        .post-comments {
+            padding: 8px 12px;
+            background: #111;
+        }
+        body.light-mode .post-comments { background: #f5f5f5; }
+        .post-comment-item {
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+        .post-comment-username { font-weight: bold; color: #e50914; }
+        .add-comment-form {
+            display: flex;
+            gap: 8px;
+            padding: 8px 12px;
+        }
+        .add-comment-input {
+            flex: 1;
+            background: #2a2a2a;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 12px;
+            color: white;
+            font-size: 12px;
+        }
+        body.light-mode .add-comment-input { background: #e0e0e0; color: #1a1a1a; }
+        
+        /* Perfil */
+        .profile-stats {
+            display: flex;
+            justify-content: space-around;
+            padding: 20px;
+            background: #1a1a1a;
+            border-radius: 16px;
+            margin: 16px;
+            text-align: center;
+        }
+        .profile-stat {
+            display: flex;
+            flex-direction: column;
+        }
+        .profile-stat-number {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .profile-stat-label {
+            font-size: 10px;
+            color: #888;
+        }
+        .profile-bio {
+            padding: 0 16px 16px 16px;
+            font-size: 13px;
+        }
+        .create-post-area {
+            background: #1a1a1a;
+            border-radius: 16px;
+            margin: 16px;
+            padding: 12px;
+            border: 1px solid #333;
+        }
+        .create-post-textarea {
+            width: 100%;
+            background: #2a2a2a;
+            border: none;
+            border-radius: 12px;
+            padding: 12px;
+            color: white;
+            resize: vertical;
+            margin-bottom: 8px;
+        }
+        .create-post-image-input {
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+        .create-post-btn {
+            background: #e50914;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            color: white;
+            cursor: pointer;
+        }
     </style>
     <script>
         // Função para bloquear zoom e efeito de pinça em dispositivos móveis
@@ -1124,6 +1329,7 @@
         <i class="fas fa-check-circle"></i> Sincronizado
     </div>
 
+    <!-- LOGO E CABEÇALHO (visível em todas as abas) -->
     <div class="logo-line">
         <div class="flex items-center justify-between">
             <div class="flex items-center space-x-2">
@@ -1154,17 +1360,210 @@
         </div>
     </div>
 
-    <div class="menu-container">
-        <div class="nav-item" id="navCanaisBtn"><i class="fas fa-tv"></i><span>Canais</span></div>
-        <div class="nav-item active" id="navFilmesBtn"><i class="fas fa-film"></i><span>Filmes</span></div>
-        <div class="nav-item" id="navSeriesBtn"><i class="fas fa-clapperboard"></i><span>Séries</span></div>
-        <div class="nav-item" id="navSearchBtn"><i class="fas fa-search"></i><span>Buscar</span></div>
-        <div class="nav-item" id="favoritesBtn"><i class="fas fa-heart text-red-500"></i><span>Fav</span></div>
-        <div class="nav-item" id="adminBtn"><i class="fas fa-user-cog"></i><span>Admin</span></div>
-        <div class="cast-btn" id="castButton"><i class="fas fa-tv"></i></div>
-        <div class="nav-item" id="settingsBtn"><i class="fas fa-cog"></i><span>Ajustes</span></div>
+    <!-- ========== ABAS DE CONTEÚDO ========== -->
+    <!-- ABA FILMES (conteúdo original) -->
+    <div id="tabFilmes" class="tab-content active-tab-content">
+        <div class="menu-container">
+            <div class="nav-item" id="navCanaisBtn"><i class="fas fa-tv"></i><span>Canais</span></div>
+            <div class="nav-item active" id="navFilmesBtn"><i class="fas fa-film"></i><span>Filmes</span></div>
+            <div class="nav-item" id="navSeriesBtn"><i class="fas fa-clapperboard"></i><span>Séries</span></div>
+            <div class="nav-item" id="navSearchBtn"><i class="fas fa-search"></i><span>Buscar</span></div>
+            <div class="nav-item" id="favoritesBtn"><i class="fas fa-heart text-red-500"></i><span>Fav</span></div>
+            <div class="nav-item" id="adminBtn"><i class="fas fa-user-cog"></i><span>Admin</span></div>
+            <div class="cast-btn" id="castButton"><i class="fas fa-tv"></i></div>
+            <div class="nav-item" id="settingsBtn"><i class="fas fa-cog"></i><span>Ajustes</span></div>
+        </div>
+
+        <div class="container mx-auto px-2 mt-2">
+            <div class="flex items-center gap-1 mb-1">
+                <i class="fas fa-chart-line text-red-500 text-xs"></i>
+                <h2 class="font-bold text-xs">Top 10 Mais Assistidos</h2>
+            </div>
+            <div class="relative">
+                <div id="top10Carousel" class="carousel-container overflow-x-auto">
+                    <div id="top10Track" class="carousel-track"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="floatingPlayerOverlay" class="floating-player-overlay hidden"></div>
+        <div id="playerCommentsContainer" class="player-comments-container hidden">
+            <button id="closePlayerComments" class="close-player-btn"><i class="fas fa-times"></i></button>
+            <div class="video-section">
+                <div class="player-wrapper">
+                    <div id="youtubePlayerDiv"></div>
+                    <video id="hlsPlayer" controls style="display: none; width:100%; height:100%; background: black;"></video>
+                    <div id="noContent" class="absolute inset-0 flex items-center justify-center text-gray-500 bg-black text-sm">Carregando...</div>
+                </div>
+                <div class="video-info">
+                    <h3 id="videoTitle" class="video-title">Carregando...</h3>
+                    <div id="videoDescription" class="video-description"></div>
+                    <div class="info-actions-row">
+                        <div class="video-meta">
+                            <span id="videoYear"></span>
+                            <span id="videoGenre"></span>
+                            <span id="viewCountDisplay" class="text-xs"><i class="fas fa-eye mr-1"></i><span id="viewCountNumber">0</span> visualizações</span>
+                        </div>
+                        <div class="action-buttons">
+                            <button id="likeBtn" class="action-btn like-btn"><i class="far fa-heart"></i> <span id="likeCount">0</span></button>
+                            <div id="ratingStarsContainer" class="rating-stars"></div>
+                            <span id="ratingPercentDisplay" class="rating-percent">0%</span>
+                            <button id="saveBtn" class="action-btn save-btn"><i class="far fa-star"></i></button>
+                            <button id="shareBtn" class="action-btn"><i class="fas fa-share-alt"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="comments-section">
+                <div class="comments-header">
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-sm">💬 Comentários</span>
+                    </div>
+                </div>
+                <div id="ratingInfo" class="rating-info"></div>
+                <div id="commentsList" class="comments-list"></div>
+                <div class="comment-input-area">
+                    <input type="text" id="newCommentInput" class="flex-1 bg-gray-700 rounded-full px-3 py-2 text-sm" placeholder="Adicione um comentário...">
+                    <button id="submitCommentBtn" class="bg-red-600 px-4 py-2 rounded-full text-sm">Enviar</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="shareModal" class="hidden" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1a1a1a; border-radius: 20px; padding: 20px; z-index: 1200; min-width: 280px;">
+            <div class="text-center mb-3 font-bold">Compartilhar</div>
+            <div class="share-buttons">
+                <div class="share-icon share-whatsapp" data-platform="whatsapp"><i class="fab fa-whatsapp"></i></div>
+                <div class="share-icon share-telegram" data-platform="telegram"><i class="fab fa-telegram-plane"></i></div>
+                <div class="share-icon share-facebook" data-platform="facebook"><i class="fab fa-facebook-f"></i></div>
+                <div class="share-icon share-twitter" data-platform="twitter"><i class="fab fa-twitter"></i></div>
+                <div class="share-icon share-copy" data-platform="copy"><i class="fas fa-link"></i></div>
+            </div>
+            <button id="closeShareModal" class="mt-3 w-full bg-gray-700 py-1 rounded">Fechar</button>
+        </div>
+
+        <div id="favoritesPopup" class="favorites-popup hidden">
+            <div class="favorites-popup-content">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-lg font-bold">❤️ Meus Favoritos</h3>
+                    <button id="closeFavoritesPopup" class="text-gray-400 hover:text-white text-xl">&times;</button>
+                </div>
+                <input type="text" id="favoritesSearchInput" placeholder="Buscar nos favoritos..." autocomplete="off">
+                <div id="favoritesResults" class="favorites-results-popup"></div>
+            </div>
+        </div>
+
+        <div class="container mx-auto px-2 mt-2" id="filtrosArea">
+            <div class="bg-gray-900 rounded-xl p-2">
+                <div class="filters-row">
+                    <div id="genreScroll" class="genre-scroll">
+                        <button data-genre="todos" class="genre-filter px-2 py-0.5 rounded-full bg-gray-800 text-xs genre-filter-active">🎬 Todos</button>
+                    </div>
+                    <div>
+                        <select id="sortSelect" class="sort-select">
+                            <option value="recent">📅 Mais recentes</option>
+                            <option value="views">👁️ Mais vistos</option>
+                            <option value="az">🔤 A-Z</option>
+                            <option value="za">🔤 Z-A</option>
+                            <option value="year_asc">📅 Ano (crescente)</option>
+                            <option value="year_desc">📅 Ano (decrescente)</option>
+                            <option value="genre">🎭 Por gênero</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container mx-auto px-2 mt-3 mb-12">
+            <div id="contentGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2"></div>
+        </div>
     </div>
 
+    <!-- ABA FEED -->
+    <div id="tabFeed" class="tab-content">
+        <div class="container mx-auto px-2 mt-3 pb-20">
+            <div id="feedContainer"></div>
+        </div>
+        <div class="create-post-area" id="createPostArea">
+            <textarea id="newPostText" class="create-post-textarea" rows="2" placeholder="O que você está assistindo? Compartilhe com a galera!"></textarea>
+            <input type="text" id="newPostImage" class="create-post-image-input" placeholder="URL da imagem (opcional)">
+            <button id="submitPostBtn" class="create-post-btn">Publicar</button>
+        </div>
+    </div>
+
+    <!-- ABA CHAT -->
+    <div id="tabChat" class="tab-content">
+        <div class="chat-container" style="position: relative; bottom: auto; right: auto; width: 100%; max-width: 100%; height: calc(100vh - 120px); transform: translateY(0); border-radius: 0; border: none;">
+            <div class="chat-header" id="chatHeader" style="cursor: default;">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-comment-dots text-red-500"></i>
+                    <span class="font-semibold text-sm">🎬 Chat dos Cinéfilos</span>
+                    <span id="onlineCountChat" class="text-xs text-green-500">● 0 online</span>
+                </div>
+            </div>
+            <div id="chatMessages" class="chat-messages"></div>
+            <div class="chat-input-area">
+                <input type="text" id="chatInput" class="chat-input" placeholder="Digite sua mensagem..." maxlength="200">
+                <button id="sendMessageBtn" class="chat-send-btn"><i class="fas fa-paper-plane text-white text-sm"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ABA PERFIL -->
+    <div id="tabPerfil" class="tab-content">
+        <div class="profile-stats">
+            <div class="profile-stat">
+                <span class="profile-stat-number" id="profilePostCount">0</span>
+                <span class="profile-stat-label">posts</span>
+            </div>
+            <div class="profile-stat">
+                <span class="profile-stat-number" id="profileFavCount">0</span>
+                <span class="profile-stat-label">favoritos</span>
+            </div>
+            <div class="profile-stat">
+                <span class="profile-stat-number" id="profileJoinDate">-</span>
+                <span class="profile-stat-label">membro</span>
+            </div>
+        </div>
+        <div class="profile-bio">
+            <div class="flex items-center gap-2 mb-2">
+                <i class="fas fa-user-circle text-red-500 text-xl"></i>
+                <span class="font-bold" id="profileUsername">@usuário</span>
+            </div>
+            <p id="profileBioText">Cinéfilo apaixonado por filmes e séries!</p>
+        </div>
+        <div class="create-post-area" style="margin-top: 0;">
+            <h3 class="font-bold mb-2">Configurações</h3>
+            <label class="text-xs text-gray-400">Nome de usuário</label>
+            <input type="text" id="profileUsernameInput" class="settings-input" placeholder="Seu nome">
+            <div class="mode-buttons mt-2">
+                <button id="darkModePerfilBtn" class="mode-btn"><i class="fas fa-moon"></i> Dark</button>
+                <button id="lightModePerfilBtn" class="mode-btn"><i class="fas fa-sun"></i> Light</button>
+            </div>
+            <button id="logoutPerfilBtn" class="settings-btn" style="background:#333; margin-top: 10px;">Sair da Conta</button>
+        </div>
+    </div>
+
+    <!-- MENU INFERIOR -->
+    <div class="bottom-nav">
+        <div class="bottom-nav-item active" data-tab="filmes">
+            <i class="fas fa-film"></i>
+            <span>Filmes</span>
+        </div>
+        <div class="bottom-nav-item" data-tab="feed">
+            <i class="fas fa-newspaper"></i>
+            <span>Feed</span>
+        </div>
+        <div class="bottom-nav-item" data-tab="chat">
+            <i class="fas fa-comment-dots"></i>
+            <span>Chat</span>
+        </div>
+        <div class="bottom-nav-item" data-tab="perfil">
+            <i class="fas fa-user"></i>
+            <span>Perfil</span>
+        </div>
+    </div>
+
+    <!-- MODAIS EXISTENTES (login, admin, etc) -->
     <div id="loginModal" class="login-modal">
         <div class="login-box">
             <h2 class="text-xl font-bold mb-4 text-center">🎬 NoiteFilmes</h2>
@@ -1197,132 +1596,6 @@
                 <button id="lightModeSettingsBtn" class="mode-btn"><i class="fas fa-sun"></i> Light</button>
             </div>
             <button id="logoutSettingsBtn" class="logout-settings-btn settings-btn" style="background:#333;">Sair da Conta</button>
-        </div>
-    </div>
-
-    <div class="container mx-auto px-2 mt-2">
-        <div class="flex items-center gap-1 mb-1">
-            <i class="fas fa-chart-line text-red-500 text-xs"></i>
-            <h2 class="font-bold text-xs">Top 10 Mais Assistidos</h2>
-        </div>
-        <div class="relative">
-            <div id="top10Carousel" class="carousel-container overflow-x-auto">
-                <div id="top10Track" class="carousel-track"></div>
-            </div>
-        </div>
-    </div>
-
-    <div id="floatingPlayerOverlay" class="floating-player-overlay hidden"></div>
-    <div id="playerCommentsContainer" class="player-comments-container hidden">
-        <button id="closePlayerComments" class="close-player-btn"><i class="fas fa-times"></i></button>
-        
-        <div class="video-section">
-            <div class="player-wrapper">
-                <div id="youtubePlayerDiv"></div>
-                <video id="hlsPlayer" controls style="display: none; width:100%; height:100%; background: black;"></video>
-                <div id="noContent" class="absolute inset-0 flex items-center justify-center text-gray-500 bg-black text-sm">Carregando...</div>
-            </div>
-            <div class="video-info">
-                <h3 id="videoTitle" class="video-title">Carregando...</h3>
-                <div id="videoDescription" class="video-description"></div>
-                <div class="info-actions-row">
-                    <div class="video-meta">
-                        <span id="videoYear"></span>
-                        <span id="videoGenre"></span>
-                        <span id="viewCountDisplay" class="text-xs"><i class="fas fa-eye mr-1"></i><span id="viewCountNumber">0</span> visualizações</span>
-                    </div>
-                    <div class="action-buttons">
-                        <button id="likeBtn" class="action-btn like-btn"><i class="far fa-heart"></i> <span id="likeCount">0</span></button>
-                        <div id="ratingStarsContainer" class="rating-stars"></div>
-                        <span id="ratingPercentDisplay" class="rating-percent">0%</span>
-                        <button id="saveBtn" class="action-btn save-btn"><i class="far fa-star"></i></button>
-                        <button id="shareBtn" class="action-btn"><i class="fas fa-share-alt"></i></button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="comments-section">
-            <div class="comments-header">
-                <div class="flex justify-between items-center">
-                    <span class="font-bold text-sm">💬 Comentários</span>
-                </div>
-            </div>
-            <div id="ratingInfo" class="rating-info"></div>
-            <div id="commentsList" class="comments-list"></div>
-            <div class="comment-input-area">
-                <input type="text" id="newCommentInput" class="flex-1 bg-gray-700 rounded-full px-3 py-2 text-sm" placeholder="Adicione um comentário...">
-                <button id="submitCommentBtn" class="bg-red-600 px-4 py-2 rounded-full text-sm">Enviar</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="shareModal" class="hidden" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1a1a1a; border-radius: 20px; padding: 20px; z-index: 1200; min-width: 280px;">
-        <div class="text-center mb-3 font-bold">Compartilhar</div>
-        <div class="share-buttons">
-            <div class="share-icon share-whatsapp" data-platform="whatsapp"><i class="fab fa-whatsapp"></i></div>
-            <div class="share-icon share-telegram" data-platform="telegram"><i class="fab fa-telegram-plane"></i></div>
-            <div class="share-icon share-facebook" data-platform="facebook"><i class="fab fa-facebook-f"></i></div>
-            <div class="share-icon share-twitter" data-platform="twitter"><i class="fab fa-twitter"></i></div>
-            <div class="share-icon share-copy" data-platform="copy"><i class="fas fa-link"></i></div>
-        </div>
-        <button id="closeShareModal" class="mt-3 w-full bg-gray-700 py-1 rounded">Fechar</button>
-    </div>
-
-    <div id="favoritesPopup" class="favorites-popup hidden">
-        <div class="favorites-popup-content">
-            <div class="flex justify-between items-center mb-3">
-                <h3 class="text-lg font-bold">❤️ Meus Favoritos</h3>
-                <button id="closeFavoritesPopup" class="text-gray-400 hover:text-white text-xl">&times;</button>
-            </div>
-            <input type="text" id="favoritesSearchInput" placeholder="Buscar nos favoritos..." autocomplete="off">
-            <div id="favoritesResults" class="favorites-results-popup"></div>
-        </div>
-    </div>
-
-    <div class="container mx-auto px-2 mt-2" id="filtrosArea">
-        <div class="bg-gray-900 rounded-xl p-2">
-            <div class="filters-row">
-                <!-- Gêneros roláveis horizontalmente -->
-                <div id="genreScroll" class="genre-scroll">
-                    <button data-genre="todos" class="genre-filter px-2 py-0.5 rounded-full bg-gray-800 text-xs genre-filter-active">🎬 Todos</button>
-                </div>
-                <div>
-                    <select id="sortSelect" class="sort-select">
-                        <option value="recent">📅 Mais recentes</option>
-                        <option value="views">👁️ Mais vistos</option>
-                        <option value="az">🔤 A-Z</option>
-                        <option value="za">🔤 Z-A</option>
-                        <option value="year_asc">📅 Ano (crescente)</option>
-                        <option value="year_desc">📅 Ano (decrescente)</option>
-                        <option value="genre">🎭 Por gênero</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="container mx-auto px-2 mt-3 mb-12">
-        <div id="contentGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2"></div>
-    </div>
-
-    <div class="chat-toggle-btn" id="chatToggleBtn">
-        <i class="fas fa-comment-dots text-white"></i>
-    </div>
-
-    <div id="chatContainer" class="chat-container">
-        <div class="chat-header" id="chatHeader">
-            <div class="flex items-center gap-2">
-                <i class="fas fa-comment-dots text-red-500"></i>
-                <span class="font-semibold text-sm">🎬 Chat dos Cinéfilos</span>
-                <span id="onlineCount" class="text-xs text-green-500">● 0 online</span>
-            </div>
-            <button id="closeChatBtn" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
-        </div>
-        <div id="chatMessages" class="chat-messages"></div>
-        <div class="chat-input-area">
-            <input type="text" id="chatInput" class="chat-input" placeholder="Digite sua mensagem..." maxlength="200">
-            <button id="sendMessageBtn" class="chat-send-btn"><i class="fas fa-paper-plane text-white text-sm"></i></button>
         </div>
     </div>
 
@@ -1373,12 +1646,8 @@
                             <input type="text" id="itemYear" placeholder="Ano" class="bg-gray-700 p-2 rounded text-sm">
                         </div>
                         <div class="iptv-selector" id="mediaTypeSelector">
-                            <label>
-                                <input type="radio" name="mediaType" value="youtube" checked> 🎬 YouTube
-                            </label>
-                            <label>
-                                <input type="radio" name="mediaType" value="iptv"> 📡 IPTV (.m3u8)
-                            </label>
+                            <label><input type="radio" name="mediaType" value="youtube" checked> 🎬 YouTube</label>
+                            <label><input type="radio" name="mediaType" value="iptv"> 📡 IPTV (.m3u8)</label>
                         </div>
                         <div class="mt-2 flex gap-2">
                             <button id="saveItemBtn" class="bg-green-700 hover:bg-green-800 px-3 py-1 rounded text-sm">Salvar</button>
@@ -1462,6 +1731,9 @@
         let progressInterval = null;
         
         let viewsCache = {};
+        
+        // ==================== NOVAS VARIÁVEIS PARA FEED ====================
+        let posts = [];
         
         // ==================== FUNÇÃO PARA ATUALIZAR CONTADORES ====================
         function updateContentCounters() {
@@ -1990,13 +2262,203 @@
             try { const userCredential = await auth.createUserWithEmailAndPassword(email, password); const user = userCredential.user; await database.ref(`usuarios/${user.uid}`).set({ email, nickname, createdAt: Date.now() }); currentUsername = nickname; localStorage.setItem('noitefilmes_username', currentUsername); showToast(`✅ Cadastro realizado! @${nickname}`); } catch(error) { showToast('Erro: ' + error.message); }
         }
         
-        function addMessageToChat(username, text, isSystem, time, saveToFirebase = true) { const container = document.getElementById('chatMessages'); const messageDiv = document.createElement('div'); messageDiv.className = `message ${username === currentUsername && !isSystem ? 'my-message' : ''}`; messageDiv.innerHTML = `<div class="message-avatar">${isSystem ? '<i class="fas fa-info-circle text-xs"></i>' : (username?.charAt(0).toUpperCase() || '?')}</div><div class="message-content">${!isSystem ? `<div class="message-username">@${username}</div>` : ''}<div class="message-text">${escapeHtml(text)}</div><div class="message-time">${time || new Date().toLocaleTimeString()}</div></div>`; container.appendChild(messageDiv); container.scrollTop = container.scrollHeight; if (saveToFirebase && !isSystem && currentUser) database.ref('chat').push({ username, text, time: new Date().toLocaleTimeString(), timestamp: Date.now() }); }
-        function sendChatMessage() { const input = document.getElementById('chatInput'); const text = input.value.trim(); if (text && currentUser) { addMessageToChat(currentUsername, text, false, null, true); input.value = ''; } else if (!currentUser) showToast('Faça login para enviar mensagens'); }
+        // ==================== FUNÇÕES DO CHAT ====================
+        function addMessageToChat(username, text, isSystem, time, saveToFirebase = true) {
+            const container = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${username === currentUsername && !isSystem ? 'my-message' : ''}`;
+            messageDiv.innerHTML = `<div class="message-avatar">${isSystem ? '<i class="fas fa-info-circle text-xs"></i>' : (username?.charAt(0).toUpperCase() || '?')}</div><div class="message-content">${!isSystem ? `<div class="message-username">@${username}</div>` : ''}<div class="message-text">${escapeHtml(text)}</div><div class="message-time">${time || new Date().toLocaleTimeString()}</div></div>`;
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+            if (saveToFirebase && !isSystem && currentUser) database.ref('chat').push({ username, text, time: new Date().toLocaleTimeString(), timestamp: Date.now() });
+        }
+        function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if (text && currentUser) { addMessageToChat(currentUsername, text, false, null, true); input.value = ''; }
+            else if (!currentUser) showToast('Faça login para enviar mensagens');
+        }
+        
+        // ==================== FUNÇÕES DO FEED ====================
+        function loadFeed() {
+            database.ref('posts').orderByChild('timestamp').once('value', (snapshot) => {
+                const data = snapshot.val();
+                posts = data ? Object.values(data) : [];
+                posts.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                renderFeed();
+            });
+        }
+        
+        function renderFeed() {
+            const container = document.getElementById('feedContainer');
+            if (!container) return;
+            if (posts.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-500 py-8">Nenhum post ainda. Seja o primeiro a compartilhar!</div>';
+                return;
+            }
+            container.innerHTML = posts.map(post => `
+                <div class="feed-post" data-post-id="${post.id}">
+                    <div class="post-header">
+                        <div class="post-avatar">${(post.username?.charAt(0) || '?').toUpperCase()}</div>
+                        <div>
+                            <div class="post-username">@${post.username || 'anônimo'}</div>
+                            <div class="post-time">${new Date(post.timestamp).toLocaleString()}</div>
+                        </div>
+                    </div>
+                    <div class="post-content">
+                        <div class="post-text">${escapeHtml(post.text)}</div>
+                        ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-image" onerror="this.style.display='none'">` : ''}
+                    </div>
+                    <div class="post-actions">
+                        <button class="post-action-btn like-post-btn" data-id="${post.id}">
+                            <i class="far fa-heart"></i> <span class="like-count">${post.likes ? Object.keys(post.likes).length : 0}</span>
+                        </button>
+                        <button class="post-action-btn comment-post-btn" data-id="${post.id}">
+                            <i class="far fa-comment"></i> <span class="comment-count">${post.comments ? Object.keys(post.comments).length : 0}</span>
+                        </button>
+                    </div>
+                    <div class="post-comments" id="comments-${post.id}" style="display: none;">
+                        <div class="comments-list-feed"></div>
+                        <div class="add-comment-form">
+                            <input type="text" class="add-comment-input" placeholder="Adicione um comentário..." data-id="${post.id}">
+                            <button class="submit-comment-btn" data-id="${post.id}">Enviar</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Eventos de like
+            document.querySelectorAll('.like-post-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    if (!currentUser) { showToast('Faça login para curtir'); return; }
+                    const postId = btn.getAttribute('data-id');
+                    const likeRef = database.ref(`posts/${postId}/likes/${currentUser.uid}`);
+                    const snapshot = await likeRef.once('value');
+                    if (snapshot.exists()) {
+                        likeRef.remove();
+                        showToast('👍 Curtida removida');
+                    } else {
+                        likeRef.set(true);
+                        showToast('❤️ Curtiu!');
+                    }
+                });
+            });
+            // Eventos de comentário
+            document.querySelectorAll('.comment-post-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const postId = btn.getAttribute('data-id');
+                    const commentsDiv = document.getElementById(`comments-${postId}`);
+                    if (commentsDiv.style.display === 'none') {
+                        commentsDiv.style.display = 'block';
+                        loadCommentsForPost(postId);
+                    } else {
+                        commentsDiv.style.display = 'none';
+                    }
+                });
+            });
+            document.querySelectorAll('.submit-comment-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    if (!currentUser) { showToast('Faça login para comentar'); return; }
+                    const postId = btn.getAttribute('data-id');
+                    const input = btn.parentElement.querySelector('.add-comment-input');
+                    const text = input.value.trim();
+                    if (!text) return;
+                    const commentRef = database.ref(`posts/${postId}/comments`).push();
+                    await commentRef.set({
+                        username: currentUsername,
+                        text: text,
+                        time: new Date().toLocaleString(),
+                        userId: currentUser.uid
+                    });
+                    input.value = '';
+                    loadCommentsForPost(postId);
+                });
+            });
+        }
+        
+        async function loadCommentsForPost(postId) {
+            const snapshot = await database.ref(`posts/${postId}/comments`).once('value');
+            const comments = snapshot.val() ? Object.values(snapshot.val()) : [];
+            const commentsDiv = document.querySelector(`#comments-${postId} .comments-list-feed`);
+            if (commentsDiv) {
+                commentsDiv.innerHTML = comments.map(c => `<div class="post-comment-item"><span class="post-comment-username">@${c.username}</span>: ${escapeHtml(c.text)} <span class="text-xs text-gray-500">${c.time}</span></div>`).join('');
+                if (comments.length === 0) commentsDiv.innerHTML = '<div class="text-gray-500 text-xs">Nenhum comentário ainda.</div>';
+            }
+            const commentCountSpan = document.querySelector(`.comment-post-btn[data-id="${postId}"] .comment-count`);
+            if (commentCountSpan) commentCountSpan.innerText = comments.length;
+        }
+        
+        async function createPost(text, imageUrl) {
+            if (!currentUser) { showToast('Faça login para postar'); return; }
+            if (!text.trim()) { showToast('Escreva algo para postar'); return; }
+            const newPostRef = database.ref('posts').push();
+            await newPostRef.set({
+                id: newPostRef.key,
+                username: currentUsername,
+                userId: currentUser.uid,
+                text: text,
+                imageUrl: imageUrl || null,
+                timestamp: Date.now(),
+                likes: {},
+                comments: {}
+            });
+            showToast('📝 Post publicado!');
+            loadFeed();
+            document.getElementById('newPostText').value = '';
+            document.getElementById('newPostImage').value = '';
+        }
+        
+        // ==================== FUNÇÕES DE PERFIL ====================
+        async function updateProfileUI() {
+            if (!currentUser) return;
+            document.getElementById('profileUsername').innerText = `@${currentUsername}`;
+            document.getElementById('profileUsernameInput').value = currentUsername;
+            // Contagem de posts do usuário
+            const snapshot = await database.ref('posts').orderByChild('userId').equalTo(currentUser.uid).once('value');
+            const userPosts = snapshot.val() ? Object.values(snapshot.val()) : [];
+            document.getElementById('profilePostCount').innerText = userPosts.length;
+            document.getElementById('profileFavCount').innerText = favoritos.length;
+            // Data de entrada (simulada do created at do usuário)
+            const userSnapshot = await database.ref(`usuarios/${currentUser.uid}`).once('value');
+            const userData = userSnapshot.val();
+            if (userData && userData.createdAt) {
+                const date = new Date(userData.createdAt);
+                document.getElementById('profileJoinDate').innerText = `${date.getMonth()+1}/${date.getFullYear()}`;
+            } else {
+                document.getElementById('profileJoinDate').innerText = 'novo';
+            }
+        }
+        
+        function saveProfileUsername() {
+            const newUsername = document.getElementById('profileUsernameInput').value.trim();
+            if (newUsername && newUsername !== currentUsername) {
+                currentUsername = newUsername;
+                localStorage.setItem('noitefilmes_username', currentUsername);
+                if (currentUser) database.ref(`usuarios/${currentUser.uid}/nickname`).set(currentUsername);
+                updateProfileUI();
+                showToast(`✅ Nome alterado para: @${currentUsername}`);
+            }
+        }
+        
+        // ==================== FUNÇÕES DE UI E NAVEGAÇÃO ====================
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active-tab-content'));
+            document.getElementById(`tab${tabId.charAt(0).toUpperCase() + tabId.slice(1)}`).classList.add('active-tab-content');
+            document.querySelectorAll('.bottom-nav-item').forEach(item => item.classList.remove('active'));
+            document.querySelector(`.bottom-nav-item[data-tab="${tabId}"]`).classList.add('active');
+            if (tabId === 'feed') loadFeed();
+            if (tabId === 'chat') {
+                // Atualizar chat
+                document.getElementById('onlineCountChat').innerHTML = `● ${Math.floor(Math.random() * 15) + 3} online`;
+            }
+            if (tabId === 'perfil') updateProfileUI();
+        }
+        
         function showLoginModal() { document.getElementById('loginModal').classList.remove('hidden'); }
         function hideLoginModal() { document.getElementById('loginModal').classList.add('hidden'); }
         function openSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); document.getElementById('usernameInput').value = currentUsername; }
-        function saveUsername() { const newUsername = document.getElementById('usernameInput').value.trim(); if(newUsername) { currentUsername = newUsername; localStorage.setItem('noitefilmes_username', currentUsername); if(currentUser) database.ref(`usuarios/${currentUser.uid}/nickname`).set(currentUsername); showToast(`✅ Nome alterado para: @${currentUsername}`); document.getElementById('settingsModal').classList.add('hidden'); } }
-        function logoutUser() { auth.signOut(); document.getElementById('settingsModal').classList.add('hidden'); }
+        function saveUsername() { const newUsername = document.getElementById('usernameInput').value.trim(); if(newUsername) { currentUsername = newUsername; localStorage.setItem('noitefilmes_username', currentUsername); if(currentUser) database.ref(`usuarios/${currentUser.uid}/nickname`).set(currentUsername); showToast(`✅ Nome alterado para: @${currentUsername}`); document.getElementById('settingsModal').classList.add('hidden'); updateProfileUI(); } }
+        function logoutUser() { auth.signOut(); document.getElementById('settingsModal').classList.add('hidden'); showTab('filmes'); }
         function setDarkMode() { document.body.classList.remove('light-mode'); document.body.classList.add('dark-mode'); localStorage.setItem('noitefilmes_theme', 'dark'); }
         function setLightMode() { document.body.classList.remove('dark-mode'); document.body.classList.add('light-mode'); localStorage.setItem('noitefilmes_theme', 'light'); }
         function loadTheme() { const theme = localStorage.getItem('noitefilmes_theme'); if(theme === 'light') setLightMode(); else setDarkMode(); }
@@ -2007,23 +2469,7 @@
             searchInput.addEventListener('input', (e) => { const term = e.target.value.toLowerCase().trim(); if(term.length === 0) { resultsDiv.innerHTML = ''; return; } const allItems = [...canais.map(c => ({...c, type: 'canal'})), ...filmes.map(f => ({...f, type: 'filme'})), ...series.map(s => ({...s, type: 'serie'}))]; const matches = allItems.filter(item => item.title.toLowerCase().includes(term)); if(matches.length === 0) resultsDiv.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm">Nenhum resultado</div>'; else { resultsDiv.innerHTML = matches.map(item => `<div class="search-result-item" data-id="${item.id}" data-type="${item.type}"><img src="${item.thumb || 'https://via.placeholder.com/60x80'}" onerror="this.src='https://via.placeholder.com/60x80'"><div><div class="font-semibold text-sm">${item.title} ${isIptvLink(item.link) ? '<span class="iptv-badge">IPTV</span>' : ''}</div><div class="text-xs text-gray-400">${item.category || 'Geral'} • ${item.year || ''}</div></div></div>`).join(''); document.querySelectorAll('#popupSearchResults .search-result-item').forEach(el => { el.addEventListener('click', () => { const id = el.getAttribute('data-id'); const type = el.getAttribute('data-type'); let item; if(type === 'canal') item = canais.find(c => c.id === id); else if(type === 'filme') item = filmes.find(f => f.id === id); else item = series.find(s => s.id === id); if(item) { playMedia(item, type); document.getElementById('searchPopup').classList.add('hidden'); } }); }); } });
         }
         
-        // ==================== FUNÇÃO DE VERIFICAÇÃO DE DUPLICADOS ====================
-        function findDuplicates() { const allItems = [...canais.map(c => ({ ...c, type: 'canais' })), ...filmes.map(f => ({ ...f, type: 'filmes' })), ...series.map(s => ({ ...s, type: 'series' }))]; const duplicates = []; const titleMap = new Map(); allItems.forEach(item => { const title = item.title.toLowerCase().trim(); if(titleMap.has(title)) titleMap.get(title).push(item); else titleMap.set(title, [item]); }); titleMap.forEach((items, title) => { if(items.length > 1) duplicates.push({ title: items[0].title, items: items, thumb: items[0].thumb }); }); return duplicates; }
-        function renderDuplicatesList() {
-            const container = document.getElementById('duplicadosAdminList');
-            const duplicates = findDuplicates();
-            if(duplicates.length === 0) { container.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm">✨ Nenhum filme/vídeo duplicado encontrado!</div>'; return; }
-            container.innerHTML = '';
-            duplicates.forEach((dup, groupIndex) => { const itemsToShow = dup.items.slice(1); if(itemsToShow.length === 0) return; const groupHtml = `<div class="duplicate-group" data-group-id="group_${groupIndex}"><div class="duplicate-header"><img src="${dup.thumb || 'https://via.placeholder.com/50x65'}" onerror="this.src='https://via.placeholder.com/50x65'"><div><div class="font-bold text-red-500">📌 "${dup.title}"</div><div class="text-xs text-gray-400">Total: ${dup.items.length} cópias | <span class="text-green-500">1 preservado</span> | ${itemsToShow.length} para excluir</div></div></div><div class="duplicate-items-list" id="group_${groupIndex}_list">${itemsToShow.map((item, idx) => `<label class="duplicate-checkbox-item" data-item-id="${item.id}" data-item-type="${item.type}"><input type="checkbox" class="duplicate-checkbox" data-id="${item.id}" data-type="${item.type}" data-group="group_${groupIndex}"><img src="${item.thumb || 'https://via.placeholder.com/40x50'}" onerror="this.src='https://via.placeholder.com/40x50'"><div class="flex-1"><div class="text-sm">${item.title}</div><div class="text-xs text-gray-400">${item.type === 'canais' ? '📡 Canal' : (item.type === 'filmes' ? '🎬 Filme' : '📺 Série')} • ${item.category || 'Sem gênero'}</div></div></label>`).join('')}</div></div>`; container.innerHTML += groupHtml; });
-            const buttonBar = document.createElement('div'); buttonBar.className = 'mb-4 sticky top-0 bg-gray-900 p-2 rounded'; buttonBar.innerHTML = `<button id="selectAllDuplicatesBtn" class="select-all-btn"><i class="fas fa-check-double"></i> Selecionar Todos</button><button id="deleteSelectedDuplicatesBtn" class="delete-selected-btn"><i class="fas fa-trash"></i> Excluir Selecionados</button><span id="selectedCount" class="text-xs text-gray-400 ml-2">0 selecionados</span>`; container.insertBefore(buttonBar, container.firstChild);
-            function updateSelectedCount() { const checkboxes = document.querySelectorAll('.duplicate-checkbox:checked'); const countSpan = document.getElementById('selectedCount'); if(countSpan) countSpan.innerText = `${checkboxes.length} selecionado(s)`; }
-            document.querySelectorAll('.duplicate-checkbox').forEach(cb => cb.addEventListener('change', updateSelectedCount));
-            document.getElementById('selectAllDuplicatesBtn')?.addEventListener('click', () => { const allCheckboxes = document.querySelectorAll('.duplicate-checkbox'); const areAllChecked = Array.from(allCheckboxes).every(cb => cb.checked); allCheckboxes.forEach(cb => cb.checked = !areAllChecked); updateSelectedCount(); });
-            document.getElementById('deleteSelectedDuplicatesBtn')?.addEventListener('click', () => { const selected = document.querySelectorAll('.duplicate-checkbox:checked'); if(selected.length === 0) { showToast('Selecione pelo menos um item para excluir'); return; } if(confirm(`Tem certeza que deseja excluir ${selected.length} item(s) duplicado(s)? O original será preservado.`)) { let deletions = []; selected.forEach(cb => { const id = cb.getAttribute('data-id'); const type = cb.getAttribute('data-type'); deletions.push(database.ref(`${type}/${id}`).remove()); }); Promise.all(deletions).then(() => { showToast(`${selected.length} item(s) duplicado(s) removido(s) com sucesso!`); loadCanaisFromFirebase(); loadFilmesFromFirebase(); loadSeriesFromFirebase(); renderDuplicatesList(); }).catch(error => showToast('Erro ao excluir itens: ' + error.message)); } });
-            updateSelectedCount();
-        }
-        
-        // ==================== FUNÇÕES ADMIN (COM EDIÇÃO) ====================
+        // ==================== FUNÇÕES ADMIN ====================
         function editItem(id, type) { let item = null; if (type === 'canais') item = canais.find(c => c.id === id); else if (type === 'filmes') item = filmes.find(f => f.id === id); else if (type === 'series') item = series.find(s => s.id === id); if (!item) return; editingItem = { ...item, type: type }; document.getElementById('itemTitle').value = item.title; document.getElementById('itemLink').value = item.link; document.getElementById('itemThumb').value = item.thumb || ''; document.getElementById('itemCategory').value = item.category || ''; document.getElementById('itemYear').value = item.year || ''; const mediaTypeRadio = item.mediaType === 'iptv' ? 'iptv' : 'youtube'; document.querySelector(`input[name="mediaType"][value="${mediaTypeRadio}"]`).checked = true; document.getElementById('cancelEditBtn').classList.remove('hidden'); document.getElementById('formTitle').innerHTML = '✏️ Editando: ' + item.title.substring(0, 30); showToast('Modo edição ativado. Altere os campos e clique em Salvar.'); }
         function resetForm() { document.getElementById('itemTitle').value = ''; document.getElementById('itemLink').value = ''; document.getElementById('itemThumb').value = ''; document.getElementById('itemCategory').value = ''; document.getElementById('itemYear').value = ''; document.querySelector('input[name="mediaType"][value="youtube"]').checked = true; editingItem = null; document.getElementById('cancelEditBtn').classList.add('hidden'); document.getElementById('formTitle').innerHTML = 'Adicionar / Editar'; }
         async function autoFillFromYoutubeLink() { const link = document.getElementById('itemLink').value.trim(); if(!link || !extractYoutubeId(link)) return; const metadata = await fetchYouTubeMetadata(link); if(metadata) { document.getElementById('itemTitle').value = metadata.title; document.getElementById('itemThumb').value = metadata.thumb; document.getElementById('itemCategory').value = metadata.genre; document.getElementById('itemYear').value = metadata.year; showToast(`✅ Dados carregados: ${metadata.title}`); } }
@@ -2055,8 +2501,38 @@
         async function saveBatch() { if(batchPreviewItems.length === 0) { showToast('❌ Clique em "Pré-visualizar" primeiro'); return; } const existingTitles = filmes.map(f => f.title); const newItems = batchPreviewItems.filter(item => !existingTitles.includes(item.title)); const duplicates = batchPreviewItems.filter(item => existingTitles.includes(item.title)); if(duplicates.length > 0) { if(!confirm(`⚠️ ${duplicates.length} duplicados. Adicionar apenas ${newItems.length} novos?`)) return; } if(newItems.length === 0) { showToast('❌ Nenhum filme novo'); return; } showToast(`💾 Salvando ${newItems.length} filmes...`); let salvos = 0; for(let item of newItems) { const safeId = generateSafeId(); await database.ref(`filmes/${safeId}`).set({ id: safeId, title: item.title, link: item.link, thumb: item.thumb, category: item.genre, year: item.year, description: item.description, createdAt: Date.now(), mediaType: 'youtube' }); salvos++; } showToast(`✅ ${salvos} filmes salvos!`); document.getElementById('batchLinksInput').value = ''; document.getElementById('batchPreview').innerHTML = ''; batchPreviewItems = []; loadFilmesFromFirebase(); }
         async function saveEpisodes() { const serieName = document.getElementById('serieTitle').value.trim(); const episodesText = document.getElementById('episodesLinksInput').value; if(!serieName) { alert('Digite o nome da série'); return; } const lines = episodesText.split('\n').filter(l => l.trim()); if(lines.length === 0) { alert('Cole os episódios'); return; } showToast(`💾 Salvando ${lines.length} episódios...`); let salvos = 0; for(let line of lines) { let episodeTitle = '', link = ''; if(line.includes(':')) { const parts = line.split(':'); episodeTitle = parts[0].trim(); link = parts.slice(1).join(':').trim(); } else { link = line.trim(); episodeTitle = `EP${String(salvos + 1).padStart(2, '0')}`; } const metadata = await fetchYouTubeMetadata(link); const safeId = generateSafeId(); await database.ref(`series/${safeId}`).set({ id: safeId, title: `${serieName} - ${episodeTitle}`, link: link, thumb: metadata?.thumb || 'https://via.placeholder.com/300x200', category: metadata?.genre || 'Série', year: metadata?.year || new Date().getFullYear(), description: metadata?.description || `Episódio ${episodeTitle}`, createdAt: Date.now(), mediaType: 'youtube' }); salvos++; } showToast(`✅ ${salvos} episódios salvos!`); document.getElementById('serieTitle').value = ''; document.getElementById('episodesLinksInput').value = ''; loadSeriesFromFirebase(); }
         function refreshAdminLists() { if(!isAdminLogged) return; document.getElementById('canaisAdminList').innerHTML = canais.map(c => `<div class="bg-gray-800 p-1 rounded flex justify-between items-center text-xs"><span>${c.title.substring(0,25)}</span><div class="admin-item-actions"><button class="edit-canal edit-item-btn" data-id="${c.id}" data-type="canais"><i class="fas fa-edit"></i></button><button class="delete-canal delete-item-btn" data-id="${c.id}"><i class="fas fa-trash"></i></button></div></div>`).join(''); document.getElementById('filmesAdminList').innerHTML = filmes.map(f => `<div class="bg-gray-800 p-1 rounded flex justify-between items-center text-xs"><span>${f.title.substring(0,25)}</span><div class="admin-item-actions"><button class="edit-filme edit-item-btn" data-id="${f.id}" data-type="filmes"><i class="fas fa-edit"></i></button><button class="delete-filme delete-item-btn" data-id="${f.id}"><i class="fas fa-trash"></i></button></div></div>`).join(''); document.getElementById('seriesAdminList').innerHTML = series.map(s => `<div class="bg-gray-800 p-1 rounded flex justify-between items-center text-xs"><span>${s.title.substring(0,25)}</span><div class="admin-item-actions"><button class="edit-serie edit-item-btn" data-id="${s.id}" data-type="series"><i class="fas fa-edit"></i></button><button class="delete-serie delete-item-btn" data-id="${s.id}"><i class="fas fa-trash"></i></button></div></div>`).join(''); document.querySelectorAll('.edit-canal, .edit-filme, .edit-serie').forEach(btn => { btn.addEventListener('click', () => { const id = btn.getAttribute('data-id'); const type = btn.getAttribute('data-type'); editItem(id, type); }); }); document.querySelectorAll('.delete-canal').forEach(btn => btn.addEventListener('click', () => { const id = btn.getAttribute('data-id'); database.ref(`canais/${id}`).remove(); showToast('Canal removido'); loadCanaisFromFirebase(); })); document.querySelectorAll('.delete-filme').forEach(btn => btn.addEventListener('click', () => { const id = btn.getAttribute('data-id'); database.ref(`filmes/${id}`).remove(); showToast('Filme removido'); loadFilmesFromFirebase(); })); document.querySelectorAll('.delete-serie').forEach(btn => btn.addEventListener('click', () => { const id = btn.getAttribute('data-id'); database.ref(`series/${id}`).remove(); showToast('Episódio removido'); loadSeriesFromFirebase(); })); }
-        function toggleChat() { document.getElementById('chatContainer').classList.toggle('open'); }
-        function updateUserUI(user) { if (user) { hideLoginModal(); loadUserNickname(user.uid); database.ref('chat').limitToLast(100).off(); database.ref('chat').limitToLast(100).on('child_added', (snapshot) => { const msg = snapshot.val(); addMessageToChat(msg.username, msg.text, false, msg.time, false); }); database.ref(`favoritos/${user.uid}`).on('value', (snapshot) => { favoritos = snapshot.val() ? Object.values(snapshot.val()) : []; }); database.ref('top10').on('value', (snapshot) => { const data = snapshot.val(); if(data) { top10List = data; renderTop10Carousel(); } else { generateTop10ByViews(); } }); } else { showLoginModal(); document.getElementById('chatMessages').innerHTML = ''; } }
+        
+        // ==================== FUNÇÕES DE DUPLICADOS ====================
+        function findDuplicates() { const allItems = [...canais.map(c => ({ ...c, type: 'canais' })), ...filmes.map(f => ({ ...f, type: 'filmes' })), ...series.map(s => ({ ...s, type: 'series' }))]; const duplicates = []; const titleMap = new Map(); allItems.forEach(item => { const title = item.title.toLowerCase().trim(); if(titleMap.has(title)) titleMap.get(title).push(item); else titleMap.set(title, [item]); }); titleMap.forEach((items, title) => { if(items.length > 1) duplicates.push({ title: items[0].title, items: items, thumb: items[0].thumb }); }); return duplicates; }
+        function renderDuplicatesList() {
+            const container = document.getElementById('duplicadosAdminList');
+            const duplicates = findDuplicates();
+            if(duplicates.length === 0) { container.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm">✨ Nenhum filme/vídeo duplicado encontrado!</div>'; return; }
+            container.innerHTML = '';
+            duplicates.forEach((dup, groupIndex) => { const itemsToShow = dup.items.slice(1); if(itemsToShow.length === 0) return; const groupHtml = `<div class="duplicate-group" data-group-id="group_${groupIndex}"><div class="duplicate-header"><img src="${dup.thumb || 'https://via.placeholder.com/50x65'}" onerror="this.src='https://via.placeholder.com/50x65'"><div><div class="font-bold text-red-500">📌 "${dup.title}"</div><div class="text-xs text-gray-400">Total: ${dup.items.length} cópias | <span class="text-green-500">1 preservado</span> | ${itemsToShow.length} para excluir</div></div></div><div class="duplicate-items-list" id="group_${groupIndex}_list">${itemsToShow.map((item, idx) => `<label class="duplicate-checkbox-item" data-item-id="${item.id}" data-item-type="${item.type}"><input type="checkbox" class="duplicate-checkbox" data-id="${item.id}" data-type="${item.type}" data-group="group_${groupIndex}"><img src="${item.thumb || 'https://via.placeholder.com/40x50'}" onerror="this.src='https://via.placeholder.com/40x50'"><div class="flex-1"><div class="text-sm">${item.title}</div><div class="text-xs text-gray-400">${item.type === 'canais' ? '📡 Canal' : (item.type === 'filmes' ? '🎬 Filme' : '📺 Série')} • ${item.category || 'Sem gênero'}</div></div></label>`).join('')}</div></div>`; container.innerHTML += groupHtml; });
+            const buttonBar = document.createElement('div'); buttonBar.className = 'mb-4 sticky top-0 bg-gray-900 p-2 rounded'; buttonBar.innerHTML = `<button id="selectAllDuplicatesBtn" class="select-all-btn"><i class="fas fa-check-double"></i> Selecionar Todos</button><button id="deleteSelectedDuplicatesBtn" class="delete-selected-btn"><i class="fas fa-trash"></i> Excluir Selecionados</button><span id="selectedCount" class="text-xs text-gray-400 ml-2">0 selecionados</span>`; container.insertBefore(buttonBar, container.firstChild);
+            function updateSelectedCount() { const checkboxes = document.querySelectorAll('.duplicate-checkbox:checked'); const countSpan = document.getElementById('selectedCount'); if(countSpan) countSpan.innerText = `${checkboxes.length} selecionado(s)`; }
+            document.querySelectorAll('.duplicate-checkbox').forEach(cb => cb.addEventListener('change', updateSelectedCount));
+            document.getElementById('selectAllDuplicatesBtn')?.addEventListener('click', () => { const allCheckboxes = document.querySelectorAll('.duplicate-checkbox'); const areAllChecked = Array.from(allCheckboxes).every(cb => cb.checked); allCheckboxes.forEach(cb => cb.checked = !areAllChecked); updateSelectedCount(); });
+            document.getElementById('deleteSelectedDuplicatesBtn')?.addEventListener('click', () => { const selected = document.querySelectorAll('.duplicate-checkbox:checked'); if(selected.length === 0) { showToast('Selecione pelo menos um item para excluir'); return; } if(confirm(`Tem certeza que deseja excluir ${selected.length} item(s) duplicado(s)? O original será preservado.`)) { let deletions = []; selected.forEach(cb => { const id = cb.getAttribute('data-id'); const type = cb.getAttribute('data-type'); deletions.push(database.ref(`${type}/${id}`).remove()); }); Promise.all(deletions).then(() => { showToast(`${selected.length} item(s) duplicado(s) removido(s) com sucesso!`); loadCanaisFromFirebase(); loadFilmesFromFirebase(); loadSeriesFromFirebase(); renderDuplicatesList(); }).catch(error => showToast('Erro ao excluir itens: ' + error.message)); } });
+            updateSelectedCount();
+        }
+        
+        function updateUserUI(user) {
+            if (user) {
+                hideLoginModal();
+                loadUserNickname(user.uid);
+                database.ref('chat').limitToLast(100).off();
+                database.ref('chat').limitToLast(100).on('child_added', (snapshot) => { const msg = snapshot.val(); addMessageToChat(msg.username, msg.text, false, msg.time, false); });
+                database.ref(`favoritos/${user.uid}`).on('value', (snapshot) => { favoritos = snapshot.val() ? Object.values(snapshot.val()) : []; if (document.getElementById('tabPerfil').classList.contains('active-tab-content')) updateProfileUI(); });
+                database.ref('top10').on('value', (snapshot) => { const data = snapshot.val(); if(data) { top10List = data; renderTop10Carousel(); } else { generateTop10ByViews(); } });
+                loadFeed();
+            } else { 
+                showLoginModal(); 
+                document.getElementById('chatMessages').innerHTML = '';
+                document.getElementById('feedContainer').innerHTML = '<div class="text-center text-gray-500 py-8">Faça login para ver o feed</div>';
+            }
+        }
         async function loadUserNickname(userId) { const snapshot = await database.ref(`usuarios/${userId}`).once('value'); const data = snapshot.val(); if(data && data.nickname) { currentUsername = data.nickname; localStorage.setItem('noitefilmes_username', currentUsername); } }
         
         // ==================== EVENT LISTENERS ====================
@@ -2071,8 +2547,8 @@
         document.getElementById('lightModeBtn').onclick = setLightMode;
         document.getElementById('darkModeSettingsBtn').onclick = setDarkMode;
         document.getElementById('lightModeSettingsBtn').onclick = setLightMode;
-        document.getElementById('chatToggleBtn').onclick = toggleChat;
-        document.getElementById('closeChatBtn').onclick = toggleChat;
+        document.getElementById('darkModePerfilBtn').onclick = setDarkMode;
+        document.getElementById('lightModePerfilBtn').onclick = setLightMode;
         document.getElementById('sendMessageBtn').onclick = sendChatMessage;
         document.getElementById('chatInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') sendChatMessage(); });
         document.getElementById('favoritesBtn').onclick = openFavoritesPopup;
@@ -2081,6 +2557,7 @@
         document.getElementById('settingsBtn').onclick = openSettingsModal;
         document.getElementById('saveUsernameBtn').onclick = saveUsername;
         document.getElementById('logoutSettingsBtn').onclick = logoutUser;
+        document.getElementById('logoutPerfilBtn').onclick = logoutUser;
         document.getElementById('castButton').onclick = toggleCast;
         document.getElementById('closeShareModal').onclick = closeShareModal;
         document.querySelectorAll('.share-icon').forEach(icon => { icon.addEventListener('click', () => shareMedia(icon.getAttribute('data-platform'))); });
@@ -2103,9 +2580,19 @@
         document.getElementById('saveBatchBtn').onclick = saveBatch;
         document.getElementById('saveEpisodesBtn').onclick = saveEpisodes;
         document.getElementById('sortSelect').addEventListener('change', (e) => { currentSort = e.target.value; renderGrid(); });
+        document.getElementById('submitPostBtn').onclick = () => createPost(document.getElementById('newPostText').value, document.getElementById('newPostImage').value);
+        document.getElementById('saveProfileUsername').onclick = saveProfileUsername;
         document.getElementById('settingsModal').addEventListener('click', (e) => { if(e.target === document.getElementById('settingsModal')) document.getElementById('settingsModal').classList.add('hidden'); });
         document.getElementById('searchPopup').addEventListener('click', (e) => { if(e.target === document.getElementById('searchPopup')) document.getElementById('searchPopup').classList.add('hidden'); });
         document.getElementById('favoritesPopup').addEventListener('click', (e) => { if(e.target === document.getElementById('favoritesPopup')) document.getElementById('favoritesPopup').classList.add('hidden'); });
+        
+        // Menu inferior
+        document.querySelectorAll('.bottom-nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const tab = item.getAttribute('data-tab');
+                showTab(tab);
+            });
+        });
         
         loadCanaisFromFirebase();
         loadFilmesFromFirebase();
@@ -2114,9 +2601,12 @@
         setupSearchPopup();
         loadTheme();
         if(typeof YT === 'undefined') { window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady; } else { onYouTubeIframeAPIReady(); }
-        setInterval(() => { const onlineCount = Math.floor(Math.random() * 15) + 3; document.getElementById('onlineCount').innerHTML = `● ${onlineCount} online`; }, 15000);
+        setInterval(() => { const onlineCount = Math.floor(Math.random() * 15) + 3; document.getElementById('onlineCountChat').innerHTML = `● ${onlineCount} online`; }, 15000);
         window.addEventListener('popstate', (event) => { if (event.state && event.state.mediaId && event.state.type) playMediaById(event.state.mediaId, event.state.type); else closePlayer(); });
         document.getElementById('batchSeriesArea').classList.add('hidden');
+        
+        // Inicializar perfil
+        if (currentUser) updateProfileUI();
     </script>
 </body>
 </html>
