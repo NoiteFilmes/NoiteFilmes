@@ -976,6 +976,33 @@
             gap: 8px;
             align-items: center;
         }
+        .iptv-badge {
+            background: #e50914;
+            color: white;
+            font-size: 8px;
+            padding: 2px 4px;
+            border-radius: 4px;
+            margin-left: 4px;
+        }
+        .iptv-selector {
+            margin-top: 8px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            background: #2a2a2a;
+            padding: 6px 10px;
+            border-radius: 8px;
+        }
+        .iptv-selector label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .iptv-selector input[type="radio"] {
+            accent-color: #e50914;
+        }
     </style>
     <script>
         // Função para bloquear zoom e efeito de pinça em dispositivos móveis
@@ -1220,10 +1247,21 @@
                         <h3 class="font-semibold text-md mb-2" id="formTitle">Adicionar</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                             <input type="text" id="itemTitle" placeholder="Título" class="bg-gray-700 p-2 rounded text-sm">
-                            <input type="text" id="itemLink" placeholder="Link do YouTube" class="bg-gray-700 p-2 rounded text-sm">
+                            <div class="link-input-wrapper">
+                                <input type="text" id="itemLink" placeholder="Link (YouTube ou .m3u8)" class="bg-gray-700 p-2 rounded text-sm flex-1">
+                                <button id="autoFillBtn" class="auto-fill-btn" title="Preencher automaticamente (apenas YouTube)"><i class="fas fa-magic"></i></button>
+                            </div>
                             <input type="text" id="itemThumb" placeholder="Miniatura URL" class="bg-gray-700 p-2 rounded text-sm">
                             <input type="text" id="itemCategory" placeholder="Gênero" class="bg-gray-700 p-2 rounded text-sm">
                             <input type="text" id="itemYear" placeholder="Ano" class="bg-gray-700 p-2 rounded text-sm">
+                        </div>
+                        <div class="iptv-selector" id="mediaTypeSelector">
+                            <label>
+                                <input type="radio" name="mediaType" value="youtube" checked> 🎬 YouTube
+                            </label>
+                            <label>
+                                <input type="radio" name="mediaType" value="iptv"> 📡 IPTV (.m3u8)
+                            </label>
                         </div>
                         <div class="mt-2 flex gap-2">
                             <button id="saveItemBtn" class="bg-green-700 hover:bg-green-800 px-3 py-1 rounded text-sm">Salvar</button>
@@ -1826,6 +1864,11 @@
             return (match && match[2].length === 11) ? match[2] : null;
         }
         
+        function isIptvLink(url) {
+            if(!url) return false;
+            return url.includes('.m3u8') || url.includes('playlist') || url.includes('sdp') || url.includes('mpd');
+        }
+        
         async function playMediaById(mediaId, type) {
             let item = filmes.find(f => f.id === mediaId);
             let foundType = 'filme';
@@ -1848,7 +1891,7 @@
         
         async function playMedia(item, type) {
             const videoId = extractYoutubeId(item.link);
-            const isHls = item.link && (item.link.includes('.m3u8') || item.link.includes('playlist') || item.link.includes('sdp'));
+            const isHls = isIptvLink(item.link);
             
             const container = document.getElementById('playerCommentsContainer');
             const overlay = document.getElementById('floatingPlayerOverlay');
@@ -1879,7 +1922,6 @@
             currentMedia = item;
             currentMediaType = type;
             
-            // Incrementar visualizações ao iniciar o player
             incrementViewCount(item.id);
             loadViewCount(item.id);
             
@@ -2104,15 +2146,18 @@
             }
             const grid = document.getElementById('contentGrid');
             if(items.length === 0) { grid.innerHTML = '<div class="col-span-full text-center py-6 text-gray-500 text-sm">📀 Nenhum conteúdo encontrado.</div>'; return; }
-            grid.innerHTML = items.map(item => `
-                <div class="bg-gray-800 rounded-lg overflow-hidden cursor-pointer card-hover transition" data-id="${item.id}" data-type="${currentNavTab}">
-                    <img src="${item.thumb || 'https://via.placeholder.com/300x200'}" class="w-full h-28 object-cover" onerror="this.src='https://via.placeholder.com/300x200'">
-                    <div class="p-1">
-                        <h3 class="font-semibold text-xs truncate">${item.title}</h3>
-                        <p class="text-xs text-gray-400">${item.category || 'Geral'} ${item.year ? `• ${item.year}` : ''}</p>
+            grid.innerHTML = items.map(item => {
+                const isIptv = isIptvLink(item.link);
+                return `
+                    <div class="bg-gray-800 rounded-lg overflow-hidden cursor-pointer card-hover transition" data-id="${item.id}" data-type="${currentNavTab}">
+                        <img src="${item.thumb || 'https://via.placeholder.com/300x200'}" class="w-full h-28 object-cover" onerror="this.src='https://via.placeholder.com/300x200'">
+                        <div class="p-1">
+                            <h3 class="font-semibold text-xs truncate">${item.title} ${isIptv ? '<span class="iptv-badge">IPTV</span>' : ''}</h3>
+                            <p class="text-xs text-gray-400">${item.category || 'Geral'} ${item.year ? `• ${item.year}` : ''}</p>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
             document.querySelectorAll('#contentGrid > div').forEach(card => {
                 card.addEventListener('click', () => {
                     const id = card.getAttribute('data-id');
@@ -2293,7 +2338,7 @@
                 const matches = allItems.filter(item => item.title.toLowerCase().includes(term));
                 if(matches.length === 0) resultsDiv.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm">Nenhum resultado</div>';
                 else {
-                    resultsDiv.innerHTML = matches.map(item => `<div class="search-result-item" data-id="${item.id}" data-type="${item.type}"><img src="${item.thumb || 'https://via.placeholder.com/60x80'}" onerror="this.src='https://via.placeholder.com/60x80'"><div><div class="font-semibold text-sm">${item.title}</div><div class="text-xs text-gray-400">${item.category || 'Geral'} • ${item.year || ''}</div></div></div>`).join('');
+                    resultsDiv.innerHTML = matches.map(item => `<div class="search-result-item" data-id="${item.id}" data-type="${item.type}"><img src="${item.thumb || 'https://via.placeholder.com/60x80'}" onerror="this.src='https://via.placeholder.com/60x80'"><div><div class="font-semibold text-sm">${item.title} ${isIptvLink(item.link) ? '<span class="iptv-badge">IPTV</span>' : ''}</div><div class="text-xs text-gray-400">${item.category || 'Geral'} • ${item.year || ''}</div></div></div>`).join('');
                     document.querySelectorAll('#popupSearchResults .search-result-item').forEach(el => {
                         el.addEventListener('click', () => {
                             const id = el.getAttribute('data-id');
@@ -2439,7 +2484,7 @@
             updateSelectedCount();
         }
         
-        // ==================== FUNÇÕES ADMIN (DO CÓDIGO 1) ====================
+        // ==================== FUNÇÕES ADMIN ====================
         function refreshAdminLists() {
             if(!isAdminLogged) return;
             document.getElementById('canaisAdminList').innerHTML = canais.map(c => `<div class="bg-gray-800 p-1 rounded flex justify-between text-xs"><span>${c.title.substring(0,25)}</span><button class="delete-canal text-red-500" data-id="${c.id}"><i class="fas fa-trash"></i></button></div>`).join('');
@@ -2457,6 +2502,7 @@
             document.getElementById('itemThumb').value = '';
             document.getElementById('itemCategory').value = '';
             document.getElementById('itemYear').value = '';
+            document.querySelector('input[name="mediaType"][value="youtube"]').checked = true;
             editingItem = null;
             document.getElementById('cancelEditBtn').classList.add('hidden');
         }
@@ -2514,34 +2560,50 @@
         
         async function saveSingleItem() {
             const title = document.getElementById('itemTitle').value.trim();
-            const link = document.getElementById('itemLink').value.trim();
+            let link = document.getElementById('itemLink').value.trim();
             const thumb = document.getElementById('itemThumb').value.trim();
             const category = document.getElementById('itemCategory').value.trim();
             const year = document.getElementById('itemYear').value.trim();
+            const mediaType = document.querySelector('input[name="mediaType"]:checked').value;
             
             if(!title || !link) {
                 showToast('❌ Preencha título e link');
                 return;
             }
             
-            const videoId = extractYoutubeId(link);
-            if(!videoId) {
-                showToast('❌ Link do YouTube inválido');
-                return;
+            if(mediaType === 'youtube') {
+                const videoId = extractYoutubeId(link);
+                if(!videoId) {
+                    showToast('❌ Link do YouTube inválido');
+                    return;
+                }
+            } else if(mediaType === 'iptv') {
+                if(!isIptvLink(link)) {
+                    showToast('❌ Link IPTV inválido. Use um link .m3u8 válido');
+                    return;
+                }
             }
             
             const activeAdminTab = document.querySelector('#adminPanel .admin-tab-btn.border-b-2.border-red-600')?.id;
             const safeId = generateSafeId();
             
+            let finalThumb = thumb;
+            if(mediaType === 'youtube' && !finalThumb) {
+                const videoId = extractYoutubeId(link);
+                if(videoId) finalThumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+            }
+            if(!finalThumb) finalThumb = 'https://via.placeholder.com/300x200';
+            
             const newItem = {
                 id: safeId,
                 title: title,
                 link: link,
-                thumb: thumb || `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
-                category: category || 'Geral',
+                thumb: finalThumb,
+                category: category || (mediaType === 'iptv' ? 'IPTV' : 'Geral'),
                 year: year || new Date().getFullYear(),
                 description: title,
-                createdAt: Date.now()
+                createdAt: Date.now(),
+                mediaType: mediaType
             };
             
             try {
@@ -2641,7 +2703,8 @@
                     category: item.genre,
                     year: item.year,
                     description: item.description,
-                    createdAt: Date.now()
+                    createdAt: Date.now(),
+                    mediaType: 'youtube'
                 });
                 salvos++;
             }
@@ -2696,7 +2759,8 @@
                     category: metadata?.genre || 'Série',
                     year: metadata?.year || new Date().getFullYear(),
                     description: metadata?.description || `Episódio ${episodeTitle}`,
-                    createdAt: Date.now()
+                    createdAt: Date.now(),
+                    mediaType: 'youtube'
                 });
                 salvos++;
             }
@@ -2826,7 +2890,7 @@
         
         document.getElementById('saveItemBtn').onclick = saveSingleItem;
         document.getElementById('cancelEditBtn').onclick = resetForm;
-        document.getElementById('itemLink').addEventListener('blur', autoFillFromYoutubeLink);
+        document.getElementById('autoFillBtn').onclick = autoFillFromYoutubeLink;
         document.getElementById('previewBatchBtn').onclick = previewBatch;
         document.getElementById('saveBatchBtn').onclick = saveBatch;
         document.getElementById('saveEpisodesBtn').onclick = saveEpisodes;
