@@ -1076,7 +1076,6 @@
                     <div class="video-meta">
                         <span id="videoYear"></span>
                         <span id="videoGenre"></span>
-                        <span id="viewCountDisplay" class="text-xs"><i class="fas fa-eye mr-1"></i><span id="viewCountNumber">0</span> visualizações</span>
                     </div>
                     <div class="action-buttons">
                         <button id="likeBtn" class="action-btn like-btn"><i class="far fa-heart"></i> <span id="likeCount">0</span></button>
@@ -1245,7 +1244,7 @@
     <script>
         // ==================== CONFIGURAÇÃO DO FIREBASE ====================
         const firebaseConfig = {
-            apiKey: "AIzaSyAXQ_3yaVR6TgsA6haN6U7uihHdd8NvrP78",
+            apiKey: "AIzaSyAXQ_3yaVR6TgsAha6nU7uihHdd8NvrP78",
             authDomain: "noitefilmes26.firebaseapp.com",
             projectId: "noitefilmes26",
             storageBucket: "noitefilmes26.firebasestorage.app",
@@ -1281,8 +1280,8 @@
         let likeCount = 0;
         let updateInterval = null;
         let progressInterval = null;
-        
-        // ==================== FUNÇÃO PARA VISUALIZAÇÕES ====================
+
+// ==================== FUNÇÃO PARA VISUALIZAÇÕES ====================
         function incrementViewCount(mediaId) {
             if (!mediaId) return;
             const viewRef = database.ref(`visualizacoes/${mediaId}`);
@@ -1585,7 +1584,6 @@
                     loadRatingsFromFirebase(mediaId);
                     loadComments(mediaId);
                     loadLikeCount(mediaId);
-                    loadViewCount(mediaId);
                 }
             }, 1000);
         }
@@ -1855,10 +1853,6 @@
             
             currentMedia = item;
             currentMediaType = type;
-            
-            // Incrementar visualizações ao iniciar o player
-            incrementViewCount(item.id);
-            loadViewCount(item.id);
             
             startRealtimeUpdates(item.id);
             
