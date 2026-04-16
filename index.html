@@ -1039,6 +1039,29 @@
         .counter-item .counter-label::first-letter {
             text-transform: uppercase;
         }
+        
+        /* Estilos para ordenação */
+        .sort-select {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 20px;
+            padding: 4px 8px;
+            font-size: 11px;
+            color: white;
+            outline: none;
+            cursor: pointer;
+        }
+        .sort-select option {
+            background: #2a2a2a;
+        }
+        .filters-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
     </style>
     <script>
         // Função para bloquear zoom e efeito de pinça em dispositivos móveis
@@ -1153,7 +1176,7 @@
     <div class="container mx-auto px-2 mt-2">
         <div class="flex items-center gap-1 mb-1">
             <i class="fas fa-chart-line text-red-500 text-xs"></i>
-            <h2 class="font-bold text-xs">Top 10</h2>
+            <h2 class="font-bold text-xs">Top 10 Mais Assistidos</h2>
         </div>
         <div class="relative">
             <div id="top10Carousel" class="carousel-container overflow-x-auto">
@@ -1232,8 +1255,21 @@
 
     <div class="container mx-auto px-2 mt-2" id="filtrosArea">
         <div class="bg-gray-900 rounded-xl p-2">
-            <div class="flex flex-wrap gap-1" id="genreFilters">
-                <button data-genre="todos" class="genre-filter px-2 py-0.5 rounded-full bg-gray-800 text-xs genre-filter-active">🎬 Todos</button>
+            <div class="filters-row">
+                <div class="flex flex-wrap gap-1" id="genreFilters">
+                    <button data-genre="todos" class="genre-filter px-2 py-0.5 rounded-full bg-gray-800 text-xs genre-filter-active">🎬 Todos</button>
+                </div>
+                <div>
+                    <select id="sortSelect" class="sort-select">
+                        <option value="recent">📅 Mais recentes</option>
+                        <option value="views">👁️ Mais vistos</option>
+                        <option value="az">🔤 A-Z</option>
+                        <option value="za">🔤 Z-A</option>
+                        <option value="year_asc">📅 Ano (crescente)</option>
+                        <option value="year_desc">📅 Ano (decrescente)</option>
+                        <option value="genre">🎭 Por gênero</option>
+                    </select>
+                </div>
             </div>
         </div>
     </div>
@@ -1382,6 +1418,7 @@
         let ytPlayer = null;
         let currentNavTab = 'filmes';
         let currentGenreFilter = 'todos';
+        let currentSort = 'recent'; // padrão: mais recentes
         let top10List = [];
         let isAdminLogged = false;
         let currentUsername = localStorage.getItem('noitefilmes_username') || 'Cinéfilo';
@@ -1396,11 +1433,40 @@
         let updateInterval = null;
         let progressInterval = null;
         
+        // Cache de visualizações
+        let viewsCache = {}; // id -> count
+        
         // ==================== FUNÇÃO PARA ATUALIZAR CONTADORES ====================
         function updateContentCounters() {
             document.getElementById('filmesCount').innerText = filmes.length;
             document.getElementById('seriesCount').innerText = series.length;
             document.getElementById('canaisCount').innerText = canais.length;
+        }
+        
+        // ==================== CARREGAR VISUALIZAÇÕES PARA ORDENAÇÃO E TOP 10 ====================
+        async function loadAllViews() {
+            const snapshot = await database.ref('visualizacoes').once('value');
+            const data = snapshot.val() || {};
+            viewsCache = data;
+            // Atualizar Top 10 baseado nas views
+            generateTop10ByViews();
+            // Se a ordenação atual for 'views', re-renderizar
+            if (currentSort === 'views') {
+                renderGrid();
+            }
+        }
+        
+        function generateTop10ByViews() {
+            // Coletar todos os itens (filmes, séries, canais) com suas views
+            const allItems = [
+                ...filmes.map(f => ({ ...f, contentType: 'filme', views: viewsCache[f.id] || 0 })),
+                ...series.map(s => ({ ...s, contentType: 'serie', views: viewsCache[s.id] || 0 })),
+                ...canais.map(c => ({ ...c, contentType: 'canal', views: viewsCache[c.id] || 0 }))
+            ];
+            // Ordenar por views decrescente
+            allItems.sort((a, b) => b.views - a.views);
+            top10List = allItems.slice(0, 10);
+            renderTop10Carousel();
         }
         
         // ==================== FUNÇÃO DE VISUALIZAÇÕES ====================
@@ -1410,6 +1476,10 @@
             viewRef.transaction((currentViews) => {
                 return (currentViews || 0) + 1;
             });
+            // Atualizar cache local para reflejar imediatamente na ordenação se necessário
+            setTimeout(() => {
+                loadAllViews();
+            }, 500);
         }
         
         function loadViewCount(mediaId) {
@@ -2154,8 +2224,8 @@
                 canais = data ? Object.values(data).filter(i => !i.hidden) : [];
                 canaisLoaded = true;
                 updateContentCounters();
+                loadAllViews(); // atualiza views e top10
                 if(currentNavTab === 'canais') renderGrid();
-                generateWeeklyTop10();
                 updateGenreFilters();
                 if(isAdminLogged) refreshAdminLists();
                 checkAllDataLoaded();
@@ -2168,8 +2238,8 @@
                 filmes = data ? Object.values(data).filter(i => !i.hidden) : [];
                 filmesLoaded = true;
                 updateContentCounters();
+                loadAllViews();
                 if(currentNavTab === 'filmes') renderGrid();
-                generateWeeklyTop10();
                 if(isAdminLogged) refreshAdminLists();
                 checkAllDataLoaded();
             });
@@ -2181,8 +2251,8 @@
                 series = data ? Object.values(data).filter(i => !i.hidden) : [];
                 seriesLoaded = true;
                 updateContentCounters();
+                loadAllViews();
                 if(currentNavTab === 'series') renderGrid();
-                generateWeeklyTop10();
                 if(isAdminLogged) refreshAdminLists();
                 checkAllDataLoaded();
             });
@@ -2199,24 +2269,64 @@
             }
         }
         
+        // ==================== FUNÇÕES DE ORDENAÇÃO ====================
+        function sortItems(items) {
+            if (!items) return [];
+            const sorted = [...items];
+            switch(currentSort) {
+                case 'recent':
+                    sorted.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                    break;
+                case 'views':
+                    sorted.sort((a, b) => (viewsCache[b.id] || 0) - (viewsCache[a.id] || 0));
+                    break;
+                case 'az':
+                    sorted.sort((a, b) => a.title.localeCompare(b.title));
+                    break;
+                case 'za':
+                    sorted.sort((a, b) => b.title.localeCompare(a.title));
+                    break;
+                case 'year_asc':
+                    sorted.sort((a, b) => (parseInt(a.year) || 0) - (parseInt(b.year) || 0));
+                    break;
+                case 'year_desc':
+                    sorted.sort((a, b) => (parseInt(b.year) || 0) - (parseInt(a.year) || 0));
+                    break;
+                case 'genre':
+                    sorted.sort((a, b) => (a.category || '').localeCompare(b.category || ''));
+                    break;
+                default:
+                    sorted.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            }
+            return sorted;
+        }
+        
         function renderGrid() {
             let items = [];
             if(currentNavTab === 'canais') items = canais;
             else if(currentNavTab === 'filmes') items = filmes;
             else if(currentNavTab === 'series') items = series;
+            
+            // Filtro por gênero
             if(currentGenreFilter !== 'todos' && currentNavTab !== 'canais') {
                 items = items.filter(i => i.category === currentGenreFilter);
             }
+            
+            // Ordenação
+            items = sortItems(items);
+            
             const grid = document.getElementById('contentGrid');
             if(items.length === 0) { grid.innerHTML = '<div class="col-span-full text-center py-6 text-gray-500 text-sm">📀 Nenhum conteúdo encontrado.</div>'; return; }
             grid.innerHTML = items.map(item => {
                 const isIptv = isIptvLink(item.link);
+                const views = viewsCache[item.id] || 0;
                 return `
                     <div class="bg-gray-800 rounded-lg overflow-hidden cursor-pointer card-hover transition" data-id="${item.id}" data-type="${currentNavTab}">
                         <img src="${item.thumb || 'https://via.placeholder.com/300x200'}" class="w-full h-28 object-cover" onerror="this.src='https://via.placeholder.com/300x200'">
                         <div class="p-1">
                             <h3 class="font-semibold text-xs truncate">${item.title} ${isIptv ? '<span class="iptv-badge">IPTV</span>' : ''}</h3>
                             <p class="text-xs text-gray-400">${item.category || 'Geral'} ${item.year ? `• ${item.year}` : ''}</p>
+                            <p class="text-xs text-gray-500"><i class="fas fa-eye"></i> ${views}</p>
                         </div>
                     </div>
                 `;
@@ -2257,30 +2367,22 @@
             });
         }
         
-        function generateWeeklyTop10() {
-            const allContent = [...canais.map(c => ({...c, contentType: 'canal'})), ...filmes.map(f => ({...f, contentType: 'filme'})), ...series.map(s => ({...s, contentType: 'serie'}))];
-            if(allContent.length === 0) return;
-            const shuffled = [...allContent];
-            for(let i = shuffled.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-            }
-            top10List = shuffled.slice(0, 10);
-            renderTop10Carousel();
-        }
-        
         function renderTop10Carousel() {
             const track = document.getElementById('top10Track');
             if(!top10List || top10List.length === 0) { track.innerHTML = '<div class="text-center text-gray-500 w-full py-4 text-xs">Carregando...</div>'; return; }
-            track.innerHTML = top10List.map((item, index) => `
-                <div class="carousel-item cursor-pointer group" data-id="${item.id}" data-type="${item.contentType}">
-                    <div class="poster-wrapper">
-                        <img src="${item.thumb || 'https://via.placeholder.com/150x200'}" class="poster-back" onerror="this.style.display='none'">
-                        <img src="${item.thumb || 'https://via.placeholder.com/150x200'}" class="poster-front" onerror="this.src='https://via.placeholder.com/150x200'">
-                        <div class="rank-number">${index+1}</div>
+            track.innerHTML = top10List.map((item, index) => {
+                const views = item.views || 0;
+                return `
+                    <div class="carousel-item cursor-pointer group" data-id="${item.id}" data-type="${item.contentType}">
+                        <div class="poster-wrapper">
+                            <img src="${item.thumb || 'https://via.placeholder.com/150x200'}" class="poster-back" onerror="this.style.display='none'">
+                            <img src="${item.thumb || 'https://via.placeholder.com/150x200'}" class="poster-front" onerror="this.src='https://via.placeholder.com/150x200'">
+                            <div class="rank-number">${index+1}</div>
+                        </div>
+                        <div class="text-center text-xs mt-1">${views} views</div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
             document.querySelectorAll('#top10Track .carousel-item').forEach(el => {
                 el.addEventListener('click', () => {
                     const id = el.getAttribute('data-id');
@@ -2676,24 +2778,22 @@
                 category: category || (mediaType === 'iptv' ? 'IPTV' : 'Geral'),
                 year: year || new Date().getFullYear(),
                 description: title,
-                mediaType: mediaType
+                mediaType: mediaType,
+                createdAt: Date.now()
             };
             
             try {
                 if (editingItem) {
-                    // Modo edição: atualiza o item existente
                     const refPath = editingItem.type === 'canais' ? `canais/${editingItem.id}` : (editingItem.type === 'filmes' ? `filmes/${editingItem.id}` : `series/${editingItem.id}`);
                     await database.ref(refPath).update(itemData);
                     showToast('✅ Item atualizado com sucesso!');
                     resetForm();
-                    // Recarregar dados
                     if (editingItem.type === 'canais') loadCanaisFromFirebase();
                     else if (editingItem.type === 'filmes') loadFilmesFromFirebase();
                     else if (editingItem.type === 'series') loadSeriesFromFirebase();
                 } else {
-                    // Modo adição
                     const safeId = generateSafeId();
-                    const newItem = { id: safeId, ...itemData, createdAt: Date.now() };
+                    const newItem = { id: safeId, ...itemData };
                     if(activeAdminTab === 'adminTabCanais') {
                         await database.ref(`canais/${safeId}`).set(newItem);
                         showToast('✅ Canal salvo!');
@@ -2887,7 +2987,7 @@
                 database.ref('chat').limitToLast(100).off();
                 database.ref('chat').limitToLast(100).on('child_added', (snapshot) => { const msg = snapshot.val(); addMessageToChat(msg.username, msg.text, false, msg.time, false); });
                 database.ref(`favoritos/${user.uid}`).on('value', (snapshot) => { favoritos = snapshot.val() ? Object.values(snapshot.val()) : []; });
-                database.ref('top10').on('value', (snapshot) => { const data = snapshot.val(); if(data) { top10List = data; renderTop10Carousel(); } else { generateWeeklyTop10(); } });
+                database.ref('top10').on('value', (snapshot) => { const data = snapshot.val(); if(data) { top10List = data; renderTop10Carousel(); } else { generateTop10ByViews(); } });
             } else { 
                 showLoginModal(); 
                 document.getElementById('chatMessages').innerHTML = '';
@@ -3003,6 +3103,13 @@
         document.getElementById('previewBatchBtn').onclick = previewBatch;
         document.getElementById('saveBatchBtn').onclick = saveBatch;
         document.getElementById('saveEpisodesBtn').onclick = saveEpisodes;
+        
+        // Ordenação
+        const sortSelect = document.getElementById('sortSelect');
+        sortSelect.addEventListener('change', (e) => {
+            currentSort = e.target.value;
+            renderGrid();
+        });
         
         document.getElementById('settingsModal').addEventListener('click', (e) => { if(e.target === document.getElementById('settingsModal')) document.getElementById('settingsModal').classList.add('hidden'); });
         document.getElementById('searchPopup').addEventListener('click', (e) => { if(e.target === document.getElementById('searchPopup')) document.getElementById('searchPopup').classList.add('hidden'); });
