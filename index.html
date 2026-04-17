@@ -51,7 +51,7 @@
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
         }
         
-        /* Ripple Effect (WhatsApp style) */
+        /* Ripple Effect */
         .ripple-btn {
             position: relative;
             overflow: hidden;
@@ -102,7 +102,7 @@
             background: #000;
         }
         
-        /* ========== LAYOUT DESKTOP (70% video / 30% comments) ========== */
+        /* ========== LAYOUT DESKTOP (60% video / 40% comments) ========== */
         @media (min-width: 1024px) {
             .player-comments-container {
                 position: fixed;
@@ -121,18 +121,18 @@
                 padding: 20px;
             }
             .video-section {
-                flex: 7;
+                flex: 6;
                 display: flex;
                 flex-direction: column;
                 min-width: 0;
                 overflow-y: auto;
             }
             .comments-section {
-                flex: 3;
+                flex: 4;
                 display: flex;
                 flex-direction: column;
                 overflow: hidden;
-                min-width: 280px;
+                min-width: 300px;
             }
             .video-info {
                 padding: 16px;
@@ -167,9 +167,21 @@
                 padding: 8px 16px;
                 font-size: 0.8rem;
             }
+            .comment-input-area {
+                padding: 12px;
+                border-top: 1px solid rgba(255,255,255,0.1);
+                display: flex;
+                gap: 10px;
+            }
+            .comment-input-area input {
+                flex: 7;
+            }
+            .comment-input-area button {
+                flex: 3;
+            }
         }
         
-        /* ========== LAYOUT MOBILE HORIZONTAL (70% video / 30% comments) ========== */
+        /* ========== LAYOUT MOBILE HORIZONTAL (60% video / 40% comments) ========== */
         @media (max-width: 1023px) and (orientation: landscape) {
             .player-comments-container {
                 position: fixed;
@@ -186,18 +198,18 @@
                 padding: 12px;
             }
             .video-section {
-                flex: 7;
+                flex: 6;
                 display: flex;
                 flex-direction: column;
                 min-width: 0;
                 overflow-y: auto;
             }
             .comments-section {
-                flex: 3;
+                flex: 4;
                 display: flex;
                 flex-direction: column;
                 overflow: hidden;
-                min-width: 240px;
+                min-width: 260px;
             }
             .video-info {
                 padding: 10px;
@@ -206,19 +218,12 @@
                 font-size: 0.9rem;
                 font-weight: bold;
                 margin-bottom: 4px;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
             }
             .video-description {
                 font-size: 0.7rem;
                 line-height: 1.3;
                 max-height: 2.6em;
                 overflow: hidden;
-                transition: max-height 0.3s ease;
-            }
-            .video-description.expanded {
-                max-height: 100px;
             }
             .video-meta {
                 display: flex;
@@ -230,39 +235,49 @@
             .action-buttons {
                 display: flex;
                 flex-wrap: wrap;
-                gap: 6px;
+                gap: 8px;
                 align-items: center;
             }
             .action-btn {
-                padding: 4px 8px;
-                font-size: 0.6rem;
+                padding: 5px 10px;
+                font-size: 0.65rem;
             }
-            .rating-stars i {
-                font-size: 12px;
+            .comment-input-area {
+                padding: 10px;
+                border-top: 1px solid rgba(255,255,255,0.1);
+                display: flex;
+                gap: 8px;
+            }
+            .comment-input-area input {
+                flex: 7;
+            }
+            .comment-input-area button {
+                flex: 3;
             }
         }
         
-        /* ========== LAYOUT MOBILE VERTICAL (Player maior, comentários expandidos) ========== */
+        /* ========== LAYOUT MOBILE VERTICAL (Espaço até o bottom) ========== */
         @media (max-width: 768px) and (orientation: portrait) {
             .player-comments-container {
                 position: fixed;
                 top: 60px;
-                left: 8px;
-                right: 8px;
-                width: auto;
-                background: rgba(8, 8, 18, 0.96);
-                border-radius: 24px;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                width: 100%;
+                background: rgba(8, 8, 18, 0.98);
+                border-radius: 0;
                 display: flex;
                 flex-direction: column;
                 z-index: 1100;
                 overflow: hidden;
-                max-height: calc(100vh - 70px);
                 padding: 12px;
             }
             .video-section {
                 flex-shrink: 0;
                 width: 100%;
-                overflow: visible;
+                overflow-y: auto;
+                flex: 1;
             }
             .video-section .player-wrapper {
                 aspect-ratio: 16 / 9;
@@ -276,28 +291,15 @@
                 font-size: 0.85rem;
                 font-weight: bold;
                 margin-bottom: 6px;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
             }
             .video-description {
                 font-size: 0.7rem;
                 line-height: 1.3;
                 max-height: 2.6em;
                 overflow: hidden;
-                transition: max-height 0.3s ease;
             }
             .video-description.expanded {
                 max-height: 150px;
-            }
-            .description-toggle {
-                font-size: 0.65rem;
-                color: #e50914;
-                cursor: pointer;
-                display: inline-block;
-                margin-top: 4px;
-                background: none;
-                border: none;
             }
             .video-meta {
                 display: flex;
@@ -309,32 +311,31 @@
             .action-buttons {
                 display: flex;
                 flex-wrap: wrap;
-                gap: 6px;
+                gap: 8px;
                 align-items: center;
                 justify-content: flex-start;
             }
             .action-btn {
                 padding: 5px 10px;
                 font-size: 0.6rem;
-                gap: 4px;
-            }
-            .action-btn i {
-                font-size: 11px;
             }
             .rating-stars i {
-                font-size: 11px;
+                font-size: 14px;
             }
-            .rating-percent {
-                font-size: 9px;
+            .rating-label {
+                font-size: 8px;
+                text-align: center;
+                margin-top: 4px;
+                opacity: 0.7;
             }
             .comments-section {
                 display: flex;
                 flex-direction: column;
                 background: rgba(0, 0, 0, 0.3);
-                margin-top: 10px;
+                margin-top: 8px;
                 border-radius: 20px;
-                max-height: 40vh;
-                min-height: 180px;
+                flex: 1;
+                min-height: 200px;
             }
             .comments-header {
                 padding: 8px 12px;
@@ -343,15 +344,23 @@
                 flex: 1;
                 overflow-y: auto;
                 padding: 8px;
-                max-height: 30vh;
+                max-height: none;
             }
             .comment-item {
                 padding: 6px;
                 margin-bottom: 6px;
             }
             .comment-input-area {
-                padding: 8px;
-                gap: 6px;
+                padding: 10px;
+                gap: 8px;
+                border-top: 1px solid rgba(255,255,255,0.1);
+                display: flex;
+            }
+            .comment-input-area input {
+                flex: 7;
+            }
+            .comment-input-area button {
+                flex: 3;
             }
         }
         
@@ -493,6 +502,12 @@
             color: #ffc107; 
             text-shadow: 0 0 4px gold;
         }
+        .rating-label {
+            font-size: 8px;
+            text-align: center;
+            margin-top: 4px;
+            opacity: 0.7;
+        }
         
         /* Genre Filter */
         .genre-filter-active { 
@@ -525,7 +540,7 @@
             100% { opacity: 0.8; box-shadow: 0 0 0 0 rgba(229,9,20,0); } 
         }
         
-        /* Description Toggle Button */
+        /* Description Toggle */
         .description-toggle {
             font-size: 0.7rem;
             color: #e50914;
@@ -536,9 +551,6 @@
             background: none;
             border: none;
             margin-top: 4px;
-        }
-        .description-toggle:hover {
-            opacity: 0.8;
         }
         
         /* Report Button */
@@ -648,10 +660,12 @@
                     </div>
                     <div class="action-buttons">
                         <button id="likeBtn" class="action-btn ripple-btn"><i class="far fa-heart"></i> <span id="likeCount">0</span></button>
-                        <div id="ratingStarsContainer" class="rating-stars flex items-center"></div>
+                        <div class="rating-wrapper" style="text-align: center;">
+                            <div id="ratingStarsContainer" class="rating-stars flex items-center justify-center"></div>
+                            <div class="rating-label">Avalie-me</div>
+                        </div>
                         <span id="ratingPercentDisplay" class="rating-percent text-yellow-400 text-xs font-bold">0%</span>
                         <button id="saveBtn" class="action-btn ripple-btn"><i class="far fa-star"></i></button>
-                        <button id="shareBtn" class="action-btn ripple-btn"><i class="fas fa-share-alt"></i></button>
                         <button id="reportBtn" class="report-btn ripple-btn"><i class="fas fa-flag"></i> <span class="hidden sm:inline">Reportar</span></button>
                     </div>
                 </div>
@@ -662,23 +676,10 @@
                 <div id="ratingInfo" class="rating-info p-2 text-xs border-b border-white/10"></div>
                 <div id="commentsList" class="comments-list"></div>
                 <div class="comment-input-area">
-                    <input type="text" id="newCommentInput" class="flex-1 bg-white/10 rounded-full px-3 py-1.5 text-xs" placeholder="Adicione um comentário...">
-                    <button id="submitCommentBtn" class="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-full text-xs font-semibold transition ripple-btn">Enviar</button>
+                    <input type="text" id="newCommentInput" class="bg-white/10 rounded-full px-3 py-2 text-xs" placeholder="Adicione um comentário...">
+                    <button id="submitCommentBtn" class="bg-red-600 hover:bg-red-700 rounded-full text-xs font-semibold transition ripple-btn">Enviar</button>
                 </div>
             </div>
-        </div>
-
-        <!-- Modal Compartilhar -->
-        <div id="shareModal" class="hidden fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[1200] glass-card p-4 w-72">
-            <div class="text-center mb-3 font-bold text-base">Compartilhar</div>
-            <div class="share-buttons flex justify-center gap-3">
-                <div class="share-icon share-whatsapp w-10 h-10 rounded-full flex items-center justify-center cursor-pointer bg-[#25D366] transition hover:scale-110 ripple-btn" data-platform="whatsapp"><i class="fab fa-whatsapp text-lg"></i></div>
-                <div class="share-icon share-telegram w-10 h-10 rounded-full flex items-center justify-center cursor-pointer bg-[#0088cc] transition hover:scale-110 ripple-btn" data-platform="telegram"><i class="fab fa-telegram-plane text-lg"></i></div>
-                <div class="share-icon share-facebook w-10 h-10 rounded-full flex items-center justify-center cursor-pointer bg-[#1877F2] transition hover:scale-110 ripple-btn" data-platform="facebook"><i class="fab fa-facebook-f text-lg"></i></div>
-                <div class="share-icon share-twitter w-10 h-10 rounded-full flex items-center justify-center cursor-pointer bg-[#1DA1F2] transition hover:scale-110 ripple-btn" data-platform="twitter"><i class="fab fa-twitter text-lg"></i></div>
-                <div class="share-icon share-copy w-10 h-10 rounded-full flex items-center justify-center cursor-pointer bg-gray-600 transition hover:scale-110 ripple-btn" data-platform="copy"><i class="fas fa-link text-lg"></i></div>
-            </div>
-            <button id="closeShareModal" class="mt-3 w-full bg-white/10 hover:bg-white/20 py-1.5 rounded-full text-sm transition ripple-btn">Fechar</button>
         </div>
 
         <!-- Popup Favoritos -->
@@ -814,6 +815,7 @@
                     <div id="batchFilmesArea" class="bg-gray-800/50 p-3 rounded-xl mb-3"><h3 class="font-semibold text-sm mb-1 text-white">📦 Adicionar Lote</h3><textarea id="batchLinksInput" rows="2" class="batch-input w-full p-2 rounded-xl text-xs bg-gray-700 text-white"></textarea><div class="flex gap-2 mt-2"><button id="previewBatchBtn" class="bg-blue-700 hover:bg-blue-800 px-2 py-1 rounded-full text-xs transition ripple-btn">🔍 Prévia</button><button id="saveBatchBtn" class="bg-green-700 hover:bg-green-800 px-2 py-1 rounded-full text-xs transition ripple-btn">💾 Salvar Lote</button></div><div id="batchPreview" class="mt-2 text-xs max-h-28 overflow-y-auto text-gray-300"></div></div>
                     <div id="batchSeriesArea" class="bg-gray-800/50 p-3 rounded-xl mb-3 hidden"><h3 class="font-semibold text-sm mb-1 text-white">📺 Adicionar Episódios</h3><input type="text" id="serieTitle" placeholder="Nome da Série" class="bg-gray-700 p-1.5 rounded-full w-full text-xs text-white mb-1"><textarea id="episodesLinksInput" rows="2" class="batch-input w-full p-2 rounded-xl text-xs bg-gray-700 text-white"></textarea><button id="saveEpisodesBtn" class="bg-green-700 hover:bg-green-800 px-2 py-1 rounded-full text-xs mt-1 transition ripple-btn">💾 Salvar</button></div>
                     <div id="adminListsContainer"><div id="adminCanaisList" class="mb-3 hidden"><h3 class="font-bold text-xs mb-1 text-white">Canais</h3><div id="canaisAdminList" class="space-y-1 max-h-32 overflow-y-auto"></div></div><div id="adminFilmesList"><h3 class="font-bold text-xs mb-1 text-white">Filmes</h3><div id="filmesAdminList" class="space-y-1 max-h-32 overflow-y-auto"></div></div><div id="adminSeriesList" class="hidden"><h3 class="font-bold text-xs mb-1 text-white">Séries</h3><div id="seriesAdminList" class="space-y-1 max-h-32 overflow-y-auto"></div></div><div id="adminDuplicadosList" class="hidden"><h3 class="font-bold text-xs mb-1 text-white">🎬 Filmes Duplicados</h3><div id="duplicadosAdminList" class="space-y-2 max-h-48 overflow-y-auto text-xs"></div></div></div>
+                    <div id="reportsList" class="mt-4 bg-gray-800/50 p-3 rounded-xl"><h3 class="font-bold text-xs mb-2 text-white">📋 Relatórios de Problemas</h3><div id="reportsContainer" class="space-y-2 max-h-40 overflow-y-auto text-xs"></div></div>
                 </div>
             </div>
         </div>
@@ -1109,34 +1111,73 @@
             };
         }
         
-        // ==================== REPORT FUNCTION ====================
+        // ==================== REPORT FUNCTION (Envia notificação ao Admin) ====================
         function reportProblem() {
             if (!currentMedia) {
                 showToast('Nenhum vídeo selecionado');
                 return;
             }
-            const videoTitle = currentMedia.title;
-            const videoUrl = window.location.href;
-            const reportText = `🚨 **Problema no vídeo:** ${videoTitle}\n🔗 Link: ${videoUrl}\n\nDescreva o problema:`;
-            
-            if (navigator.share) {
-                navigator.share({
-                    title: 'Reportar problema - NoiteFilmes',
-                    text: reportText,
-                    url: videoUrl
-                }).catch(() => {
-                    copyReportToClipboard(reportText);
-                });
-            } else {
-                copyReportToClipboard(reportText);
+            if (!currentUser) {
+                showToast('Faça login para reportar um problema');
+                return;
             }
+            
+            const videoTitle = currentMedia.title;
+            const videoId = currentMedia.id;
+            const videoLink = currentMedia.link;
+            const reportData = {
+                videoId: videoId,
+                videoTitle: videoTitle,
+                videoLink: videoLink,
+                reportedBy: currentUser.uid,
+                reportedByName: currentUsername,
+                reportedAt: Date.now(),
+                status: 'pending'
+            };
+            
+            database.ref('reports').push(reportData).then(() => {
+                showToast('✅ Problema reportado! O administrador foi notificado.');
+            }).catch(error => {
+                showToast('❌ Erro ao reportar: ' + error.message);
+            });
         }
         
-        function copyReportToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                showToast('📋 Texto copiado! Cole no WhatsApp ou envie para o suporte.');
-            }).catch(() => {
-                showToast('Erro ao copiar. Tente novamente.');
+        // ==================== LOAD REPORTS FOR ADMIN ====================
+        function loadReportsForAdmin() {
+            if (!isAdminLogged) return;
+            database.ref('reports').once('value', (snapshot) => {
+                const reports = snapshot.val();
+                const reportsContainer = document.getElementById('reportsContainer');
+                if (!reportsContainer) return;
+                
+                if (!reports) {
+                    reportsContainer.innerHTML = '<div class="text-center text-gray-500 py-2 text-xs">Nenhum relatório ainda</div>';
+                    return;
+                }
+                
+                const reportsList = Object.entries(reports).map(([key, report]) => {
+                    const date = new Date(report.reportedAt).toLocaleString();
+                    return `
+                        <div class="bg-gray-800 p-2 rounded-lg">
+                            <div class="font-bold text-red-400 text-xs">${report.videoTitle}</div>
+                            <div class="text-[9px] text-gray-400">Reportado por: @${report.reportedByName}</div>
+                            <div class="text-[9px] text-gray-500">Data: ${date}</div>
+                            <div class="text-[9px] text-gray-500">Link: ${report.videoLink.substring(0, 50)}...</div>
+                            <button class="resolve-report-btn bg-green-700 text-white px-2 py-0.5 rounded-full text-[9px] mt-1" data-id="${key}">Marcar como resolvido</button>
+                        </div>
+                    `;
+                }).join('');
+                reportsContainer.innerHTML = reportsList;
+                
+                document.querySelectorAll('.resolve-report-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const reportId = btn.getAttribute('data-id');
+                        database.ref(`reports/${reportId}`).remove().then(() => {
+                            showToast('Relatório resolvido e removido');
+                            loadReportsForAdmin();
+                        });
+                    });
+                });
             });
         }
         
@@ -1362,26 +1403,6 @@
         
         function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
         
-        let currentShareMedia = null;
-        function openShareModal(media) { currentShareMedia = media; document.getElementById('shareModal').classList.remove('hidden'); }
-        function closeShareModal() { document.getElementById('shareModal').classList.add('hidden'); }
-        function shareMedia(platform) {
-            if (!currentShareMedia) return;
-            const shareUrl = `${window.location.origin}${window.location.pathname}?mediaId=${currentShareMedia.id}&type=${currentMediaType}`;
-            const encodedUrl = encodeURIComponent(shareUrl);
-            const text = encodeURIComponent(`🎬 "${currentShareMedia.title}" - Assista agora no NoiteFilmes!`);
-            let shareLink = '';
-            switch(platform) {
-                case 'whatsapp': shareLink = `https://api.whatsapp.com/send?text=${text}%20${encodedUrl}`; break;
-                case 'telegram': shareLink = `https://t.me/share/url?url=${encodedUrl}&text=${text}`; break;
-                case 'facebook': shareLink = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`; break;
-                case 'twitter': shareLink = `https://twitter.com/intent/tweet?text=${text}&url=${encodedUrl}`; break;
-                case 'copy': navigator.clipboard.writeText(shareUrl); showToast('Link copiado!'); closeShareModal(); return;
-            }
-            if (shareLink) window.open(shareLink, '_blank');
-            closeShareModal();
-        }
-        
         function showToast(msg) { const toast = document.createElement('div'); toast.className = 'toast'; toast.innerText = msg; document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
         function extractYoutubeId(url) { if (!url) return null; const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/; const match = url.match(regExp); return (match && match[2].length === 11) ? match[2] : null; }
         function isIptvLink(url) { if (!url) return false; return url.includes('.m3u8') || url.includes('playlist') || url.includes('sdp') || url.includes('mpd'); }
@@ -1419,7 +1440,6 @@
             startRealtimeUpdates(item.id);
             const likeBtn = document.getElementById('likeBtn');
             const saveBtn = document.getElementById('saveBtn');
-            const shareBtn = document.getElementById('shareBtn');
             const reportBtn = document.getElementById('reportBtn');
             
             function updateButtons() {
@@ -1432,7 +1452,6 @@
             }
             likeBtn.onclick = () => { toggleLikeMedia(item.id); setTimeout(() => loadLikeCount(item.id), 500); };
             saveBtn.onclick = () => { if (!currentUser) { showToast('Faça login'); return; } const existing = favoritos.find(f => f.id === item.id); if (existing && existing.saved) database.ref(`favoritos/${currentUser.uid}/${item.id}`).remove(); else database.ref(`favoritos/${currentUser.uid}/${item.id}`).set({ id: item.id, title: item.title, thumb: item.thumb, type: type, liked: existing?.liked || false, saved: true }); updateButtons(); };
-            shareBtn.onclick = () => openShareModal(item);
             reportBtn.onclick = () => reportProblem();
             updateButtons();
             loadRatingsFromFirebase(item.id);
@@ -1679,8 +1698,7 @@
         document.getElementById('saveUsernameBtn').onclick = saveUsername;
         document.getElementById('logoutSettingsBtn').onclick = logoutUser;
         document.getElementById('castButton').onclick = toggleCast;
-        document.getElementById('closeShareModal').onclick = closeShareModal;
-        document.querySelectorAll('.share-icon').forEach(icon => { icon.addEventListener('click', () => shareMedia(icon.getAttribute('data-platform'))); });
+        
         document.getElementById('doLogin').onclick = () => { const email = document.getElementById('loginEmail').value; const password = document.getElementById('loginPassword').value; auth.signInWithEmailAndPassword(email, password).catch(e => showToast('Erro: ' + e.message)); };
         document.getElementById('doRegister').onclick = registerUser;
         document.getElementById('showRegister').onclick = () => { document.getElementById('loginForm').classList.add('hidden'); document.getElementById('registerForm').classList.remove('hidden'); };
@@ -1688,11 +1706,11 @@
         const modal = document.getElementById('adminModal');
         document.getElementById('adminBtn').onclick = () => { modal.classList.remove('hidden'); document.getElementById('adminLoginArea').classList.remove('hidden'); document.getElementById('adminPanel').classList.add('hidden'); };
         document.getElementById('closeAdminModal').onclick = () => modal.classList.add('hidden');
-        document.getElementById('loginAdminBtn').onclick = () => { if (document.getElementById('adminPassword').value === 'admin123') { isAdminLogged = true; document.getElementById('adminLoginArea').classList.add('hidden'); document.getElementById('adminPanel').classList.remove('hidden'); refreshAdminLists(); } else alert('Senha incorreta'); };
-        document.getElementById('adminTabCanais').onclick = () => { document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); document.getElementById('adminTabCanais').classList.add('border-b-2', 'border-red-600', 'text-red-500'); document.getElementById('adminCanaisList').classList.remove('hidden'); document.getElementById('adminFilmesList').classList.add('hidden'); document.getElementById('adminSeriesList').classList.add('hidden'); document.getElementById('adminDuplicadosList').classList.add('hidden'); document.getElementById('batchFilmesArea').classList.add('hidden'); document.getElementById('batchSeriesArea').classList.add('hidden'); document.getElementById('adminFormArea').classList.remove('hidden'); resetForm(); };
-        document.getElementById('adminTabFilmes').onclick = () => { document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); document.getElementById('adminTabFilmes').classList.add('border-b-2', 'border-red-600', 'text-red-500'); document.getElementById('adminCanaisList').classList.add('hidden'); document.getElementById('adminFilmesList').classList.remove('hidden'); document.getElementById('adminSeriesList').classList.add('hidden'); document.getElementById('adminDuplicadosList').classList.add('hidden'); document.getElementById('batchFilmesArea').classList.remove('hidden'); document.getElementById('batchSeriesArea').classList.add('hidden'); document.getElementById('adminFormArea').classList.remove('hidden'); resetForm(); };
-        document.getElementById('adminTabSeries').onclick = () => { document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); document.getElementById('adminTabSeries').classList.add('border-b-2', 'border-red-600', 'text-red-500'); document.getElementById('adminCanaisList').classList.add('hidden'); document.getElementById('adminFilmesList').classList.add('hidden'); document.getElementById('adminSeriesList').classList.remove('hidden'); document.getElementById('adminDuplicadosList').classList.add('hidden'); document.getElementById('batchFilmesArea').classList.add('hidden'); document.getElementById('batchSeriesArea').classList.remove('hidden'); document.getElementById('adminFormArea').classList.remove('hidden'); resetForm(); };
-        document.getElementById('adminTabDuplicados').onclick = () => { document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); document.getElementById('adminTabDuplicados').classList.add('border-b-2', 'border-red-600', 'text-red-500'); document.getElementById('adminCanaisList').classList.add('hidden'); document.getElementById('adminFilmesList').classList.add('hidden'); document.getElementById('adminSeriesList').classList.add('hidden'); document.getElementById('adminDuplicadosList').classList.remove('hidden'); document.getElementById('adminFormArea').classList.add('hidden'); document.getElementById('batchFilmesArea').classList.add('hidden'); document.getElementById('batchSeriesArea').classList.add('hidden'); renderDuplicatesList(); };
+        document.getElementById('loginAdminBtn').onclick = () => { if (document.getElementById('adminPassword').value === 'admin123') { isAdminLogged = true; document.getElementById('adminLoginArea').classList.add('hidden'); document.getElementById('adminPanel').classList.remove('hidden'); refreshAdminLists(); loadReportsForAdmin(); } else alert('Senha incorreta'); };
+        document.getElementById('adminTabCanais').onclick = () => { document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); document.getElementById('adminTabCanais').classList.add('border-b-2', 'border-red-600', 'text-red-500'); document.getElementById('adminCanaisList').classList.remove('hidden'); document.getElementById('adminFilmesList').classList.add('hidden'); document.getElementById('adminSeriesList').classList.add('hidden'); document.getElementById('adminDuplicadosList').classList.add('hidden'); document.getElementById('reportsList').classList.add('hidden'); document.getElementById('batchFilmesArea').classList.add('hidden'); document.getElementById('batchSeriesArea').classList.add('hidden'); document.getElementById('adminFormArea').classList.remove('hidden'); resetForm(); };
+        document.getElementById('adminTabFilmes').onclick = () => { document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); document.getElementById('adminTabFilmes').classList.add('border-b-2', 'border-red-600', 'text-red-500'); document.getElementById('adminCanaisList').classList.add('hidden'); document.getElementById('adminFilmesList').classList.remove('hidden'); document.getElementById('adminSeriesList').classList.add('hidden'); document.getElementById('adminDuplicadosList').classList.add('hidden'); document.getElementById('reportsList').classList.add('hidden'); document.getElementById('batchFilmesArea').classList.remove('hidden'); document.getElementById('batchSeriesArea').classList.add('hidden'); document.getElementById('adminFormArea').classList.remove('hidden'); resetForm(); };
+        document.getElementById('adminTabSeries').onclick = () => { document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); document.getElementById('adminTabSeries').classList.add('border-b-2', 'border-red-600', 'text-red-500'); document.getElementById('adminCanaisList').classList.add('hidden'); document.getElementById('adminFilmesList').classList.add('hidden'); document.getElementById('adminSeriesList').classList.remove('hidden'); document.getElementById('adminDuplicadosList').classList.add('hidden'); document.getElementById('reportsList').classList.add('hidden'); document.getElementById('batchFilmesArea').classList.add('hidden'); document.getElementById('batchSeriesArea').classList.remove('hidden'); document.getElementById('adminFormArea').classList.remove('hidden'); resetForm(); };
+        document.getElementById('adminTabDuplicados').onclick = () => { document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); document.getElementById('adminTabDuplicados').classList.add('border-b-2', 'border-red-600', 'text-red-500'); document.getElementById('adminCanaisList').classList.add('hidden'); document.getElementById('adminFilmesList').classList.add('hidden'); document.getElementById('adminSeriesList').classList.add('hidden'); document.getElementById('adminDuplicadosList').classList.remove('hidden'); document.getElementById('reportsList').classList.add('hidden'); document.getElementById('adminFormArea').classList.add('hidden'); document.getElementById('batchFilmesArea').classList.add('hidden'); document.getElementById('batchSeriesArea').classList.add('hidden'); renderDuplicatesList(); };
         document.getElementById('saveItemBtn').onclick = saveSingleItem;
         document.getElementById('cancelEditBtn').onclick = resetForm;
         document.getElementById('autoFillBtn').onclick = autoFillFromLink;
