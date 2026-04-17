@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -11,6 +12,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         * { 
@@ -1091,6 +1093,74 @@
             width: 90%;
             max-width: 450px;
         }
+        
+        /* Create Post Button */
+        .create-post-btn {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: #e50914;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(229,9,20,0.4);
+            transition: transform 0.2s;
+        }
+        .create-post-btn:active {
+            transform: scale(0.92);
+        }
+        
+        /* Create Post Modal */
+        .create-post-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.95);
+            backdrop-filter: blur(20px);
+            z-index: 2300;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .create-post-content {
+            background: rgba(25,25,45,0.95);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 32px;
+            padding: 24px;
+            width: 90%;
+            max-width: 500px;
+        }
+        .image-preview {
+            width: 100%;
+            max-height: 300px;
+            object-fit: contain;
+            border-radius: 16px;
+            background: #1a1a1a;
+            margin-top: 12px;
+        }
+        .rating-input {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin: 12px 0;
+        }
+        .rating-star-input {
+            font-size: 28px;
+            cursor: pointer;
+            color: rgba(255,255,255,0.3);
+            transition: color 0.1s;
+        }
+        .rating-star-input.active {
+            color: #ffc107;
+        }
     </style>
     <script>
         (function blockPinchZoom() {
@@ -1270,6 +1340,10 @@
             <h2 class="text-lg font-bold mb-2">📰 Feed de Atividades</h2>
             <div id="feedList" class="space-y-2"></div>
         </div>
+        <!-- Botão de criar postagem (+) na parte inferior central -->
+        <div class="create-post-btn ripple-btn" id="createPostBtn">
+            <i class="fas fa-plus text-white text-2xl"></i>
+        </div>
     </div>
 
     <!-- Seção Chat - Instagram Style -->
@@ -1411,6 +1485,27 @@
             </div>
         </div>
     </div>
+    
+    <!-- Create Post Modal -->
+    <div id="createPostModal" class="create-post-modal hidden">
+        <div class="create-post-content">
+            <h3 class="text-xl font-bold mb-4 text-center">➕ Nova Postagem</h3>
+            <input type="file" id="postImageInput" accept="image/*" class="w-full p-2 bg-white/10 rounded-full text-sm mb-3">
+            <div id="imagePreviewContainer" class="flex justify-center"></div>
+            <textarea id="postCaption" rows="3" class="w-full p-2 bg-white/10 rounded-xl text-sm mb-3" placeholder="Legenda..."></textarea>
+            <div class="rating-input" id="postRatingContainer">
+                <span class="rating-star-input" data-value="1">☆</span>
+                <span class="rating-star-input" data-value="2">☆</span>
+                <span class="rating-star-input" data-value="3">☆</span>
+                <span class="rating-star-input" data-value="4">☆</span>
+                <span class="rating-star-input" data-value="5">☆</span>
+            </div>
+            <div class="flex gap-3 mt-4">
+                <button id="cancelPostBtn" class="flex-1 bg-gray-700 py-2 rounded-full text-sm ripple-btn">Cancelar</button>
+                <button id="submitPostBtn" class="flex-1 bg-red-600 py-2 rounded-full text-sm font-bold ripple-btn">Publicar</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         // ==================== FIREBASE CONFIG ====================
@@ -1427,6 +1522,7 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         const auth = firebase.auth();
+        const storage = firebase.storage();
         
         let currentUser = null;
         let filmes = [];
@@ -1473,6 +1569,11 @@
             bio: '',
             externalLink: ''
         };
+        
+        // Posts data
+        let userPosts = [];
+        let selectedPostRating = 0;
+        let selectedPostImageFile = null;
         
         // ==================== FUNÇÕES DE NAVEGAÇÃO ====================
         function switchSection(sectionId) {
@@ -1626,137 +1727,130 @@
             }
             
             function renderProfileHtml(uid, nickname, isSelf) {
-                const postagens = [...filmes, ...series, ...canais];
-                const totalPosts = postagens.length;
-                
-                // Get real followers count from database
-                database.ref(`followers/${uid}`).once('value', (snap) => {
-                    const followersCount = snap.val() ? Object.keys(snap.val()).length : 0;
+                // Load user posts (only images, no videos)
+                database.ref(`posts/${uid}`).once('value', (snap) => {
+                    const posts = snap.val();
+                    const postsList = posts ? Object.values(posts).filter(p => p.imageUrl) : [];
+                    const totalPosts = postsList.length;
+                    
                     const followersSpan = document.getElementById('statFollowersValue');
-                    if (followersSpan) followersSpan.innerText = followersCount;
-                });
-                
-                // Get real following count from database
-                database.ref(`following/${uid}`).once('value', (snap) => {
-                    const followingCount = snap.val() ? Object.keys(snap.val()).length : 0;
                     const followingSpan = document.getElementById('statFollowingValue');
-                    if (followingSpan) followingSpan.innerText = followingCount;
-                });
-                
-                const displayNameText = userProfileData.displayName || nickname;
-                const bioText = userProfileData.bio || "🎬 Apaixonado por cinema e séries. NoiteFilmes é minha segunda casa! 🍿✨";
-                const truncatedBio = bioText.length > 300 ? bioText.substring(0, 300) : bioText;
-                const showExpand = bioText.length > 120;
-                const externalLink = userProfileData.externalLink || "https://instagram.com/noitefilmes";
-                const isFollowing = followingRelations[uid] === true;
-                
-                let actionButtonHtml = '';
-                if (!isSelf) {
-                    actionButtonHtml = `<button class="follow-button ${isFollowing ? 'following' : ''}" id="followActionBtn">${isFollowing ? 'Seguindo' : 'Seguir'}</button>`;
-                }
-                
-                container.innerHTML = `
-                    <div class="profile-header-instagram">
-                        <div class="top-bar">
-                            <div class="profile-username-top">@${nickname}</div>
-                            <div class="profile-options-icon" id="profileOptionsIcon"><i class="fas fa-ellipsis-h"></i></div>
-                        </div>
-                        <div class="profile-info-row">
-                            <div class="profile-picture"><i class="fas fa-user fa-2x"></i></div>
-                            <div class="profile-stats-grid">
-                                <div><span class="stat-number" id="statPosts">${totalPosts}</span><span class="stat-label"> posts</span></div>
-                                <div><span class="stat-number" id="statFollowersValue">0</span><span class="stat-label"> seguidores</span></div>
-                                <div><span class="stat-number" id="statFollowingValue">0</span><span class="stat-label"> seguindo</span></div>
-                            </div>
-                        </div>
-                        <div class="profile-bio">
-                            <div class="profile-bio-text" id="profileBioText">${makeNicknamesClickable(escapeHtml(truncatedBio))}</div>
-                            ${showExpand ? `<button class="bio-expand-btn" id="bioExpandBtn">...ver mais</button>` : ''}
-                        </div>
-                        <a href="${externalLink}" target="_blank" class="profile-external-link"><i class="fas fa-link"></i> ${externalLink}</a>
-                        ${actionButtonHtml}
-                    </div>
-                    <div class="post-grid" id="profilePostGrid"></div>
-                `;
-                
-                setupNicknameClickHandlers();
-                
-                // render posts grid
-                const gridContainer = document.getElementById('profilePostGrid');
-                if (gridContainer) {
-                    gridContainer.innerHTML = postagens.slice(0, 9).map(item => `
-                        <div class="post-grid-item ripple-btn" data-id="${item.id}" data-type="${item.contentType || (filmes.includes(item) ? 'filme' : (series.includes(item) ? 'serie' : 'canal'))}">
-                            <img src="${item.thumb || 'https://via.placeholder.com/150x150'}" onerror="this.src='https://via.placeholder.com/150x150'">
-                        </div>
-                    `).join('');
-                    document.querySelectorAll('.post-grid-item').forEach(el => {
-                        el.addEventListener('click', (e) => {
-                            const id = el.getAttribute('data-id');
-                            const type = el.getAttribute('data-type');
-                            playMediaById(id, type);
-                            switchSection('filmes');
-                        });
-                    });
-                }
-                
-                // Bio expand
-                const bioDiv = document.getElementById('profileBioText');
-                const expandBtn = document.getElementById('bioExpandBtn');
-                if (expandBtn && bioDiv) {
-                    let expanded = false;
-                    expandBtn.addEventListener('click', () => {
-                        if (!expanded) {
-                            bioDiv.style.maxHeight = '200px';
-                            bioDiv.classList.add('expanded');
-                            expandBtn.innerText = 'ver menos';
-                        } else {
-                            bioDiv.style.maxHeight = '4.2em';
-                            bioDiv.classList.remove('expanded');
-                            expandBtn.innerText = '...ver mais';
-                        }
-                        expanded = !expanded;
-                    });
-                }
-                
-                if (!isSelf) {
-                    const followBtn = document.getElementById('followActionBtn');
-                    if (followBtn) {
-                        followBtn.addEventListener('click', () => {
-                            const newStatus = !isFollowing;
-                            if (newStatus) {
-                                database.ref(`followers/${uid}/${currentUser.uid}`).set(true);
-                                database.ref(`following/${currentUser.uid}/${uid}`).set(true);
-                                followingRelations[uid] = true;
-                                showToast(`Você agora segue @${nickname}`);
-                            } else {
-                                database.ref(`followers/${uid}/${currentUser.uid}`).remove();
-                                database.ref(`following/${currentUser.uid}/${uid}`).remove();
-                                followingRelations[uid] = false;
-                                showToast(`Você deixou de seguir @${nickname}`);
-                            }
-                            renderInstagramProfile(uid);
+                    if (followersSpan) {
+                        database.ref(`followers/${uid}`).once('value', (snap) => {
+                            followersSpan.innerText = snap.val() ? Object.keys(snap.val()).length : 0;
                         });
                     }
-                }
-                
-                const optionsIcon = document.getElementById('profileOptionsIcon');
-                if (optionsIcon && isSelf) {
-                    optionsIcon.addEventListener('click', () => {
-                        // Show edit profile option
-                        openEditProfileModal();
-                    });
-                }
-                
-                // Update real counts
-                database.ref(`followers/${uid}`).once('value', (snap) => {
-                    const followersCount = snap.val() ? Object.keys(snap.val()).length : 0;
-                    const followersSpan = document.getElementById('statFollowersValue');
-                    if (followersSpan) followersSpan.innerText = followersCount;
-                });
-                database.ref(`following/${uid}`).once('value', (snap) => {
-                    const followingCount = snap.val() ? Object.keys(snap.val()).length : 0;
-                    const followingSpan = document.getElementById('statFollowingValue');
-                    if (followingSpan) followingSpan.innerText = followingCount;
+                    if (followingSpan) {
+                        database.ref(`following/${uid}`).once('value', (snap) => {
+                            followingSpan.innerText = snap.val() ? Object.keys(snap.val()).length : 0;
+                        });
+                    }
+                    
+                    const displayNameText = userProfileData.displayName || nickname;
+                    const bioText = userProfileData.bio || "🎬 Apaixonado por cinema e séries. NoiteFilmes é minha segunda casa! 🍿✨";
+                    const truncatedBio = bioText.length > 300 ? bioText.substring(0, 300) : bioText;
+                    const showExpand = bioText.length > 120;
+                    const externalLink = userProfileData.externalLink || "https://instagram.com/noitefilmes";
+                    const isFollowing = followingRelations[uid] === true;
+                    
+                    let actionButtonHtml = '';
+                    if (!isSelf) {
+                        actionButtonHtml = `<button class="follow-button ${isFollowing ? 'following' : ''}" id="followActionBtn">${isFollowing ? 'Seguindo' : 'Seguir'}</button>`;
+                    }
+                    
+                    container.innerHTML = `
+                        <div class="profile-header-instagram">
+                            <div class="top-bar">
+                                <div class="profile-username-top">@${nickname}</div>
+                                <div class="profile-options-icon" id="profileOptionsIcon"><i class="fas fa-ellipsis-h"></i></div>
+                            </div>
+                            <div class="profile-info-row">
+                                <div class="profile-picture"><i class="fas fa-user fa-2x"></i></div>
+                                <div class="profile-stats-grid">
+                                    <div><span class="stat-number" id="statPosts">${totalPosts}</span><span class="stat-label"> posts</span></div>
+                                    <div><span class="stat-number" id="statFollowersValue">0</span><span class="stat-label"> seguidores</span></div>
+                                    <div><span class="stat-number" id="statFollowingValue">0</span><span class="stat-label"> seguindo</span></div>
+                                </div>
+                            </div>
+                            <div class="profile-bio">
+                                <div class="profile-bio-text" id="profileBioText">${makeNicknamesClickable(escapeHtml(truncatedBio))}</div>
+                                ${showExpand ? `<button class="bio-expand-btn" id="bioExpandBtn">...ver mais</button>` : ''}
+                            </div>
+                            <a href="${externalLink}" target="_blank" class="profile-external-link"><i class="fas fa-link"></i> ${externalLink}</a>
+                            ${actionButtonHtml}
+                        </div>
+                        <div class="post-grid" id="profilePostGrid"></div>
+                    `;
+                    
+                    setupNicknameClickHandlers();
+                    
+                    // render posts grid (only image posts)
+                    const gridContainer = document.getElementById('profilePostGrid');
+                    if (gridContainer) {
+                        if (postsList.length === 0) {
+                            gridContainer.innerHTML = '<div class="col-span-full text-center text-gray-500 py-4 text-xs">Nenhuma postagem ainda</div>';
+                        } else {
+                            gridContainer.innerHTML = postsList.map(post => `
+                                <div class="post-grid-item ripple-btn" data-post-id="${post.id}">
+                                    <img src="${post.imageUrl}" onerror="this.src='https://via.placeholder.com/150x150'">
+                                </div>
+                            `).join('');
+                            document.querySelectorAll('.post-grid-item').forEach(el => {
+                                el.addEventListener('click', (e) => {
+                                    const postId = el.getAttribute('data-post-id');
+                                    // Visualizar postagem (opcional)
+                                    showToast(`Postagem visualizada`);
+                                });
+                            });
+                        }
+                    }
+                    
+                    // Bio expand
+                    const bioDiv = document.getElementById('profileBioText');
+                    const expandBtn = document.getElementById('bioExpandBtn');
+                    if (expandBtn && bioDiv) {
+                        let expanded = false;
+                        expandBtn.addEventListener('click', () => {
+                            if (!expanded) {
+                                bioDiv.style.maxHeight = '200px';
+                                bioDiv.classList.add('expanded');
+                                expandBtn.innerText = 'ver menos';
+                            } else {
+                                bioDiv.style.maxHeight = '4.2em';
+                                bioDiv.classList.remove('expanded');
+                                expandBtn.innerText = '...ver mais';
+                            }
+                            expanded = !expanded;
+                        });
+                    }
+                    
+                    if (!isSelf) {
+                        const followBtn = document.getElementById('followActionBtn');
+                        if (followBtn) {
+                            followBtn.addEventListener('click', () => {
+                                const newStatus = !isFollowing;
+                                if (newStatus) {
+                                    database.ref(`followers/${uid}/${currentUser.uid}`).set(true);
+                                    database.ref(`following/${currentUser.uid}/${uid}`).set(true);
+                                    followingRelations[uid] = true;
+                                    showToast(`Você agora segue @${nickname}`);
+                                } else {
+                                    database.ref(`followers/${uid}/${currentUser.uid}`).remove();
+                                    database.ref(`following/${currentUser.uid}/${uid}`).remove();
+                                    followingRelations[uid] = false;
+                                    showToast(`Você deixou de seguir @${nickname}`);
+                                }
+                                renderInstagramProfile(uid);
+                            });
+                        }
+                    }
+                    
+                    const optionsIcon = document.getElementById('profileOptionsIcon');
+                    if (optionsIcon && isSelf) {
+                        optionsIcon.addEventListener('click', () => {
+                            openEditProfileModal();
+                        });
+                    }
                 });
             }
         }
@@ -1836,6 +1930,98 @@
                         });
                     }
                 });
+            }
+        }
+        
+        // ==================== CREATE POST FUNCTION ====================
+        function openCreatePostModal() {
+            if (!currentUser) {
+                showToast('Faça login para criar uma postagem');
+                return;
+            }
+            selectedPostRating = 0;
+            selectedPostImageFile = null;
+            document.getElementById('postCaption').value = '';
+            document.getElementById('imagePreviewContainer').innerHTML = '';
+            document.getElementById('postImageInput').value = '';
+            updatePostRatingStars();
+            document.getElementById('createPostModal').classList.remove('hidden');
+        }
+        
+        function updatePostRatingStars() {
+            const stars = document.querySelectorAll('#postRatingContainer .rating-star-input');
+            stars.forEach((star, index) => {
+                if (index < selectedPostRating) {
+                    star.innerHTML = '★';
+                    star.classList.add('active');
+                } else {
+                    star.innerHTML = '☆';
+                    star.classList.remove('active');
+                }
+            });
+        }
+        
+        function setupPostRatingListeners() {
+            const stars = document.querySelectorAll('#postRatingContainer .rating-star-input');
+            stars.forEach(star => {
+                star.addEventListener('click', () => {
+                    selectedPostRating = parseInt(star.getAttribute('data-value'));
+                    updatePostRatingStars();
+                });
+            });
+        }
+        
+        function previewPostImage() {
+            const file = document.getElementById('postImageInput').files[0];
+            if (file && file.type.startsWith('image/')) {
+                selectedPostImageFile = file;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('imagePreviewContainer').innerHTML = `<img src="${e.target.result}" class="image-preview">`;
+                };
+                reader.readAsDataURL(file);
+            } else if (file) {
+                showToast('Por favor, selecione apenas imagens');
+                document.getElementById('postImageInput').value = '';
+                selectedPostImageFile = null;
+            }
+        }
+        
+        async function submitPost() {
+            if (!selectedPostImageFile) {
+                showToast('Selecione uma imagem para postar');
+                return;
+            }
+            
+            const caption = document.getElementById('postCaption').value.trim();
+            const rating = selectedPostRating;
+            
+            showToast('Enviando postagem...');
+            
+            try {
+                const storageRef = storage.ref(`posts/${currentUser.uid}/${Date.now()}_${selectedPostImageFile.name}`);
+                const uploadTask = await storageRef.put(selectedPostImageFile);
+                const imageUrl = await uploadTask.ref.getDownloadURL();
+                
+                const postData = {
+                    id: Date.now().toString(),
+                    userId: currentUser.uid,
+                    userName: currentUsername,
+                    imageUrl: imageUrl,
+                    caption: caption,
+                    rating: rating,
+                    createdAt: Date.now(),
+                    likes: 0,
+                    comments: []
+                };
+                
+                await database.ref(`posts/${currentUser.uid}/${postData.id}`).set(postData);
+                showToast('Postagem publicada com sucesso!');
+                document.getElementById('createPostModal').classList.add('hidden');
+                renderInstagramProfile();
+            } catch (error) {
+                console.error(error);
+                showToast('Erro ao publicar postagem: ' + error.message);
             }
         }
         
@@ -2466,6 +2652,13 @@
         // Edit profile modal events
         document.getElementById('cancelEditProfileBtn').onclick = () => document.getElementById('editProfileModal').classList.add('hidden');
         document.getElementById('saveEditProfileBtn').onclick = saveEditProfile;
+        // Create post modal events
+        document.getElementById('createPostBtn').onclick = openCreatePostModal;
+        document.getElementById('cancelPostBtn').onclick = () => document.getElementById('createPostModal').classList.add('hidden');
+        document.getElementById('submitPostBtn').onclick = submitPost;
+        document.getElementById('postImageInput').addEventListener('change', previewPostImage);
+        setupPostRatingListeners();
+        
         document.getElementById('doLogin').onclick = () => { const email = document.getElementById('loginEmail').value; const password = document.getElementById('loginPassword').value; auth.signInWithEmailAndPassword(email, password).catch(e => showToast('Erro: ' + e.message)); };
         document.getElementById('doRegister').onclick = registerUser;
         document.getElementById('showRegister').onclick = () => { document.getElementById('loginForm').classList.add('hidden'); document.getElementById('registerForm').classList.remove('hidden'); };
@@ -2490,6 +2683,7 @@
         document.getElementById('searchPopup').addEventListener('click', (e) => { if (e.target === document.getElementById('searchPopup')) document.getElementById('searchPopup').classList.add('hidden'); });
         document.getElementById('favoritesPopup').addEventListener('click', (e) => { if (e.target === document.getElementById('favoritesPopup')) document.getElementById('favoritesPopup').classList.add('hidden'); });
         document.getElementById('editProfileModal').addEventListener('click', (e) => { if (e.target === document.getElementById('editProfileModal')) document.getElementById('editProfileModal').classList.add('hidden'); });
+        document.getElementById('createPostModal').addEventListener('click', (e) => { if (e.target === document.getElementById('createPostModal')) document.getElementById('createPostModal').classList.add('hidden'); });
         document.getElementById('profileLogoutBtn') && document.getElementById('profileLogoutBtn').addEventListener('click', logoutUser);
         document.querySelectorAll('.bottom-nav-item').forEach(item => { item.addEventListener('click', () => { const section = item.getAttribute('data-section'); switchSection(section); }); });
         
