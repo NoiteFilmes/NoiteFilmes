@@ -717,6 +717,223 @@
         textarea.batch-input {
             border-radius: 20px;
         }
+        
+        /* Chat Styles - Instagram Style */
+        .chat-list-container {
+            height: calc(100vh - 160px);
+            overflow-y: auto;
+        }
+        
+        .chat-conversation-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            gap: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        
+        .chat-conversation-item:active {
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .chat-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #e50914, #b20710);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        
+        .chat-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .chat-name {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 4px;
+        }
+        
+        .chat-last-message {
+            font-size: 13px;
+            color: rgba(255,255,255,0.6);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .chat-time {
+            font-size: 11px;
+            color: rgba(255,255,255,0.4);
+            flex-shrink: 0;
+        }
+        
+        /* Individual Chat Screen */
+        .chat-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 10% 20%, #0a0a1a 0%, #050510 100%);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-screen-header {
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(20px);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .chat-back-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .chat-screen-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #e50914, #b20710);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .chat-screen-info {
+            flex: 1;
+        }
+        
+        .chat-screen-name {
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .chat-screen-status {
+            font-size: 11px;
+            color: rgba(255,255,255,0.5);
+        }
+        
+        .chat-messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .chat-bubble {
+            max-width: 70%;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            word-wrap: break-word;
+        }
+        
+        .chat-bubble-sent {
+            background: #e50914;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .chat-bubble-received {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .chat-bubble-time {
+            font-size: 9px;
+            color: rgba(255,255,255,0.5);
+            margin-top: 4px;
+            text-align: right;
+        }
+        
+        .chat-input-container {
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(20px);
+            padding: 12px 16px;
+            display: flex;
+            gap: 12px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .chat-input-field {
+            flex: 1;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 25px;
+            padding: 10px 16px;
+            color: white;
+            font-size: 14px;
+            outline: none;
+        }
+        
+        .chat-input-field::placeholder {
+            color: rgba(255,255,255,0.5);
+        }
+        
+        .chat-send-button {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #e50914;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: none;
+        }
+        
+        body.light-mode .chat-screen {
+            background: radial-gradient(circle at 10% 20%, #e0e8f5, #c5d0e5);
+        }
+        
+        body.light-mode .chat-bubble-received {
+            background: rgba(0,0,0,0.1);
+            color: #1a1a1a;
+        }
+        
+        body.light-mode .chat-bubble-time {
+            color: rgba(0,0,0,0.4);
+        }
+        
+        body.light-mode .chat-last-message {
+            color: rgba(0,0,0,0.6);
+        }
+        
+        body.light-mode .chat-time {
+            color: rgba(0,0,0,0.4);
+        }
+        
+        body.light-mode .chat-conversation-item {
+            border-bottom-color: rgba(0,0,0,0.08);
+        }
     </style>
     <script>
         (function blockPinchZoom() {
@@ -899,16 +1116,15 @@
         </div>
     </div>
 
-    <!-- Seção Chat -->
+    <!-- Seção Chat - Instagram Style -->
     <div id="chatSection" class="section">
-        <div class="chat-container m-2 h-[calc(100vh-160px)] glass">
-            <div class="chat-header p-3 flex justify-between items-center border-b border-white/10">
-                <div class="flex items-center gap-2"><i class="fas fa-comment-dots text-red-500"></i> <span class="font-semibold text-sm">🎬 Chat dos Cinéfilos</span><span id="onlineCountChat" class="text-[10px] text-green-400 ml-2">● 0 online</span></div>
-            </div>
-            <div id="chatMessages" class="chat-messages flex-1 overflow-y-auto p-3 space-y-2"></div>
-            <div class="chat-input-area p-3 flex gap-2 border-t border-white/10">
-                <input type="text" id="chatInput" class="chat-input flex-1 bg-white/10 rounded-full px-4 py-2 text-sm" placeholder="Digite sua mensagem..." maxlength="200">
-                <button id="sendMessageBtn" class="chat-send-btn bg-red-600 rounded-full w-10 h-10 transition hover:bg-red-700 ripple-btn"><i class="fas fa-paper-plane text-white text-sm"></i></button>
+        <div class="chat-list-container">
+            <div class="glass m-2 overflow-hidden rounded-2xl">
+                <div class="p-3 border-b border-white/10">
+                    <h2 class="font-bold text-lg"><i class="fas fa-comment-dots text-red-500 mr-2"></i>Chat</h2>
+                    <p class="text-xs text-gray-400 mt-1">Conversas com outros cinéfilos</p>
+                </div>
+                <div id="conversationsList" class="conversations-list"></div>
             </div>
         </div>
     </div>
@@ -1080,6 +1296,10 @@
         let currentReportId = null;
         let currentReportData = null;
         
+        // Chat variables
+        let conversations = {};
+        let currentChatUser = null;
+        
         // ==================== FUNÇÕES DE NAVEGAÇÃO ====================
         function switchSection(sectionId) {
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active-section'));
@@ -1096,6 +1316,7 @@
             
             if (sectionId === 'feed') renderFeed();
             if (sectionId === 'perfil') updateProfileUI();
+            if (sectionId === 'chat') loadConversations();
         }
         
         function updateContentCounters() {
@@ -2019,22 +2240,245 @@
             try { const userCredential = await auth.createUserWithEmailAndPassword(email, password); const user = userCredential.user; await database.ref(`usuarios/${user.uid}`).set({ email, nickname, createdAt: Date.now() }); currentUsername = nickname; localStorage.setItem('noitefilmes_username', currentUsername); showToast(`✅ Cadastro realizado! @${nickname}`); } catch (error) { showToast('Erro: ' + error.message); }
         }
         
-        function addMessageToChat(username, text, isSystem, time, saveToFirebase = true) { const container = document.getElementById('chatMessages'); const messageDiv = document.createElement('div'); messageDiv.className = `message ${username === currentUsername && !isSystem ? 'my-message' : ''} flex gap-2 mb-2`; messageDiv.innerHTML = `<div class="message-avatar w-7 h-7 rounded-full bg-red-600 flex items-center justify-center text-[10px] flex-shrink-0">${isSystem ? '<i class="fas fa-info-circle"></i>' : (username?.charAt(0).toUpperCase() || '?')}</div><div class="message-content max-w-[70%] p-2 rounded-xl"><div class="message-username text-[9px] font-bold text-red-500">${!isSystem ? `@${username}` : ''}</div><div class="message-text text-xs">${escapeHtml(text)}</div><div class="message-time text-[8px] opacity-50 mt-0.5">${time || new Date().toLocaleTimeString()}</div></div>`; container.appendChild(messageDiv); container.scrollTop = container.scrollHeight; if (saveToFirebase && !isSystem && currentUser) database.ref('chat').push({ username, text, time: new Date().toLocaleTimeString(), timestamp: Date.now() }); }
-        function sendChatMessage() { const input = document.getElementById('chatInput'); const text = input.value.trim(); if (text && currentUser) { addMessageToChat(currentUsername, text, false, null, true); input.value = ''; } else if (!currentUser) showToast('Faça login para enviar mensagens'); }
-        function showLoginModal() { document.getElementById('loginModal').classList.remove('hidden'); }
-        function hideLoginModal() { document.getElementById('loginModal').classList.add('hidden'); }
-        function openSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); document.getElementById('usernameInput').value = currentUsername; }
-        function saveUsername() { const newUsername = document.getElementById('usernameInput').value.trim(); if (newUsername) { currentUsername = newUsername; localStorage.setItem('noitefilmes_username', currentUsername); if (currentUser) database.ref(`usuarios/${currentUser.uid}/nickname`).set(currentUsername); showToast(`✅ Nome alterado para: @${currentUsername}`); document.getElementById('settingsModal').classList.add('hidden'); updateProfileUI(); } }
-        function logoutUser() { auth.signOut(); document.getElementById('settingsModal').classList.add('hidden'); }
-        function setDarkMode() { document.body.classList.remove('light-mode'); document.body.classList.add('dark-mode'); localStorage.setItem('noitefilmes_theme', 'dark'); }
-        function setLightMode() { document.body.classList.remove('dark-mode'); document.body.classList.add('light-mode'); localStorage.setItem('noitefilmes_theme', 'light'); }
-        function loadTheme() { const theme = localStorage.getItem('noitefilmes_theme'); if (theme === 'light') setLightMode(); else setDarkMode(); }
-        function openSearchPopup() { document.getElementById('searchPopup').classList.remove('hidden'); document.getElementById('popupSearchInput').focus(); }
-        function setupSearchPopup() {
-            const searchInput = document.getElementById('popupSearchInput');
-            const resultsDiv = document.getElementById('popupSearchResults');
-            searchInput.addEventListener('input', (e) => { const term = e.target.value.toLowerCase().trim(); if (term.length === 0) { resultsDiv.innerHTML = ''; return; } const allItems = [...canais.map(c => ({ ...c, type: 'canal' })), ...filmes.map(f => ({ ...f, type: 'filme' })), ...series.map(s => ({ ...s, type: 'serie' }))]; const matches = allItems.filter(item => item.title.toLowerCase().includes(term)); if (matches.length === 0) resultsDiv.innerHTML = '<div class="text-center text-gray-500 py-3 text-xs">Nenhum resultado</div>'; else { resultsDiv.innerHTML = matches.map(item => `<div class="search-result-item flex gap-2 p-2 glass-card rounded-xl cursor-pointer mb-1 ripple-btn" data-id="${item.id}" data-type="${item.type}"><img src="${item.thumb || 'https://via.placeholder.com/40x50'}" class="w-10 h-12 object-cover rounded-lg" onerror="this.src='https://via.placeholder.com/40x50'"><div><div class="font-semibold text-xs">${item.title} ${isIptvLink(item.link) ? '<span class="iptv-badge text-[7px] bg-red-600 px-1 rounded ml-0.5">IPTV</span>' : ''}</div><div class="text-[9px] opacity-70">${item.category || 'Geral'} • ${item.year || ''}</div></div></div>`).join(''); document.querySelectorAll('#popupSearchResults .search-result-item').forEach(el => { el.addEventListener('click', () => { const id = el.getAttribute('data-id'); const type = el.getAttribute('data-type'); let item; if (type === 'canal') item = canais.find(c => c.id === id); else if (type === 'filme') item = filmes.find(f => f.id === id); else item = series.find(s => s.id === id); if (item) { playMedia(item, type); document.getElementById('searchPopup').classList.add('hidden'); } }); }); } });
+        // ==================== CHAT FUNCTIONS - INSTAGRAM STYLE ====================
+        
+        // Function to format last seen time
+        function formatLastSeen(timestamp) {
+            if (!timestamp) return 'visto agora';
+            const now = Date.now();
+            const diff = now - timestamp;
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            const days = Math.floor(diff / 86400000);
+            
+            if (minutes < 1) return 'visto agora';
+            if (minutes < 60) return `visto há ${minutes} min`;
+            if (hours < 24) return `visto há ${hours} h`;
+            if (days === 1) return 'ontem';
+            if (days === 2) return 'antes de ontem';
+            const date = new Date(timestamp);
+            return `visto em ${date.toLocaleDateString()}`;
         }
+        
+        // Load all conversations for current user
+        function loadConversations() {
+            if (!currentUser) {
+                document.getElementById('conversationsList').innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Faça login para ver suas conversas</div>';
+                return;
+            }
+            
+            const convContainer = document.getElementById('conversationsList');
+            convContainer.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Carregando conversas...</div>';
+            
+            // Get all users except current user
+            database.ref('usuarios').once('value', (snapshot) => {
+                const users = snapshot.val();
+                if (!users) {
+                    convContainer.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Nenhum usuário encontrado</div>';
+                    return;
+                }
+                
+                const otherUsers = [];
+                for (let uid in users) {
+                    if (uid !== currentUser.uid) {
+                        otherUsers.push({
+                            uid: uid,
+                            nickname: users[uid].nickname || uid.substring(0, 6),
+                            lastSeen: users[uid].lastSeen || null,
+                            lastMessage: null,
+                            lastMessageTime: null
+                        });
+                    }
+                }
+                
+                if (otherUsers.length === 0) {
+                    convContainer.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Nenhum outro usuário encontrado</div>';
+                    return;
+                }
+                
+                // Load last message for each conversation
+                const promises = otherUsers.map(user => {
+                    return database.ref(`private_chats/${getChatId(currentUser.uid, user.uid)}/messages`).limitToLast(1).once('value').then(snap => {
+                        const messages = snap.val();
+                        if (messages) {
+                            const lastMsg = Object.values(messages)[0];
+                            user.lastMessage = lastMsg.text;
+                            user.lastMessageTime = lastMsg.timestamp;
+                        }
+                        return user;
+                    });
+                });
+                
+                Promise.all(promises).then(users => {
+                    // Sort by last message time (most recent first)
+                    users.sort((a, b) => (b.lastMessageTime || 0) - (a.lastMessageTime || 0));
+                    
+                    convContainer.innerHTML = users.map(user => `
+                        <div class="chat-conversation-item ripple-btn" data-uid="${user.uid}" data-nickname="${user.nickname}">
+                            <div class="chat-avatar">
+                                ${user.nickname.charAt(0).toUpperCase()}
+                            </div>
+                            <div class="chat-info">
+                                <div class="chat-name">@${user.nickname}</div>
+                                <div class="chat-last-message">${user.lastMessage ? escapeHtml(user.lastMessage.substring(0, 50)) : 'Nenhuma mensagem ainda'}</div>
+                            </div>
+                            <div class="chat-time">
+                                ${user.lastMessageTime ? formatLastSeen(user.lastMessageTime) : formatLastSeen(user.lastSeen)}
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    // Add click handlers
+                    document.querySelectorAll('.chat-conversation-item').forEach(el => {
+                        el.addEventListener('click', () => {
+                            const uid = el.getAttribute('data-uid');
+                            const nickname = el.getAttribute('data-nickname');
+                            openChatScreen(uid, nickname);
+                        });
+                    });
+                });
+            });
+        }
+        
+        // Generate unique chat ID for two users
+        function getChatId(uid1, uid2) {
+            return uid1 < uid2 ? `${uid1}_${uid2}` : `${uid2}_${uid1}`;
+        }
+        
+        // Open individual chat screen
+        function openChatScreen(otherUserId, otherUserName) {
+            currentChatUser = { uid: otherUserId, name: otherUserName };
+            const chatId = getChatId(currentUser.uid, otherUserId);
+            
+            // Create chat screen if not exists
+            let chatScreen = document.getElementById('chatScreen');
+            if (!chatScreen) {
+                chatScreen = document.createElement('div');
+                chatScreen.id = 'chatScreen';
+                chatScreen.className = 'chat-screen';
+                document.body.appendChild(chatScreen);
+            }
+            
+            chatScreen.innerHTML = `
+                <div class="chat-screen-header">
+                    <div class="chat-back-btn ripple-btn" id="chatBackBtn">
+                        <i class="fas fa-arrow-left"></i>
+                    </div>
+                    <div class="chat-screen-avatar">
+                        ${otherUserName.charAt(0).toUpperCase()}
+                    </div>
+                    <div class="chat-screen-info">
+                        <div class="chat-screen-name">@${otherUserName}</div>
+                        <div class="chat-screen-status" id="chatStatus">online</div>
+                    </div>
+                </div>
+                <div class="chat-messages-container" id="chatMessagesContainer"></div>
+                <div class="chat-input-container">
+                    <input type="text" class="chat-input-field" id="chatMessageInput" placeholder="Digite uma mensagem..." maxlength="500">
+                    <button class="chat-send-button ripple-btn" id="chatSendBtn">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            `;
+            
+            chatScreen.classList.remove('hidden');
+            
+            // Load messages
+            loadChatMessages(chatId);
+            
+            // Setup event listeners
+            document.getElementById('chatBackBtn').addEventListener('click', () => {
+                chatScreen.classList.add('hidden');
+                currentChatUser = null;
+                loadConversations();
+            });
+            
+            document.getElementById('chatSendBtn').addEventListener('click', () => sendChatMessage(chatId, otherUserId, otherUserName));
+            document.getElementById('chatMessageInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendChatMessage(chatId, otherUserId, otherUserName);
+            });
+            
+            // Update user status
+            database.ref(`usuarios/${otherUserId}/lastSeen`).on('value', (snap) => {
+                const lastSeen = snap.val();
+                const statusEl = document.getElementById('chatStatus');
+                if (statusEl) {
+                    if (lastSeen && Date.now() - lastSeen < 60000) {
+                        statusEl.innerHTML = 'online agora';
+                        statusEl.style.color = '#4ade80';
+                    } else {
+                        statusEl.innerHTML = formatLastSeen(lastSeen);
+                        statusEl.style.color = 'rgba(255,255,255,0.5)';
+                    }
+                }
+            });
+        }
+        
+        // Load messages for a chat
+        function loadChatMessages(chatId) {
+            const messagesContainer = document.getElementById('chatMessagesContainer');
+            if (!messagesContainer) return;
+            
+            messagesContainer.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Carregando mensagens...</div>';
+            
+            const messagesRef = database.ref(`private_chats/${chatId}/messages`);
+            messagesRef.orderByChild('timestamp').on('value', (snapshot) => {
+                const messages = snapshot.val();
+                if (!messages) {
+                    messagesContainer.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Nenhuma mensagem ainda. Envie uma mensagem para iniciar a conversa!</div>';
+                    return;
+                }
+                
+                const messagesList = Object.values(messages);
+                messagesContainer.innerHTML = messagesList.map(msg => `
+                    <div class="chat-bubble ${msg.senderId === currentUser.uid ? 'chat-bubble-sent' : 'chat-bubble-received'}">
+                        ${escapeHtml(msg.text)}
+                        <div class="chat-bubble-time">${new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                    </div>
+                `).join('');
+                
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            });
+        }
+        
+        // Send a chat message
+        function sendChatMessage(chatId, otherUserId, otherUserName) {
+            const input = document.getElementById('chatMessageInput');
+            const text = input.value.trim();
+            if (!text) return;
+            
+            const messageData = {
+                text: text,
+                senderId: currentUser.uid,
+                senderName: currentUsername,
+                receiverId: otherUserId,
+                receiverName: otherUserName,
+                timestamp: Date.now(),
+                read: false
+            };
+            
+            database.ref(`private_chats/${chatId}/messages`).push(messageData).then(() => {
+                input.value = '';
+                // Update last message in conversation list
+                database.ref(`private_chats/${chatId}/lastMessage`).set({
+                    text: text,
+                    timestamp: Date.now(),
+                    senderId: currentUser.uid
+                });
+            }).catch(error => {
+                showToast('Erro ao enviar mensagem: ' + error.message);
+            });
+        }
+        
+        // Update user's last seen
+        function updateLastSeen() {
+            if (currentUser) {
+                database.ref(`usuarios/${currentUser.uid}/lastSeen`).set(Date.now());
+            }
+        }
+        
+        // Start interval to update last seen
+        setInterval(updateLastSeen, 30000);
         
         // ==================== DUPLICATES ====================
         function findDuplicates() { const allItems = [...canais.map(c => ({ ...c, type: 'canais' })), ...filmes.map(f => ({ ...f, type: 'filmes' })), ...series.map(s => ({ ...s, type: 'series' }))]; const duplicates = []; const titleMap = new Map(); allItems.forEach(item => { const title = item.title.toLowerCase().trim(); if (titleMap.has(title)) titleMap.get(title).push(item); else titleMap.set(title, [item]); }); titleMap.forEach((items, title) => { if (items.length > 1) duplicates.push({ title: items[0].title, items: items, thumb: items[0].thumb }); }); return duplicates; }
@@ -2277,12 +2721,11 @@
             if (user) {
                 hideLoginModal();
                 loadUserNickname(user.uid);
-                database.ref('chat').limitToLast(100).off();
-                database.ref('chat').limitToLast(100).on('child_added', (snapshot) => { const msg = snapshot.val(); addMessageToChat(msg.username, msg.text, false, msg.time, false); });
                 database.ref(`favoritos/${user.uid}`).on('value', (snapshot) => { favoritos = snapshot.val() ? Object.values(snapshot.val()) : []; updateProfileUI(); });
                 database.ref('top10').on('value', (snapshot) => { const data = snapshot.val(); if (data) { top10List = data; renderTop10Carousel(); } else { generateTop10ByViews(); } });
                 updateProfileUI();
-            } else { showLoginModal(); document.getElementById('chatMessages').innerHTML = ''; updateProfileUI(); }
+                updateLastSeen();
+            } else { showLoginModal(); updateProfileUI(); }
         }
         async function loadUserNickname(userId) { const snapshot = await database.ref(`usuarios/${userId}`).once('value'); const data = snapshot.val(); if (data && data.nickname) { currentUsername = data.nickname; localStorage.setItem('noitefilmes_username', currentUsername); } }
         
@@ -2298,8 +2741,6 @@
         document.getElementById('lightModeBtn').onclick = setLightMode;
         document.getElementById('darkModeSettingsBtn').onclick = setDarkMode;
         document.getElementById('lightModeSettingsBtn').onclick = setLightMode;
-        document.getElementById('sendMessageBtn').onclick = sendChatMessage;
-        document.getElementById('chatInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
         document.getElementById('favoritesBtn').onclick = openFavoritesPopup;
         document.getElementById('closeFavoritesPopup').onclick = () => document.getElementById('favoritesPopup').classList.add('hidden');
         document.getElementById('favoritesSearchInput').addEventListener('input', (e) => renderFavoritesList(favoritos, e.target.value));
@@ -2347,6 +2788,22 @@
         
         document.querySelectorAll('.bottom-nav-item').forEach(item => { item.addEventListener('click', () => { const section = item.getAttribute('data-section'); switchSection(section); }); });
         
+        function openSearchPopup() { document.getElementById('searchPopup').classList.remove('hidden'); document.getElementById('popupSearchInput').focus(); }
+        function setupSearchPopup() {
+            const searchInput = document.getElementById('popupSearchInput');
+            const resultsDiv = document.getElementById('popupSearchResults');
+            searchInput.addEventListener('input', (e) => { const term = e.target.value.toLowerCase().trim(); if (term.length === 0) { resultsDiv.innerHTML = ''; return; } const allItems = [...canais.map(c => ({ ...c, type: 'canal' })), ...filmes.map(f => ({ ...f, type: 'filme' })), ...series.map(s => ({ ...s, type: 'serie' }))]; const matches = allItems.filter(item => item.title.toLowerCase().includes(term)); if (matches.length === 0) resultsDiv.innerHTML = '<div class="text-center text-gray-500 py-3 text-xs">Nenhum resultado</div>'; else { resultsDiv.innerHTML = matches.map(item => `<div class="search-result-item flex gap-2 p-2 glass-card rounded-xl cursor-pointer mb-1 ripple-btn" data-id="${item.id}" data-type="${item.type}"><img src="${item.thumb || 'https://via.placeholder.com/40x50'}" class="w-10 h-12 object-cover rounded-lg" onerror="this.src='https://via.placeholder.com/40x50'"><div><div class="font-semibold text-xs">${item.title} ${isIptvLink(item.link) ? '<span class="iptv-badge text-[7px] bg-red-600 px-1 rounded ml-0.5">IPTV</span>' : ''}</div><div class="text-[9px] opacity-70">${item.category || 'Geral'} • ${item.year || ''}</div></div></div>`).join(''); document.querySelectorAll('#popupSearchResults .search-result-item').forEach(el => { el.addEventListener('click', () => { const id = el.getAttribute('data-id'); const type = el.getAttribute('data-type'); let item; if (type === 'canal') item = canais.find(c => c.id === id); else if (type === 'filme') item = filmes.find(f => f.id === id); else item = series.find(s => s.id === id); if (item) { playMedia(item, type); document.getElementById('searchPopup').classList.add('hidden'); } }); }); } });
+        }
+        
+        function openSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); document.getElementById('usernameInput').value = currentUsername; }
+        function saveUsername() { const newUsername = document.getElementById('usernameInput').value.trim(); if (newUsername) { currentUsername = newUsername; localStorage.setItem('noitefilmes_username', currentUsername); if (currentUser) database.ref(`usuarios/${currentUser.uid}/nickname`).set(currentUsername); showToast(`✅ Nome alterado para: @${currentUsername}`); document.getElementById('settingsModal').classList.add('hidden'); updateProfileUI(); } }
+        function logoutUser() { auth.signOut(); document.getElementById('settingsModal').classList.add('hidden'); }
+        function setDarkMode() { document.body.classList.remove('light-mode'); document.body.classList.add('dark-mode'); localStorage.setItem('noitefilmes_theme', 'dark'); }
+        function setLightMode() { document.body.classList.remove('dark-mode'); document.body.classList.add('light-mode'); localStorage.setItem('noitefilmes_theme', 'light'); }
+        function loadTheme() { const theme = localStorage.getItem('noitefilmes_theme'); if (theme === 'light') setLightMode(); else setDarkMode(); }
+        function hideLoginModal() { document.getElementById('loginModal').classList.add('hidden'); }
+        function showLoginModal() { document.getElementById('loginModal').classList.remove('hidden'); }
+        
         loadCanaisFromFirebase();
         loadFilmesFromFirebase();
         loadSeriesFromFirebase();
@@ -2354,7 +2811,6 @@
         setupSearchPopup();
         loadTheme();
         if (typeof YT === 'undefined') { window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady; } else { onYouTubeIframeAPIReady(); }
-        setInterval(() => { const onlineCount = Math.floor(Math.random() * 15) + 3; document.getElementById('onlineCountChat').innerHTML = `● ${onlineCount} online`; }, 15000);
         window.addEventListener('popstate', (event) => { if (event.state && event.state.mediaId && event.state.type) playMediaById(event.state.mediaId, event.state.type); else closePlayer(); });
         document.getElementById('batchSeriesArea').classList.add('hidden');
         
