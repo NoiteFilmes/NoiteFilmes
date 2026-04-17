@@ -102,7 +102,7 @@
             background: #000;
         }
         
-        /* Botões uniformes - NOVA ORDEM */
+        /* Botões uniformes */
         .action-btn, .report-btn, .share-native-btn {
             background: rgba(255,255,255,0.08);
             border-radius: 60px;
@@ -121,7 +121,413 @@
             background: rgba(229,9,20,0.25);
         }
         
-        /* ========== LAYOUT MOBILE VERTICAL (Botões em uma linha) ========== */
+        /* Profile Styles - Instagram Style */
+        .profile-header {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 90;
+        }
+        
+        .profile-header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+        }
+        
+        .profile-header-title {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            font-weight: 600;
+            font-size: 18px;
+        }
+        
+        .profile-header-options {
+            cursor: pointer;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .profile-info-container {
+            padding: 16px;
+        }
+        
+        .profile-top-row {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .profile-avatar-large {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #e50914, #b20710);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        
+        .profile-stats-row {
+            flex: 1;
+            display: flex;
+            justify-content: space-around;
+            gap: 12px;
+        }
+        
+        .profile-stat-item {
+            text-align: center;
+        }
+        
+        .profile-stat-number {
+            font-weight: 700;
+            font-size: 16px;
+        }
+        
+        .profile-stat-label {
+            font-size: 12px;
+            color: rgba(255,255,255,0.6);
+        }
+        
+        .profile-name-row {
+            margin-bottom: 12px;
+        }
+        
+        .profile-display-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .profile-bio {
+            font-size: 13px;
+            line-height: 1.4;
+            margin-bottom: 12px;
+            color: rgba(255,255,255,0.9);
+        }
+        
+        .profile-bio-text {
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .profile-bio-expanded {
+            -webkit-line-clamp: unset;
+        }
+        
+        .bio-read-more {
+            color: #e50914;
+            font-size: 12px;
+            cursor: pointer;
+            margin-top: 4px;
+            display: inline-block;
+        }
+        
+        .profile-link {
+            background: rgba(255,255,255,0.1);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+        
+        .profile-link i {
+            color: #e50914;
+        }
+        
+        .profile-link a {
+            color: white;
+            text-decoration: none;
+            word-break: break-all;
+        }
+        
+        .profile-action-buttons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .profile-action-btn {
+            flex: 1;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            padding: 8px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .profile-action-btn.following {
+            background: rgba(229,9,20,0.3);
+            border-color: #e50914;
+        }
+        
+        .profile-tabs {
+            display: flex;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            margin-top: 8px;
+        }
+        
+        .profile-tab {
+            flex: 1;
+            text-align: center;
+            padding: 12px;
+            cursor: pointer;
+            color: rgba(255,255,255,0.6);
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .profile-tab.active {
+            color: #e50914;
+            border-bottom: 2px solid #e50914;
+        }
+        
+        .profile-posts-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2px;
+            background: #000;
+        }
+        
+        .profile-post-item {
+            aspect-ratio: 1 / 1;
+            background: rgba(255,255,255,0.05);
+            position: relative;
+            cursor: pointer;
+            overflow: hidden;
+        }
+        
+        .profile-post-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .profile-post-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        .profile-post-item:hover .profile-post-overlay {
+            opacity: 1;
+        }
+        
+        .profile-post-overlay span {
+            color: white;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        /* Light mode profile adjustments */
+        body.light-mode .profile-header {
+            background: rgba(255, 255, 255, 0.8);
+        }
+        
+        body.light-mode .profile-stat-label {
+            color: rgba(0,0,0,0.6);
+        }
+        
+        body.light-mode .profile-bio {
+            color: rgba(0,0,0,0.8);
+        }
+        
+        body.light-mode .profile-action-btn {
+            background: rgba(0,0,0,0.05);
+        }
+        
+        body.light-mode .profile-tab {
+            color: rgba(0,0,0,0.6);
+        }
+        
+        body.light-mode .profile-tab.active {
+            color: #e50914;
+        }
+        
+        /* Options Modal */
+        .options-modal {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(20, 25, 45, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px 20px 0 0;
+            z-index: 2000;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .options-modal.show {
+            transform: translateY(0);
+        }
+        
+        .options-modal-content {
+            padding: 20px;
+        }
+        
+        .options-modal-item {
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .options-modal-item:last-child {
+            border-bottom: none;
+        }
+        
+        .options-modal-item.danger {
+            color: #e50914;
+        }
+        
+        /* Edit Profile Modal */
+        .edit-profile-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.95);
+            backdrop-filter: blur(20px);
+            z-index: 2100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .edit-profile-content {
+            background: rgba(25,25,45,0.95);
+            backdrop-filter: blur(24px);
+            border-radius: 20px;
+            padding: 20px;
+            width: 90%;
+            max-width: 400px;
+        }
+        
+        .edit-profile-input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            color: white;
+            margin-bottom: 12px;
+        }
+        
+        .edit-profile-textarea {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            color: white;
+            margin-bottom: 12px;
+            resize: vertical;
+        }
+        
+        /* Followers/Following Modal */
+        .followers-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.95);
+            backdrop-filter: blur(20px);
+            z-index: 2100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .followers-content {
+            background: rgba(25,25,45,0.95);
+            backdrop-filter: blur(24px);
+            border-radius: 20px;
+            padding: 20px;
+            width: 90%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .follower-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .follower-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #e50914, #b20710);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .follower-info {
+            flex: 1;
+        }
+        
+        .follower-name {
+            font-weight: 600;
+        }
+        
+        .follower-username {
+            font-size: 12px;
+            color: rgba(255,255,255,0.6);
+        }
+        
+        .follower-follow-btn {
+            background: #e50914;
+            padding: 6px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        /* ========== LAYOUT MOBILE VERTICAL ========== */
         @media (max-width: 768px) and (orientation: portrait) {
             .player-comments-container {
                 position: fixed;
@@ -171,7 +577,6 @@
                 font-size: 0.6rem;
                 flex-wrap: wrap;
             }
-            /* Botões em uma única linha - todos compactos */
             .action-buttons {
                 display: flex;
                 flex-direction: row;
@@ -718,7 +1123,7 @@
             border-radius: 20px;
         }
         
-        /* Chat Styles - Instagram Style */
+        /* Chat Styles */
         .chat-list-container {
             height: calc(100vh - 160px);
             overflow-y: auto;
@@ -1024,7 +1429,6 @@
                         <span id="videoGenre" class="glass px-2 py-0.5 rounded-full text-[9px]"></span>
                         <span id="viewCountDisplay" class="glass px-2 py-0.5 rounded-full text-[9px]"><i class="fas fa-eye mr-1"></i><span id="viewCountNumber">0</span></span>
                     </div>
-                    <!-- NOVA ORDEM DOS BOTÕES: Curtir / Compartilhar / Favoritar / Reportar / Avaliação / Porcentagem -->
                     <div class="action-buttons">
                         <button id="likeBtn" class="action-btn ripple-btn"><i class="far fa-heart"></i> <span id="likeCount">0</span></button>
                         <button id="shareNativeBtn" class="share-native-btn ripple-btn"><i class="fas fa-share-alt"></i> </button>
@@ -1116,7 +1520,7 @@
         </div>
     </div>
 
-    <!-- Seção Chat - Instagram Style -->
+    <!-- Seção Chat -->
     <div id="chatSection" class="section">
         <div class="chat-list-container">
             <div class="glass m-2 overflow-hidden rounded-2xl">
@@ -1129,19 +1533,9 @@
         </div>
     </div>
 
-    <!-- Seção Perfil -->
+    <!-- Seção Perfil - Instagram Style -->
     <div id="perfilSection" class="section">
-        <div class="profile-card m-3 p-4 text-center glass-card">
-            <div class="profile-avatar w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center text-2xl mb-3 shadow-lg"><i class="fas fa-user"></i></div>
-            <div class="profile-name text-lg font-bold" id="profileName">Carregando...</div>
-            <div class="profile-email text-xs opacity-70 mt-1" id="profileEmail"></div>
-            <div class="profile-stats flex justify-around my-3">
-                <div class="profile-stat"><div class="profile-stat-value text-xl font-bold text-red-500" id="profileFavCount">0</div><div class="profile-stat-label text-[10px]">Favoritos</div></div>
-                <div class="profile-stat"><div class="profile-stat-value text-xl font-bold text-red-500" id="profileComentCount">0</div><div class="profile-stat-label text-[10px]">Comentários</div></div>
-            </div>
-            <button id="profileLogoutBtn" class="profile-button outline bg-transparent border border-red-600 rounded-full py-1.5 px-3 w-full text-sm font-semibold transition hover:bg-red-600/20 ripple-btn">Sair da Conta</button>
-        </div>
-        <div class="px-3 mt-2"><h3 class="font-bold text-sm mb-2">⭐ Meus Favoritos</h3><div id="profileFavoritesList" class="favorites-list max-h-64 overflow-y-auto space-y-2"></div></div>
+        <div id="profileContainer"></div>
     </div>
 
     <!-- Bottom Navigation -->
@@ -1225,28 +1619,44 @@
         </div>
     </div>
 
-    <!-- Reply Popup -->
-    <div id="replyPopup" class="reply-popup hidden">
-        <div class="reply-popup-content">
-            <h3 class="text-xl font-bold mb-4 text-center">💬 Responder Report</h3>
-            <div id="replyUserInfo" class="mb-3 text-sm text-gray-300"></div>
-            <textarea id="replyMessage" rows="3" class="w-full p-2 bg-white/10 rounded-xl text-sm" placeholder="Digite sua resposta para o usuário..."></textarea>
-            <div class="flex gap-3 mt-4">
-                <button id="cancelReplyBtn" class="flex-1 bg-gray-700 py-2 rounded-full text-sm ripple-btn">Cancelar</button>
-                <button id="sendReplyBtn" class="flex-1 bg-red-600 py-2 rounded-full text-sm font-bold ripple-btn">Enviar Resposta</button>
+    <!-- Options Modal -->
+    <div id="optionsModal" class="options-modal">
+        <div class="options-modal-content">
+            <div class="options-modal-item" id="editProfileOption">
+                <i class="fas fa-user-edit mr-2"></i> Editar perfil
+            </div>
+            <div class="options-modal-item" id="settingsOption">
+                <i class="fas fa-cog mr-2"></i> Configurações
+            </div>
+            <div class="options-modal-item danger" id="logoutOption">
+                <i class="fas fa-sign-out-alt mr-2"></i> Sair
+            </div>
+            <div class="options-modal-item" id="closeOptionsModal">
+                Cancelar
             </div>
         </div>
     </div>
 
-    <!-- Report Detail Popup -->
-    <div id="reportDetailPopup" class="report-detail-popup hidden">
-        <div class="report-detail-content">
-            <h3 class="text-xl font-bold mb-4 text-center">📋 Detalhe do Report</h3>
-            <div id="reportDetailContent"></div>
+    <!-- Edit Profile Modal -->
+    <div id="editProfileModal" class="edit-profile-modal hidden">
+        <div class="edit-profile-content">
+            <h3 class="text-xl font-bold mb-4 text-center">Editar perfil</h3>
+            <input type="text" id="editDisplayName" class="edit-profile-input" placeholder="Nome de exibição">
+            <textarea id="editBio" class="edit-profile-textarea" rows="3" placeholder="Bio (máx. 300 caracteres)" maxlength="300"></textarea>
+            <input type="url" id="editLink" class="edit-profile-input" placeholder="Link externo">
             <div class="flex gap-3 mt-4">
-                <button id="closeDetailBtn" class="flex-1 bg-gray-700 py-2 rounded-full text-sm ripple-btn">Fechar</button>
-                <button id="replyToReportBtn" class="flex-1 bg-red-600 py-2 rounded-full text-sm font-bold ripple-btn">Responder</button>
+                <button id="cancelEditProfile" class="flex-1 bg-gray-700 py-2 rounded-full text-sm ripple-btn">Cancelar</button>
+                <button id="saveEditProfile" class="flex-1 bg-red-600 py-2 rounded-full text-sm font-bold ripple-btn">Salvar</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Followers/Following Modal -->
+    <div id="followersModal" class="followers-modal hidden">
+        <div class="followers-content">
+            <h3 id="followersModalTitle" class="text-xl font-bold mb-4 text-center">Seguidores</h3>
+            <div id="followersList"></div>
+            <button id="closeFollowersModal" class="w-full mt-4 bg-gray-700 py-2 rounded-full text-sm ripple-btn">Fechar</button>
         </div>
     </div>
 
@@ -1296,6 +1706,16 @@
         let currentReportId = null;
         let currentReportData = null;
         
+        // Profile data
+        let currentDisplayName = localStorage.getItem('noitefilmes_displayname') || '';
+        let currentBio = localStorage.getItem('noitefilmes_bio') || '';
+        let currentLink = localStorage.getItem('noitefilmes_link') || '';
+        let userPosts = [];
+        let followers = [];
+        let following = [];
+        let isViewingOtherProfile = false;
+        let viewedUserId = null;
+        
         // Chat variables
         let conversations = {};
         let currentChatUser = null;
@@ -1315,7 +1735,7 @@
             }
             
             if (sectionId === 'feed') renderFeed();
-            if (sectionId === 'perfil') updateProfileUI();
+            if (sectionId === 'perfil') renderProfile();
             if (sectionId === 'chat') loadConversations();
         }
         
@@ -1323,6 +1743,412 @@
             document.getElementById('filmesCount').innerText = filmes.length;
             document.getElementById('seriesCount').innerText = series.length;
             document.getElementById('canaisCount').innerText = canais.length;
+        }
+        
+        // ==================== PROFILE FUNCTIONS ====================
+        
+        function renderProfile(viewUserId = null) {
+            if (!currentUser) {
+                document.getElementById('profileContainer').innerHTML = `
+                    <div class="glass m-3 p-8 text-center">
+                        <i class="fas fa-user-circle text-6xl text-gray-500 mb-3"></i>
+                        <p class="text-gray-400">Faça login para ver seu perfil</p>
+                        <button onclick="showLoginModal()" class="mt-4 bg-red-600 px-6 py-2 rounded-full text-sm">Entrar</button>
+                    </div>
+                `;
+                return;
+            }
+            
+            const targetUserId = viewUserId || currentUser.uid;
+            isViewingOtherProfile = viewUserId !== null && viewUserId !== currentUser.uid;
+            viewedUserId = targetUserId;
+            
+            database.ref(`usuarios/${targetUserId}`).once('value', async (snapshot) => {
+                const userData = snapshot.val();
+                if (!userData) return;
+                
+                const username = userData.nickname || targetUserId.substring(0, 6);
+                const displayName = userData.displayName || username;
+                const bio = userData.bio || '';
+                const link = userData.link || '';
+                const avatarLetter = displayName.charAt(0).toUpperCase();
+                
+                // Load followers/following counts
+                const followersSnapshot = await database.ref(`followers/${targetUserId}`).once('value');
+                const followingSnapshot = await database.ref(`following/${targetUserId}`).once('value');
+                const followersCount = followersSnapshot.val() ? Object.keys(followersSnapshot.val()).length : 0;
+                const followingCount = followingSnapshot.val() ? Object.keys(followingSnapshot.val()).length : 0;
+                
+                // Check if current user follows this profile
+                let isFollowing = false;
+                if (currentUser && isViewingOtherProfile) {
+                    const followCheck = await database.ref(`followers/${targetUserId}/${currentUser.uid}`).once('value');
+                    isFollowing = followCheck.exists();
+                }
+                
+                // Load user posts (favoritos as posts for now)
+                const postsSnapshot = await database.ref(`favoritos/${targetUserId}`).once('value');
+                const posts = postsSnapshot.val() ? Object.values(postsSnapshot.val()) : [];
+                const postsCount = posts.length;
+                
+                // Format bio with read more
+                const bioText = bio || 'Sem bio ainda';
+                const bioShort = bioText.length > 200 ? bioText.substring(0, 200) : bioText;
+                const hasMoreBio = bioText.length > 200;
+                
+                const profileHtml = `
+                    <div class="profile-header">
+                        <div class="profile-header-content">
+                            <div style="width: 36px;"></div>
+                            <div class="profile-header-title">@${username}</div>
+                            ${!isViewingOtherProfile ? `
+                                <div class="profile-header-options ripple-btn" id="profileOptionsBtn">
+                                    <i class="fas fa-ellipsis-h"></i>
+                                </div>
+                            ` : '<div style="width: 36px;"></div>'}
+                        </div>
+                    </div>
+                    
+                    <div class="profile-info-container">
+                        <div class="profile-top-row">
+                            <div class="profile-avatar-large">
+                                ${avatarLetter}
+                            </div>
+                            <div class="profile-stats-row">
+                                <div class="profile-stat-item" data-type="posts">
+                                    <div class="profile-stat-number" id="profilePostsCount">${postsCount}</div>
+                                    <div class="profile-stat-label">publicações</div>
+                                </div>
+                                <div class="profile-stat-item" data-type="followers" id="followersStat">
+                                    <div class="profile-stat-number">${followersCount}</div>
+                                    <div class="profile-stat-label">seguidores</div>
+                                </div>
+                                <div class="profile-stat-item" data-type="following" id="followingStat">
+                                    <div class="profile-stat-number">${followingCount}</div>
+                                    <div class="profile-stat-label">seguindo</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="profile-name-row">
+                            <div class="profile-display-name">${escapeHtml(displayName)}</div>
+                        </div>
+                        
+                        <div class="profile-bio">
+                            <div class="profile-bio-text ${hasMoreBio ? '' : 'profile-bio-expanded'}" id="profileBioText">
+                                ${escapeHtml(bioShort)}${hasMoreBio ? '...' : ''}
+                            </div>
+                            ${hasMoreBio ? `<span class="bio-read-more" id="bioReadMore">ver mais</span>` : ''}
+                        </div>
+                        
+                        ${link ? `
+                            <div class="profile-link" onclick="window.open('${link}', '_blank')">
+                                <i class="fas fa-link"></i>
+                                <span>${link.length > 30 ? link.substring(0, 30) + '...' : link}</span>
+                            </div>
+                        ` : ''}
+                        
+                        ${!isViewingOtherProfile ? `
+                            <div class="profile-action-buttons">
+                                <button class="profile-action-btn" id="editProfileBtn">Editar perfil</button>
+                                <button class="profile-action-btn" id="shareProfileBtn">Compartilhar</button>
+                            </div>
+                        ` : `
+                            <div class="profile-action-buttons">
+                                <button class="profile-action-btn ${isFollowing ? 'following' : ''}" id="followActionBtn">
+                                    ${isFollowing ? 'Seguindo' : 'Seguir'}
+                                </button>
+                                <button class="profile-action-btn" id="messageUserBtn">Mensagem</button>
+                            </div>
+                        `}
+                    </div>
+                    
+                    <div class="profile-tabs">
+                        <div class="profile-tab active" data-tab="posts">
+                            <i class="fas fa-th"></i>
+                        </div>
+                        <div class="profile-tab" data-tab="saved">
+                            <i class="fas fa-bookmark"></i>
+                        </div>
+                        <div class="profile-tab" data-tab="tagged">
+                            <i class="fas fa-user-tag"></i>
+                        </div>
+                    </div>
+                    
+                    <div id="profilePostsGrid" class="profile-posts-grid"></div>
+                `;
+                
+                document.getElementById('profileContainer').innerHTML = profileHtml;
+                
+                // Render posts grid
+                renderProfilePosts(posts);
+                
+                // Add event listeners
+                if (!isViewingOtherProfile) {
+                    document.getElementById('profileOptionsBtn')?.addEventListener('click', showOptionsModal);
+                    document.getElementById('editProfileBtn')?.addEventListener('click', openEditProfileModal);
+                    document.getElementById('shareProfileBtn')?.addEventListener('click', shareProfile);
+                } else {
+                    document.getElementById('followActionBtn')?.addEventListener('click', () => toggleFollow(targetUserId, username));
+                    document.getElementById('messageUserBtn')?.addEventListener('click', () => openChatWithUser(targetUserId, username));
+                }
+                
+                document.getElementById('followersStat')?.addEventListener('click', () => showFollowersList(targetUserId, 'followers'));
+                document.getElementById('followingStat')?.addEventListener('click', () => showFollowersList(targetUserId, 'following'));
+                
+                document.querySelectorAll('.profile-tab').forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        document.querySelectorAll('.profile-tab').forEach(t => t.classList.remove('active'));
+                        tab.classList.add('active');
+                        const tabType = tab.getAttribute('data-tab');
+                        if (tabType === 'posts') {
+                            renderProfilePosts(posts);
+                        } else if (tabType === 'saved') {
+                            renderSavedPosts();
+                        }
+                    });
+                });
+                
+                if (hasMoreBio) {
+                    document.getElementById('bioReadMore')?.addEventListener('click', () => {
+                        const bioTextEl = document.getElementById('profileBioText');
+                        const isExpanded = bioTextEl.classList.contains('profile-bio-expanded');
+                        if (isExpanded) {
+                            bioTextEl.innerHTML = escapeHtml(bioShort) + '...';
+                            bioTextEl.classList.remove('profile-bio-expanded');
+                            document.getElementById('bioReadMore').innerHTML = 'ver mais';
+                        } else {
+                            bioTextEl.innerHTML = escapeHtml(bioText);
+                            bioTextEl.classList.add('profile-bio-expanded');
+                            document.getElementById('bioReadMore').innerHTML = 'ver menos';
+                        }
+                    });
+                }
+            });
+        }
+        
+        function renderProfilePosts(posts) {
+            const grid = document.getElementById('profilePostsGrid');
+            if (!grid) return;
+            
+            if (posts.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-3 text-center py-8 text-gray-500">
+                        <i class="fas fa-camera text-4xl mb-2"></i>
+                        <p>Nenhuma publicação ainda</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            grid.innerHTML = posts.map(post => `
+                <div class="profile-post-item ripple-btn" data-id="${post.id}" data-type="${post.type || 'filme'}">
+                    <img src="${post.thumb || 'https://via.placeholder.com/300x300'}" onerror="this.src='https://via.placeholder.com/300x300'">
+                    <div class="profile-post-overlay">
+                        <span><i class="fas fa-heart"></i> ${Math.floor(Math.random() * 100)}</span>
+                        <span><i class="fas fa-comment"></i> ${Math.floor(Math.random() * 20)}</span>
+                    </div>
+                </div>
+            `).join('');
+            
+            document.querySelectorAll('.profile-post-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const id = item.getAttribute('data-id');
+                    const type = item.getAttribute('data-type');
+                    playMediaById(id, type);
+                    switchSection('filmes');
+                });
+            });
+        }
+        
+        function renderSavedPosts() {
+            const grid = document.getElementById('profilePostsGrid');
+            if (!grid) return;
+            
+            const savedPosts = favoritos.filter(f => f.saved);
+            if (savedPosts.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-3 text-center py-8 text-gray-500">
+                        <i class="fas fa-bookmark text-4xl mb-2"></i>
+                        <p>Nenhum item salvo</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            grid.innerHTML = savedPosts.map(post => `
+                <div class="profile-post-item ripple-btn" data-id="${post.id}" data-type="${post.type || 'filme'}">
+                    <img src="${post.thumb || 'https://via.placeholder.com/300x300'}" onerror="this.src='https://via.placeholder.com/300x300'">
+                    <div class="profile-post-overlay">
+                        <span><i class="fas fa-heart"></i> ${Math.floor(Math.random() * 100)}</span>
+                        <span><i class="fas fa-comment"></i> ${Math.floor(Math.random() * 20)}</span>
+                    </div>
+                </div>
+            `).join('');
+            
+            document.querySelectorAll('.profile-post-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const id = item.getAttribute('data-id');
+                    const type = item.getAttribute('data-type');
+                    playMediaById(id, type);
+                    switchSection('filmes');
+                });
+            });
+        }
+        
+        function showOptionsModal() {
+            const modal = document.getElementById('optionsModal');
+            modal.classList.add('show');
+            
+            const closeModal = () => {
+                modal.classList.remove('show');
+                document.removeEventListener('click', closeOnOutsideClick);
+            };
+            
+            const closeOnOutsideClick = (e) => {
+                if (!modal.contains(e.target)) closeModal();
+            };
+            
+            setTimeout(() => document.addEventListener('click', closeOnOutsideClick), 100);
+            
+            document.getElementById('editProfileOption').onclick = () => {
+                closeModal();
+                openEditProfileModal();
+            };
+            document.getElementById('settingsOption').onclick = () => {
+                closeModal();
+                openSettingsModal();
+            };
+            document.getElementById('logoutOption').onclick = () => {
+                closeModal();
+                logoutUser();
+            };
+            document.getElementById('closeOptionsModal').onclick = closeModal;
+        }
+        
+        function openEditProfileModal() {
+            const modal = document.getElementById('editProfileModal');
+            document.getElementById('editDisplayName').value = currentDisplayName;
+            document.getElementById('editBio').value = currentBio;
+            document.getElementById('editLink').value = currentLink;
+            modal.classList.remove('hidden');
+        }
+        
+        function saveEditProfile() {
+            const newDisplayName = document.getElementById('editDisplayName').value.trim();
+            const newBio = document.getElementById('editBio').value.trim();
+            const newLink = document.getElementById('editLink').value.trim();
+            
+            currentDisplayName = newDisplayName;
+            currentBio = newBio.substring(0, 300);
+            currentLink = newLink;
+            
+            localStorage.setItem('noitefilmes_displayname', currentDisplayName);
+            localStorage.setItem('noitefilmes_bio', currentBio);
+            localStorage.setItem('noitefilmes_link', currentLink);
+            
+            if (currentUser) {
+                database.ref(`usuarios/${currentUser.uid}`).update({
+                    displayName: currentDisplayName,
+                    bio: currentBio,
+                    link: currentLink
+                });
+            }
+            
+            document.getElementById('editProfileModal').classList.add('hidden');
+            renderProfile();
+            showToast('Perfil atualizado!');
+        }
+        
+        function shareProfile() {
+            if (navigator.share) {
+                navigator.share({
+                    title: `Perfil de @${currentUsername}`,
+                    text: `Conheça o perfil de @${currentUsername} no NoiteFilmes!`,
+                    url: window.location.href
+                }).catch(() => showToast('Compartilhamento cancelado'));
+            } else {
+                navigator.clipboard.writeText(window.location.href);
+                showToast('Link copiado!');
+            }
+        }
+        
+        async function toggleFollow(userId, username) {
+            if (!currentUser) {
+                showToast('Faça login para seguir');
+                return;
+            }
+            
+            const followRef = database.ref(`followers/${userId}/${currentUser.uid}`);
+            const followingRef = database.ref(`following/${currentUser.uid}/${userId}`);
+            
+            const snapshot = await followRef.once('value');
+            const isFollowing = snapshot.exists();
+            
+            if (isFollowing) {
+                await followRef.remove();
+                await followingRef.remove();
+                showToast(`Você deixou de seguir @${username}`);
+            } else {
+                await followRef.set({
+                    userId: currentUser.uid,
+                    username: currentUsername,
+                    followedAt: Date.now()
+                });
+                await followingRef.set({
+                    userId: userId,
+                    username: username,
+                    followedAt: Date.now()
+                });
+                showToast(`Você começou a seguir @${username}`);
+            }
+            
+            renderProfile(userId);
+        }
+        
+        async function showFollowersList(userId, type) {
+            const modal = document.getElementById('followersModal');
+            const title = document.getElementById('followersModalTitle');
+            const listContainer = document.getElementById('followersList');
+            
+            title.innerText = type === 'followers' ? 'Seguidores' : 'Seguindo';
+            
+            const ref = type === 'followers' ? `followers/${userId}` : `following/${userId}`;
+            const snapshot = await database.ref(ref).once('value');
+            const data = snapshot.val();
+            
+            if (!data) {
+                listContainer.innerHTML = '<div class="text-center text-gray-500 py-4">Nenhum usuário encontrado</div>';
+            } else {
+                const users = Object.values(data);
+                listContainer.innerHTML = users.map(user => `
+                    <div class="follower-item ripple-btn" data-id="${user.userId}">
+                        <div class="follower-avatar">${(user.username || user.userId.substring(0, 1)).charAt(0).toUpperCase()}</div>
+                        <div class="follower-info">
+                            <div class="follower-name">${user.username || user.userId.substring(0, 8)}</div>
+                        </div>
+                        <div class="follower-follow-btn">Ver perfil</div>
+                    </div>
+                `).join('');
+                
+                document.querySelectorAll('.follower-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const id = item.getAttribute('data-id');
+                        modal.classList.add('hidden');
+                        renderProfile(id);
+                        switchSection('perfil');
+                    });
+                });
+            }
+            
+            modal.classList.remove('hidden');
+        }
+        
+        function openChatWithUser(userId, username) {
+            switchSection('chat');
+            setTimeout(() => {
+                openChatScreen(userId, username);
+            }, 100);
         }
         
         // ==================== FEED ====================
@@ -1371,52 +2197,6 @@
             });
         }
         
-        // ==================== PERFIL ====================
-        function updateProfileUI() {
-            if (!currentUser) {
-                document.getElementById('profileName').innerText = 'Não logado';
-                document.getElementById('profileEmail').innerText = 'Faça login para acessar';
-                document.getElementById('profileFavCount').innerText = '0';
-                document.getElementById('profileComentCount').innerText = '0';
-                document.getElementById('profileFavoritesList').innerHTML = '<div class="text-center text-gray-500 py-3 text-xs">Faça login para ver seus favoritos</div>';
-                return;
-            }
-            document.getElementById('profileName').innerText = `@${currentUsername}`;
-            document.getElementById('profileEmail').innerText = currentUser.email || '';
-            document.getElementById('profileFavCount').innerText = favoritos.length;
-            
-            database.ref('comentarios').once('value', snap => {
-                let comentCount = 0;
-                const data = snap.val();
-                if (data) {
-                    Object.values(data).forEach(coment => {
-                        if (coment.userId === currentUser.uid) comentCount++;
-                    });
-                }
-                document.getElementById('profileComentCount').innerText = comentCount;
-            });
-            
-            const favContainer = document.getElementById('profileFavoritesList');
-            if (favoritos.length === 0) {
-                favContainer.innerHTML = '<div class="text-center text-gray-500 py-3 text-xs">Nenhum favorito ainda</div>';
-            } else {
-                favContainer.innerHTML = favoritos.map(fav => `
-                    <div class="favorite-item flex gap-2 p-2 glass-card rounded-xl cursor-pointer ripple-btn" data-id="${fav.id}" data-type="${fav.type || 'filme'}">
-                        <img src="${fav.thumb || 'https://via.placeholder.com/40x50'}" class="w-10 h-12 object-cover rounded-lg" onerror="this.src='https://via.placeholder.com/40x50'">
-                        <div class="flex-1"><div class="font-semibold text-xs">${fav.title}</div><div class="text-[9px] opacity-60">${fav.type === 'filme' ? '🎬 Filme' : (fav.type === 'serie' ? '📺 Série' : '📡 Canal')}</div></div>
-                    </div>
-                `).join('');
-                document.querySelectorAll('#profileFavoritesList .favorite-item').forEach(el => {
-                    el.addEventListener('click', () => {
-                        const id = el.getAttribute('data-id');
-                        const type = el.getAttribute('data-type');
-                        playMediaById(id, type);
-                        switchSection('filmes');
-                    });
-                });
-            }
-        }
-        
         // ==================== VISUALIZAÇÕES ====================
         async function loadAllViews() {
             const snapshot = await database.ref('visualizacoes').once('value');
@@ -1463,18 +2243,15 @@
             return url.includes('.m3u8') || url.includes('playlist') || url.includes('sdp') || url.includes('mpd') || url.includes('.m3u');
         }
         
-        // FUNÇÃO CORRIGIDA PARA BUSCAR DADOS DO LINK (YouTube e IPTV)
         async function fetchVideoDataFromLink(link, mediaType) {
             const videoId = extractYoutubeId(link);
             
             if (mediaType === 'youtube' && videoId) {
                 try {
                     showToast('🔍 Buscando dados do vídeo no YouTube...');
-                    // Usando oembed do YouTube (mais confiável e sem necessidade de API key para dados básicos)
                     const oembedRes = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
                     const oembedData = await oembedRes.json();
                     
-                    // Buscar informações adicionais com a API (se disponível)
                     let year = new Date().getFullYear();
                     let genre = 'Geral';
                     let description = oembedData.title || '';
@@ -1489,7 +2266,6 @@
                             if (snippet.publishedAt) {
                                 year = new Date(snippet.publishedAt).getFullYear();
                             }
-                            // Tentar detectar gênero pelo título
                             const title = snippet.title.toLowerCase();
                             const genres = ['ação', 'comédia', 'drama', 'terror', 'ficção', 'romance', 'aventura', 'suspense', 'animação', 'documentário'];
                             for (let g of genres) {
@@ -1519,7 +2295,6 @@
                     return null;
                 }
             } else if (mediaType === 'iptv' && isIptvLink(link)) {
-                // Para IPTV, tentar extrair nome do arquivo
                 let fileName = '';
                 try {
                     const urlParts = link.split('/');
@@ -2240,9 +3015,8 @@
             try { const userCredential = await auth.createUserWithEmailAndPassword(email, password); const user = userCredential.user; await database.ref(`usuarios/${user.uid}`).set({ email, nickname, createdAt: Date.now() }); currentUsername = nickname; localStorage.setItem('noitefilmes_username', currentUsername); showToast(`✅ Cadastro realizado! @${nickname}`); } catch (error) { showToast('Erro: ' + error.message); }
         }
         
-        // ==================== CHAT FUNCTIONS - INSTAGRAM STYLE ====================
+        // ==================== CHAT FUNCTIONS ====================
         
-        // Function to format last seen time
         function formatLastSeen(timestamp) {
             if (!timestamp) return 'visto agora';
             const now = Date.now();
@@ -2260,7 +3034,6 @@
             return `visto em ${date.toLocaleDateString()}`;
         }
         
-        // Load all conversations for current user
         function loadConversations() {
             if (!currentUser) {
                 document.getElementById('conversationsList').innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Faça login para ver suas conversas</div>';
@@ -2270,7 +3043,6 @@
             const convContainer = document.getElementById('conversationsList');
             convContainer.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Carregando conversas...</div>';
             
-            // Get all users except current user
             database.ref('usuarios').once('value', (snapshot) => {
                 const users = snapshot.val();
                 if (!users) {
@@ -2296,7 +3068,6 @@
                     return;
                 }
                 
-                // Load last message for each conversation
                 const promises = otherUsers.map(user => {
                     return database.ref(`private_chats/${getChatId(currentUser.uid, user.uid)}/messages`).limitToLast(1).once('value').then(snap => {
                         const messages = snap.val();
@@ -2310,7 +3081,6 @@
                 });
                 
                 Promise.all(promises).then(users => {
-                    // Sort by last message time (most recent first)
                     users.sort((a, b) => (b.lastMessageTime || 0) - (a.lastMessageTime || 0));
                     
                     convContainer.innerHTML = users.map(user => `
@@ -2328,7 +3098,6 @@
                         </div>
                     `).join('');
                     
-                    // Add click handlers
                     document.querySelectorAll('.chat-conversation-item').forEach(el => {
                         el.addEventListener('click', () => {
                             const uid = el.getAttribute('data-uid');
@@ -2340,17 +3109,14 @@
             });
         }
         
-        // Generate unique chat ID for two users
         function getChatId(uid1, uid2) {
             return uid1 < uid2 ? `${uid1}_${uid2}` : `${uid2}_${uid1}`;
         }
         
-        // Open individual chat screen
         function openChatScreen(otherUserId, otherUserName) {
             currentChatUser = { uid: otherUserId, name: otherUserName };
             const chatId = getChatId(currentUser.uid, otherUserId);
             
-            // Create chat screen if not exists
             let chatScreen = document.getElementById('chatScreen');
             if (!chatScreen) {
                 chatScreen = document.createElement('div');
@@ -2383,10 +3149,8 @@
             
             chatScreen.classList.remove('hidden');
             
-            // Load messages
             loadChatMessages(chatId);
             
-            // Setup event listeners
             document.getElementById('chatBackBtn').addEventListener('click', () => {
                 chatScreen.classList.add('hidden');
                 currentChatUser = null;
@@ -2398,7 +3162,6 @@
                 if (e.key === 'Enter') sendChatMessage(chatId, otherUserId, otherUserName);
             });
             
-            // Update user status
             database.ref(`usuarios/${otherUserId}/lastSeen`).on('value', (snap) => {
                 const lastSeen = snap.val();
                 const statusEl = document.getElementById('chatStatus');
@@ -2414,7 +3177,6 @@
             });
         }
         
-        // Load messages for a chat
         function loadChatMessages(chatId) {
             const messagesContainer = document.getElementById('chatMessagesContainer');
             if (!messagesContainer) return;
@@ -2441,7 +3203,6 @@
             });
         }
         
-        // Send a chat message
         function sendChatMessage(chatId, otherUserId, otherUserName) {
             const input = document.getElementById('chatMessageInput');
             const text = input.value.trim();
@@ -2459,7 +3220,6 @@
             
             database.ref(`private_chats/${chatId}/messages`).push(messageData).then(() => {
                 input.value = '';
-                // Update last message in conversation list
                 database.ref(`private_chats/${chatId}/lastMessage`).set({
                     text: text,
                     timestamp: Date.now(),
@@ -2470,14 +3230,12 @@
             });
         }
         
-        // Update user's last seen
         function updateLastSeen() {
             if (currentUser) {
                 database.ref(`usuarios/${currentUser.uid}/lastSeen`).set(Date.now());
             }
         }
         
-        // Start interval to update last seen
         setInterval(updateLastSeen, 30000);
         
         // ==================== DUPLICATES ====================
@@ -2513,15 +3271,14 @@
             
             if (!title || !link) { showToast('❌ Preencha título e link'); return; }
             
-            // VALIDAÇÃO CORRIGIDA PARA LINKS
             if (mediaType === 'youtube') {
                 if (!extractYoutubeId(link)) {
-                    showToast('❌ Link do YouTube inválido. Certifique-se de colocar um link válido do YouTube (ex: https://www.youtube.com/watch?v=... ou https://youtu.be/...)');
+                    showToast('❌ Link do YouTube inválido. Certifique-se de colocar um link válido do YouTube');
                     return;
                 }
             } else if (mediaType === 'iptv') {
                 if (!isIptvLink(link)) {
-                    showToast('❌ Link IPTV inválido. Use um link .m3u8 válido (ex: http://.../stream.m3u8)');
+                    showToast('❌ Link IPTV inválido. Use um link .m3u8 válido');
                     return;
                 }
             }
@@ -2721,13 +3478,42 @@
             if (user) {
                 hideLoginModal();
                 loadUserNickname(user.uid);
-                database.ref(`favoritos/${user.uid}`).on('value', (snapshot) => { favoritos = snapshot.val() ? Object.values(snapshot.val()) : []; updateProfileUI(); });
+                database.ref(`favoritos/${user.uid}`).on('value', (snapshot) => { favoritos = snapshot.val() ? Object.values(snapshot.val()) : []; renderProfile(); });
                 database.ref('top10').on('value', (snapshot) => { const data = snapshot.val(); if (data) { top10List = data; renderTop10Carousel(); } else { generateTop10ByViews(); } });
-                updateProfileUI();
+                renderProfile();
                 updateLastSeen();
-            } else { showLoginModal(); updateProfileUI(); }
+                // Load user profile data from database
+                database.ref(`usuarios/${user.uid}`).once('value', (snap) => {
+                    const data = snap.val();
+                    if (data) {
+                        if (data.displayName) currentDisplayName = data.displayName;
+                        if (data.bio) currentBio = data.bio;
+                        if (data.link) currentLink = data.link;
+                        localStorage.setItem('noitefilmes_displayname', currentDisplayName);
+                        localStorage.setItem('noitefilmes_bio', currentBio);
+                        localStorage.setItem('noitefilmes_link', currentLink);
+                    }
+                });
+            } else { 
+                showLoginModal(); 
+                document.getElementById('profileContainer').innerHTML = `
+                    <div class="glass m-3 p-8 text-center">
+                        <i class="fas fa-user-circle text-6xl text-gray-500 mb-3"></i>
+                        <p class="text-gray-400">Faça login para ver seu perfil</p>
+                        <button onclick="showLoginModal()" class="mt-4 bg-red-600 px-6 py-2 rounded-full text-sm">Entrar</button>
+                    </div>
+                `;
+            }
         }
-        async function loadUserNickname(userId) { const snapshot = await database.ref(`usuarios/${userId}`).once('value'); const data = snapshot.val(); if (data && data.nickname) { currentUsername = data.nickname; localStorage.setItem('noitefilmes_username', currentUsername); } }
+        
+        async function loadUserNickname(userId) { 
+            const snapshot = await database.ref(`usuarios/${userId}`).once('value'); 
+            const data = snapshot.val(); 
+            if (data && data.nickname) { 
+                currentUsername = data.nickname; 
+                localStorage.setItem('noitefilmes_username', currentUsername); 
+            } 
+        }
         
         // ==================== EVENT LISTENERS ====================
         document.getElementById('navCanaisBtn').onclick = () => setNavTab('canais');
@@ -2759,6 +3545,17 @@
         document.getElementById('closeDetailBtn').onclick = closeReportDetail;
         document.getElementById('replyToReportBtn').onclick = openReplyToReport;
         
+        // Edit profile modal events
+        document.getElementById('cancelEditProfile')?.addEventListener('click', () => {
+            document.getElementById('editProfileModal').classList.add('hidden');
+        });
+        document.getElementById('saveEditProfile')?.addEventListener('click', saveEditProfile);
+        
+        // Close followers modal
+        document.getElementById('closeFollowersModal')?.addEventListener('click', () => {
+            document.getElementById('followersModal').classList.add('hidden');
+        });
+        
         document.getElementById('doLogin').onclick = () => { const email = document.getElementById('loginEmail').value; const password = document.getElementById('loginPassword').value; auth.signInWithEmailAndPassword(email, password).catch(e => showToast('Erro: ' + e.message)); };
         document.getElementById('doRegister').onclick = registerUser;
         document.getElementById('showRegister').onclick = () => { document.getElementById('loginForm').classList.add('hidden'); document.getElementById('registerForm').classList.remove('hidden'); };
@@ -2784,7 +3581,6 @@
         document.getElementById('settingsModal').addEventListener('click', (e) => { if (e.target === document.getElementById('settingsModal')) document.getElementById('settingsModal').classList.add('hidden'); });
         document.getElementById('searchPopup').addEventListener('click', (e) => { if (e.target === document.getElementById('searchPopup')) document.getElementById('searchPopup').classList.add('hidden'); });
         document.getElementById('favoritesPopup').addEventListener('click', (e) => { if (e.target === document.getElementById('favoritesPopup')) document.getElementById('favoritesPopup').classList.add('hidden'); });
-        document.getElementById('profileLogoutBtn').onclick = logoutUser;
         
         document.querySelectorAll('.bottom-nav-item').forEach(item => { item.addEventListener('click', () => { const section = item.getAttribute('data-section'); switchSection(section); }); });
         
@@ -2796,7 +3592,7 @@
         }
         
         function openSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); document.getElementById('usernameInput').value = currentUsername; }
-        function saveUsername() { const newUsername = document.getElementById('usernameInput').value.trim(); if (newUsername) { currentUsername = newUsername; localStorage.setItem('noitefilmes_username', currentUsername); if (currentUser) database.ref(`usuarios/${currentUser.uid}/nickname`).set(currentUsername); showToast(`✅ Nome alterado para: @${currentUsername}`); document.getElementById('settingsModal').classList.add('hidden'); updateProfileUI(); } }
+        function saveUsername() { const newUsername = document.getElementById('usernameInput').value.trim(); if (newUsername) { currentUsername = newUsername; localStorage.setItem('noitefilmes_username', currentUsername); if (currentUser) database.ref(`usuarios/${currentUser.uid}/nickname`).set(currentUsername); showToast(`✅ Nome alterado para: @${currentUsername}`); document.getElementById('settingsModal').classList.add('hidden'); renderProfile(); } }
         function logoutUser() { auth.signOut(); document.getElementById('settingsModal').classList.add('hidden'); }
         function setDarkMode() { document.body.classList.remove('light-mode'); document.body.classList.add('dark-mode'); localStorage.setItem('noitefilmes_theme', 'dark'); }
         function setLightMode() { document.body.classList.remove('dark-mode'); document.body.classList.add('light-mode'); localStorage.setItem('noitefilmes_theme', 'light'); }
