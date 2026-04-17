@@ -1058,6 +1058,39 @@
             align-items: center;
             margin-bottom: 8px;
         }
+        /* Nickname clicável */
+        .clickable-nickname {
+            cursor: pointer;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+        .clickable-nickname:hover {
+            opacity: 0.8;
+            text-decoration: underline;
+        }
+        /* Edit Profile Modal */
+        .edit-profile-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.95);
+            backdrop-filter: blur(20px);
+            z-index: 2200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .edit-profile-content {
+            background: rgba(25,25,45,0.95);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 32px;
+            padding: 24px;
+            width: 90%;
+            max-width: 450px;
+        }
     </style>
     <script>
         (function blockPinchZoom() {
@@ -1363,6 +1396,21 @@
             </div>
         </div>
     </div>
+    
+    <!-- Edit Profile Modal -->
+    <div id="editProfileModal" class="edit-profile-modal hidden">
+        <div class="edit-profile-content">
+            <h3 class="text-xl font-bold mb-4 text-center">✏️ Editar Perfil</h3>
+            <input type="text" id="editDisplayName" class="w-full p-2 bg-white/10 rounded-full text-sm mb-3" placeholder="Nome de perfil">
+            <input type="text" id="editNickname" class="w-full p-2 bg-white/10 rounded-full text-sm mb-3" placeholder="@Nickname">
+            <textarea id="editBio" rows="3" class="w-full p-2 bg-white/10 rounded-xl text-sm mb-3" placeholder="Bio (máx 300 caracteres)" maxlength="300"></textarea>
+            <input type="url" id="editExternalLink" class="w-full p-2 bg-white/10 rounded-full text-sm mb-4" placeholder="Link externo">
+            <div class="flex gap-3">
+                <button id="cancelEditProfileBtn" class="flex-1 bg-gray-700 py-2 rounded-full text-sm ripple-btn">Cancelar</button>
+                <button id="saveEditProfileBtn" class="flex-1 bg-red-600 py-2 rounded-full text-sm font-bold ripple-btn">Salvar</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         // ==================== FIREBASE CONFIG ====================
@@ -1418,6 +1466,13 @@
         let followingRelations = {}; // { targetUserId: true/false }
         let currentProfileViewMode = 'self'; // 'self' or 'other'
         let otherProfileUserId = null;
+        
+        // User profile data
+        let userProfileData = {
+            displayName: '',
+            bio: '',
+            externalLink: ''
+        };
         
         // ==================== FUNÇÕES DE NAVEGAÇÃO ====================
         function switchSection(sectionId) {
@@ -1490,6 +1545,48 @@
             });
         }
         
+        // Function to make nicknames clickable in any text
+        function makeNicknamesClickable(text) {
+            if (!text) return text;
+            const regex = /@([a-zA-Z0-9_]+)/g;
+            return text.replace(regex, (match, nickname) => {
+                return `<span class="clickable-nickname" data-nickname="${nickname}">${match}</span>`;
+            });
+        }
+        
+        // Function to handle nickname click
+        function setupNicknameClickHandlers() {
+            document.querySelectorAll('.clickable-nickname').forEach(el => {
+                el.removeEventListener('click', nicknameClickHandler);
+                el.addEventListener('click', nicknameClickHandler);
+            });
+        }
+        
+        function nicknameClickHandler(e) {
+            e.stopPropagation();
+            const nickname = this.getAttribute('data-nickname');
+            if (nickname) {
+                // Find user by nickname and show profile
+                database.ref('usuarios').orderByChild('nickname').equalTo(nickname).once('value', (snapshot) => {
+                    const users = snapshot.val();
+                    if (users) {
+                        const userId = Object.keys(users)[0];
+                        if (userId && currentUser && userId !== currentUser.uid) {
+                            renderInstagramProfile(userId);
+                            switchSection('perfil');
+                        } else if (userId && currentUser && userId === currentUser.uid) {
+                            renderInstagramProfile();
+                            switchSection('perfil');
+                        } else {
+                            showToast(`Usuário ${nickname} não encontrado`);
+                        }
+                    } else {
+                        showToast(`Usuário ${nickname} não encontrado`);
+                    }
+                });
+            }
+        }
+        
         // ==================== PERFIL INSTAGRAM (NOVO) ====================
         function renderInstagramProfile(showOtherUserId = null) {
             const container = document.getElementById('instagramProfileContainer');
@@ -1510,21 +1607,47 @@
                 database.ref(`usuarios/${targetUserId}`).once('value').then(snap => {
                     const data = snap.val();
                     if (data && data.nickname) targetNickname = data.nickname;
+                    if (data && data.displayName) userProfileData.displayName = data.displayName;
+                    if (data && data.bio) userProfileData.bio = data.bio;
+                    if (data && data.externalLink) userProfileData.externalLink = data.externalLink;
                     renderProfileHtml(targetUserId, targetNickname, isOwnProfile);
                 }).catch(() => renderProfileHtml(targetUserId, targetNickname, isOwnProfile));
             } else {
+                // Load own profile data
+                database.ref(`usuarios/${currentUser.uid}`).once('value').then(snap => {
+                    const data = snap.val();
+                    if (data) {
+                        if (data.displayName) userProfileData.displayName = data.displayName;
+                        if (data.bio) userProfileData.bio = data.bio;
+                        if (data.externalLink) userProfileData.externalLink = data.externalLink;
+                    }
+                });
                 renderProfileHtml(targetUserId, targetNickname, isOwnProfile);
             }
             
             function renderProfileHtml(uid, nickname, isSelf) {
                 const postagens = [...filmes, ...series, ...canais];
                 const totalPosts = postagens.length;
-                const followersCount = 124; // mock followers
-                const followingCount = 87;  // mock following
-                const bioText = "🎬 Apaixonado por cinema e séries. NoiteFilmes é minha segunda casa! 🍿✨\nCompartilho críticas e novidades do mundo do entretenimento.";
+                
+                // Get real followers count from database
+                database.ref(`followers/${uid}`).once('value', (snap) => {
+                    const followersCount = snap.val() ? Object.keys(snap.val()).length : 0;
+                    const followersSpan = document.getElementById('statFollowersValue');
+                    if (followersSpan) followersSpan.innerText = followersCount;
+                });
+                
+                // Get real following count from database
+                database.ref(`following/${uid}`).once('value', (snap) => {
+                    const followingCount = snap.val() ? Object.keys(snap.val()).length : 0;
+                    const followingSpan = document.getElementById('statFollowingValue');
+                    if (followingSpan) followingSpan.innerText = followingCount;
+                });
+                
+                const displayNameText = userProfileData.displayName || nickname;
+                const bioText = userProfileData.bio || "🎬 Apaixonado por cinema e séries. NoiteFilmes é minha segunda casa! 🍿✨";
                 const truncatedBio = bioText.length > 300 ? bioText.substring(0, 300) : bioText;
                 const showExpand = bioText.length > 120;
-                const externalLink = "https://instagram.com/noitefilmes";
+                const externalLink = userProfileData.externalLink || "https://instagram.com/noitefilmes";
                 const isFollowing = followingRelations[uid] === true;
                 
                 let actionButtonHtml = '';
@@ -1542,12 +1665,12 @@
                             <div class="profile-picture"><i class="fas fa-user fa-2x"></i></div>
                             <div class="profile-stats-grid">
                                 <div><span class="stat-number" id="statPosts">${totalPosts}</span><span class="stat-label"> posts</span></div>
-                                <div><span class="stat-number" id="statFollowers">${followersCount}</span><span class="stat-label"> seguidores</span></div>
-                                <div><span class="stat-number" id="statFollowing">${followingCount}</span><span class="stat-label"> seguindo</span></div>
+                                <div><span class="stat-number" id="statFollowersValue">0</span><span class="stat-label"> seguidores</span></div>
+                                <div><span class="stat-number" id="statFollowingValue">0</span><span class="stat-label"> seguindo</span></div>
                             </div>
                         </div>
                         <div class="profile-bio">
-                            <div class="profile-bio-text" id="profileBioText">${escapeHtml(truncatedBio)}</div>
+                            <div class="profile-bio-text" id="profileBioText">${makeNicknamesClickable(escapeHtml(truncatedBio))}</div>
                             ${showExpand ? `<button class="bio-expand-btn" id="bioExpandBtn">...ver mais</button>` : ''}
                         </div>
                         <a href="${externalLink}" target="_blank" class="profile-external-link"><i class="fas fa-link"></i> ${externalLink}</a>
@@ -1555,6 +1678,8 @@
                     </div>
                     <div class="post-grid" id="profilePostGrid"></div>
                 `;
+                
+                setupNicknameClickHandlers();
                 
                 // render posts grid
                 const gridContainer = document.getElementById('profilePostGrid');
@@ -1598,9 +1723,18 @@
                     if (followBtn) {
                         followBtn.addEventListener('click', () => {
                             const newStatus = !isFollowing;
-                            followingRelations[uid] = newStatus;
+                            if (newStatus) {
+                                database.ref(`followers/${uid}/${currentUser.uid}`).set(true);
+                                database.ref(`following/${currentUser.uid}/${uid}`).set(true);
+                                followingRelations[uid] = true;
+                                showToast(`Você agora segue @${nickname}`);
+                            } else {
+                                database.ref(`followers/${uid}/${currentUser.uid}`).remove();
+                                database.ref(`following/${currentUser.uid}/${uid}`).remove();
+                                followingRelations[uid] = false;
+                                showToast(`Você deixou de seguir @${nickname}`);
+                            }
                             renderInstagramProfile(uid);
-                            showToast(newStatus ? `Você agora segue @${nickname}` : `Você deixou de seguir @${nickname}`);
                         });
                     }
                 }
@@ -1608,10 +1742,67 @@
                 const optionsIcon = document.getElementById('profileOptionsIcon');
                 if (optionsIcon && isSelf) {
                     optionsIcon.addEventListener('click', () => {
-                        openSettingsModal();
+                        // Show edit profile option
+                        openEditProfileModal();
                     });
                 }
+                
+                // Update real counts
+                database.ref(`followers/${uid}`).once('value', (snap) => {
+                    const followersCount = snap.val() ? Object.keys(snap.val()).length : 0;
+                    const followersSpan = document.getElementById('statFollowersValue');
+                    if (followersSpan) followersSpan.innerText = followersCount;
+                });
+                database.ref(`following/${uid}`).once('value', (snap) => {
+                    const followingCount = snap.val() ? Object.keys(snap.val()).length : 0;
+                    const followingSpan = document.getElementById('statFollowingValue');
+                    if (followingSpan) followingSpan.innerText = followingCount;
+                });
             }
+        }
+        
+        function openEditProfileModal() {
+            document.getElementById('editDisplayName').value = userProfileData.displayName || '';
+            document.getElementById('editNickname').value = currentUsername;
+            document.getElementById('editBio').value = userProfileData.bio || '';
+            document.getElementById('editExternalLink').value = userProfileData.externalLink || '';
+            document.getElementById('editProfileModal').classList.remove('hidden');
+        }
+        
+        function saveEditProfile() {
+            const newDisplayName = document.getElementById('editDisplayName').value.trim();
+            let newNickname = document.getElementById('editNickname').value.trim();
+            const newBio = document.getElementById('editBio').value.trim();
+            const newExternalLink = document.getElementById('editExternalLink').value.trim();
+            
+            if (newNickname.startsWith('@')) newNickname = newNickname.substring(1);
+            if (!newNickname) {
+                showToast('Nickname não pode estar vazio');
+                return;
+            }
+            
+            // Update Firebase
+            const updates = {};
+            if (newDisplayName) updates.displayName = newDisplayName;
+            if (newNickname !== currentUsername) updates.nickname = newNickname;
+            if (newBio) updates.bio = newBio;
+            if (newExternalLink) updates.externalLink = newExternalLink;
+            
+            database.ref(`usuarios/${currentUser.uid}`).update(updates).then(() => {
+                if (newNickname !== currentUsername) {
+                    currentUsername = newNickname;
+                    localStorage.setItem('noitefilmes_username', currentUsername);
+                }
+                userProfileData.displayName = newDisplayName;
+                userProfileData.bio = newBio;
+                userProfileData.externalLink = newExternalLink;
+                showToast('Perfil atualizado com sucesso!');
+                document.getElementById('editProfileModal').classList.add('hidden');
+                renderInstagramProfile();
+                updateProfileUI();
+            }).catch(error => {
+                showToast('Erro ao atualizar perfil: ' + error.message);
+            });
         }
         
         function updateProfileUI() {
@@ -1792,7 +1983,8 @@
         function updateVideoDescription(description) {
             const descEl = document.getElementById('videoDescription');
             if (!descEl) return;
-            descEl.innerHTML = description || 'Sem descrição disponível.';
+            descEl.innerHTML = makeNicknamesClickable(description || 'Sem descrição disponível.');
+            setupNicknameClickHandlers();
             const toggleBtn = document.getElementById('descriptionToggleBtn');
             if (description && description.length > 100) {
                 toggleBtn.classList.remove('hidden');
@@ -1938,7 +2130,18 @@
         function createRatingStars(containerId, mediaId) { const container = document.getElementById(containerId); if (!container) return; if (currentUser) database.ref(`avaliacoes/${mediaId}/${currentUser.uid}`).once('value', (snapshot) => renderStars(container, mediaId, snapshot.val() || 0)); else renderStars(container, mediaId, 0); }
         function renderStars(container, mediaId, userRating) { container.innerHTML = ''; for (let i = 1; i <= 5; i++) { const star = document.createElement('i'); star.className = i <= userRating ? 'fas fa-star' : 'far fa-star'; star.style.cursor = 'pointer'; star.addEventListener('click', (e) => { e.stopPropagation(); saveRating(mediaId, i); renderStars(container, mediaId, i); }); container.appendChild(star); } updateRatingPercentDisplay(mediaId); }
         function updateRatingStarsDisplay(mediaId) { if (currentMedia && currentMedia.id === mediaId) { createRatingStars('ratingStarsContainer', mediaId); updateRatingInfo(mediaId); updateRatingPercentDisplay(mediaId); } }
-        function loadComments(mediaId) { database.ref(`comentarios/${mediaId}`).once('value', (snapshot) => { const data = snapshot.val(); const commentsList = data ? Object.values(data) : []; const container = document.getElementById('commentsList'); if (container) { container.innerHTML = commentsList.map(c => `<div class="comment-item p-2 rounded-xl"><span class="comment-user text-red-500 font-bold text-[10px]">@${c.user}</span><div class="comment-text text-[11px] mt-0.5">${escapeHtml(c.text)}</div><div class="comment-time text-[9px] opacity-50 mt-0.5">${c.time}</div></div>`).join(''); if (commentsList.length === 0) container.innerHTML = '<div class="text-center text-gray-500 text-[10px] py-3">Nenhum comentário ainda. Seja o primeiro!</div>'; } }); }
+        function loadComments(mediaId) {
+            database.ref(`comentarios/${mediaId}`).once('value', (snapshot) => {
+                const data = snapshot.val();
+                const commentsList = data ? Object.values(data) : [];
+                const container = document.getElementById('commentsList');
+                if (container) {
+                    container.innerHTML = commentsList.map(c => `<div class="comment-item p-2 rounded-xl"><span class="comment-user text-red-500 font-bold text-[10px] clickable-nickname" data-nickname="${c.user}">@${c.user}</span><div class="comment-text text-[11px] mt-0.5">${makeNicknamesClickable(escapeHtml(c.text))}</div><div class="comment-time text-[9px] opacity-50 mt-0.5">${c.time}</div></div>`).join('');
+                    if (commentsList.length === 0) container.innerHTML = '<div class="text-center text-gray-500 text-[10px] py-3">Nenhum comentário ainda. Seja o primeiro!</div>';
+                    setupNicknameClickHandlers();
+                }
+            });
+        }
         function addComment(mediaId, text) { if (!currentUser) { showToast('Faça login para comentar'); return; } if (!text.trim()) return; database.ref(`comentarios/${mediaId}`).push({ user: currentUsername, text: text, time: new Date().toLocaleString(), userId: currentUser.uid }).then(() => { showToast('Comentário adicionado!'); loadComments(mediaId); document.getElementById('newCommentInput').value = ''; }); }
         function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
         function showToast(msg) { const toast = document.createElement('div'); toast.className = 'toast'; toast.innerText = msg; document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
@@ -2139,7 +2342,10 @@
                 const otherUsers = []; for (let uid in users) { if (uid !== currentUser.uid) { otherUsers.push({ uid: uid, nickname: users[uid].nickname || uid.substring(0, 6), lastSeen: users[uid].lastSeen || null, lastMessage: null, lastMessageTime: null }); } }
                 if (otherUsers.length === 0) { convContainer.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Nenhum outro usuário encontrado</div>'; return; }
                 const promises = otherUsers.map(user => { return database.ref(`private_chats/${getChatId(currentUser.uid, user.uid)}/messages`).limitToLast(1).once('value').then(snap => { const messages = snap.val(); if (messages) { const lastMsg = Object.values(messages)[0]; user.lastMessage = lastMsg.text; user.lastMessageTime = lastMsg.timestamp; } return user; }); });
-                Promise.all(promises).then(users => { users.sort((a, b) => (b.lastMessageTime || 0) - (a.lastMessageTime || 0)); convContainer.innerHTML = users.map(user => `<div class="chat-conversation-item ripple-btn" data-uid="${user.uid}" data-nickname="${user.nickname}"><div class="chat-avatar">${user.nickname.charAt(0).toUpperCase()}</div><div class="chat-info"><div class="chat-name">@${user.nickname}</div><div class="chat-last-message">${user.lastMessage ? escapeHtml(user.lastMessage.substring(0, 50)) : 'Nenhuma mensagem ainda'}</div></div><div class="chat-time">${user.lastMessageTime ? formatLastSeen(user.lastMessageTime) : formatLastSeen(user.lastSeen)}</div></div>`).join(''); document.querySelectorAll('.chat-conversation-item').forEach(el => { el.addEventListener('click', () => { const uid = el.getAttribute('data-uid'); const nickname = el.getAttribute('data-nickname'); openChatScreen(uid, nickname); }); }); });
+                Promise.all(promises).then(users => { users.sort((a, b) => (b.lastMessageTime || 0) - (a.lastMessageTime || 0)); convContainer.innerHTML = users.map(user => `<div class="chat-conversation-item ripple-btn" data-uid="${user.uid}" data-nickname="${user.nickname}"><div class="chat-avatar">${user.nickname.charAt(0).toUpperCase()}</div><div class="chat-info"><div class="chat-name clickable-nickname" data-nickname="${user.nickname}">@${user.nickname}</div><div class="chat-last-message">${user.lastMessage ? escapeHtml(user.lastMessage.substring(0, 50)) : 'Nenhuma mensagem ainda'}</div></div><div class="chat-time">${user.lastMessageTime ? formatLastSeen(user.lastMessageTime) : formatLastSeen(user.lastSeen)}</div></div>`).join(''); 
+                    setupNicknameClickHandlers();
+                    document.querySelectorAll('.chat-conversation-item').forEach(el => { el.addEventListener('click', (e) => { if(e.target.classList.contains('clickable-nickname')) return; const uid = el.getAttribute('data-uid'); const nickname = el.getAttribute('data-nickname'); openChatScreen(uid, nickname); }); }); 
+                });
             });
         }
         function getChatId(uid1, uid2) { return uid1 < uid2 ? `${uid1}_${uid2}` : `${uid2}_${uid1}`; }
@@ -2147,8 +2353,9 @@
             currentChatUser = { uid: otherUserId, name: otherUserName };
             const chatId = getChatId(currentUser.uid, otherUserId);
             let chatScreen = document.getElementById('chatScreen'); if (!chatScreen) { chatScreen = document.createElement('div'); chatScreen.id = 'chatScreen'; chatScreen.className = 'chat-screen'; document.body.appendChild(chatScreen); }
-            chatScreen.innerHTML = `<div class="chat-screen-header"><div class="chat-back-btn ripple-btn" id="chatBackBtn"><i class="fas fa-arrow-left"></i></div><div class="chat-screen-avatar">${otherUserName.charAt(0).toUpperCase()}</div><div class="chat-screen-info"><div class="chat-screen-name">@${otherUserName}</div><div class="chat-screen-status" id="chatStatus">online</div></div></div><div class="chat-messages-container" id="chatMessagesContainer"></div><div class="chat-input-container"><input type="text" class="chat-input-field" id="chatMessageInput" placeholder="Digite uma mensagem..." maxlength="500"><button class="chat-send-button ripple-btn" id="chatSendBtn"><i class="fas fa-paper-plane"></i></button></div>`;
+            chatScreen.innerHTML = `<div class="chat-screen-header"><div class="chat-back-btn ripple-btn" id="chatBackBtn"><i class="fas fa-arrow-left"></i></div><div class="chat-screen-avatar">${otherUserName.charAt(0).toUpperCase()}</div><div class="chat-screen-info"><div class="chat-screen-name clickable-nickname" data-nickname="${otherUserName}">@${otherUserName}</div><div class="chat-screen-status" id="chatStatus">online</div></div></div><div class="chat-messages-container" id="chatMessagesContainer"></div><div class="chat-input-container"><input type="text" class="chat-input-field" id="chatMessageInput" placeholder="Digite uma mensagem..." maxlength="500"><button class="chat-send-button ripple-btn" id="chatSendBtn"><i class="fas fa-paper-plane"></i></button></div>`;
             chatScreen.classList.remove('hidden');
+            setupNicknameClickHandlers();
             loadChatMessages(chatId);
             document.getElementById('chatBackBtn').addEventListener('click', () => { chatScreen.classList.add('hidden'); currentChatUser = null; loadConversations(); });
             document.getElementById('chatSendBtn').addEventListener('click', () => sendChatMessage(chatId, otherUserId, otherUserName));
@@ -2158,7 +2365,7 @@
         function loadChatMessages(chatId) {
             const messagesContainer = document.getElementById('chatMessagesContainer'); if (!messagesContainer) return;
             messagesContainer.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Carregando mensagens...</div>';
-            const messagesRef = database.ref(`private_chats/${chatId}/messages`); messagesRef.orderByChild('timestamp').on('value', (snapshot) => { const messages = snapshot.val(); if (!messages) { messagesContainer.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Nenhuma mensagem ainda. Envie uma mensagem para iniciar a conversa!</div>'; return; } const messagesList = Object.values(messages); messagesContainer.innerHTML = messagesList.map(msg => `<div class="chat-bubble ${msg.senderId === currentUser.uid ? 'chat-bubble-sent' : 'chat-bubble-received'}">${escapeHtml(msg.text)}<div class="chat-bubble-time">${new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div></div>`).join(''); messagesContainer.scrollTop = messagesContainer.scrollHeight; });
+            const messagesRef = database.ref(`private_chats/${chatId}/messages`); messagesRef.orderByChild('timestamp').on('value', (snapshot) => { const messages = snapshot.val(); if (!messages) { messagesContainer.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Nenhuma mensagem ainda. Envie uma mensagem para iniciar a conversa!</div>'; return; } const messagesList = Object.values(messages); messagesContainer.innerHTML = messagesList.map(msg => `<div class="chat-bubble ${msg.senderId === currentUser.uid ? 'chat-bubble-sent' : 'chat-bubble-received'}">${makeNicknamesClickable(escapeHtml(msg.text))}<div class="chat-bubble-time">${new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div></div>`).join(''); messagesContainer.scrollTop = messagesContainer.scrollHeight; setupNicknameClickHandlers(); });
         }
         function sendChatMessage(chatId, otherUserId, otherUserName) {
             const input = document.getElementById('chatMessageInput'); const text = input.value.trim(); if (!text) return;
@@ -2219,6 +2426,15 @@
                 database.ref('top10').on('value', (snapshot) => { const data = snapshot.val(); if (data) { top10List = data; renderTop10Carousel(); } else { generateTop10ByViews(); } });
                 updateProfileUI();
                 updateLastSeen();
+                // Load user profile data
+                database.ref(`usuarios/${user.uid}`).once('value').then(snap => {
+                    const data = snap.val();
+                    if (data) {
+                        if (data.displayName) userProfileData.displayName = data.displayName;
+                        if (data.bio) userProfileData.bio = data.bio;
+                        if (data.externalLink) userProfileData.externalLink = data.externalLink;
+                    }
+                });
             } else { showLoginModal(); updateProfileUI(); }
         }
         async function loadUserNickname(userId) { const snapshot = await database.ref(`usuarios/${userId}`).once('value'); const data = snapshot.val(); if (data && data.nickname) { currentUsername = data.nickname; localStorage.setItem('noitefilmes_username', currentUsername); } }
@@ -2247,6 +2463,9 @@
         document.getElementById('sendReplyBtn').onclick = sendReplyToUser;
         document.getElementById('closeDetailBtn').onclick = closeReportDetail;
         document.getElementById('replyToReportBtn').onclick = openReplyToReport;
+        // Edit profile modal events
+        document.getElementById('cancelEditProfileBtn').onclick = () => document.getElementById('editProfileModal').classList.add('hidden');
+        document.getElementById('saveEditProfileBtn').onclick = saveEditProfile;
         document.getElementById('doLogin').onclick = () => { const email = document.getElementById('loginEmail').value; const password = document.getElementById('loginPassword').value; auth.signInWithEmailAndPassword(email, password).catch(e => showToast('Erro: ' + e.message)); };
         document.getElementById('doRegister').onclick = registerUser;
         document.getElementById('showRegister').onclick = () => { document.getElementById('loginForm').classList.add('hidden'); document.getElementById('registerForm').classList.remove('hidden'); };
@@ -2270,6 +2489,7 @@
         document.getElementById('settingsModal').addEventListener('click', (e) => { if (e.target === document.getElementById('settingsModal')) document.getElementById('settingsModal').classList.add('hidden'); });
         document.getElementById('searchPopup').addEventListener('click', (e) => { if (e.target === document.getElementById('searchPopup')) document.getElementById('searchPopup').classList.add('hidden'); });
         document.getElementById('favoritesPopup').addEventListener('click', (e) => { if (e.target === document.getElementById('favoritesPopup')) document.getElementById('favoritesPopup').classList.add('hidden'); });
+        document.getElementById('editProfileModal').addEventListener('click', (e) => { if (e.target === document.getElementById('editProfileModal')) document.getElementById('editProfileModal').classList.add('hidden'); });
         document.getElementById('profileLogoutBtn') && document.getElementById('profileLogoutBtn').addEventListener('click', logoutUser);
         document.querySelectorAll('.bottom-nav-item').forEach(item => { item.addEventListener('click', () => { const section = item.getAttribute('data-section'); switchSection(section); }); });
         
