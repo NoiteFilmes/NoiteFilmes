@@ -472,22 +472,6 @@
             100% { opacity: 0; visibility: hidden; } 
         }
         
-        /* Watermark */
-        .watermark {
-            position: fixed;
-            bottom: 80px;
-            left: 15px;
-            z-index: 999;
-            background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(12px);
-            padding: 4px 12px;
-            border-radius: 40px;
-            font-size: 9px;
-            font-weight: bold;
-            pointer-events: none;
-            border: 1px solid rgba(229,9,20,0.5);
-        }
-        
         /* Menu */
         .logo-line { 
             padding: 10px 16px; 
@@ -1333,10 +1317,16 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            transition: all 0.2s;
         }
         
         .audio-play-btn:hover {
             background: rgba(255,255,255,0.3);
+        }
+        
+        .audio-play-btn.playing {
+            background: #e50914;
+            animation: pulse 1s infinite;
         }
         
         .audio-wave {
@@ -1358,7 +1348,31 @@
         .audio-duration {
             font-size: 11px;
             opacity: 0.7;
-            min-width: 35px;
+            min-width: 45px;
+        }
+        
+        .recording-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(229,9,20,0.8);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            margin-left: 8px;
+        }
+        
+        .recording-indicator .recording-dot {
+            width: 10px;
+            height: 10px;
+            background: #fff;
+            border-radius: 50%;
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
         }
         
         .message-bar {
@@ -1649,30 +1663,35 @@
             color: #e50914;
         }
         
-        /* Swipe Delete */
-        .message.swipe-left {
-            transform: translateX(-100px);
-            transition: transform 0.3s ease;
-        }
-        
-        .delete-overlay {
+        /* Swipe Delete - Botão reposicionado */
+        .swipe-delete-btn {
             position: absolute;
-            right: 10px;
-            top: 0;
-            bottom: 0;
-            width: 80px;
-            background: #e50914;
+            right: -60px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 50px;
+            height: 50px;
+            background-color: #e50914;
+            border-radius: 25px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 20px;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            pointer-events: none;
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.2s;
         }
         
-        .message.swipe-left .delete-overlay {
-            opacity: 1;
+        .swipe-delete-btn i {
+            color: white;
+            font-size: 20px;
+        }
+        
+        .swipe-delete-btn:hover {
+            transform: translateY(-50%) scale(1.05);
+        }
+        
+        .message.swipe-left {
+            transform: translateX(-70px);
         }
         
         @media (max-width: 768px) {
@@ -1747,6 +1766,18 @@
             background: rgba(0,0,0,0.1);
             color: #1a1a1a;
         }
+        
+        .sync-status {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(0,0,0,0.35);
+            backdrop-filter: blur(8px);
+            border-radius: 40px;
+            padding: 2px 8px;
+            font-size: 0.65rem;
+        }
     </style>
     <script>
         (function blockPinchZoom() {
@@ -1765,14 +1796,6 @@
 </head>
 <body class="dark-mode">
 
-    <div class="watermark">
-        <i class="fab fa-instagram"></i> @NoiteFilmes
-    </div>
-
-    <div class="sync-status synced fixed bottom-20 right-3 z-[998] glass px-2 py-1 text-[9px]" id="syncStatus">
-        <i class="fas fa-check-circle text-green-400"></i> Sincronizado
-    </div>
-
     <div class="logo-line">
         <div class="flex items-center justify-between">
             <div class="flex items-center space-x-2">
@@ -1782,6 +1805,9 @@
                     <div class="counter-item flex items-center gap-1"><i class="fas fa-film text-[9px]"></i> <span id="filmesCount">0</span></div>
                     <div class="counter-item flex items-center gap-1"><i class="fas fa-tv text-[9px]"></i> <span id="seriesCount">0</span></div>
                     <div class="counter-item flex items-center gap-1"><i class="fas fa-satellite-dish text-[9px]"></i> <span id="canaisCount">0</span></div>
+                    <div class="sync-status synced flex items-center gap-1 ml-2" id="syncStatus">
+                        <i class="fas fa-check-circle text-green-400 text-[9px]"></i> <span class="text-[9px]">atualizado</span>
+                    </div>
                 </div>
             </div>
             <div class="flex items-center gap-2">
@@ -1974,6 +2000,10 @@
                         <button class="message-bar-button" id="audioRecordBtn" onclick="toggleAudioRecording()">
                             <i class="fas fa-microphone"></i>
                         </button>
+                        <div id="recordingIndicator" class="recording-indicator hidden">
+                            <span class="recording-dot"></span>
+                            <span>Gravando...</span>
+                        </div>
                     </div>
                     <div class="message-bar-center">
                         <textarea 
@@ -2244,14 +2274,15 @@
         let unreadMessages = new Map();
         let lastReadTimestamps = new Map();
         const userStatusListeners = new Map();
-        let mediaRecorder = null;
-        let audioChunks = [];
-        let isRecording = false;
+        let mediaRecorderAudio = null;
+        let audioChunksData = [];
+        let isAudioRecording = false;
         let longPressTimer = null;
         let selectedMessageId = null;
         let selectedMessageElement = null;
         let touchStartX = null;
         let currentSwipingMessage = null;
+        let currentAudio = null;
         
         // ==================== FUNÇÕES DE NAVEGAÇÃO ====================
         function switchSection(sectionId) {
@@ -3194,11 +3225,7 @@
         
         function formatLastSeen(timestamp) { if (!timestamp) return 'visto agora'; const now = Date.now(); const diff = now - timestamp; const minutes = Math.floor(diff / 60000); const hours = Math.floor(diff / 3600000); const days = Math.floor(diff / 86400000); if (minutes < 1) return 'visto agora'; if (minutes < 60) return `visto há ${minutes} min`; if (hours < 24) return `visto há ${hours} h`; if (days === 1) return 'ontem'; if (days === 2) return 'antes de ontem'; const date = new Date(timestamp); return `visto em ${date.toLocaleDateString()}`; }
         
-        // ========== FUNÇÕES DE ÁUDIO ==========
-        let mediaRecorderAudio = null;
-        let audioChunksData = [];
-        let isAudioRecording = false;
-        
+        // ========== FUNÇÕES DE ÁUDIO CORRIGIDAS ==========
         async function toggleAudioRecording() {
             if (!auth.currentUser) {
                 showToast('Faça login para enviar áudio');
@@ -3233,10 +3260,12 @@
                     const audioBlob = new Blob(audioChunksData, { type: 'audio/webm' });
                     await sendAudioMessage(audioBlob);
                     stream.getTracks().forEach(track => track.stop());
+                    hideRecordingIndicator();
                 };
                 
                 mediaRecorderAudio.start();
                 isAudioRecording = true;
+                showRecordingIndicator();
                 
                 const recordBtn = document.getElementById('audioRecordBtn');
                 recordBtn.innerHTML = '<i class="fas fa-square"></i>';
@@ -3256,14 +3285,23 @@
             }
         }
         
+        function showRecordingIndicator() {
+            const indicator = document.getElementById('recordingIndicator');
+            if (indicator) indicator.classList.remove('hidden');
+        }
+        
+        function hideRecordingIndicator() {
+            const indicator = document.getElementById('recordingIndicator');
+            if (indicator) indicator.classList.add('hidden');
+            const recordBtn = document.getElementById('audioRecordBtn');
+            recordBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+            recordBtn.classList.remove('recording');
+        }
+        
         function stopAudioRecordingAndSend() {
             if (mediaRecorderAudio && isAudioRecording) {
                 mediaRecorderAudio.stop();
                 isAudioRecording = false;
-                
-                const recordBtn = document.getElementById('audioRecordBtn');
-                recordBtn.innerHTML = '<i class="fas fa-microphone"></i>';
-                recordBtn.classList.remove('recording');
             }
         }
         
@@ -3278,7 +3316,7 @@
                 reader.readAsDataURL(audioBlob);
                 reader.onloadend = async function() {
                     const base64Audio = reader.result.split(',')[1];
-                    const duration = 5;
+                    const duration = Math.round(audioBlob.size / 16000);
                     
                     const messageData = {
                         text: '',
@@ -3305,20 +3343,56 @@
             }
         }
         
+        let currentPlayingAudio = null;
+        let currentPlayingButton = null;
+        let currentProgressInterval = null;
+        
         function playAudioMessage(audioBase64, button) {
+            if (currentPlayingAudio) {
+                currentPlayingAudio.pause();
+                if (currentPlayingButton) {
+                    currentPlayingButton.innerHTML = '<i class="fas fa-play"></i>';
+                    currentPlayingButton.classList.remove('playing');
+                }
+                if (currentProgressInterval) clearInterval(currentProgressInterval);
+                currentPlayingAudio = null;
+                currentPlayingButton = null;
+            }
+            
             const audio = new Audio('data:audio/webm;base64,' + audioBase64);
-            const icon = button.querySelector('i');
+            currentPlayingAudio = audio;
+            currentPlayingButton = button;
+            
+            const messageElement = button.closest('.message');
+            const progressBar = messageElement ? messageElement.querySelector('.audio-wave-progress') : null;
+            const durationSpan = messageElement ? messageElement.querySelector('.audio-duration') : null;
+            
+            if (durationSpan) {
+                audio.addEventListener('loadedmetadata', () => {
+                    const duration = Math.round(audio.duration);
+                    durationSpan.textContent = duration + 's';
+                });
+            }
+            
+            audio.addEventListener('timeupdate', () => {
+                if (progressBar && audio.duration) {
+                    const progress = (audio.currentTime / audio.duration) * 100;
+                    progressBar.style.width = progress + '%';
+                }
+            });
+            
+            audio.addEventListener('ended', () => {
+                button.innerHTML = '<i class="fas fa-play"></i>';
+                button.classList.remove('playing');
+                if (progressBar) progressBar.style.width = '0%';
+                currentPlayingAudio = null;
+                currentPlayingButton = null;
+                if (currentProgressInterval) clearInterval(currentProgressInterval);
+            });
+            
             audio.play();
-            icon.classList.remove('fa-play');
-            icon.classList.add('fa-pause');
-            audio.onended = () => {
-                icon.classList.remove('fa-pause');
-                icon.classList.add('fa-play');
-            };
-            audio.onpause = () => {
-                icon.classList.remove('fa-pause');
-                icon.classList.add('fa-play');
-            };
+            button.innerHTML = '<i class="fas fa-pause"></i>';
+            button.classList.add('playing');
         }
         
         // ========== FUNÇÕES DE SWIPE PARA EXCLUIR ==========
@@ -3352,7 +3426,7 @@
                 
                 const diffX = currentX - startX;
                 if (diffX < -50) {
-                    element.style.transform = 'translateX(-80px)';
+                    element.style.transform = 'translateX(-70px)';
                     showDeleteButton(element, messageId);
                 } else {
                     element.style.transform = 'translateX(0)';
@@ -3370,19 +3444,6 @@
             const deleteBtn = document.createElement('div');
             deleteBtn.className = 'swipe-delete-btn';
             deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
-            deleteBtn.style.position = 'absolute';
-            deleteBtn.style.right = '10px';
-            deleteBtn.style.top = '50%';
-            deleteBtn.style.transform = 'translateY(-50%)';
-            deleteBtn.style.width = '50px';
-            deleteBtn.style.height = '50px';
-            deleteBtn.style.backgroundColor = '#e50914';
-            deleteBtn.style.borderRadius = '25px';
-            deleteBtn.style.display = 'flex';
-            deleteBtn.style.alignItems = 'center';
-            deleteBtn.style.justifyContent = 'center';
-            deleteBtn.style.cursor = 'pointer';
-            deleteBtn.style.zIndex = '10';
             deleteBtn.onclick = (e) => {
                 e.stopPropagation();
                 selectedMessageId = messageId;
@@ -3396,8 +3457,10 @@
             element.appendChild(deleteBtn);
             
             setTimeout(() => {
-                if (deleteBtn.parentNode) deleteBtn.remove();
-                element.style.transform = 'translateX(0)';
+                if (deleteBtn.parentNode) {
+                    deleteBtn.remove();
+                    element.style.transform = 'translateX(0)';
+                }
             }, 5000);
         }
         
@@ -3623,7 +3686,7 @@
                         <div class="audio-wave">
                             <div class="audio-wave-progress" id="audio-progress-${messageId}"></div>
                         </div>
-                        <span class="audio-duration">${message.audioDuration || 5}s</span>
+                        <span class="audio-duration">${message.audioDuration || 0}s</span>
                     </div>
                 `;
             } else {
