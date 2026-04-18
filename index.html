@@ -904,28 +904,24 @@
             width: 90%;
             max-width: 500px;
         }
-        .image-preview {
+        .preview-container {
             width: 100%;
+            margin-top: 12px;
+            display: flex;
+            justify-content: center;
+        }
+        .preview-image {
+            max-width: 100%;
             max-height: 300px;
             object-fit: contain;
             border-radius: 16px;
             background: #1a1a1a;
-            margin-top: 12px;
         }
-        .rating-input {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-            margin: 12px 0;
-        }
-        .rating-star-input {
-            font-size: 28px;
-            cursor: pointer;
-            color: rgba(255,255,255,0.3);
-            transition: color 0.1s;
-        }
-        .rating-star-input.active {
-            color: #ffc107;
+        .preview-video {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 16px;
+            background: #1a1a1a;
         }
         
         /* ========== ESTILOS DO FEED INSTAGRAM ========== */
@@ -1011,11 +1007,18 @@
             background: rgba(255,255,255,0.1);
         }
         
-        .feed-post-image {
+        .feed-post-media {
             width: 100%;
             max-height: 500px;
             object-fit: cover;
             background: #1a1a1a;
+        }
+        
+        .feed-post-video {
+            width: 100%;
+            max-height: 500px;
+            background: #1a1a1a;
+            outline: none;
         }
         
         .feed-post-caption {
@@ -1063,7 +1066,7 @@
             color: #e50914;
         }
         
-        /* ========== ESTILOS DO NOVO CHAT ========== */
+        /* ========== ESTILOS DO CHAT ========== */
         .chat-container {
             max-width: 1200px;
             margin: 0 auto;
@@ -2341,12 +2344,12 @@
         </div>
     </div>
     
-    <!-- Create Post Modal - NOVO ESTILO INSTAGRAM -->
+    <!-- Create Post Modal - NOVO ESTILO INSTAGRAM COM SUPORTE A IMAGEM/VIDEO -->
     <div id="createPostModal" class="create-post-modal hidden">
         <div class="create-post-content">
             <h3 class="text-xl font-bold mb-4 text-center">Nova Publicação</h3>
-            <input type="file" id="postImageInput" accept="image/*" class="w-full p-2 bg-white/10 rounded-full text-sm mb-3">
-            <div id="imagePreviewContainer" class="flex justify-center"></div>
+            <input type="file" id="postMediaInput" accept="image/*,video/*" class="w-full p-2 bg-white/10 rounded-full text-sm mb-3">
+            <div id="previewContainer" class="preview-container"></div>
             <textarea id="postCaption" rows="3" class="w-full p-2 bg-white/10 rounded-xl text-sm mb-3 mt-3" placeholder="Escreva uma legenda..." maxlength="500"></textarea>
             <div class="flex gap-3 mt-4">
                 <button id="cancelPostBtn" class="flex-1 bg-gray-700 py-2 rounded-full text-sm ripple-btn">Cancelar</button>
@@ -2371,6 +2374,10 @@
         const database = firebase.database();
         const auth = firebase.auth();
         const storage = firebase.storage();
+        
+        // ==================== CLOUDINARY CONFIG ====================
+        const CLOUDINARY_CLOUD_NAME = "dkljng3ym";
+        const CLOUDINARY_UPLOAD_PRESET = "noitefilmes_unsigned";
         
         let currentUser = null;
         let filmes = [];
@@ -2417,7 +2424,7 @@
         // Posts data for feed
         let feedPosts = [];
         
-        // ==================== VARIÁVEIS DO NOVO CHAT ====================
+        // ==================== VARIÁVEIS DO CHAT ====================
         let currentChat = 'geral';
         let currentChatUser = null;
         let currentChatUserName = 'Geral';
@@ -2439,34 +2446,48 @@
         let currentAudio = null;
         let messageStatusListeners = new Map();
         
-        // ==================== FUNÇÕES DE POSTAGEM (FEED INSTAGRAM) ====================
-        let selectedPostImageFile = null;
+        // ==================== FUNÇÕES DE POSTAGEM COM CLOUDINARY ====================
+        let selectedPostMediaFile = null;
+        let selectedMediaType = null;
         
         function openCreatePostModal() {
             if (!currentUser) {
                 showToast('Faça login para criar uma postagem');
                 return;
             }
-            selectedPostImageFile = null;
+            selectedPostMediaFile = null;
+            selectedMediaType = null;
             document.getElementById('postCaption').value = '';
-            document.getElementById('imagePreviewContainer').innerHTML = '';
-            document.getElementById('postImageInput').value = '';
+            document.getElementById('previewContainer').innerHTML = '';
+            document.getElementById('postMediaInput').value = '';
             document.getElementById('createPostModal').classList.remove('hidden');
         }
         
-        function previewPostImage() {
-            const file = document.getElementById('postImageInput').files[0];
-            if (file && file.type.startsWith('image/')) {
-                selectedPostImageFile = file;
+        function previewMedia() {
+            const file = document.getElementById('postMediaInput').files[0];
+            if (!file) return;
+            
+            selectedPostMediaFile = file;
+            
+            if (file.type.startsWith('image/')) {
+                selectedMediaType = 'image';
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    document.getElementById('imagePreviewContainer').innerHTML = `<img src="${e.target.result}" class="image-preview">`;
+                    document.getElementById('previewContainer').innerHTML = `<img src="${e.target.result}" class="preview-image">`;
                 };
                 reader.readAsDataURL(file);
-            } else if (file) {
-                showToast('Por favor, selecione apenas imagens');
-                document.getElementById('postImageInput').value = '';
-                selectedPostImageFile = null;
+            } else if (file.type.startsWith('video/')) {
+                selectedMediaType = 'video';
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('previewContainer').innerHTML = `<video src="${e.target.result}" class="preview-video" controls></video>`;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                showToast('Por favor, selecione uma imagem ou vídeo');
+                document.getElementById('postMediaInput').value = '';
+                selectedPostMediaFile = null;
+                selectedMediaType = null;
             }
         }
         
@@ -2475,30 +2496,53 @@
                 showToast('Faça login para postar');
                 return;
             }
-            if (!selectedPostImageFile) {
-                showToast('Selecione uma imagem para postar');
+            if (!selectedPostMediaFile) {
+                showToast('Selecione uma imagem ou vídeo para postar');
                 return;
             }
             
             const caption = document.getElementById('postCaption').value.trim();
             
-            showToast('Enviando publicação...');
+            showToast('Enviando publicação para o Cloudinary...');
             
             try {
-                const storageRef = storage.ref(`feed_posts/${currentUser.uid}/${Date.now()}_${selectedPostImageFile.name}`);
-                const uploadTask = await storageRef.put(selectedPostImageFile);
-                const imageUrl = await uploadTask.ref.getDownloadURL();
+                const formData = new FormData();
+                formData.append('file', selectedPostMediaFile);
+                formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+                formData.append('resource_type', selectedMediaType === 'video' ? 'video' : 'image');
+                
+                let cloudinaryUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/`;
+                cloudinaryUrl += selectedMediaType === 'video' ? 'video/upload' : 'image/upload';
+                
+                const response = await fetch(cloudinaryUrl, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Erro no upload: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const mediaUrl = data.secure_url;
+                const publicId = data.public_id;
+                const duration = selectedMediaType === 'video' ? Math.round(data.duration || 0) : null;
+                
+                showToast('Salvando no Firebase...');
                 
                 const postData = {
                     id: Date.now().toString(),
                     userId: currentUser.uid,
                     userName: currentUsername,
                     userDisplayName: userProfileData.displayName || currentUsername,
-                    imageUrl: imageUrl,
+                    mediaUrl: mediaUrl,
+                    mediaType: selectedMediaType,
+                    duration: duration,
                     caption: caption,
                     createdAt: Date.now(),
                     likes: 0,
-                    comments: []
+                    comments: [],
+                    cloudinaryPublicId: publicId
                 };
                 
                 await database.ref(`feed_posts/${postData.id}`).set(postData);
@@ -2506,7 +2550,7 @@
                 document.getElementById('createPostModal').classList.add('hidden');
                 renderFeed();
             } catch (error) {
-                console.error(error);
+                console.error('Erro ao publicar:', error);
                 showToast('Erro ao publicar: ' + error.message);
             }
         }
@@ -2517,8 +2561,10 @@
             
             feedContainer.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Carregando publicações...</div>';
             
-            database.ref('feed_posts').orderByChild('createdAt').once('value', async (snapshot) => {
+            try {
+                const snapshot = await database.ref('feed_posts').orderByChild('createdAt').once('value');
                 const posts = snapshot.val();
+                
                 if (!posts) {
                     feedContainer.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Nenhuma publicação ainda. Seja o primeiro a postar!</div>';
                     return;
@@ -2534,6 +2580,14 @@
                     postElement.id = `post-${post.id}`;
                     
                     const timeAgo = formatTimeAgo(post.createdAt);
+                    
+                    let mediaHtml = '';
+                    if (post.mediaType === 'video') {
+                        const posterUrl = post.mediaUrl.replace(/\.[^/.]+$/, '') + '.jpg';
+                        mediaHtml = `<video class="feed-post-video" controls poster="${posterUrl}" preload="metadata"><source src="${post.mediaUrl}" type="video/mp4"></video>`;
+                    } else {
+                        mediaHtml = `<img src="${post.mediaUrl}" class="feed-post-media" loading="lazy" onerror="this.src='https://via.placeholder.com/600x400'">`;
+                    }
                     
                     postElement.innerHTML = `
                         <div class="feed-post-header">
@@ -2552,7 +2606,7 @@
                                 </button>
                             ` : ''}
                         </div>
-                        <img src="${post.imageUrl}" class="feed-post-image" onerror="this.src='https://via.placeholder.com/600x400'">
+                        ${mediaHtml}
                         <div class="feed-post-caption">
                             <strong onclick="viewProfileFromPost('${post.userId}')">${escapeHtml(post.userDisplayName || post.userName)}</strong>
                             <span>${makeNicknamesClickable(escapeHtml(post.caption || ''))}</span>
@@ -2563,10 +2617,10 @@
                 }
                 
                 setupNicknameClickHandlers();
-            }).catch(error => {
+            } catch (error) {
                 console.error('Erro ao carregar posts:', error);
                 feedContainer.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Erro ao carregar publicações.</div>';
-            });
+            }
         }
         
         function formatTimeAgo(timestamp) {
@@ -2625,6 +2679,18 @@
                 if (!post || post.userId !== currentUser.uid) {
                     showToast('Você só pode excluir suas próprias publicações');
                     return;
+                }
+                
+                if (post.cloudinaryPublicId) {
+                    try {
+                        const cloudinaryDeleteUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${post.mediaType === 'video' ? 'video' : 'image'}/destroy`;
+                        const deleteFormData = new FormData();
+                        deleteFormData.append('public_id', post.cloudinaryPublicId);
+                        deleteFormData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+                        await fetch(cloudinaryDeleteUrl, { method: 'POST', body: deleteFormData });
+                    } catch (cloudError) {
+                        console.warn('Erro ao deletar do Cloudinary:', cloudError);
+                    }
                 }
                 
                 await database.ref(`feed_posts/${postId}`).remove();
@@ -2722,7 +2788,7 @@
             }
         }
         
-        // ==================== PERFIL INSTAGRAM (NOVO) ====================
+        // ==================== PERFIL INSTAGRAM ====================
         function renderInstagramProfile(showOtherUserId = null) {
             const container = document.getElementById('instagramProfileContainer');
             if (!container) return;
@@ -2762,7 +2828,7 @@
             function renderProfileHtml(uid, nickname, isSelf) {
                 database.ref(`feed_posts`).orderByChild('userId').equalTo(uid).once('value', (snap) => {
                     const posts = snap.val();
-                    const postsList = posts ? Object.values(posts).filter(p => p.imageUrl) : [];
+                    const postsList = posts ? Object.values(posts) : [];
                     const totalPosts = postsList.length;
                     
                     const followersSpan = document.getElementById('statFollowersValue');
@@ -2823,7 +2889,10 @@
                         } else {
                             gridContainer.innerHTML = postsList.map(post => `
                                 <div class="post-grid-item ripple-btn" data-post-id="${post.id}" onclick="viewPostDetail('${post.id}')">
-                                    <img src="${post.imageUrl}" onerror="this.src='https://via.placeholder.com/150x150'">
+                                    ${post.mediaType === 'video' ? 
+                                        `<video src="${post.mediaUrl}" style="width:100%;height:100%;object-fit:cover;"></video>` : 
+                                        `<img src="${post.mediaUrl}" onerror="this.src='https://via.placeholder.com/150x150'">`
+                                    }
                                 </div>
                             `).join('');
                         }
@@ -3467,7 +3536,7 @@
         
         function formatLastSeen(timestamp) { if (!timestamp) return 'visto agora'; const now = Date.now(); const diff = now - timestamp; const minutes = Math.floor(diff / 60000); const hours = Math.floor(diff / 3600000); const days = Math.floor(diff / 86400000); if (minutes < 1) return 'visto agora'; if (minutes < 60) return `visto há ${minutes} min`; if (hours < 24) return `visto há ${hours} h`; if (days === 1) return 'ontem'; if (days === 2) return 'antes de ontem'; const date = new Date(timestamp); return `visto em ${date.toLocaleDateString()}`; }
         
-        // ========== FUNÇÕES DE ÁUDIO CORRIGIDAS PARA MOBILE ==========
+        // ========== FUNÇÕES DE ÁUDIO ==========
         async function toggleAudioRecording() {
             if (!auth.currentUser) {
                 showToast('Faça login para enviar áudio');
@@ -3643,7 +3712,7 @@
             button.classList.add('playing');
         }
         
-        // ========== FUNÇÕES DE SWIPE PARA EXCLUIR (APENAS SWIPE) ==========
+        // ========== FUNÇÕES DE SWIPE PARA EXCLUIR ==========
         let touchStartXPos = 0;
         let touchEndXPos = 0;
         
@@ -3708,7 +3777,7 @@
             }, 5000);
         }
         
-        // ========== FUNÇÕES DE STATUS DA MENSAGEM (CHECKS) ==========
+        // ========== FUNÇÕES DE STATUS DA MENSAGEM ==========
         function updateMessageStatus(messageId, status) {
             const messageElement = document.getElementById(`message-${messageId}`);
             if (!messageElement) return;
@@ -3772,7 +3841,7 @@
             messageStatusListeners.set(chatId, onStatusChange);
         }
         
-        // ========== FUNÇÕES DO NOVO CHAT ==========
+        // ========== FUNÇÕES DO CHAT ==========
         function loadChatList() {
             const user = auth.currentUser;
             if (!user) {
@@ -4498,7 +4567,7 @@
         document.getElementById('createPostBtn').onclick = openCreatePostModal;
         document.getElementById('cancelPostBtn').onclick = () => document.getElementById('createPostModal').classList.add('hidden');
         document.getElementById('submitPostBtn').onclick = submitPost;
-        document.getElementById('postImageInput').addEventListener('change', previewPostImage);
+        document.getElementById('postMediaInput').addEventListener('change', previewMedia);
         
         document.getElementById('doLogin').onclick = () => { const email = document.getElementById('loginEmail').value; const password = document.getElementById('loginPassword').value; auth.signInWithEmailAndPassword(email, password).catch(e => showToast('Erro: ' + e.message)); };
         document.getElementById('doRegister').onclick = registerUser;
