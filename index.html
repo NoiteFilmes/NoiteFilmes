@@ -1798,169 +1798,427 @@
             padding: 2px 8px;
             font-size: 0.65rem;
         }
-        
-        /* ========== ESTILOS DO FEED INSTAGRAM ========== */
-        .instagram-feed {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 10px;
-        }
-        
-        .feed-post {
-            background: rgba(20, 25, 45, 0.5);
-            backdrop-filter: blur(14px);
-            border-radius: 20px;
-            margin-bottom: 20px;
-            overflow: hidden;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        
-        .feed-post-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 15px;
-        }
-        
-        .feed-post-user {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .feed-post-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #e50914, #b20710);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 18px;
-            color: white;
-        }
-        
-        .feed-post-username {
-            font-weight: 600;
-            font-size: 14px;
-        }
-        
-        .feed-post-time {
-            font-size: 10px;
-            opacity: 0.6;
-        }
-        
-        .feed-post-menu {
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 50%;
-            transition: background 0.2s;
-        }
-        
-        .feed-post-menu:hover {
-            background: rgba(255,255,255,0.1);
-        }
-        
-        .feed-post-media {
-            width: 100%;
-            max-height: 500px;
-            object-fit: contain;
-            background: #000;
-        }
-        
-        .feed-post-actions {
-            display: flex;
-            gap: 15px;
-            padding: 10px 15px;
-        }
-        
-        .feed-post-action {
-            cursor: pointer;
-            font-size: 24px;
-            transition: transform 0.2s;
-        }
-        
-        .feed-post-action:hover {
-            transform: scale(1.1);
-        }
-        
-        .feed-post-likes {
-            padding: 0 15px 5px;
-            font-weight: 600;
-            font-size: 13px;
-        }
-        
-        .feed-post-caption {
-            padding: 0 15px 10px;
-            font-size: 13px;
-        }
-        
-        .feed-post-caption strong {
-            font-weight: 600;
-            margin-right: 5px;
-        }
-        
-        .feed-post-comments {
-            padding: 0 15px 10px;
-            font-size: 12px;
-            opacity: 0.7;
-            cursor: pointer;
-        }
-        
-        .loading-spinner {
-            text-align: center;
-            padding: 20px;
-        }
-        
-        .loading-spinner i {
-            font-size: 24px;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .post-menu-popup {
-            position: fixed;
-            background: rgba(25,25,45,0.95);
-            backdrop-filter: blur(24px);
-            border-radius: 12px;
-            padding: 8px;
-            min-width: 200px;
-            z-index: 2500;
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-        
-        .post-menu-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 16px;
-            font-size: 14px;
-            cursor: pointer;
-            border-radius: 8px;
-            transition: all 0.2s;
-        }
-        
-        .post-menu-item:hover {
-            background: rgba(255,255,255,0.1);
-        }
-        
-        .post-menu-item.danger {
-            color: #e50914;
-        }
-        
-        body.light-mode .feed-post {
-            background: rgba(255,255,255,0.8);
-        }
-        
-        body.light-mode .post-menu-popup {
-            background: rgba(255,255,255,0.95);
-        }
     </style>
+    <script>
+        (function blockPinchZoom() {
+            document.addEventListener('touchmove', function(event) {
+                if (event.scale && event.scale !== 1) event.preventDefault();
+            }, { passive: false });
+            document.addEventListener('gesturestart', function(event) { event.preventDefault(); });
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', function(event) {
+                const now = Date.now();
+                if (now - lastTouchEnd <= 300) event.preventDefault();
+                lastTouchEnd = now;
+            }, false);
+        })();
+    </script>
+</head>
+<body class="dark-mode">
+
+    <div class="logo-line">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <i class="fas fa-film text-red-600 text-lg"></i>
+                <h1 class="text-sm font-bold bg-gradient-to-r from-white to-red-400 bg-clip-text text-transparent">Noite<span class="text-red-600">Filmes</span></h1>
+                <div id="contentCounter" class="counter-stats flex gap-1 ml-1">
+                    <div class="counter-item flex items-center gap-1"><i class="fas fa-film text-[9px]"></i> <span id="filmesCount">0</span></div>
+                    <div class="counter-item flex items-center gap-1"><i class="fas fa-tv text-[9px]"></i> <span id="seriesCount">0</span></div>
+                    <div class="counter-item flex items-center gap-1"><i class="fas fa-satellite-dish text-[9px]"></i> <span id="canaisCount">0</span></div>
+                    <div class="sync-status synced flex items-center gap-1 ml-2" id="syncStatus">
+                        <i class="fas fa-check-circle text-green-400 text-[9px]"></i> <span class="text-[9px]">atualizado</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <i class="fas fa-sun text-yellow-400 cursor-pointer text-sm transition hover:scale-110" id="lightModeBtn"></i>
+                <i class="fas fa-moon text-gray-300 cursor-pointer text-sm transition hover:scale-110" id="darkModeBtn"></i>
+            </div>
+        </div>
+    </div>
+
+    <div id="topMenuContainer" class="menu-container">
+        <div class="nav-item ripple-btn" id="navCanaisBtn"><i class="fas fa-tv"></i><span>Canais</span></div>
+        <div class="nav-item active ripple-btn" id="navFilmesBtn"><i class="fas fa-film"></i><span>Filmes</span></div>
+        <div class="nav-item ripple-btn" id="navSeriesBtn"><i class="fas fa-clapperboard"></i><span>Séries</span></div>
+        <div class="nav-item ripple-btn" id="navSearchBtn"><i class="fas fa-search"></i><span>Buscar</span></div>
+        <div class="nav-item ripple-btn" id="favoritesBtn"><i class="fas fa-heart text-red-500"></i><span>Fav</span></div>
+        <div class="nav-item ripple-btn" id="adminBtn"><i class="fas fa-user-cog"></i><span>Admin</span></div>
+        <div class="cast-btn w-7 h-7 rounded-full flex items-center justify-center bg-black/50 border border-red-500/50 ripple-btn" id="castButton"><i class="fas fa-tv text-xs"></i></div>
+        <div class="nav-item ripple-btn" id="settingsBtn"><i class="fas fa-cog"></i><span>Ajustes</span></div>
+    </div>
+
+    <!-- Seção Filmes -->
+    <div id="filmesSection" class="section active-section">
+        <div class="container mx-auto px-3 mt-2">
+            <div class="flex items-center gap-2 mb-2">
+                <i class="fas fa-chart-line text-red-500 text-xs"></i>
+                <h2 class="font-bold text-xs glass px-3 py-1 rounded-full">Top 10 Mais Assistidos</h2>
+            </div>
+            <div class="relative">
+                <div id="top10Carousel" class="carousel-container overflow-x-auto pb-1">
+                    <div id="top10Track" class="carousel-track flex gap-2"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="floatingPlayerOverlay" class="floating-player-overlay hidden fixed inset-0 bg-black/70 z-[1099]"></div>
+        <div id="playerCommentsContainer" class="player-comments-container hidden fixed z-[1100] glass">
+            <button id="closePlayerComments" class="close-player-btn absolute top-3 right-3 z-20 bg-black/60 rounded-full w-7 h-7 flex items-center justify-center transition hover:bg-red-600 ripple-btn"><i class="fas fa-times text-xs"></i></button>
+            
+            <div class="video-section">
+                <div class="player-wrapper">
+                    <div id="youtubePlayerDiv"></div>
+                    <video id="hlsPlayer" controls style="display: none; width:100%; height:100%; background: black;"></video>
+                    <div id="noContent" class="absolute inset-0 flex items-center justify-center text-gray-400 bg-black/80 text-xs">Carregando...</div>
+                </div>
+                <div class="video-info">
+                    <h3 id="videoTitle" class="video-title font-bold">Carregando...</h3>
+                    <div class="video-description-wrapper">
+                        <div id="videoDescription" class="video-description text-gray-300"></div>
+                        <button id="descriptionToggleBtn" class="description-toggle hidden"><i class="fas fa-chevron-down"></i> Ver mais</button>
+                    </div>
+                    <div class="video-meta">
+                        <span id="videoYear" class="glass px-2 py-0.5 rounded-full text-[9px]"></span>
+                        <span id="videoGenre" class="glass px-2 py-0.5 rounded-full text-[9px]"></span>
+                        <span id="viewCountDisplay" class="glass px-2 py-0.5 rounded-full text-[9px]"><i class="fas fa-eye mr-1"></i><span id="viewCountNumber">0</span></span>
+                    </div>
+                    <div class="action-buttons">
+                        <button id="likeBtn" class="action-btn ripple-btn"><i class="far fa-heart"></i> <span id="likeCount">0</span></button>
+                        <button id="shareNativeBtn" class="share-native-btn ripple-btn"><i class="fas fa-share-alt"></i> </button>
+                        <button id="saveBtn" class="action-btn ripple-btn"><i class="far fa-star"></i> Favoritar</button>
+                        <button id="reportBtn" class="report-btn ripple-btn"><i class="fas fa-flag"></i> Reportar</button>
+                        <div class="rating-wrapper" style="text-align: center;">
+                            <div id="ratingStarsContainer" class="rating-stars flex items-center justify-center"></div>
+                            <div class="rating-label">Avalie-me</div>
+                        </div>
+                        <span id="ratingPercentDisplay" class="rating-percent text-yellow-400 font-bold">0%</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="comments-section">
+                <div class="comments-header p-2"><span class="font-bold text-sm">💬 Comentários</span></div>
+                <div id="ratingInfo" class="rating-info p-2 text-xs border-b border-white/10"></div>
+                <div id="commentsList" class="comments-list"></div>
+                <div class="comment-input-area">
+                    <input type="text" id="newCommentInput" class="bg-white/10 rounded-full px-3 py-1.5 text-xs" placeholder="Adicione um comentário...">
+                    <button id="submitCommentBtn" class="bg-red-600 hover:bg-red-700 rounded-full text-xs font-semibold transition ripple-btn">Enviar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Popup Favoritos -->
+        <div id="favoritesPopup" class="favorites-popup hidden fixed inset-0 z-[1000] flex items-start justify-center pt-16 bg-black/80 backdrop-blur-xl">
+            <div class="favorites-popup-content glass-card w-full max-w-md p-4">
+                <div class="flex justify-between items-center mb-3"><h3 class="text-lg font-bold">❤️ Meus Favoritos</h3><button id="closeFavoritesPopup" class="text-2xl hover:text-red-500 transition">&times;</button></div>
+                <input type="text" id="favoritesSearchInput" placeholder="Buscar nos favoritos..." class="w-full p-2 rounded-full text-sm">
+                <div id="favoritesResults" class="favorites-results-popup max-h-80 overflow-y-auto mt-3 space-y-2"></div>
+            </div>
+        </div>
+
+        <!-- Report Popup -->
+        <div id="reportPopup" class="report-popup hidden">
+            <div class="report-popup-content">
+                <h3 class="text-xl font-bold mb-4 text-center">📢 Reportar Problema</h3>
+                <div class="mb-3">
+                    <label class="text-xs text-gray-400 block mb-1">Motivo do report:</label>
+                    <select id="reportReason" class="w-full p-2 bg-white/10 rounded-full text-sm">
+                        <option value="video_indisponivel">📹 Vídeo indisponível</option>
+                        <option value="link_quebrado">🔗 Link quebrado</option>
+                        <option value="conteudo_inadequado">⚠️ Conteúdo inadequado</option>
+                        <option value="qualidade_ruim">📀 Qualidade ruim</option>
+                        <option value="outro">❓ Outro</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="text-xs text-gray-400 block mb-1">Comentário (opcional):</label>
+                    <textarea id="reportComment" rows="3" class="w-full p-2 bg-white/10 rounded-xl text-sm" placeholder="Descreva o problema..."></textarea>
+                </div>
+                <div class="flex gap-3">
+                    <button id="cancelReportBtn" class="flex-1 bg-gray-700 py-2 rounded-full text-sm ripple-btn">Cancelar</button>
+                    <button id="submitReportBtn" class="flex-1 bg-red-600 py-2 rounded-full text-sm font-bold ripple-btn">Enviar Report</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="container mx-auto px-3 mt-3" id="filtrosArea">
+            <div class="glass p-2 rounded-xl">
+                <div class="filters-row flex items-center gap-2 flex-wrap">
+                    <div id="genreScroll" class="genre-scroll flex flex-1 overflow-x-auto gap-1 pb-1"></div>
+                    <select id="sortSelect" class="sort-select bg-white/10 rounded-full px-2 py-1 text-[9px] cursor-pointer">
+                        <option value="recent">📅 Mais recentes</option>
+                        <option value="views">👁️ Mais vistos</option>
+                        <option value="az">🔤 A-Z</option>
+                        <option value="za">🔤 Z-A</option>
+                        <option value="year_asc">📅 Ano (crescente)</option>
+                        <option value="year_desc">📅 Ano (decrescente)</option>
+                        <option value="genre">🎭 Por gênero</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grid de Conteúdo -->
+        <div class="container mx-auto px-3 mt-3 mb-16">
+            <div id="contentGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2"></div>
+        </div>
+    </div>
+
+    <!-- Seção Feed -->
+    <div id="feedSection" class="section">
+        <div class="container mx-auto px-3 mt-3">
+            <h2 class="text-lg font-bold mb-2">📰 Feed de Atividades</h2>
+            <div id="feedList" class="space-y-2"></div>
+        </div>
+        <!-- Botão de criar postagem (+) na parte inferior central -->
+        <div class="create-post-btn ripple-btn" id="createPostBtn">
+            <i class="fas fa-plus text-white text-2xl"></i>
+        </div>
+    </div>
+
+    <!-- Seção Chat - NOVO CHAT INSTAGRAM STYLE COM ÁUDIO E SWIPE -->
+    <div id="chatSection" class="section">
+        <div class="chat-container">
+            <div class="chat-sidebar" id="chatSidebar">
+                <div class="chat-sidebar-header">
+                    <h3>
+                        Mensagens
+                        <span class="unread-total" id="unreadTotal">0</span>
+                    </h3>
+                    <button class="add-chat-btn" onclick="showUserSearchModal()">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                <ul class="chat-users" id="chatUsersList">
+                    <li class="chat-user" data-chat-id="geral" data-user-id="geral" data-user-name="Geral" data-user-avatar="G" onclick="selectChat('geral', 'Geral', 'G', null)">
+                        <div class="chat-user-avatar">G</div>
+                        <div class="chat-user-info">
+                            <strong>Geral</strong>
+                            <span>Conversa com todos</span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="chat-main hidden" id="chatMain">
+                <div class="chat-header" id="chatHeader">
+                    <button class="back-to-users" onclick="backToUsersList()">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <div class="chat-header-avatar" id="chatHeaderAvatar">G</div>
+                    <div class="chat-header-info">
+                        <h4 id="chatHeaderName">Geral</h4>
+                        <p id="chatHeaderStatus">Online</p>
+                    </div>
+                </div>
+                <div class="chat-messages" id="chatBox"></div>
+                
+                <div class="message-bar">
+                    <div class="message-bar-left">
+                        <button class="message-bar-button" id="audioRecordBtn" onclick="toggleAudioRecording()">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                        <div id="recordingIndicator" class="recording-indicator hidden">
+                            <span class="recording-dot"></span>
+                            <span>Gravando...</span>
+                        </div>
+                    </div>
+                    <div class="message-bar-center">
+                        <textarea 
+                            id="chatInput" 
+                            class="message-bar-input" 
+                            placeholder="Digite uma mensagem..." 
+                            rows="1"
+                            oninput="autoResize(this); updateChatActions()"
+                            onkeypress="handleChatKeyPress(event)"
+                        ></textarea>
+                    </div>
+                    <div class="message-bar-right" id="chatActions">
+                        <button class="message-bar-button" onclick="sendLike()" id="chatLikeBtn">
+                            <i class="fas fa-heart"></i>
+                        </button>
+                        <button class="message-bar-button primary" onclick="sendMessage()" id="chatSendBtn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="userSearchModal" class="user-search-modal hidden">
+        <div class="user-search-content">
+            <h3>
+                Nova mensagem
+                <button class="close-modal-btn" onclick="hideUserSearchModal()">✕</button>
+            </h3>
+            <input type="text" id="userSearchInput" class="user-search-input" placeholder="Buscar @usuario..." onkeyup="searchUsers()">
+            <ul class="user-search-list" id="userSearchList"></ul>
+        </div>
+    </div>
+
+    <!-- Modal de confirmação de exclusão de mensagem -->
+    <div id="confirmDeleteMessageModal" class="confirm-modal-overlay hidden" onclick="closeMessageConfirmModal(event)">
+        <div class="confirm-modal">
+            <h3>Desfazer envio da mensagem?</h3>
+            <p>Esta mensagem será removida para todos na conversa.</p>
+            <div class="confirm-modal-actions">
+                <button class="confirm-modal-btn cancel" onclick="closeMessageConfirmModal()">Cancelar</button>
+                <button class="confirm-modal-btn delete" onclick="confirmDeleteMessage()">Desfazer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seção Perfil com layout Instagram (NOVO) -->
+    <div id="perfilSection" class="section">
+        <div id="instagramProfileContainer" class="instagram-profile-wrapper m-3 glass-card p-4"></div>
+        <div class="px-3 mt-2"><h3 class="font-bold text-sm mb-2">⭐ Meus Favoritos</h3><div id="profileFavoritesList" class="favorites-list max-h-64 overflow-y-auto space-y-2"></div></div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav fixed bottom-0 left-0 right-0 flex justify-around py-1 z-[1000]">
+        <div class="bottom-nav-item active flex flex-col items-center gap-0 px-3 py-1 ripple-btn" data-section="filmes"><i class="fas fa-film text-lg"></i><span class="text-[10px] font-medium">Filmes</span></div>
+        <div class="bottom-nav-item flex flex-col items-center gap-0 px-3 py-1 ripple-btn" data-section="feed"><i class="fas fa-newspaper text-lg"></i><span class="text-[10px] font-medium">Feed</span></div>
+        <div class="bottom-nav-item flex flex-col items-center gap-0 px-3 py-1 ripple-btn" data-section="chat"><i class="fas fa-comment-dots text-lg"></i><span class="text-[10px] font-medium">Chat</span></div>
+        <div class="bottom-nav-item flex flex-col items-center gap-0 px-3 py-1 ripple-btn" data-section="perfil"><i class="fas fa-user text-lg"></i><span class="text-[10px] font-medium">Perfil</span></div>
+    </div>
+
+    <!-- LOGIN MODAL - TOTALMENTE ORIGINAL, NENHUMA ALTERAÇÃO -->
+    <div id="loginModal" class="login-modal fixed inset-0 z-[2000] flex items-center justify-center bg-black/95 backdrop-blur-lg">
+        <div class="login-box bg-[#1a1a1a] rounded-2xl p-6 w-[90%] max-w-[350px] border border-[#e50914]">
+            <h2 class="text-xl font-bold mb-4 text-center text-white">🎬 NoiteFilmes</h2>
+            <div id="loginForm">
+                <input type="email" id="loginEmail" class="login-input w-full p-3 bg-[#2a2a2a] border border-[#444] rounded-lg text-white mb-3" placeholder="Email">
+                <input type="password" id="loginPassword" class="login-input w-full p-3 bg-[#2a2a2a] border border-[#444] rounded-lg text-white mb-3" placeholder="Senha">
+                <button id="doLogin" class="login-btn bg-[#e50914] text-white p-3 rounded-lg w-full font-bold transition hover:bg-red-700 ripple-btn">Entrar</button>
+                <div class="switch-auth text-[#e50914] text-center mt-3 text-sm cursor-pointer" id="showRegister">Não tem conta? Cadastre-se</div>
+            </div>
+            <div id="registerForm" class="hidden">
+                <input type="email" id="registerEmail" class="login-input w-full p-3 bg-[#2a2a2a] border border-[#444] rounded-lg text-white mb-3" placeholder="Email">
+                <input type="password" id="registerPassword" class="login-input w-full p-3 bg-[#2a2a2a] border border-[#444] rounded-lg text-white mb-3" placeholder="Senha">
+                <input type="text" id="registerNickname" class="login-input w-full p-3 bg-[#2a2a2a] border border-[#444] rounded-lg text-white mb-3" placeholder="@Nickname (ex: @joaofilmes)">
+                <div id="nicknameSuggestions" class="suggestions-box hidden bg-[#2a2a2a] rounded-lg mt-1 p-2"></div>
+                <button id="doRegister" class="login-btn bg-[#e50914] text-white p-3 rounded-lg w-full font-bold transition hover:bg-red-700 ripple-btn">Cadastrar</button>
+                <div class="switch-auth text-[#e50914] text-center mt-3 text-sm cursor-pointer" id="showLogin">Já tem conta? Faça login</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="settings-modal hidden fixed inset-0 z-[1500] flex items-center justify-center bg-black/95 backdrop-blur-lg">
+        <div class="settings-box bg-[#1a1a1a] rounded-2xl p-5 w-[90%] max-w-[350px] border border-[#e50914]">
+            <div class="profile-icon text-center mb-3"><i class="fas fa-user-circle text-5xl text-[#e50914]"></i></div>
+            <h3 class="text-center text-lg mb-3 text-white">Configurações</h3>
+            <label class="text-xs text-gray-400 block mb-1">Nome de usuário</label>
+            <input type="text" id="usernameInput" class="settings-input w-full p-2 bg-[#2a2a2a] border border-[#444] rounded-lg text-white mb-3" placeholder="Seu nome">
+            <button id="saveUsernameBtn" class="settings-btn bg-[#e50914] text-white p-2 rounded-lg w-full mb-2 font-bold transition hover:bg-red-700 ripple-btn">Salvar</button>
+            <div class="mode-buttons flex gap-2 mb-2"><button id="darkModeSettingsBtn" class="mode-btn flex-1 bg-gray-700 text-white p-2 rounded-lg text-sm transition hover:bg-gray-600 ripple-btn"><i class="fas fa-moon"></i> Dark</button><button id="lightModeSettingsBtn" class="mode-btn flex-1 bg-gray-700 text-white p-2 rounded-lg text-sm transition hover:bg-gray-600 ripple-btn"><i class="fas fa-sun"></i> Light</button></div>
+            <button id="logoutSettingsBtn" class="logout-settings-btn settings-btn bg-gray-700 text-white p-2 rounded-lg w-full text-sm transition hover:bg-gray-600 ripple-btn">Sair da Conta</button>
+        </div>
+    </div>
+
+    <!-- Search Popup -->
+    <div id="searchPopup" class="search-popup hidden fixed inset-0 z-[1000] flex items-start justify-center pt-16 bg-black/95 backdrop-blur-lg">
+        <div class="search-popup-content bg-[#1a1a1a] rounded-2xl p-5 w-[90%] max-w-[600px] border border-[#333]">
+            <div class="flex justify-between items-center mb-3"><h3 class="text-xl font-bold text-white">🔍 Buscar</h3><button id="closeSearchPopup" class="text-2xl text-gray-400 hover:text-white transition">&times;</button></div>
+            <input type="text" id="popupSearchInput" placeholder="Digite o nome..." class="w-full p-2 bg-[#2a2a2a] border-2 border-[#e50914] rounded-full text-white outline-none text-sm">
+            <div id="popupSearchResults" class="search-results-popup max-h-80 overflow-y-auto mt-3 space-y-2"></div>
+        </div>
+    </div>
+
+    <!-- Admin Modal -->
+    <div id="adminModal" class="fixed inset-0 bg-black/90 backdrop-blur-xl z-50 flex items-center justify-center p-2 hidden">
+        <div class="bg-[#1a1a1a]/95 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-gray-700">
+            <div class="sticky top-0 bg-[#1a1a1a] p-3 border-b border-gray-700 flex justify-between items-center">
+                <h2 class="text-lg font-bold text-white"><i class="fas fa-lock mr-2 text-red-500"></i> Admin</h2>
+                <button id="closeAdminModal" class="text-2xl text-gray-400 hover:text-white transition">&times;</button>
+            </div>
+            <div class="p-4">
+                <div id="adminLoginArea" class="mb-3"><label class="block mb-1 text-xs text-gray-300">Senha Admin:</label><div class="flex gap-2"><input type="password" id="adminPassword" placeholder="Senha" class="bg-gray-800 border border-gray-600 rounded-full px-3 py-1.5 flex-1 text-white text-sm"><button id="loginAdminBtn" class="bg-red-700 hover:bg-red-800 px-4 py-1.5 rounded-full text-sm text-white transition ripple-btn">Entrar</button></div><p class="text-[10px] text-gray-400 mt-1">Senha: <strong class="text-red-500">admin123</strong></p></div>
+                <div id="adminPanel" class="hidden">
+                    <div class="flex space-x-2 border-b border-gray-700 mb-3">
+                        <button id="adminTabCanais" class="admin-tab-btn py-1 px-2 text-gray-400 text-xs">Canais</button>
+                        <button id="adminTabFilmes" class="admin-tab-btn py-1 px-2 text-red-500 border-b-2 border-red-600 text-xs">Filmes</button>
+                        <button id="adminTabSeries" class="admin-tab-btn py-1 px-2 text-gray-400 text-xs">Séries</button>
+                        <button id="adminTabDuplicados" class="admin-tab-btn py-1 px-2 text-gray-400 text-xs">Duplicados</button>
+                        <button id="adminTabReportados" class="admin-tab-btn py-1 px-2 text-gray-400 text-xs notification-badge">
+                            Reportados <i class="fas fa-bell ml-1"></i>
+                            <span id="reportBadgeCount" class="badge-count hidden">0</span>
+                        </button>
+                    </div>
+                    <div id="adminFormArea" class="bg-gray-800/50 p-3 rounded-xl mb-3"><h3 class="font-semibold text-sm mb-2 text-white" id="formTitle">Adicionar / Editar</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-2"><input type="text" id="itemTitle" placeholder="Título" class="bg-gray-700 p-1.5 rounded-full text-xs text-white"><div class="link-input-wrapper flex gap-2"><input type="text" id="itemLink" placeholder="Link (YouTube ou .m3u8)" class="bg-gray-700 p-1.5 rounded-full text-xs flex-1 text-white"><button id="autoFillBtn" class="auto-fill-btn bg-red-600 px-2 rounded-full text-[10px] transition hover:bg-red-700 ripple-btn">Auto</button></div><input type="text" id="itemThumb" placeholder="Miniatura URL" class="bg-gray-700 p-1.5 rounded-full text-xs text-white"><input type="text" id="itemCategory" placeholder="Gênero" class="bg-gray-700 p-1.5 rounded-full text-xs text-white"><input type="text" id="itemYear" placeholder="Ano" class="bg-gray-700 p-1.5 rounded-full text-xs text-white"><textarea id="itemDescription" rows="2" placeholder="Descrição" class="bg-gray-700 p-1.5 rounded-xl text-xs text-white col-span-2"></textarea></div><div class="iptv-selector flex gap-3 mt-2"><label class="text-xs text-gray-300"><input type="radio" name="mediaType" value="youtube" checked> 🎬 YouTube</label><label class="text-xs text-gray-300"><input type="radio" name="mediaType" value="iptv"> 📡 IPTV (.m3u8)</label></div><div class="mt-2 flex gap-2"><button id="saveItemBtn" class="bg-green-700 hover:bg-green-800 px-3 py-1 rounded-full text-xs transition ripple-btn">Salvar</button><button id="cancelEditBtn" class="bg-gray-600 hover:bg-gray-500 px-3 py-1 rounded-full text-xs hidden transition ripple-btn">Cancelar</button></div></div>
+                    <div id="batchFilmesArea" class="bg-gray-800/50 p-3 rounded-xl mb-3"><h3 class="font-semibold text-sm mb-1 text-white">📦 Adicionar Lote</h3><textarea id="batchLinksInput" rows="2" class="batch-input w-full p-2 rounded-xl text-xs bg-gray-700 text-white"></textarea><div class="flex gap-2 mt-2"><button id="previewBatchBtn" class="bg-blue-700 hover:bg-blue-800 px-2 py-1 rounded-full text-xs transition ripple-btn">🔍 Prévia</button><button id="saveBatchBtn" class="bg-green-700 hover:bg-green-800 px-2 py-1 rounded-full text-xs transition ripple-btn">💾 Salvar Lote</button></div><div id="batchPreview" class="mt-2 text-xs max-h-28 overflow-y-auto text-gray-300"></div></div>
+                    <div id="batchSeriesArea" class="bg-gray-800/50 p-3 rounded-xl mb-3 hidden"><h3 class="font-semibold text-sm mb-1 text-white">📺 Adicionar Episódios</h3><input type="text" id="serieTitle" placeholder="Nome da Série" class="bg-gray-700 p-1.5 rounded-full w-full text-xs text-white mb-1"><textarea id="episodesLinksInput" rows="2" class="batch-input w-full p-2 rounded-xl text-xs bg-gray-700 text-white"></textarea><button id="saveEpisodesBtn" class="bg-green-700 hover:bg-green-800 px-2 py-1 rounded-full text-xs mt-1 transition ripple-btn">💾 Salvar</button></div>
+                    <div id="adminListsContainer"><div id="adminCanaisList" class="mb-3 hidden"><h3 class="font-bold text-xs mb-1 text-white">Canais</h3><div id="canaisAdminList" class="space-y-1 max-h-32 overflow-y-auto"></div></div><div id="adminFilmesList"><h3 class="font-bold text-xs mb-1 text-white">Filmes</h3><div id="filmesAdminList" class="space-y-1 max-h-32 overflow-y-auto"></div></div><div id="adminSeriesList" class="hidden"><h3 class="font-bold text-xs mb-1 text-white">Séries</h3><div id="seriesAdminList" class="space-y-1 max-h-32 overflow-y-auto"></div></div><div id="adminDuplicadosList" class="hidden"><h3 class="font-bold text-xs mb-1 text-white">🎬 Filmes Duplicados</h3><div id="duplicadosAdminList" class="space-y-2 max-h-48 overflow-y-auto text-xs"></div></div></div>
+                    <div id="reportsList" class="mt-4 bg-gray-800/50 p-3 rounded-xl hidden"><h3 class="font-bold text-xs mb-2 text-white">📋 Relatórios de Problemas</h3><div id="reportsContainer" class="space-y-2 max-h-60 overflow-y-auto text-xs"></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reply Popup -->
+    <div id="replyPopup" class="reply-popup hidden">
+        <div class="reply-popup-content">
+            <h3 class="text-xl font-bold mb-4 text-center">💬 Responder Report</h3>
+            <div id="replyUserInfo" class="mb-3 text-sm text-gray-300"></div>
+            <textarea id="replyMessage" rows="3" class="w-full p-2 bg-white/10 rounded-xl text-sm" placeholder="Digite sua resposta para o usuário..."></textarea>
+            <div class="flex gap-3 mt-4">
+                <button id="cancelReplyBtn" class="flex-1 bg-gray-700 py-2 rounded-full text-sm ripple-btn">Cancelar</button>
+                <button id="sendReplyBtn" class="flex-1 bg-red-600 py-2 rounded-full text-sm font-bold ripple-btn">Enviar Resposta</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Detail Popup -->
+    <div id="reportDetailPopup" class="report-detail-popup hidden">
+        <div class="report-detail-content">
+            <h3 class="text-xl font-bold mb-4 text-center">📋 Detalhe do Report</h3>
+            <div id="reportDetailContent"></div>
+            <div class="flex gap-3 mt-4">
+                <button id="closeDetailBtn" class="flex-1 bg-gray-700 py-2 rounded-full text-sm ripple-btn">Fechar</button>
+                <button id="replyToReportBtn" class="flex-1 bg-red-600 py-2 rounded-full text-sm font-bold ripple-btn">Responder</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Edit Profile Modal -->
+    <div id="editProfileModal" class="edit-profile-modal hidden">
+        <div class="edit-profile-content">
+            <h3 class="text-xl font-bold mb-4 text-center">✏️ Editar Perfil</h3>
+            <input type="text" id="editDisplayName" class="w-full p-2 bg-white/10 rounded-full text-sm mb-3" placeholder="Nome de perfil">
+            <input type="text" id="editNickname" class="w-full p-2 bg-white/10 rounded-full text-sm mb-3" placeholder="@Nickname">
+            <textarea id="editBio" rows="3" class="w-full p-2 bg-white/10 rounded-xl text-sm mb-3" placeholder="Bio (máx 300 caracteres)" maxlength="300"></textarea>
+            <input type="url" id="editExternalLink" class="w-full p-2 bg-white/10 rounded-full text-sm mb-4" placeholder="Link externo">
+            <div class="flex gap-3">
+                <button id="cancelEditProfileBtn" class="flex-1 bg-gray-700 py-2 rounded-full text-sm ripple-btn">Cancelar</button>
+                <button id="saveEditProfileBtn" class="flex-1 bg-red-600 py-2 rounded-full text-sm font-bold ripple-btn">Salvar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Create Post Modal -->
+    <div id="createPostModal" class="create-post-modal hidden">
+        <div class="create-post-content">
+            <h3 class="text-xl font-bold mb-4 text-center">➕ Nova Postagem</h3>
+            <input type="file" id="postImageInput" accept="image/*" class="w-full p-2 bg-white/10 rounded-full text-sm mb-3">
+            <div id="imagePreviewContainer" class="flex justify-center"></div>
+            <textarea id="postCaption" rows="3" class="w-full p-2 bg-white/10 rounded-xl text-sm mb-3" placeholder="Legenda..."></textarea>
+            <div class="rating-input" id="postRatingContainer">
+                <span class="rating-star-input" data-value="1">☆</span>
+                <span class="rating-star-input" data-value="2">☆</span>
+                <span class="rating-star-input" data-value="3">☆</span>
+                <span class="rating-star-input" data-value="4">☆</span>
+                <span class="rating-star-input" data-value="5">☆</span>
+            </div>
+            <div class="flex gap-3 mt-4">
+                <button id="cancelPostBtn" class="flex-1 bg-gray-700 py-2 rounded-full text-sm ripple-btn">Cancelar</button>
+                <button id="submitPostBtn" class="flex-1 bg-red-600 py-2 rounded-full text-sm font-bold ripple-btn">Publicar</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ==================== FIREBASE CONFIG ====================
         const firebaseConfig = {
@@ -2047,16 +2305,6 @@
         let currentAudio = null;
         let messageStatusListeners = new Map();
         
-        // ==================== VARIÁVEIS DO FEED INSTAGRAM ====================
-        let feedPosts = [];
-        let isLoadingFeed = false;
-        let lastPostTimestamp = null;
-        let hasMorePosts = true;
-        
-        // Cloudinary config (unsigned upload preset)
-        const CLOUDINARY_CLOUD_NAME = "Root";
-        const CLOUDINARY_UPLOAD_PRESET = "noitefilmes_preset";
-        
         // ==================== FUNÇÕES DE NAVEGAÇÃO ====================
         function switchSection(sectionId) {
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active-section'));
@@ -2071,7 +2319,7 @@
                 topMenu.style.display = 'none';
             }
             
-            if (sectionId === 'feed') renderInstagramFeed();
+            if (sectionId === 'feed') renderFeed();
             if (sectionId === 'perfil') renderInstagramProfile();
             if (sectionId === 'chat') {
                 document.getElementById('chatSidebar').classList.remove('hidden');
@@ -2086,7 +2334,7 @@
             document.getElementById('canaisCount').innerText = canais.length;
         }
         
-        // ==================== FEED ORIGINAL (MANTIDO) ====================
+        // ==================== FEED ====================
         async function renderFeed() {
             const allItems = [
                 ...filmes.map(f => ({ ...f, contentType: 'filme', views: viewsCache[f.id] || 0 })),
@@ -2410,7 +2658,7 @@
             }
         }
         
-        // ==================== CREATE POST FUNCTION COM CLOUDINARY ====================
+        // ==================== CREATE POST FUNCTION ====================
         function openCreatePostModal() {
             if (!currentUser) {
                 showToast('Faça login para criar uma postagem');
@@ -2450,44 +2698,23 @@
         
         function previewPostImage() {
             const file = document.getElementById('postImageInput').files[0];
-            if (file) {
+            if (file && file.type.startsWith('image/')) {
                 selectedPostImageFile = file;
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    const isVideo = file.type.startsWith('video/');
-                    if (isVideo) {
-                        document.getElementById('imagePreviewContainer').innerHTML = `<video src="${e.target.result}" class="image-preview" controls style="max-height:300px"></video>`;
-                    } else {
-                        document.getElementById('imagePreviewContainer').innerHTML = `<img src="${e.target.result}" class="image-preview">`;
-                    }
+                    document.getElementById('imagePreviewContainer').innerHTML = `<img src="${e.target.result}" class="image-preview">`;
                 };
                 reader.readAsDataURL(file);
-            } else {
+            } else if (file) {
+                showToast('Por favor, selecione apenas imagens');
+                document.getElementById('postImageInput').value = '';
                 selectedPostImageFile = null;
-                document.getElementById('imagePreviewContainer').innerHTML = '';
             }
-        }
-        
-        async function uploadToCloudinary(file) {
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-            
-            const isVideo = file.type.startsWith('video/');
-            const uploadUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${isVideo ? 'video' : 'image'}/upload`;
-            
-            const response = await fetch(uploadUrl, {
-                method: 'POST',
-                body: formData
-            });
-            
-            const data = await response.json();
-            return data.secure_url;
         }
         
         async function submitPost() {
             if (!selectedPostImageFile) {
-                showToast('Selecione uma imagem ou vídeo para postar');
+                showToast('Selecione uma imagem para postar');
                 return;
             }
             
@@ -2497,223 +2724,30 @@
             showToast('Enviando postagem...');
             
             try {
-                const mediaUrl = await uploadToCloudinary(selectedPostImageFile);
-                const isVideo = selectedPostImageFile.type.startsWith('video/');
+                const storageRef = storage.ref(`posts/${currentUser.uid}/${Date.now()}_${selectedPostImageFile.name}`);
+                const uploadTask = await storageRef.put(selectedPostImageFile);
+                const imageUrl = await uploadTask.ref.getDownloadURL();
                 
                 const postData = {
                     id: Date.now().toString(),
                     userId: currentUser.uid,
                     userName: currentUsername,
-                    userAvatar: currentUsername.charAt(0).toUpperCase(),
-                    mediaUrl: mediaUrl,
-                    mediaType: isVideo ? 'video' : 'image',
+                    imageUrl: imageUrl,
                     caption: caption,
                     rating: rating,
                     createdAt: Date.now(),
                     likes: 0,
-                    comments: [],
-                    likedBy: {}
+                    comments: []
                 };
                 
-                await database.ref(`instagram_posts/${postData.id}`).set(postData);
+                await database.ref(`posts/${currentUser.uid}/${postData.id}`).set(postData);
                 showToast('Postagem publicada com sucesso!');
                 document.getElementById('createPostModal').classList.add('hidden');
-                renderInstagramFeed();
                 renderInstagramProfile();
             } catch (error) {
                 console.error(error);
                 showToast('Erro ao publicar postagem: ' + error.message);
             }
-        }
-        
-        // ==================== FEED INSTAGRAM ESTILO ====================
-        async function renderInstagramFeed() {
-            const feedContainer = document.getElementById('instagramFeedContainer');
-            if (!feedContainer) return;
-            
-            if (!currentUser) {
-                feedContainer.innerHTML = '<div class="text-center p-4">Faça login para ver o feed</div>';
-                return;
-            }
-            
-            feedContainer.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
-            
-            try {
-                const snapshot = await database.ref('instagram_posts').orderByChild('createdAt').once('value');
-                const posts = snapshot.val();
-                
-                if (!posts) {
-                    feedContainer.innerHTML = '<div class="text-center p-4">Nenhuma postagem ainda. Seja o primeiro!</div>';
-                    return;
-                }
-                
-                const postsList = Object.values(posts).sort((a, b) => b.createdAt - a.createdAt);
-                feedContainer.innerHTML = postsList.map(post => renderPostHTML(post)).join('');
-                
-                document.querySelectorAll('.feed-post-like-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const postId = btn.getAttribute('data-post-id');
-                        toggleLikePost(postId);
-                    });
-                });
-                
-                document.querySelectorAll('.feed-post-menu').forEach(menu => {
-                    menu.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const postId = menu.getAttribute('data-post-id');
-                        showPostMenu(postId, menu);
-                    });
-                });
-                
-                document.querySelectorAll('.feed-post-media').forEach(media => {
-                    if (media.tagName === 'VIDEO') {
-                        media.addEventListener('click', (e) => {
-                            if (media.paused) media.play();
-                            else media.pause();
-                        });
-                    }
-                });
-                
-            } catch (error) {
-                console.error('Erro ao carregar feed:', error);
-                feedContainer.innerHTML = '<div class="text-center p-4">Erro ao carregar feed. Tente novamente.</div>';
-            }
-        }
-        
-        function renderPostHTML(post) {
-            const isOwner = currentUser && post.userId === currentUser.uid;
-            const isLiked = post.likedBy && post.likedBy[currentUser?.uid] === true;
-            const likeCount = post.likes || 0;
-            const timeAgo = formatTimeAgo(post.createdAt);
-            
-            return `
-                <div class="feed-post" data-post-id="${post.id}">
-                    <div class="feed-post-header">
-                        <div class="feed-post-user">
-                            <div class="feed-post-avatar">${post.userAvatar || post.userName.charAt(0).toUpperCase()}</div>
-                            <div>
-                                <div class="feed-post-username clickable-nickname" data-nickname="${post.userName}">@${post.userName}</div>
-                                <div class="feed-post-time">${timeAgo}</div>
-                            </div>
-                        </div>
-                        <div class="feed-post-menu" data-post-id="${post.id}">
-                            <i class="fas fa-ellipsis-h"></i>
-                        </div>
-                    </div>
-                    ${post.mediaType === 'video' ? 
-                        `<video class="feed-post-media" src="${post.mediaUrl}" controls preload="metadata" poster="${post.mediaUrl}"></video>` :
-                        `<img class="feed-post-media" src="${post.mediaUrl}" alt="Postagem" loading="lazy">`
-                    }
-                    <div class="feed-post-actions">
-                        <div class="feed-post-action feed-post-like-btn" data-post-id="${post.id}">
-                            <i class="${isLiked ? 'fas fa-heart text-red-500' : 'far fa-heart'}"></i>
-                        </div>
-                        <div class="feed-post-action">
-                            <i class="far fa-comment"></i>
-                        </div>
-                    </div>
-                    <div class="feed-post-likes">
-                        ${likeCount > 0 ? `${likeCount} ${likeCount === 1 ? 'curtida' : 'curtidas'}` : ''}
-                    </div>
-                    <div class="feed-post-caption">
-                        <strong class="clickable-nickname" data-nickname="${post.userName}">@${post.userName}</strong> ${makeNicknamesClickable(escapeHtml(post.caption || ''))}
-                    </div>
-                    <div class="feed-post-comments">
-                        ${post.comments && post.comments.length > 0 ? `Ver todos os ${post.comments.length} comentários` : 'Adicione um comentário'}
-                    </div>
-                </div>
-            `;
-        }
-        
-        function formatTimeAgo(timestamp) {
-            const now = Date.now();
-            const diff = now - timestamp;
-            const seconds = Math.floor(diff / 1000);
-            const minutes = Math.floor(seconds / 60);
-            const hours = Math.floor(minutes / 60);
-            const days = Math.floor(hours / 24);
-            
-            if (seconds < 60) return 'agora';
-            if (minutes < 60) return `${minutes} min`;
-            if (hours < 24) return `${hours} h`;
-            if (days === 1) return 'ontem';
-            return `${days} dias`;
-        }
-        
-        async function toggleLikePost(postId) {
-            if (!currentUser) {
-                showToast('Faça login para curtir');
-                return;
-            }
-            
-            const postRef = database.ref(`instagram_posts/${postId}`);
-            const snapshot = await postRef.once('value');
-            const post = snapshot.val();
-            
-            if (!post) return;
-            
-            const wasLiked = post.likedBy && post.likedBy[currentUser.uid] === true;
-            const newLikes = wasLiked ? (post.likes || 0) - 1 : (post.likes || 0) + 1;
-            
-            const updates = {};
-            updates[`likes`] = newLikes;
-            updates[`likedBy/${currentUser.uid}`] = !wasLiked;
-            
-            await postRef.update(updates);
-            renderInstagramFeed();
-        }
-        
-        function showPostMenu(postId, menuElement) {
-            const rect = menuElement.getBoundingClientRect();
-            const existingMenu = document.getElementById('postMenuPopup');
-            if (existingMenu) existingMenu.remove();
-            
-            const menu = document.createElement('div');
-            menu.id = 'postMenuPopup';
-            menu.className = 'post-menu-popup';
-            menu.style.top = rect.bottom + 5 + 'px';
-            menu.style.right = (window.innerWidth - rect.right) + 'px';
-            menu.innerHTML = `
-                <div class="post-menu-item danger" data-action="delete">
-                    <i class="fas fa-trash-alt"></i>
-                    <span>Excluir postagem</span>
-                </div>
-            `;
-            
-            document.body.appendChild(menu);
-            
-            const deleteOption = menu.querySelector('[data-action="delete"]');
-            deleteOption.addEventListener('click', async () => {
-                menu.remove();
-                await deletePost(postId);
-            });
-            
-            setTimeout(() => {
-                document.addEventListener('click', function closeMenu(e) {
-                    if (!menu.contains(e.target) && e.target !== menuElement) {
-                        menu.remove();
-                        document.removeEventListener('click', closeMenu);
-                    }
-                });
-            }, 100);
-        }
-        
-        async function deletePost(postId) {
-            if (!currentUser) return;
-            
-            const postRef = database.ref(`instagram_posts/${postId}`);
-            const snapshot = await postRef.once('value');
-            const post = snapshot.val();
-            
-            if (!post || post.userId !== currentUser.uid) {
-                showToast('Você só pode excluir suas próprias postagens');
-                return;
-            }
-            
-            await postRef.remove();
-            showToast('Postagem excluída!');
-            renderInstagramFeed();
-            renderInstagramProfile();
         }
         
         // ==================== VISUALIZAÇÕES ====================
@@ -4207,7 +4241,6 @@
                 });
                 loadChatList();
                 setupChatUnreadListener();
-                renderInstagramFeed();
             } else { showLoginModal(); updateProfileUI(); }
         }
         async function loadUserNickname(userId) { const snapshot = await database.ref(`usuarios/${userId}`).once('value'); const data = snapshot.val(); if (data && data.nickname) { currentUsername = data.nickname; localStorage.setItem('noitefilmes_username', currentUsername); } }
