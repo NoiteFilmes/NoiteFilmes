@@ -1091,6 +1091,7 @@
             text-decoration: underline;
         }
         
+        /* ========== ESTILOS DOS COMENTÁRIOS (INSTAGRAM STYLE) ========== */
         .comments-modal {
             position: fixed;
             top: 0;
@@ -1146,9 +1147,13 @@
         }
         
         .comment-item-modal {
+            margin-bottom: 20px;
+        }
+        
+        .comment-main {
             display: flex;
             gap: 12px;
-            margin-bottom: 16px;
+            margin-bottom: 8px;
         }
         
         .comment-avatar-modal {
@@ -1162,6 +1167,7 @@
             font-weight: 600;
             font-size: 14px;
             flex-shrink: 0;
+            cursor: pointer;
         }
         
         .comment-content-modal {
@@ -1174,15 +1180,175 @@
             cursor: pointer;
         }
         
+        .comment-username-modal:hover {
+            text-decoration: underline;
+        }
+        
         .comment-text-modal {
             font-size: 13px;
             margin-top: 2px;
+            word-break: break-word;
         }
         
         .comment-time-modal {
             font-size: 10px;
             opacity: 0.5;
             margin-top: 4px;
+        }
+        
+        .comment-actions {
+            display: flex;
+            gap: 16px;
+            margin-top: 6px;
+        }
+        
+        .comment-action-btn {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.6);
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .comment-action-btn:hover {
+            color: white;
+        }
+        
+        .comment-action-btn.liked {
+            color: #e50914;
+        }
+        
+        .comment-like-count {
+            font-size: 11px;
+            color: rgba(255,255,255,0.6);
+            margin-left: 4px;
+        }
+        
+        .replies-container {
+            margin-left: 44px;
+            margin-top: 8px;
+            padding-left: 12px;
+            border-left: 2px solid rgba(255,255,255,0.2);
+        }
+        
+        .reply-item {
+            margin-bottom: 12px;
+        }
+        
+        .reply-main {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .reply-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #e50914, #b20710);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 12px;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+        
+        .reply-content {
+            flex: 1;
+        }
+        
+        .reply-username {
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .reply-username:hover {
+            text-decoration: underline;
+        }
+        
+        .reply-text {
+            font-size: 12px;
+            margin-top: 2px;
+        }
+        
+        .reply-time {
+            font-size: 9px;
+            opacity: 0.5;
+            margin-top: 3px;
+        }
+        
+        .reply-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 4px;
+        }
+        
+        .reply-action-btn {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.6);
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+        
+        .reply-action-btn.liked {
+            color: #e50914;
+        }
+        
+        .reply-like-count {
+            font-size: 10px;
+            color: rgba(255,255,255,0.6);
+            margin-left: 3px;
+        }
+        
+        .reply-input-area {
+            margin-top: 8px;
+            margin-left: 44px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .reply-input {
+            flex: 1;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 20px;
+            padding: 8px 12px;
+            color: white;
+            font-size: 12px;
+            outline: none;
+        }
+        
+        .reply-submit {
+            background: #e50914;
+            border: none;
+            border-radius: 20px;
+            padding: 6px 14px;
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .reply-submit:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .cancel-reply {
+            background: rgba(255,255,255,0.2);
         }
         
         .comments-input-area {
@@ -1211,6 +1377,11 @@
             color: white;
             font-weight: 600;
             cursor: pointer;
+        }
+        
+        .comments-input-area button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         
         .options-menu {
@@ -2072,6 +2243,10 @@
             .instagram-feed-container {
                 padding: 12px;
             }
+            
+            .replies-container {
+                margin-left: 32px;
+            }
         }
         
         @media (min-width: 769px) {
@@ -2115,6 +2290,26 @@
         
         body.light-mode .feed-post-comments {
             color: rgba(0,0,0,0.6);
+        }
+        
+        body.light-mode .comment-action-btn {
+            color: rgba(0,0,0,0.6);
+        }
+        
+        body.light-mode .comment-action-btn:hover {
+            color: #1a1a1a;
+        }
+        
+        body.light-mode .reply-action-btn {
+            color: rgba(0,0,0,0.6);
+        }
+        
+        body.light-mode .reply-action-btn:hover {
+            color: #1a1a1a;
+        }
+        
+        body.light-mode .replies-container {
+            border-left-color: rgba(0,0,0,0.2);
         }
         
         .sync-status {
@@ -2296,7 +2491,7 @@
         </div>
     </div>
 
-    <!-- Seção Feed - ESTILO INSTAGRAM COM INTERAÇÕES -->
+    <!-- Seção Feed - ESTILO INSTAGRAM COM COMENTÁRIOS COMPLETOS -->
     <div id="feedSection" class="section">
         <div class="instagram-feed-container" id="instagramFeedContainer">
             <div id="feedList" class="space-y-4"></div>
@@ -2626,7 +2821,7 @@
         let currentAudio = null;
         let messageStatusListeners = new Map();
         
-        // ==================== FUNÇÕES DE POSTAGEM COM CLOUDINARY ====================
+        // ==================== FUNÇÕES DE POSTAGEM ====================
         let selectedPostMediaFile = null;
         let selectedMediaType = null;
         
@@ -2720,7 +2915,7 @@
                     createdAt: Date.now(),
                     likes: {},
                     likesCount: 0,
-                    comments: [],
+                    comments: {},
                     saves: {},
                     savesCount: 0,
                     reposts: {},
@@ -2829,105 +3024,6 @@
             }
         }
         
-        async function addComment(postId, commentText) {
-            if (!currentUser) {
-                showToast('Faça login para comentar');
-                return;
-            }
-            if (!commentText.trim()) return;
-            
-            const commentData = {
-                userId: currentUser.uid,
-                userName: currentUsername,
-                userDisplayName: userProfileData.displayName || currentUsername,
-                text: commentText.trim(),
-                createdAt: Date.now()
-            };
-            
-            const postRef = database.ref(`feed_posts/${postId}/comments`);
-            const newCommentRef = postRef.push();
-            await newCommentRef.set(commentData);
-            
-            showToast('Comentário adicionado!');
-            
-            const commentsCountSpan = document.querySelector(`#post-${postId} .comments-count`);
-            if (commentsCountSpan) {
-                const snapshot = await postRef.once('value');
-                const count = snapshot.numChildren();
-                commentsCountSpan.innerText = count === 1 ? '1 comentário' : `${count} comentários`;
-            }
-        }
-        
-        async function showCommentsModal(postId) {
-            if (!currentUser) {
-                showToast('Faça login para ver comentários');
-                return;
-            }
-            
-            const postSnapshot = await database.ref(`feed_posts/${postId}`).once('value');
-            const post = postSnapshot.val();
-            
-            if (!post) return;
-            
-            const commentsList = post.comments ? Object.values(post.comments).sort((a, b) => a.createdAt - b.createdAt) : [];
-            
-            const modal = document.createElement('div');
-            modal.className = 'comments-modal';
-            modal.innerHTML = `
-                <div class="comments-modal-content">
-                    <div class="comments-modal-header">
-                        <h3>Comentários</h3>
-                        <button class="close-comments-modal">&times;</button>
-                    </div>
-                    <div class="comments-list-modal" id="commentsListModal">
-                        ${commentsList.length === 0 ? '<div class="text-center text-gray-500 py-8">Nenhum comentário ainda. Seja o primeiro!</div>' : commentsList.map(comment => `
-                            <div class="comment-item-modal">
-                                <div class="comment-avatar-modal" onclick="viewProfileFromPost('${comment.userId}')">
-                                    ${comment.userName ? comment.userName.charAt(0).toUpperCase() : 'U'}
-                                </div>
-                                <div class="comment-content-modal">
-                                    <div class="comment-username-modal" onclick="viewProfileFromPost('${comment.userId}')">${escapeHtml(comment.userDisplayName || comment.userName)}</div>
-                                    <div class="comment-text-modal">${makeNicknamesClickable(escapeHtml(comment.text))}</div>
-                                    <div class="comment-time-modal">${formatTimeAgo(comment.createdAt)}</div>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <div class="comments-input-area">
-                        <input type="text" id="newCommentModalInput" placeholder="Adicione um comentário...">
-                        <button id="submitCommentModalBtn">Publicar</button>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(modal);
-            
-            const closeBtn = modal.querySelector('.close-comments-modal');
-            closeBtn.onclick = () => modal.remove();
-            
-            modal.onclick = (e) => {
-                if (e.target === modal) modal.remove();
-            };
-            
-            const submitBtn = modal.querySelector('#submitCommentModalBtn');
-            const input = modal.querySelector('#newCommentModalInput');
-            
-            submitBtn.onclick = async () => {
-                const text = input.value.trim();
-                if (text) {
-                    await addComment(postId, text);
-                    modal.remove();
-                    renderFeed();
-                }
-            };
-            
-            input.onkeypress = (e) => {
-                if (e.key === 'Enter') {
-                    submitBtn.click();
-                }
-            };
-        }
-        
         async function repost(postId) {
             if (!currentUser) {
                 showToast('Faça login para repostar');
@@ -2982,6 +3078,264 @@
             } else {
                 await navigator.clipboard.writeText(postUrl);
                 showToast('Link copiado para a área de transferência!');
+            }
+        }
+        
+        // ==================== FUNÇÕES DE COMENTÁRIOS COMPLETAS ====================
+        
+        async function addComment(postId, commentText) {
+            if (!currentUser) {
+                showToast('Faça login para comentar');
+                return;
+            }
+            if (!commentText.trim()) return;
+            
+            const commentId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 6);
+            
+            const commentData = {
+                id: commentId,
+                userId: currentUser.uid,
+                userName: currentUsername,
+                userDisplayName: userProfileData.displayName || currentUsername,
+                text: commentText.trim(),
+                createdAt: Date.now(),
+                likes: {},
+                replies: {}
+            };
+            
+            await database.ref(`feed_posts/${postId}/comments/${commentId}`).set(commentData);
+            
+            showToast('Comentário adicionado!');
+            
+            const commentsCountSpan = document.querySelector(`#post-${postId} .comments-count`);
+            if (commentsCountSpan) {
+                const snapshot = await database.ref(`feed_posts/${postId}/comments`).once('value');
+                const count = snapshot.numChildren();
+                commentsCountSpan.innerText = count === 1 ? '1 comentário' : `${count} comentários`;
+            }
+            
+            if (document.getElementById(`comments-modal-${postId}`)) {
+                renderCommentsModal(postId);
+            }
+        }
+        
+        async function addReply(postId, commentId, replyText) {
+            if (!currentUser) {
+                showToast('Faça login para responder');
+                return;
+            }
+            if (!replyText.trim()) return;
+            
+            const replyId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 6);
+            
+            const replyData = {
+                id: replyId,
+                userId: currentUser.uid,
+                userName: currentUsername,
+                userDisplayName: userProfileData.displayName || currentUsername,
+                text: replyText.trim(),
+                createdAt: Date.now(),
+                likes: {}
+            };
+            
+            await database.ref(`feed_posts/${postId}/comments/${commentId}/replies/${replyId}`).set(replyData);
+            
+            showToast('Resposta adicionada!');
+            
+            if (document.getElementById(`comments-modal-${postId}`)) {
+                renderCommentsModal(postId);
+            }
+        }
+        
+        async function toggleCommentLike(postId, commentId, isReply, parentCommentId = null) {
+            if (!currentUser) {
+                showToast('Faça login para curtir');
+                return;
+            }
+            
+            let path;
+            if (isReply && parentCommentId) {
+                path = `feed_posts/${postId}/comments/${parentCommentId}/replies/${commentId}/likes/${currentUser.uid}`;
+            } else {
+                path = `feed_posts/${postId}/comments/${commentId}/likes/${currentUser.uid}`;
+            }
+            
+            const likeRef = database.ref(path);
+            const snapshot = await likeRef.once('value');
+            const isLiked = snapshot.val() === true;
+            
+            if (isLiked) {
+                await likeRef.remove();
+            } else {
+                await likeRef.set(true);
+            }
+            
+            if (document.getElementById(`comments-modal-${postId}`)) {
+                renderCommentsModal(postId);
+            }
+        }
+        
+        async function showCommentsModal(postId) {
+            if (!currentUser) {
+                showToast('Faça login para ver comentários');
+                return;
+            }
+            
+            await renderCommentsModal(postId);
+        }
+        
+        async function renderCommentsModal(postId) {
+            const postSnapshot = await database.ref(`feed_posts/${postId}`).once('value');
+            const post = postSnapshot.val();
+            
+            if (!post) return;
+            
+            const comments = post.comments || {};
+            const commentsList = Object.values(comments).sort((a, b) => a.createdAt - b.createdAt);
+            
+            const existingModal = document.getElementById(`comments-modal-${postId}`);
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            const modal = document.createElement('div');
+            modal.id = `comments-modal-${postId}`;
+            modal.className = 'comments-modal';
+            
+            let commentsHtml = '';
+            
+            for (const comment of commentsList) {
+                const isCommentLiked = comment.likes && comment.likes[currentUser.uid] === true;
+                const likesCount = comment.likes ? Object.keys(comment.likes).length : 0;
+                const replies = comment.replies || {};
+                const repliesList = Object.values(replies).sort((a, b) => a.createdAt - b.createdAt);
+                
+                commentsHtml += `
+                    <div class="comment-item-modal" data-comment-id="${comment.id}">
+                        <div class="comment-main">
+                            <div class="comment-avatar-modal" onclick="viewProfileFromPost('${comment.userId}')">
+                                ${comment.userName ? comment.userName.charAt(0).toUpperCase() : 'U'}
+                            </div>
+                            <div class="comment-content-modal">
+                                <div class="comment-username-modal" onclick="viewProfileFromPost('${comment.userId}')">${escapeHtml(comment.userDisplayName || comment.userName)}</div>
+                                <div class="comment-text-modal">${makeNicknamesClickable(escapeHtml(comment.text))}</div>
+                                <div class="comment-time-modal">${formatTimeAgo(comment.createdAt)}</div>
+                                <div class="comment-actions">
+                                    <button class="comment-action-btn ${isCommentLiked ? 'liked' : ''}" onclick="toggleCommentLike('${postId}', '${comment.id}', false, null)">
+                                        <i class="fas fa-heart"></i>
+                                        <span class="comment-like-count">${likesCount > 0 ? likesCount : ''}</span>
+                                    </button>
+                                    <button class="comment-action-btn" onclick="showReplyInput('${postId}', '${comment.id}', '${escapeHtml(comment.userDisplayName || comment.userName)}')">
+                                        <i class="fas fa-reply"></i> Responder
+                                    </button>
+                                </div>
+                                <div id="reply-input-${comment.id}" class="reply-input-area" style="display: none;">
+                                    <input type="text" id="reply-text-${comment.id}" class="reply-input" placeholder="Escreva uma resposta...">
+                                    <button class="reply-submit" onclick="submitReply('${postId}', '${comment.id}')">Responder</button>
+                                    <button class="reply-submit cancel-reply" onclick="hideReplyInput('${comment.id}')">Cancelar</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="replies-container" id="replies-${comment.id}">
+                `;
+                
+                for (const reply of repliesList) {
+                    const isReplyLiked = reply.likes && reply.likes[currentUser.uid] === true;
+                    const replyLikesCount = reply.likes ? Object.keys(reply.likes).length : 0;
+                    
+                    commentsHtml += `
+                        <div class="reply-item">
+                            <div class="reply-main">
+                                <div class="reply-avatar" onclick="viewProfileFromPost('${reply.userId}')">
+                                    ${reply.userName ? reply.userName.charAt(0).toUpperCase() : 'U'}
+                                </div>
+                                <div class="reply-content">
+                                    <div class="reply-username" onclick="viewProfileFromPost('${reply.userId}')">${escapeHtml(reply.userDisplayName || reply.userName)}</div>
+                                    <div class="reply-text">${makeNicknamesClickable(escapeHtml(reply.text))}</div>
+                                    <div class="reply-time">${formatTimeAgo(reply.createdAt)}</div>
+                                    <div class="reply-actions">
+                                        <button class="reply-action-btn ${isReplyLiked ? 'liked' : ''}" onclick="toggleCommentLike('${postId}', '${reply.id}', true, '${comment.id}')">
+                                            <i class="fas fa-heart"></i>
+                                            <span class="reply-like-count">${replyLikesCount > 0 ? replyLikesCount : ''}</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                commentsHtml += `
+                        </div>
+                    </div>
+                `;
+            }
+            
+            modal.innerHTML = `
+                <div class="comments-modal-content">
+                    <div class="comments-modal-header">
+                        <h3>Comentários</h3>
+                        <button class="close-comments-modal">&times;</button>
+                    </div>
+                    <div class="comments-list-modal">
+                        ${commentsList.length === 0 ? '<div class="text-center text-gray-500 py-8">Nenhum comentário ainda. Seja o primeiro!</div>' : commentsHtml}
+                    </div>
+                    <div class="comments-input-area">
+                        <input type="text" id="newCommentModalInput" placeholder="Adicione um comentário...">
+                        <button id="submitCommentModalBtn">Publicar</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            const closeBtn = modal.querySelector('.close-comments-modal');
+            closeBtn.onclick = () => modal.remove();
+            
+            modal.onclick = (e) => {
+                if (e.target === modal) modal.remove();
+            };
+            
+            const submitBtn = modal.querySelector('#submitCommentModalBtn');
+            const input = modal.querySelector('#newCommentModalInput');
+            
+            submitBtn.onclick = async () => {
+                const text = input.value.trim();
+                if (text) {
+                    await addComment(postId, text);
+                    await renderCommentsModal(postId);
+                }
+            };
+            
+            input.onkeypress = (e) => {
+                if (e.key === 'Enter') {
+                    submitBtn.click();
+                }
+            };
+        }
+        
+        function showReplyInput(postId, commentId, userName) {
+            const replyInputDiv = document.getElementById(`reply-input-${commentId}`);
+            if (replyInputDiv) {
+                replyInputDiv.style.display = 'flex';
+                document.getElementById(`reply-text-${commentId}`).focus();
+            }
+        }
+        
+        function hideReplyInput(commentId) {
+            const replyInputDiv = document.getElementById(`reply-input-${commentId}`);
+            if (replyInputDiv) {
+                replyInputDiv.style.display = 'none';
+                document.getElementById(`reply-text-${commentId}`).value = '';
+            }
+        }
+        
+        async function submitReply(postId, commentId) {
+            const replyText = document.getElementById(`reply-text-${commentId}`).value.trim();
+            if (replyText) {
+                await addReply(postId, commentId, replyText);
+                document.getElementById(`reply-text-${commentId}`).value = '';
+                hideReplyInput(commentId);
             }
         }
         
@@ -5106,6 +5460,12 @@
         window.deletePost = deletePost;
         window.showPostOptions = showPostOptions;
         window.viewProfileFromPost = viewProfileFromPost;
+        window.addComment = addComment;
+        window.addReply = addReply;
+        window.toggleCommentLike = toggleCommentLike;
+        window.showReplyInput = showReplyInput;
+        window.hideReplyInput = hideReplyInput;
+        window.submitReply = submitReply;
         window.playAudioMessage = playAudioMessage;
         window.toggleAudioRecording = toggleAudioRecording;
         window.sendLike = sendLike;
