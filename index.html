@@ -949,11 +949,11 @@
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
-            display: grid;
-            grid-template-columns: 350px 1fr;
+            display: flex;
             gap: 20px;
             height: calc(100vh - 140px);
             overflow: hidden;
+            position: relative;
         }
         
         .chat-sidebar {
@@ -966,6 +966,30 @@
             height: 100%;
             overflow: hidden;
             border: 1px solid rgba(255,255,255,0.1);
+            width: 350px;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+        }
+        
+        .chat-sidebar.hidden {
+            display: none;
+        }
+        
+        .chat-main {
+            background: rgba(20, 25, 45, 0.7);
+            backdrop-filter: blur(14px);
+            border-radius: 25px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+            flex: 1;
+            transition: all 0.3s ease;
+        }
+        
+        .chat-main.hidden {
+            display: none;
         }
         
         .chat-sidebar-header {
@@ -1125,17 +1149,6 @@
             z-index: 2;
         }
         
-        .chat-main {
-            background: rgba(20, 25, 45, 0.7);
-            backdrop-filter: blur(14px);
-            border-radius: 25px;
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            overflow: hidden;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        
         .chat-header {
             padding: 15px 20px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
@@ -1146,13 +1159,23 @@
         }
         
         .back-to-users {
-            display: none;
             background: none;
             border: none;
             color: #e50914;
             cursor: pointer;
             margin-right: 5px;
             font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+        
+        .back-to-users:hover {
+            background: rgba(255,255,255,0.1);
         }
         
         .chat-header-avatar {
@@ -1576,32 +1599,48 @@
         
         @media (max-width: 768px) {
             .chat-container {
-                grid-template-columns: 1fr;
                 padding: 10px;
                 height: calc(100vh - 140px);
                 gap: 0;
             }
             
-            .chat-sidebar.hidden-mobile {
-                display: none;
-            }
-            
-            .chat-main.active {
-                display: flex;
-                position: fixed;
-                top: 70px;
+            .chat-sidebar {
+                width: 100%;
+                position: absolute;
+                top: 0;
                 left: 0;
                 right: 0;
                 bottom: 0;
-                z-index: 1000;
-                border-radius: 20px 20px 0 0;
-                margin: 0;
-                width: auto;
-                height: auto;
+                z-index: 10;
+                border-radius: 20px;
+            }
+            
+            .chat-sidebar.hidden {
+                display: none;
+            }
+            
+            .chat-main {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                z-index: 11;
+                border-radius: 20px;
+            }
+            
+            .chat-main.hidden {
+                display: none;
             }
             
             .back-to-users {
-                display: block;
+                display: flex;
+            }
+        }
+        
+        @media (min-width: 769px) {
+            .back-to-users {
+                display: flex;
             }
         }
         
@@ -1810,7 +1849,7 @@
         </div>
     </div>
 
-    <!-- Seção Chat - NOVO CHAT INSTAGRAM STYLE -->
+    <!-- Seção Chat - NOVO CHAT INSTAGRAM STYLE COM NAVEGAÇÃO CORRIGIDA -->
     <div id="chatSection" class="section">
         <div class="chat-container">
             <div class="chat-sidebar" id="chatSidebar">
@@ -1834,7 +1873,7 @@
                 </ul>
             </div>
             
-            <div class="chat-main" id="chatMain">
+            <div class="chat-main hidden" id="chatMain">
                 <div class="chat-header" id="chatHeader">
                     <button class="back-to-users" onclick="backToUsersList()">
                         <i class="fas fa-arrow-left"></i>
@@ -2145,7 +2184,12 @@
             
             if (sectionId === 'feed') renderFeed();
             if (sectionId === 'perfil') renderInstagramProfile();
-            if (sectionId === 'chat') loadChatList();
+            if (sectionId === 'chat') {
+                // Reset chat UI: mostrar apenas a lista de conversas
+                document.getElementById('chatSidebar').classList.remove('hidden');
+                document.getElementById('chatMain').classList.add('hidden');
+                loadChatList();
+            }
         }
         
         function updateContentCounters() {
@@ -3196,10 +3240,9 @@
                 document.getElementById('chatHeaderAvatar').onclick = null;
             }
             
-            if (window.innerWidth <= 768) {
-                document.getElementById('chatSidebar').classList.add('hidden-mobile');
-                document.getElementById('chatMain').classList.add('active');
-            }
+            // Esconder a lista de conversas e mostrar a janela de conversa
+            document.getElementById('chatSidebar').classList.add('hidden');
+            document.getElementById('chatMain').classList.remove('hidden');
             
             document.querySelectorAll('.chat-user').forEach(item => {
                 item.classList.remove('active');
@@ -3483,8 +3526,9 @@
         }
         
         function backToUsersList() {
-            document.getElementById('chatSidebar').classList.remove('hidden-mobile');
-            document.getElementById('chatMain').classList.remove('active');
+            document.getElementById('chatSidebar').classList.remove('hidden');
+            document.getElementById('chatMain').classList.add('hidden');
+            loadChatList();
         }
         
         function showUserSearchModal() {
