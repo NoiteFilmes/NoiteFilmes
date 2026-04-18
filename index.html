@@ -1299,6 +1299,26 @@
             text-align: right;
         }
         
+        .message-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            margin-left: 8px;
+            font-size: 10px;
+        }
+        
+        .status-sent {
+            color: #8696a0;
+        }
+        
+        .status-delivered {
+            color: #8696a0;
+        }
+        
+        .status-read {
+            color: #53bdeb;
+        }
+        
         .message-audio {
             display: flex;
             align-items: center;
@@ -2283,6 +2303,7 @@
         let touchStartX = null;
         let currentSwipingMessage = null;
         let currentAudio = null;
+        let messageStatusListeners = new Map();
         
         // ==================== FUNÇÕES DE NAVEGAÇÃO ====================
         function switchSection(sectionId) {
@@ -3225,7 +3246,7 @@
         
         function formatLastSeen(timestamp) { if (!timestamp) return 'visto agora'; const now = Date.now(); const diff = now - timestamp; const minutes = Math.floor(diff / 60000); const hours = Math.floor(diff / 3600000); const days = Math.floor(diff / 86400000); if (minutes < 1) return 'visto agora'; if (minutes < 60) return `visto há ${minutes} min`; if (hours < 24) return `visto há ${hours} h`; if (days === 1) return 'ontem'; if (days === 2) return 'antes de ontem'; const date = new Date(timestamp); return `visto em ${date.toLocaleDateString()}`; }
         
-        // ========== FUNÇÕES DE ÁUDIO CORRIGIDAS ==========
+        // ========== FUNÇÕES DE ÁUDIO CORRIGIDAS PARA MOBILE ==========
         async function toggleAudioRecording() {
             if (!auth.currentUser) {
                 showToast('Faça login para enviar áudio');
@@ -3257,7 +3278,7 @@
                 };
                 
                 mediaRecorderAudio.onstop = async () => {
-                    const audioBlob = new Blob(audioChunksData, { type: 'audio/webm' });
+                    const audioBlob = new Blob(audioChunksData, { type: 'audio/mp3' });
                     await sendAudioMessage(audioBlob);
                     stream.getTracks().forEach(track => track.stop());
                     hideRecordingIndicator();
@@ -3325,7 +3346,8 @@
                         timestamp: Date.now(),
                         audioUrl: base64Audio,
                         audioDuration: duration,
-                        isAudio: true
+                        isAudio: true,
+                        status: 'sent'
                     };
                     
                     if (currentChat === 'geral') {
@@ -3359,7 +3381,7 @@
                 currentPlayingButton = null;
             }
             
-            const audio = new Audio('data:audio/webm;base64,' + audioBase64);
+            const audio = new Audio('data:audio/mp3;base64,' + audioBase64);
             currentPlayingAudio = audio;
             currentPlayingButton = button;
             
@@ -3390,41 +3412,42 @@
                 if (currentProgressInterval) clearInterval(currentProgressInterval);
             });
             
-            audio.play();
+            audio.play().catch(e => {
+                console.error('Erro ao reproduzir áudio:', e);
+                showToast('Toque no player para reproduzir o áudio');
+                button.innerHTML = '<i class="fas fa-play"></i>';
+                button.classList.remove('playing');
+            });
             button.innerHTML = '<i class="fas fa-pause"></i>';
             button.classList.add('playing');
         }
         
-        // ========== FUNÇÕES DE SWIPE PARA EXCLUIR ==========
+        // ========== FUNÇÕES DE SWIPE PARA EXCLUIR (APENAS SWIPE) ==========
+        let touchStartXPos = 0;
+        let touchEndXPos = 0;
+        
         function setupSwipeDelete(element, messageId, isOwner) {
             if (!isOwner) return;
             
-            let startX = 0;
-            let currentX = 0;
-            let isSwiping = false;
-            
             element.addEventListener('touchstart', (e) => {
-                startX = e.touches[0].clientX;
-                isSwiping = true;
+                touchStartXPos = e.touches[0].clientX;
                 element.style.transition = 'none';
-            });
+            }, { passive: false });
             
             element.addEventListener('touchmove', (e) => {
-                if (!isSwiping) return;
-                currentX = e.touches[0].clientX;
-                const diffX = currentX - startX;
+                const currentX = e.touches[0].clientX;
+                const diffX = currentX - touchStartXPos;
                 if (diffX < 0 && Math.abs(diffX) < 100) {
                     element.style.transform = `translateX(${diffX}px)`;
                     e.preventDefault();
                 }
-            });
+            }, { passive: false });
             
             element.addEventListener('touchend', (e) => {
-                if (!isSwiping) return;
-                isSwiping = false;
+                touchEndXPos = e.changedTouches[0].clientX;
+                const diffX = touchEndXPos - touchStartXPos;
                 element.style.transition = 'transform 0.3s ease';
                 
-                const diffX = currentX - startX;
                 if (diffX < -50) {
                     element.style.transform = 'translateX(-70px)';
                     showDeleteButton(element, messageId);
@@ -3432,8 +3455,8 @@
                     element.style.transform = 'translateX(0)';
                 }
                 
-                startX = 0;
-                currentX = 0;
+                touchStartXPos = 0;
+                touchEndXPos = 0;
             });
         }
         
@@ -3462,6 +3485,70 @@
                     element.style.transform = 'translateX(0)';
                 }
             }, 5000);
+        }
+        
+        // ========== FUNÇÕES DE STATUS DA MENSAGEM (CHECKS) ==========
+        function updateMessageStatus(messageId, status) {
+            const messageElement = document.getElementById(`message-${messageId}`);
+            if (!messageElement) return;
+            
+            let statusElement = messageElement.querySelector('.message-status');
+            if (!statusElement) {
+                const timeElement = messageElement.querySelector('.message-time');
+                if (timeElement) {
+                    statusElement = document.createElement('span');
+                    statusElement.className = 'message-status';
+                    timeElement.appendChild(statusElement);
+                }
+            }
+            
+            if (statusElement) {
+                if (status === 'sent') {
+                    statusElement.innerHTML = '<i class="fas fa-check"></i>';
+                    statusElement.className = 'message-status status-sent';
+                } else if (status === 'delivered') {
+                    statusElement.innerHTML = '<i class="fas fa-check-double"></i>';
+                    statusElement.className = 'message-status status-delivered';
+                } else if (status === 'read') {
+                    statusElement.innerHTML = '<i class="fas fa-check-double"></i>';
+                    statusElement.className = 'message-status status-read';
+                }
+            }
+        }
+        
+        function markMessageAsRead(messageId, chatId, senderId) {
+            if (!currentUser || senderId === currentUser.uid) return;
+            
+            const messageRef = chatId === 'geral' ? 
+                database.ref(`chat_messages/${messageId}`) : 
+                database.ref(`private_messages/${chatId}/${messageId}`);
+            
+            messageRef.update({ status: 'read', readAt: Date.now() }).catch(console.error);
+        }
+        
+        function setupMessageStatusListener(chatId, otherUserId) {
+            if (messageStatusListeners.has(chatId)) return;
+            
+            const messagesRef = chatId === 'geral' ? 
+                database.ref('chat_messages') : 
+                database.ref(`private_messages/${chatId}`);
+            
+            const onStatusChange = (snapshot) => {
+                const messages = snapshot.val();
+                if (!messages) return;
+                
+                Object.entries(messages).forEach(([msgId, msg]) => {
+                    if (msg.senderId !== currentUser?.uid && msg.status !== 'read') {
+                        markMessageAsRead(msgId, chatId, msg.senderId);
+                    }
+                    if (msg.senderId === currentUser?.uid && msg.status) {
+                        updateMessageStatus(msgId, msg.status);
+                    }
+                });
+            };
+            
+            messagesRef.on('value', onStatusChange);
+            messageStatusListeners.set(chatId, onStatusChange);
         }
         
         // ========== FUNÇÕES DO NOVO CHAT ==========
@@ -3620,6 +3707,13 @@
             `;
             document.getElementById('chatInput').value = '';
             document.getElementById('chatInput').style.height = 'auto';
+            
+            if (userId) {
+                const chatIdKey = `private_${[auth.currentUser.uid, userId].sort().join('_')}`;
+                setupMessageStatusListener(chatIdKey, userId);
+            } else {
+                setupMessageStatusListener('geral', null);
+            }
         }
         
         function loadChat(chatId, otherUserId = null) {
@@ -3700,13 +3794,24 @@
             
             const displayChar = senderName.charAt(0).toUpperCase();
             
+            let statusHtml = '';
+            if (isOwner && message.status) {
+                if (message.status === 'sent') {
+                    statusHtml = '<span class="message-status status-sent"><i class="fas fa-check"></i></span>';
+                } else if (message.status === 'delivered') {
+                    statusHtml = '<span class="message-status status-delivered"><i class="fas fa-check-double"></i></span>';
+                } else if (message.status === 'read') {
+                    statusHtml = '<span class="message-status status-read"><i class="fas fa-check-double"></i></span>';
+                }
+            }
+            
             messageElement.innerHTML = `
                 <div class="message-avatar" onclick="viewProfile('${senderId}')">
                     ${displayChar}
                 </div>
                 <div class="message-content">
                     ${content}
-                    <span class="message-time">${formatTime(message.timestamp)}</span>
+                    <span class="message-time">${formatTime(message.timestamp)}${statusHtml}</span>
                 </div>
             `;
             
@@ -3716,6 +3821,15 @@
             
             document.getElementById('chatBox').appendChild(messageElement);
             setupNicknameClickHandlers();
+            
+            if (!isOwner && message.status !== 'read') {
+                if (currentChat === 'geral') {
+                    database.ref(`chat_messages/${messageId}`).update({ status: 'read', readAt: Date.now() });
+                } else if (currentChatUser) {
+                    const chatIdKey = `private_${[auth.currentUser.uid, currentChatUser].sort().join('_')}`;
+                    database.ref(`private_messages/${chatIdKey}/${messageId}`).update({ status: 'read', readAt: Date.now() });
+                }
+            }
         }
         
         function sendMessage() {
@@ -3733,23 +3847,30 @@
                 text: messageText,
                 senderId: user.uid,
                 senderName: currentUsername,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                status: 'sent'
             };
             
             if (currentChat === 'geral') {
-                database.ref('chat_messages').push(messageData).then(() => {
+                database.ref('chat_messages').push(messageData).then((ref) => {
                     chatInput.value = '';
                     chatInput.style.height = 'auto';
                     updateChatActions();
+                    setTimeout(() => {
+                        database.ref(`chat_messages/${ref.key}`).update({ status: 'delivered' });
+                    }, 1000);
                 }).catch(error => {
                     showToast('Erro: ' + error.message);
                 });
             } else if (currentChatUser) {
                 const chatIdKey = `private_${[user.uid, currentChatUser].sort().join('_')}`;
-                database.ref(`private_messages/${chatIdKey}`).push(messageData).then(() => {
+                database.ref(`private_messages/${chatIdKey}`).push(messageData).then((ref) => {
                     chatInput.value = '';
                     chatInput.style.height = 'auto';
                     updateChatActions();
+                    setTimeout(() => {
+                        database.ref(`private_messages/${chatIdKey}/${ref.key}`).update({ status: 'delivered' });
+                    }, 1000);
                 }).catch(error => {
                     showToast('Erro: ' + error.message);
                 });
@@ -3764,7 +3885,8 @@
                 senderId: auth.currentUser.uid,
                 senderName: currentUsername,
                 timestamp: Date.now(),
-                isLike: true
+                isLike: true,
+                status: 'sent'
             };
             
             if (currentChat === 'geral') {
