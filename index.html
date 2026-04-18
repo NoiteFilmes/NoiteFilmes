@@ -1248,6 +1248,7 @@
             max-width: 70%;
             position: relative;
             transition: transform 0.2s ease;
+            touch-action: pan-y;
         }
         
         .message.sent {
@@ -1314,6 +1315,52 @@
             text-align: right;
         }
         
+        .message-audio {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 200px;
+        }
+        
+        .audio-play-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .audio-play-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .audio-wave {
+            flex: 1;
+            height: 30px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .audio-wave-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #e50914, #b20710);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+        
+        .audio-duration {
+            font-size: 11px;
+            opacity: 0.7;
+            min-width: 35px;
+        }
+        
         .message-bar {
             padding: 12px 16px;
             border-top: 1px solid rgba(255,255,255,0.1);
@@ -1369,6 +1416,11 @@
         
         .message-bar-button:hover {
             transform: scale(1.05);
+        }
+        
+        .message-bar-button.recording {
+            background: #e50914;
+            animation: pulse 1.5s infinite;
         }
         
         .user-search-modal {
@@ -1597,6 +1649,32 @@
             color: #e50914;
         }
         
+        /* Swipe Delete */
+        .message.swipe-left {
+            transform: translateX(-100px);
+            transition: transform 0.3s ease;
+        }
+        
+        .delete-overlay {
+            position: absolute;
+            right: 10px;
+            top: 0;
+            bottom: 0;
+            width: 80px;
+            background: #e50914;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 20px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        
+        .message.swipe-left .delete-overlay {
+            opacity: 1;
+        }
+        
         @media (max-width: 768px) {
             .chat-container {
                 padding: 10px;
@@ -1663,6 +1741,11 @@
         body.light-mode .chat-user-avatar.online::after,
         body.light-mode .chat-header-avatar.online::after {
             border-color: rgba(255, 255, 255, 0.8);
+        }
+        
+        body.light-mode .audio-play-btn {
+            background: rgba(0,0,0,0.1);
+            color: #1a1a1a;
         }
     </style>
     <script>
@@ -1849,7 +1932,7 @@
         </div>
     </div>
 
-    <!-- Seção Chat - NOVO CHAT INSTAGRAM STYLE COM NAVEGAÇÃO CORRIGIDA -->
+    <!-- Seção Chat - NOVO CHAT INSTAGRAM STYLE COM ÁUDIO E SWIPE -->
     <div id="chatSection" class="section">
         <div class="chat-container">
             <div class="chat-sidebar" id="chatSidebar">
@@ -1888,7 +1971,7 @@
                 
                 <div class="message-bar">
                     <div class="message-bar-left">
-                        <button class="message-bar-button" onclick="startAudioRecording()" id="audioRecordBtn">
+                        <button class="message-bar-button" id="audioRecordBtn" onclick="toggleAudioRecording()">
                             <i class="fas fa-microphone"></i>
                         </button>
                     </div>
@@ -2167,6 +2250,8 @@
         let longPressTimer = null;
         let selectedMessageId = null;
         let selectedMessageElement = null;
+        let touchStartX = null;
+        let currentSwipingMessage = null;
         
         // ==================== FUNÇÕES DE NAVEGAÇÃO ====================
         function switchSection(sectionId) {
@@ -2185,7 +2270,6 @@
             if (sectionId === 'feed') renderFeed();
             if (sectionId === 'perfil') renderInstagramProfile();
             if (sectionId === 'chat') {
-                // Reset chat UI: mostrar apenas a lista de conversas
                 document.getElementById('chatSidebar').classList.remove('hidden');
                 document.getElementById('chatMain').classList.add('hidden');
                 loadChatList();
@@ -2244,7 +2328,6 @@
             });
         }
         
-        // Function to make nicknames clickable in any text
         function makeNicknamesClickable(text) {
             if (!text) return text;
             const regex = /@([a-zA-Z0-9_]+)/g;
@@ -2253,7 +2336,6 @@
             });
         }
         
-        // Function to handle nickname click
         function setupNicknameClickHandlers() {
             document.querySelectorAll('.clickable-nickname').forEach(el => {
                 el.removeEventListener('click', nicknameClickHandler);
@@ -3112,6 +3194,213 @@
         
         function formatLastSeen(timestamp) { if (!timestamp) return 'visto agora'; const now = Date.now(); const diff = now - timestamp; const minutes = Math.floor(diff / 60000); const hours = Math.floor(diff / 3600000); const days = Math.floor(diff / 86400000); if (minutes < 1) return 'visto agora'; if (minutes < 60) return `visto há ${minutes} min`; if (hours < 24) return `visto há ${hours} h`; if (days === 1) return 'ontem'; if (days === 2) return 'antes de ontem'; const date = new Date(timestamp); return `visto em ${date.toLocaleDateString()}`; }
         
+        // ========== FUNÇÕES DE ÁUDIO ==========
+        let mediaRecorderAudio = null;
+        let audioChunksData = [];
+        let isAudioRecording = false;
+        
+        async function toggleAudioRecording() {
+            if (!auth.currentUser) {
+                showToast('Faça login para enviar áudio');
+                return;
+            }
+            
+            if (!currentChatUser && currentChat !== 'geral') {
+                showToast('Selecione uma conversa primeiro');
+                return;
+            }
+            
+            if (!isAudioRecording) {
+                startAudioRecording();
+            } else {
+                stopAudioRecordingAndSend();
+            }
+        }
+        
+        async function startAudioRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorderAudio = new MediaRecorder(stream);
+                audioChunksData = [];
+                
+                mediaRecorderAudio.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        audioChunksData.push(event.data);
+                    }
+                };
+                
+                mediaRecorderAudio.onstop = async () => {
+                    const audioBlob = new Blob(audioChunksData, { type: 'audio/webm' });
+                    await sendAudioMessage(audioBlob);
+                    stream.getTracks().forEach(track => track.stop());
+                };
+                
+                mediaRecorderAudio.start();
+                isAudioRecording = true;
+                
+                const recordBtn = document.getElementById('audioRecordBtn');
+                recordBtn.innerHTML = '<i class="fas fa-square"></i>';
+                recordBtn.classList.add('recording');
+                
+                showToast('Gravando áudio... Toque novamente para parar');
+                
+                setTimeout(() => {
+                    if (isAudioRecording) {
+                        stopAudioRecordingAndSend();
+                    }
+                }, 60000);
+                
+            } catch (error) {
+                console.error('Erro ao acessar microfone:', error);
+                showToast('Não foi possível acessar o microfone. Verifique as permissões.');
+            }
+        }
+        
+        function stopAudioRecordingAndSend() {
+            if (mediaRecorderAudio && isAudioRecording) {
+                mediaRecorderAudio.stop();
+                isAudioRecording = false;
+                
+                const recordBtn = document.getElementById('audioRecordBtn');
+                recordBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+                recordBtn.classList.remove('recording');
+            }
+        }
+        
+        async function sendAudioMessage(audioBlob) {
+            const user = auth.currentUser;
+            if (!user) return;
+            
+            showToast('Enviando áudio...');
+            
+            try {
+                const reader = new FileReader();
+                reader.readAsDataURL(audioBlob);
+                reader.onloadend = async function() {
+                    const base64Audio = reader.result.split(',')[1];
+                    const duration = 5;
+                    
+                    const messageData = {
+                        text: '',
+                        senderId: user.uid,
+                        senderName: currentUsername,
+                        timestamp: Date.now(),
+                        audioUrl: base64Audio,
+                        audioDuration: duration,
+                        isAudio: true
+                    };
+                    
+                    if (currentChat === 'geral') {
+                        await database.ref('chat_messages').push(messageData);
+                    } else if (currentChatUser) {
+                        const chatIdKey = `private_${[user.uid, currentChatUser].sort().join('_')}`;
+                        await database.ref(`private_messages/${chatIdKey}`).push(messageData);
+                    }
+                    
+                    showToast('Áudio enviado!');
+                };
+            } catch (error) {
+                console.error('Erro ao enviar áudio:', error);
+                showToast('Erro ao enviar áudio. Tente novamente.');
+            }
+        }
+        
+        function playAudioMessage(audioBase64, button) {
+            const audio = new Audio('data:audio/webm;base64,' + audioBase64);
+            const icon = button.querySelector('i');
+            audio.play();
+            icon.classList.remove('fa-play');
+            icon.classList.add('fa-pause');
+            audio.onended = () => {
+                icon.classList.remove('fa-pause');
+                icon.classList.add('fa-play');
+            };
+            audio.onpause = () => {
+                icon.classList.remove('fa-pause');
+                icon.classList.add('fa-play');
+            };
+        }
+        
+        // ========== FUNÇÕES DE SWIPE PARA EXCLUIR ==========
+        function setupSwipeDelete(element, messageId, isOwner) {
+            if (!isOwner) return;
+            
+            let startX = 0;
+            let currentX = 0;
+            let isSwiping = false;
+            
+            element.addEventListener('touchstart', (e) => {
+                startX = e.touches[0].clientX;
+                isSwiping = true;
+                element.style.transition = 'none';
+            });
+            
+            element.addEventListener('touchmove', (e) => {
+                if (!isSwiping) return;
+                currentX = e.touches[0].clientX;
+                const diffX = currentX - startX;
+                if (diffX < 0 && Math.abs(diffX) < 100) {
+                    element.style.transform = `translateX(${diffX}px)`;
+                    e.preventDefault();
+                }
+            });
+            
+            element.addEventListener('touchend', (e) => {
+                if (!isSwiping) return;
+                isSwiping = false;
+                element.style.transition = 'transform 0.3s ease';
+                
+                const diffX = currentX - startX;
+                if (diffX < -50) {
+                    element.style.transform = 'translateX(-80px)';
+                    showDeleteButton(element, messageId);
+                } else {
+                    element.style.transform = 'translateX(0)';
+                }
+                
+                startX = 0;
+                currentX = 0;
+            });
+        }
+        
+        function showDeleteButton(element, messageId) {
+            const existingDeleteBtn = element.querySelector('.swipe-delete-btn');
+            if (existingDeleteBtn) return;
+            
+            const deleteBtn = document.createElement('div');
+            deleteBtn.className = 'swipe-delete-btn';
+            deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+            deleteBtn.style.position = 'absolute';
+            deleteBtn.style.right = '10px';
+            deleteBtn.style.top = '50%';
+            deleteBtn.style.transform = 'translateY(-50%)';
+            deleteBtn.style.width = '50px';
+            deleteBtn.style.height = '50px';
+            deleteBtn.style.backgroundColor = '#e50914';
+            deleteBtn.style.borderRadius = '25px';
+            deleteBtn.style.display = 'flex';
+            deleteBtn.style.alignItems = 'center';
+            deleteBtn.style.justifyContent = 'center';
+            deleteBtn.style.cursor = 'pointer';
+            deleteBtn.style.zIndex = '10';
+            deleteBtn.onclick = (e) => {
+                e.stopPropagation();
+                selectedMessageId = messageId;
+                selectedMessageElement = element;
+                document.getElementById('confirmDeleteMessageModal').classList.remove('hidden');
+                element.style.transform = 'translateX(0)';
+                if (deleteBtn) deleteBtn.remove();
+            };
+            
+            element.style.position = 'relative';
+            element.appendChild(deleteBtn);
+            
+            setTimeout(() => {
+                if (deleteBtn.parentNode) deleteBtn.remove();
+                element.style.transform = 'translateX(0)';
+            }, 5000);
+        }
+        
         // ========== FUNÇÕES DO NOVO CHAT ==========
         function loadChatList() {
             const user = auth.currentUser;
@@ -3240,7 +3529,6 @@
                 document.getElementById('chatHeaderAvatar').onclick = null;
             }
             
-            // Esconder a lista de conversas e mostrar a janela de conversa
             document.getElementById('chatSidebar').classList.add('hidden');
             document.getElementById('chatMain').classList.remove('hidden');
             
@@ -3328,11 +3616,14 @@
             let content = '';
             if (message.isAudio && message.audioUrl) {
                 content = `
-                    <div class="message-audio" style="display:flex; align-items:center; gap:8px;">
+                    <div class="message-audio">
                         <button class="audio-play-btn" onclick="playAudioMessage('${message.audioUrl}', this)">
                             <i class="fas fa-play"></i>
                         </button>
-                        <span>Áudio ${message.audioDuration || ''}s</span>
+                        <div class="audio-wave">
+                            <div class="audio-wave-progress" id="audio-progress-${messageId}"></div>
+                        </div>
+                        <span class="audio-duration">${message.audioDuration || 5}s</span>
                     </div>
                 `;
             } else {
@@ -3357,37 +3648,11 @@
             `;
             
             if (isOwner) {
-                messageElement.addEventListener('touchstart', (e) => {
-                    longPressTimer = setTimeout(() => {
-                        showMessageContextMenu(messageId, messageElement);
-                    }, 500);
-                });
-                messageElement.addEventListener('touchend', () => {
-                    if (longPressTimer) clearTimeout(longPressTimer);
-                });
-                messageElement.addEventListener('touchcancel', () => {
-                    if (longPressTimer) clearTimeout(longPressTimer);
-                });
+                setupSwipeDelete(messageElement, messageId, isOwner);
             }
             
             document.getElementById('chatBox').appendChild(messageElement);
             setupNicknameClickHandlers();
-        }
-        
-        function playAudioMessage(audioUrl, button) {
-            const audio = new Audio(audioUrl);
-            const icon = button.querySelector('i');
-            audio.play();
-            icon.classList.remove('fa-play');
-            icon.classList.add('fa-pause');
-            audio.onended = () => {
-                icon.classList.remove('fa-pause');
-                icon.classList.add('fa-play');
-            };
-            audio.onpause = () => {
-                icon.classList.remove('fa-pause');
-                icon.classList.add('fa-play');
-            };
         }
         
         function sendMessage() {
@@ -3599,20 +3864,6 @@
                     searchList.appendChild(li);
                 });
             });
-        }
-        
-        function startAudioRecording() {
-            if (!auth.currentUser) {
-                showToast('Faça login para enviar áudio');
-                return;
-            }
-            
-            if (!currentChatUser && currentChat !== 'geral') {
-                showToast('Selecione uma conversa primeiro');
-                return;
-            }
-            
-            showToast('Funcionalidade de áudio em desenvolvimento');
         }
         
         function showMessageContextMenu(messageId, element) {
