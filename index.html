@@ -799,7 +799,7 @@
             overflow: hidden;
             cursor: pointer;
         }
-        .post-grid-item img {
+        .post-grid-item img, .post-grid-item video {
             width: 100%;
             height: 100%;
             object-fit: cover;
@@ -1034,6 +1034,183 @@
         
         .feed-post-caption strong:hover {
             text-decoration: underline;
+        }
+        
+        .feed-post-actions {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 16px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        
+        .action-button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        
+        .action-button:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .action-button.liked {
+            color: #e50914;
+        }
+        
+        .action-button.saved {
+            color: #ffc107;
+        }
+        
+        .action-button i {
+            font-size: 22px;
+        }
+        
+        .feed-post-stats {
+            padding: 8px 16px 4px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        
+        .feed-post-comments {
+            padding: 4px 16px 12px;
+            font-size: 13px;
+            color: rgba(255,255,255,0.6);
+            cursor: pointer;
+        }
+        
+        .feed-post-comments:hover {
+            text-decoration: underline;
+        }
+        
+        .comments-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.95);
+            backdrop-filter: blur(20px);
+            z-index: 3000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .comments-modal-content {
+            background: rgba(25,25,45,0.95);
+            backdrop-filter: blur(24px);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .comments-modal-header {
+            padding: 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .comments-modal-header h3 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .close-comments-modal {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        .comments-list-modal {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+        
+        .comment-item-modal {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .comment-avatar-modal {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #e50914, #b20710);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        
+        .comment-content-modal {
+            flex: 1;
+        }
+        
+        .comment-username-modal {
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        
+        .comment-text-modal {
+            font-size: 13px;
+            margin-top: 2px;
+        }
+        
+        .comment-time-modal {
+            font-size: 10px;
+            opacity: 0.5;
+            margin-top: 4px;
+        }
+        
+        .comments-input-area {
+            padding: 12px 16px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            gap: 12px;
+        }
+        
+        .comments-input-area input {
+            flex: 1;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 25px;
+            padding: 10px 16px;
+            color: white;
+            font-size: 14px;
+            outline: none;
+        }
+        
+        .comments-input-area button {
+            background: #e50914;
+            border: none;
+            border-radius: 25px;
+            padding: 10px 20px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
         }
         
         .options-menu {
@@ -1906,8 +2083,9 @@
         body.light-mode .chat-sidebar,
         body.light-mode .chat-main,
         body.light-mode .chat-header,
-        body.light-mode .feed-post {
-            background: rgba(255, 255, 255, 0.8);
+        body.light-mode .feed-post,
+        body.light-mode .comments-modal-content {
+            background: rgba(255, 255, 255, 0.9);
         }
         
         body.light-mode .message-content {
@@ -1930,8 +2108,13 @@
             color: #1a1a1a;
         }
         
-        body.light-mode .feed-post-options {
+        body.light-mode .feed-post-options,
+        body.light-mode .action-button {
             color: #1a1a1a;
+        }
+        
+        body.light-mode .feed-post-comments {
+            color: rgba(0,0,0,0.6);
         }
         
         .sync-status {
@@ -2113,7 +2296,7 @@
         </div>
     </div>
 
-    <!-- Seção Feed - ESTILO INSTAGRAM -->
+    <!-- Seção Feed - ESTILO INSTAGRAM COM INTERAÇÕES -->
     <div id="feedSection" class="section">
         <div class="instagram-feed-container" id="instagramFeedContainer">
             <div id="feedList" class="space-y-4"></div>
@@ -2344,7 +2527,7 @@
         </div>
     </div>
     
-    <!-- Create Post Modal - NOVO ESTILO INSTAGRAM COM SUPORTE A IMAGEM/VIDEO -->
+    <!-- Create Post Modal -->
     <div id="createPostModal" class="create-post-modal hidden">
         <div class="create-post-content">
             <h3 class="text-xl font-bold mb-4 text-center">Nova Publicação</h3>
@@ -2376,7 +2559,7 @@
         const storage = firebase.storage();
         
         // ==================== CLOUDINARY CONFIG ====================
-        const CLOUDINARY_CLOUD_NAME = "dama2etyy";
+        const CLOUDINARY_CLOUD_NAME = "dkljng3ym";
         const CLOUDINARY_UPLOAD_PRESET = "noitefilmes_unsigned";
         
         let currentUser = null;
@@ -2420,9 +2603,6 @@
             bio: '',
             externalLink: ''
         };
-        
-        // Posts data for feed
-        let feedPosts = [];
         
         // ==================== VARIÁVEIS DO CHAT ====================
         let currentChat = 'geral';
@@ -2503,7 +2683,7 @@
             
             const caption = document.getElementById('postCaption').value.trim();
             
-            showToast('Enviando publicação para o Cloudinary...');
+            showToast('Enviando publicação...');
             
             try {
                 const formData = new FormData();
@@ -2528,8 +2708,6 @@
                 const publicId = data.public_id;
                 const duration = selectedMediaType === 'video' ? Math.round(data.duration || 0) : null;
                 
-                showToast('Salvando no Firebase...');
-                
                 const postData = {
                     id: Date.now().toString(),
                     userId: currentUser.uid,
@@ -2540,8 +2718,13 @@
                     duration: duration,
                     caption: caption,
                     createdAt: Date.now(),
-                    likes: 0,
+                    likes: {},
+                    likesCount: 0,
                     comments: [],
+                    saves: {},
+                    savesCount: 0,
+                    reposts: {},
+                    repostsCount: 0,
                     cloudinaryPublicId: publicId
                 };
                 
@@ -2555,6 +2738,254 @@
             }
         }
         
+        // ==================== FUNÇÕES DE INTERAÇÃO DAS POSTAGENS ====================
+        
+        async function toggleLike(postId) {
+            if (!currentUser) {
+                showToast('Faça login para curtir');
+                return;
+            }
+            
+            const postRef = database.ref(`feed_posts/${postId}`);
+            const postSnapshot = await postRef.once('value');
+            const post = postSnapshot.val();
+            
+            if (!post) return;
+            
+            const isLiked = post.likes && post.likes[currentUser.uid] === true;
+            
+            if (isLiked) {
+                await postRef.child(`likes/${currentUser.uid}`).remove();
+                await postRef.child('likesCount').transaction(count => (count || 1) - 1);
+            } else {
+                await postRef.child(`likes/${currentUser.uid}`).set(true);
+                await postRef.child('likesCount').transaction(count => (count || 0) + 1);
+            }
+            
+            updatePostLikeUI(postId, !isLiked);
+        }
+        
+        function updatePostLikeUI(postId, isLiked) {
+            const likeButton = document.querySelector(`#post-${postId} .action-button.like-btn`);
+            const likeCountSpan = document.querySelector(`#post-${postId} .likes-count`);
+            
+            if (likeButton) {
+                const icon = likeButton.querySelector('i');
+                if (isLiked) {
+                    icon.className = 'fas fa-heart';
+                    likeButton.classList.add('liked');
+                } else {
+                    icon.className = 'far fa-heart';
+                    likeButton.classList.remove('liked');
+                }
+            }
+            
+            if (likeCountSpan) {
+                database.ref(`feed_posts/${postId}/likesCount`).once('value', (snap) => {
+                    const count = snap.val() || 0;
+                    likeCountSpan.innerText = count === 1 ? '1 curtida' : `${count} curtidas`;
+                });
+            }
+        }
+        
+        async function toggleSave(postId) {
+            if (!currentUser) {
+                showToast('Faça login para salvar');
+                return;
+            }
+            
+            const postRef = database.ref(`feed_posts/${postId}`);
+            const postSnapshot = await postRef.once('value');
+            const post = postSnapshot.val();
+            
+            if (!post) return;
+            
+            const isSaved = post.saves && post.saves[currentUser.uid] === true;
+            
+            if (isSaved) {
+                await postRef.child(`saves/${currentUser.uid}`).remove();
+                await postRef.child('savesCount').transaction(count => (count || 1) - 1);
+                showToast('Removido dos salvos');
+            } else {
+                await postRef.child(`saves/${currentUser.uid}`).set(true);
+                await postRef.child('savesCount').transaction(count => (count || 0) + 1);
+                showToast('Salvo nos favoritos');
+            }
+            
+            updatePostSaveUI(postId, !isSaved);
+        }
+        
+        function updatePostSaveUI(postId, isSaved) {
+            const saveButton = document.querySelector(`#post-${postId} .action-button.save-btn`);
+            if (saveButton) {
+                const icon = saveButton.querySelector('i');
+                if (isSaved) {
+                    icon.className = 'fas fa-bookmark';
+                    saveButton.classList.add('saved');
+                } else {
+                    icon.className = 'far fa-bookmark';
+                    saveButton.classList.remove('saved');
+                }
+            }
+        }
+        
+        async function addComment(postId, commentText) {
+            if (!currentUser) {
+                showToast('Faça login para comentar');
+                return;
+            }
+            if (!commentText.trim()) return;
+            
+            const commentData = {
+                userId: currentUser.uid,
+                userName: currentUsername,
+                userDisplayName: userProfileData.displayName || currentUsername,
+                text: commentText.trim(),
+                createdAt: Date.now()
+            };
+            
+            const postRef = database.ref(`feed_posts/${postId}/comments`);
+            const newCommentRef = postRef.push();
+            await newCommentRef.set(commentData);
+            
+            showToast('Comentário adicionado!');
+            
+            const commentsCountSpan = document.querySelector(`#post-${postId} .comments-count`);
+            if (commentsCountSpan) {
+                const snapshot = await postRef.once('value');
+                const count = snapshot.numChildren();
+                commentsCountSpan.innerText = count === 1 ? '1 comentário' : `${count} comentários`;
+            }
+        }
+        
+        async function showCommentsModal(postId) {
+            if (!currentUser) {
+                showToast('Faça login para ver comentários');
+                return;
+            }
+            
+            const postSnapshot = await database.ref(`feed_posts/${postId}`).once('value');
+            const post = postSnapshot.val();
+            
+            if (!post) return;
+            
+            const commentsList = post.comments ? Object.values(post.comments).sort((a, b) => a.createdAt - b.createdAt) : [];
+            
+            const modal = document.createElement('div');
+            modal.className = 'comments-modal';
+            modal.innerHTML = `
+                <div class="comments-modal-content">
+                    <div class="comments-modal-header">
+                        <h3>Comentários</h3>
+                        <button class="close-comments-modal">&times;</button>
+                    </div>
+                    <div class="comments-list-modal" id="commentsListModal">
+                        ${commentsList.length === 0 ? '<div class="text-center text-gray-500 py-8">Nenhum comentário ainda. Seja o primeiro!</div>' : commentsList.map(comment => `
+                            <div class="comment-item-modal">
+                                <div class="comment-avatar-modal" onclick="viewProfileFromPost('${comment.userId}')">
+                                    ${comment.userName ? comment.userName.charAt(0).toUpperCase() : 'U'}
+                                </div>
+                                <div class="comment-content-modal">
+                                    <div class="comment-username-modal" onclick="viewProfileFromPost('${comment.userId}')">${escapeHtml(comment.userDisplayName || comment.userName)}</div>
+                                    <div class="comment-text-modal">${makeNicknamesClickable(escapeHtml(comment.text))}</div>
+                                    <div class="comment-time-modal">${formatTimeAgo(comment.createdAt)}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="comments-input-area">
+                        <input type="text" id="newCommentModalInput" placeholder="Adicione um comentário...">
+                        <button id="submitCommentModalBtn">Publicar</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            const closeBtn = modal.querySelector('.close-comments-modal');
+            closeBtn.onclick = () => modal.remove();
+            
+            modal.onclick = (e) => {
+                if (e.target === modal) modal.remove();
+            };
+            
+            const submitBtn = modal.querySelector('#submitCommentModalBtn');
+            const input = modal.querySelector('#newCommentModalInput');
+            
+            submitBtn.onclick = async () => {
+                const text = input.value.trim();
+                if (text) {
+                    await addComment(postId, text);
+                    modal.remove();
+                    renderFeed();
+                }
+            };
+            
+            input.onkeypress = (e) => {
+                if (e.key === 'Enter') {
+                    submitBtn.click();
+                }
+            };
+        }
+        
+        async function repost(postId) {
+            if (!currentUser) {
+                showToast('Faça login para repostar');
+                return;
+            }
+            
+            const originalPostSnapshot = await database.ref(`feed_posts/${postId}`).once('value');
+            const originalPost = originalPostSnapshot.val();
+            
+            if (!originalPost) return;
+            
+            const repostData = {
+                id: Date.now().toString(),
+                originalPostId: postId,
+                repostedBy: currentUser.uid,
+                repostedByName: currentUsername,
+                repostedByDisplayName: userProfileData.displayName || currentUsername,
+                originalPost: {
+                    userId: originalPost.userId,
+                    userName: originalPost.userName,
+                    userDisplayName: originalPost.userDisplayName,
+                    mediaUrl: originalPost.mediaUrl,
+                    mediaType: originalPost.mediaType,
+                    caption: originalPost.caption,
+                    createdAt: originalPost.createdAt
+                },
+                createdAt: Date.now()
+            };
+            
+            await database.ref(`feed_posts/${repostData.id}`).set(repostData);
+            
+            await database.ref(`feed_posts/${postId}/reposts/${currentUser.uid}`).set(true);
+            await database.ref(`feed_posts/${postId}/repostsCount`).transaction(count => (count || 0) + 1);
+            
+            showToast('Postagem repostada no seu feed!');
+            renderFeed();
+        }
+        
+        async function sharePost(postId) {
+            const postUrl = `${window.location.origin}?postId=${postId}`;
+            
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: 'NoiteFilmes',
+                        text: 'Confira esta publicação no NoiteFilmes!',
+                        url: postUrl
+                    });
+                } catch (err) {
+                    console.log('Compartilhamento cancelado');
+                }
+            } else {
+                await navigator.clipboard.writeText(postUrl);
+                showToast('Link copiado para a área de transferência!');
+            }
+        }
+        
+        // ==================== RENDER FEED ====================
         async function renderFeed() {
             const feedContainer = document.getElementById('feedList');
             if (!feedContainer) return;
@@ -2575,19 +3006,39 @@
                 
                 for (const post of postsList) {
                     const isOwner = currentUser && post.userId === currentUser.uid;
+                    const isLiked = currentUser && post.likes && post.likes[currentUser.uid] === true;
+                    const isSaved = currentUser && post.saves && post.saves[currentUser.uid] === true;
+                    const likesCount = post.likesCount || 0;
+                    const commentsCount = post.comments ? Object.keys(post.comments).length : 0;
+                    
+                    let displayName = post.userDisplayName || post.userName || 'Usuário';
+                    let mediaHtml = '';
+                    
+                    if (post.originalPostId) {
+                        displayName = `${post.repostedByDisplayName || post.repostedByName} repostou`;
+                        const original = post.originalPost;
+                        if (original) {
+                            if (original.mediaType === 'video') {
+                                mediaHtml = `<video class="feed-post-video" controls preload="metadata"><source src="${original.mediaUrl}" type="video/mp4"></video>`;
+                            } else {
+                                mediaHtml = `<img src="${original.mediaUrl}" class="feed-post-media" loading="lazy" onerror="this.src='https://via.placeholder.com/600x400'">`;
+                            }
+                        }
+                    } else {
+                        if (post.mediaType === 'video') {
+                            mediaHtml = `<video class="feed-post-video" controls preload="metadata"><source src="${post.mediaUrl}" type="video/mp4"></video>`;
+                        } else {
+                            mediaHtml = `<img src="${post.mediaUrl}" class="feed-post-media" loading="lazy" onerror="this.src='https://via.placeholder.com/600x400'">`;
+                        }
+                    }
+                    
                     const postElement = document.createElement('div');
                     postElement.className = 'feed-post';
                     postElement.id = `post-${post.id}`;
                     
                     const timeAgo = formatTimeAgo(post.createdAt);
-                    
-                    let mediaHtml = '';
-                    if (post.mediaType === 'video') {
-                        const posterUrl = post.mediaUrl.replace(/\.[^/.]+$/, '') + '.jpg';
-                        mediaHtml = `<video class="feed-post-video" controls poster="${posterUrl}" preload="metadata"><source src="${post.mediaUrl}" type="video/mp4"></video>`;
-                    } else {
-                        mediaHtml = `<img src="${post.mediaUrl}" class="feed-post-media" loading="lazy" onerror="this.src='https://via.placeholder.com/600x400'">`;
-                    }
+                    const likeText = likesCount === 1 ? '1 curtida' : `${likesCount} curtidas`;
+                    const commentText = commentsCount === 1 ? '1 comentário' : `${commentsCount} comentários`;
                     
                     postElement.innerHTML = `
                         <div class="feed-post-header">
@@ -2596,7 +3047,7 @@
                                     ${post.userName ? post.userName.charAt(0).toUpperCase() : 'U'}
                                 </div>
                                 <div class="feed-post-userinfo">
-                                    <span class="feed-post-username" onclick="viewProfileFromPost('${post.userId}')">${escapeHtml(post.userDisplayName || post.userName)}</span>
+                                    <span class="feed-post-username" onclick="viewProfileFromPost('${post.userId}')">${escapeHtml(displayName)}</span>
                                     <span class="feed-post-time">${timeAgo}</span>
                                 </div>
                             </div>
@@ -2608,8 +3059,31 @@
                         </div>
                         ${mediaHtml}
                         <div class="feed-post-caption">
-                            <strong onclick="viewProfileFromPost('${post.userId}')">${escapeHtml(post.userDisplayName || post.userName)}</strong>
+                            <strong onclick="viewProfileFromPost('${post.userId}')">${escapeHtml(displayName)}</strong>
                             <span>${makeNicknamesClickable(escapeHtml(post.caption || ''))}</span>
+                        </div>
+                        <div class="feed-post-stats">
+                            <span class="likes-count">${likeText}</span>
+                        </div>
+                        <div class="feed-post-actions">
+                            <button class="action-button like-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike('${post.id}')">
+                                <i class="${isLiked ? 'fas' : 'far'} fa-heart"></i>
+                            </button>
+                            <button class="action-button" onclick="showCommentsModal('${post.id}')">
+                                <i class="far fa-comment"></i>
+                            </button>
+                            <button class="action-button" onclick="repost('${post.id}')">
+                                <i class="fas fa-retweet"></i>
+                            </button>
+                            <button class="action-button" onclick="sharePost('${post.id}')">
+                                <i class="fas fa-share-alt"></i>
+                            </button>
+                            <button class="action-button save-btn ${isSaved ? 'saved' : ''}" onclick="toggleSave('${post.id}')">
+                                <i class="${isSaved ? 'fas' : 'far'} fa-bookmark"></i>
+                            </button>
+                        </div>
+                        <div class="feed-post-comments comments-count" onclick="showCommentsModal('${post.id}')">
+                            ${commentText}
                         </div>
                     `;
                     
@@ -4622,6 +5096,31 @@
         document.getElementById('batchSeriesArea').classList.add('hidden');
         switchSection('filmes');
         loadChatReadTimestamps();
+        
+        // Expor funções globalmente para os botões
+        window.toggleLike = toggleLike;
+        window.toggleSave = toggleSave;
+        window.showCommentsModal = showCommentsModal;
+        window.repost = repost;
+        window.sharePost = sharePost;
+        window.deletePost = deletePost;
+        window.showPostOptions = showPostOptions;
+        window.viewProfileFromPost = viewProfileFromPost;
+        window.playAudioMessage = playAudioMessage;
+        window.toggleAudioRecording = toggleAudioRecording;
+        window.sendLike = sendLike;
+        window.sendMessage = sendMessage;
+        window.handleChatKeyPress = handleChatKeyPress;
+        window.autoResize = autoResize;
+        window.updateChatActions = updateChatActions;
+        window.selectChat = selectChat;
+        window.backToUsersList = backToUsersList;
+        window.showUserSearchModal = showUserSearchModal;
+        window.hideUserSearchModal = hideUserSearchModal;
+        window.searchUsers = searchUsers;
+        window.confirmDeleteMessage = confirmDeleteMessage;
+        window.closeMessageConfirmModal = closeMessageConfirmModal;
+        window.viewProfile = viewProfile;
     </script>
 </body>
 </html>
