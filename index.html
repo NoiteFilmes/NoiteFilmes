@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -563,6 +564,94 @@
             border-radius: 40px;
             padding: 2px 8px;
             font-size: 0.65rem;
+        }
+        
+        /* ========== NOVOS ESTILOS DOS CONTADORES (DASHBOARD) ========== */
+        .dashboard-counters {
+            background: linear-gradient(135deg, rgba(229,9,20,0.15), rgba(0,0,0,0.3));
+            border-radius: 28px;
+            padding: 16px;
+            margin: 12px 16px;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        
+        .counters-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .counter-card {
+            background: rgba(20, 25, 45, 0.6);
+            backdrop-filter: blur(14px);
+            border-radius: 24px;
+            padding: 16px 12px;
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .counter-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);
+            border-color: rgba(229,9,20,0.4);
+        }
+        
+        .counter-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+            display: inline-block;
+        }
+        
+        .counter-number {
+            font-size: 28px;
+            font-weight: 800;
+            line-height: 1.2;
+            background: linear-gradient(135deg, #fff, #e50914);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .counter-label {
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+        
+        body.light-mode .counter-card {
+            background: rgba(255, 255, 255, 0.7);
+            border-color: rgba(0,0,0,0.08);
+        }
+        
+        body.light-mode .counter-number {
+            background: linear-gradient(135deg, #1a1a1a, #e50914);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+        
+        @media (max-width: 480px) {
+            .counters-grid {
+                gap: 12px;
+            }
+            .counter-icon {
+                font-size: 24px;
+            }
+            .counter-number {
+                font-size: 22px;
+            }
+            .counter-label {
+                font-size: 10px;
+            }
+            .counter-card {
+                padding: 12px 8px;
+            }
         }
         
         /* Cast Button */
@@ -2247,6 +2336,11 @@
             .replies-container {
                 margin-left: 32px;
             }
+            
+            .dashboard-counters {
+                margin: 8px 12px;
+                padding: 12px;
+            }
         }
         
         @media (min-width: 769px) {
@@ -2259,7 +2353,8 @@
         body.light-mode .chat-main,
         body.light-mode .chat-header,
         body.light-mode .feed-post,
-        body.light-mode .comments-modal-content {
+        body.light-mode .comments-modal-content,
+        body.light-mode .counter-card {
             background: rgba(255, 255, 255, 0.9);
         }
         
@@ -2358,6 +2453,32 @@
             <div class="flex items-center gap-2">
                 <i class="fas fa-sun text-yellow-400 cursor-pointer text-sm transition hover:scale-110" id="lightModeBtn"></i>
                 <i class="fas fa-moon text-gray-300 cursor-pointer text-sm transition hover:scale-110" id="darkModeBtn"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- NOVA SEÇÃO DE CONTADORES (DASHBOARD) -->
+    <div class="dashboard-counters">
+        <div class="counters-grid">
+            <div class="counter-card">
+                <div class="counter-icon"><i class="fas fa-film"></i></div>
+                <div class="counter-number" id="dashboardFilmesCount">0</div>
+                <div class="counter-label">Filmes</div>
+            </div>
+            <div class="counter-card">
+                <div class="counter-icon"><i class="fas fa-tv"></i></div>
+                <div class="counter-number" id="dashboardSeriesCount">0</div>
+                <div class="counter-label">Séries</div>
+            </div>
+            <div class="counter-card">
+                <div class="counter-icon"><i class="fas fa-satellite-dish"></i></div>
+                <div class="counter-number" id="dashboardCanaisCount">0</div>
+                <div class="counter-label">Canais</div>
+            </div>
+            <div class="counter-card">
+                <div class="counter-icon"><i class="fas fa-users"></i></div>
+                <div class="counter-number" id="dashboardOnlineCount">0</div>
+                <div class="counter-label">Online</div>
             </div>
         </div>
     </div>
@@ -2825,6 +2946,50 @@
         let selectedPostMediaFile = null;
         let selectedMediaType = null;
         
+        // ==================== FUNÇÕES DE CONTADORES E ONLINE ====================
+        let onlineUsersListener = null;
+        
+        function updateDashboardCounters() {
+            const dashboardFilmes = document.getElementById('dashboardFilmesCount');
+            const dashboardSeries = document.getElementById('dashboardSeriesCount');
+            const dashboardCanais = document.getElementById('dashboardCanaisCount');
+            
+            if (dashboardFilmes) dashboardFilmes.innerText = filmes.length;
+            if (dashboardSeries) dashboardSeries.innerText = series.length;
+            if (dashboardCanais) dashboardCanais.innerText = canais.length;
+        }
+        
+        function setupOnlineUsersPresence() {
+            if (!currentUser) return;
+            
+            const userStatusRef = database.ref(`online_users/${currentUser.uid}`);
+            const connectedRef = database.ref('.info/connected');
+            
+            connectedRef.on('value', (snap) => {
+                if (snap.val() === true) {
+                    userStatusRef.onDisconnect().remove();
+                    userStatusRef.set(true);
+                }
+            });
+            
+            if (onlineUsersListener) {
+                onlineUsersListener.off();
+            }
+            
+            onlineUsersListener = database.ref('online_users').on('value', (snapshot) => {
+                const onlineCount = snapshot.val() ? Object.keys(snapshot.val()).length : 0;
+                const dashboardOnline = document.getElementById('dashboardOnlineCount');
+                if (dashboardOnline) dashboardOnline.innerText = onlineCount;
+            });
+        }
+        
+        function removeOnlineUser() {
+            if (currentUser) {
+                database.ref(`online_users/${currentUser.uid}`).remove();
+            }
+        }
+        
+        // ==================== FUNÇÕES DE POSTAGEM ====================
         function openCreatePostModal() {
             if (!currentUser) {
                 showToast('Faça login para criar uma postagem');
@@ -3575,6 +3740,7 @@
             document.getElementById('filmesCount').innerText = filmes.length;
             document.getElementById('seriesCount').innerText = series.length;
             document.getElementById('canaisCount').innerText = canais.length;
+            updateDashboardCounters();
         }
         
         function makeNicknamesClickable(text) {
@@ -5360,7 +5526,12 @@
                 loadChatList();
                 setupChatUnreadListener();
                 renderFeed();
-            } else { showLoginModal(); updateProfileUI(); }
+                setupOnlineUsersPresence();
+            } else { 
+                showLoginModal(); 
+                updateProfileUI();
+                removeOnlineUser();
+            }
         }
         async function loadUserNickname(userId) { const snapshot = await database.ref(`usuarios/${userId}`).once('value'); const data = snapshot.val(); if (data && data.nickname) { currentUsername = data.nickname; localStorage.setItem('noitefilmes_username', currentUsername); } }
         function updateLastSeen() { if (currentUser) { database.ref(`usuarios/${currentUser.uid}/lastSeen`).set(Date.now()); } }
@@ -5432,7 +5603,11 @@
         }
         function openSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); document.getElementById('usernameInput').value = currentUsername; }
         function saveUsername() { const newUsername = document.getElementById('usernameInput').value.trim(); if (newUsername) { currentUsername = newUsername; localStorage.setItem('noitefilmes_username', currentUsername); if (currentUser) database.ref(`usuarios/${currentUser.uid}/nickname`).set(currentUsername); showToast(`✅ Nome alterado para: @${currentUsername}`); document.getElementById('settingsModal').classList.add('hidden'); updateProfileUI(); } }
-        function logoutUser() { auth.signOut(); document.getElementById('settingsModal').classList.add('hidden'); }
+        function logoutUser() { 
+            removeOnlineUser();
+            auth.signOut(); 
+            document.getElementById('settingsModal').classList.add('hidden'); 
+        }
         function setDarkMode() { document.body.classList.remove('light-mode'); document.body.classList.add('dark-mode'); localStorage.setItem('noitefilmes_theme', 'dark'); }
         function setLightMode() { document.body.classList.remove('dark-mode'); document.body.classList.add('light-mode'); localStorage.setItem('noitefilmes_theme', 'light'); }
         function loadTheme() { const theme = localStorage.getItem('noitefilmes_theme'); if (theme === 'light') setLightMode(); else setDarkMode(); }
