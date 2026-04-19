@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -565,6 +566,94 @@
             font-size: 0.65rem;
         }
         
+        /* Dashboard Counters */
+        .dashboard-counters {
+            background: linear-gradient(135deg, rgba(229,9,20,0.15), rgba(0,0,0,0.3));
+            border-radius: 28px;
+            padding: 16px;
+            margin: 12px 16px;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        
+        .counters-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .counter-card {
+            background: rgba(20, 25, 45, 0.6);
+            backdrop-filter: blur(14px);
+            border-radius: 24px;
+            padding: 16px 12px;
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .counter-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);
+            border-color: rgba(229,9,20,0.4);
+        }
+        
+        .counter-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+            display: inline-block;
+        }
+        
+        .counter-number {
+            font-size: 28px;
+            font-weight: 800;
+            line-height: 1.2;
+            background: linear-gradient(135deg, #fff, #e50914);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .counter-label {
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+        
+        body.light-mode .counter-card {
+            background: rgba(255, 255, 255, 0.7);
+            border-color: rgba(0,0,0,0.08);
+        }
+        
+        body.light-mode .counter-number {
+            background: linear-gradient(135deg, #1a1a1a, #e50914);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+        
+        @media (max-width: 480px) {
+            .counters-grid {
+                gap: 12px;
+            }
+            .counter-icon {
+                font-size: 24px;
+            }
+            .counter-number {
+                font-size: 22px;
+            }
+            .counter-label {
+                font-size: 10px;
+            }
+            .counter-card {
+                padding: 12px 8px;
+            }
+        }
+        
         /* Cast Button */
         .cast-btn.casting { 
             background: #e50914; 
@@ -703,225 +792,858 @@
             border-radius: 20px;
         }
         
-        /* ========== ESTILOS DO PERFIL INSTAGRAM (NOVOS) ========== */
-        .profile-header-instagram {
-            text-align: center;
-            position: relative;
-            padding: 8px 16px 0;
-        }
-        .profile-username-top {
-            font-weight: 700;
-            font-size: 1.2rem;
-            text-align: center;
-            flex: 1;
-        }
-        .profile-options-icon {
-            font-size: 1.3rem;
-            cursor: pointer;
-            padding: 8px;
-            transition: opacity 0.2s;
-        }
-        .profile-info-row {
+        /* ========== NOVO PERFIL - ESTILOS (INSTAGRAM STYLE) ========== */
+        .profile-top-bar {
             display: flex;
             align-items: center;
-            gap: 20px;
-            margin: 16px 0;
-            flex-wrap: wrap;
+            justify-content: space-between;
+            padding: 8px 16px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(14px);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            position: sticky;
+            top: 0;
+            z-index: 99;
+            height: 50px;
         }
-        .profile-picture {
-            width: 85px;
-            height: 85px;
+        
+        .profile-top-bar .back-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0 8px;
+        }
+        
+        .profile-top-bar .profile-username-top {
+            font-size: 18px;
+            font-weight: 600;
+            color: white;
+            flex: 1;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+        }
+        
+        .profile-top-bar .profile-actions-top {
+            display: flex;
+            gap: 16px;
+        }
+        
+        .profile-top-bar .action-icon {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0 4px;
+        }
+        
+        .profile-container {
+            max-width: 935px;
+            margin: 0 auto;
+            padding: 20px 20px 80px 20px;
+        }
+        
+        .profile-header {
+            display: flex;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        
+        .profile-avatar-section {
+            flex: 0 0 90px;
+            margin-right: 16px;
+            position: relative;
+        }
+        
+        .profile-avatar-large {
+            width: 90px;
+            height: 90px;
             border-radius: 50%;
-            background: linear-gradient(45deg, #e50914, #b20710);
+            background: linear-gradient(135deg, #e50914, #b20710);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 32px;
-            flex-shrink: 0;
-        }
-        .profile-stats-grid {
-            flex: 1;
-            display: flex;
-            justify-content: space-around;
-            gap: 12px;
-        }
-        .stat-number {
-            font-weight: 800;
-            font-size: 1rem;
-            display: block;
-        }
-        .stat-label {
-            font-size: 0.7rem;
-            opacity: 0.7;
-        }
-        .profile-bio {
-            text-align: left;
-            margin: 10px 0 8px;
-            word-break: break-word;
-        }
-        .profile-bio-text {
-            font-size: 0.8rem;
-            line-height: 1.4;
-            max-height: 4.2em;
-            overflow: hidden;
-            transition: max-height 0.2s ease;
-        }
-        .profile-bio-text.expanded {
-            max-height: 200px;
-        }
-        .bio-expand-btn {
-            color: #e50914;
-            font-size: 0.7rem;
-            cursor: pointer;
-            background: none;
+            color: white;
+            font-size: 36px;
+            font-weight: 700;
             border: none;
-            margin-top: 4px;
-        }
-        .profile-external-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.75rem;
-            margin: 6px 0 12px;
-            color: #0095f6;
-            text-decoration: none;
-        }
-        .post-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 3px;
-            margin-top: 12px;
-        }
-        .post-grid-item {
-            aspect-ratio: 1 / 1;
-            background: rgba(255,255,255,0.05);
-            border-radius: 4px;
+            box-shadow: 0 0 0 2px rgba(255,255,255,0.1);
             overflow: hidden;
-            cursor: pointer;
         }
-        .post-grid-item img, .post-grid-item video {
+        
+        .profile-avatar-large img {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
-        .follow-button {
-            background: #0095f6;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 7px 16px;
-            font-weight: 600;
-            font-size: 0.8rem;
-            width: 100%;
-            text-align: center;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .follow-button.following {
-            background: #363636;
-        }
-        .profile-header-instagram .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-        /* Nickname clicável */
-        .clickable-nickname {
-            cursor: pointer;
-            font-weight: 600;
-            transition: opacity 0.2s;
-        }
-        .clickable-nickname:hover {
-            opacity: 0.8;
-            text-decoration: underline;
-        }
-        /* Edit Profile Modal */
-        .edit-profile-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.95);
-            backdrop-filter: blur(20px);
-            z-index: 2200;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .edit-profile-content {
-            background: rgba(25,25,45,0.95);
-            backdrop-filter: blur(24px);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 32px;
-            padding: 24px;
-            width: 90%;
-            max-width: 450px;
-        }
         
-        /* Create Post Button */
-        .create-post-btn {
-            position: fixed;
-            bottom: 80px;
-            right: 20px;
-            width: 56px;
-            height: 56px;
+        .change-avatar-btn {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
-            background: #e50914;
+            background: linear-gradient(135deg, #e50914, #b20710);
+            border: 2px solid rgba(0,0,0,0.5);
+            color: white;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            z-index: 1000;
-            box-shadow: 0 4px 12px rgba(229,9,20,0.4);
+            font-size: 14px;
             transition: transform 0.2s;
         }
-        .create-post-btn:active {
-            transform: scale(0.92);
+        
+        .change-avatar-btn:hover {
+            transform: scale(1.1);
         }
         
-        /* Create Post Modal - NOVO ESTILO INSTAGRAM */
-        .create-post-modal {
+        .profile-info-compact {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .profile-display-name-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .profile-display-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 180px;
+        }
+        
+        .profile-stats-row {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .stat-item {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        
+        .stat-value {
+            font-weight: 700;
+            font-size: 16px;
+            color: white;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: rgba(255,255,255,0.6);
+        }
+        
+        .profile-name-bio {
+            margin-top: 8px;
+            padding: 0 16px 12px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .profile-fullname {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+            color: white;
+        }
+        
+        .profile-bio-text {
+            font-size: 14px;
+            line-height: 18px;
+            margin-bottom: 8px;
+            white-space: pre-line;
+            color: rgba(255,255,255,0.9);
+        }
+        
+        .profile-bio-text .mention {
+            color: #e50914;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        
+        .profile-bio-text .mention:hover {
+            text-decoration: underline;
+        }
+        
+        .profile-link {
+            color: #0095f6;
+            text-decoration: none;
+            font-size: 14px;
+            display: inline-block;
+            margin-bottom: 12px;
+        }
+        
+        .profile-link:hover {
+            text-decoration: underline;
+        }
+        
+        .profile-action-buttons {
+            display: flex;
+            gap: 8px;
+            padding: 0 16px 16px 16px;
+        }
+        
+        .profile-action-btn {
+            flex: 1;
+            height: 36px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        
+        .profile-action-btn.primary {
+            background: #e50914;
+            color: white;
+        }
+        
+        .profile-action-btn.primary:hover {
+            opacity: 0.8;
+        }
+        
+        .profile-action-btn.secondary {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+        
+        .profile-action-btn.secondary:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .profile-action-btn.following {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+        
+        .profile-action-btn.following:hover {
+            background: #e50914;
+            color: white;
+        }
+        
+        .profile-action-btn.following:hover span {
+            display: none;
+        }
+        
+        .profile-action-btn.following:hover::before {
+            content: 'Deixar de seguir';
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .profile-highlights {
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+            padding: 16px;
+            margin-bottom: 8px;
+            scrollbar-width: none;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .profile-highlights::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .highlight-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            min-width: 70px;
+            cursor: pointer;
+        }
+        
+        .highlight-circle {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #e50914, #b20710);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid rgba(255,255,255,0.2);
+            transition: all 0.2s;
+            overflow: hidden;
+        }
+        
+        .highlight-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .highlight-item:hover .highlight-circle {
+            border-color: #e50914;
+            transform: scale(1.02);
+        }
+        
+        .highlight-circle i {
+            width: 32px;
+            height: 32px;
+            color: white;
+        }
+        
+        .highlight-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: rgba(255,255,255,0.7);
+            max-width: 70px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .profile-tabs {
+            display: flex;
+            justify-content: space-around;
+            height: 44px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 4px;
+        }
+        
+        .profile-tab {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.6);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .profile-tab i {
+            font-size: 16px;
+        }
+        
+        .profile-tab.active {
+            color: #e50914;
+        }
+        
+        .profile-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #e50914;
+        }
+        
+        .profile-posts {
+            margin-top: 8px;
+        }
+        
+        .posts-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2px;
+        }
+        
+        .post-thumb {
+            aspect-ratio: 1 / 1;
+            background: rgba(255,255,255,0.05);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .post-thumb:hover {
+            opacity: 0.9;
+        }
+        
+        .post-thumb::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+        
+        .post-thumb:hover::after {
+            opacity: 1;
+            content: '👁️';
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .post-thumb-content {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #e50914, #b20710);
+            color: white;
+            text-align: center;
+            padding: 10px;
+            position: relative;
+        }
+        
+        .post-thumb-content img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
+        
+        .post-thumb-content i,
+        .post-thumb-content p,
+        .post-thumb-content .post-thumb-date {
+            position: relative;
+            z-index: 2;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+        }
+        
+        .post-thumb-content i {
+            font-size: 24px;
+            margin-bottom: 8px;
+            color: white;
+        }
+        
+        .post-thumb-content p {
+            font-size: 12px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            color: white;
+        }
+        
+        .post-thumb-date {
+            font-size: 10px;
+            margin-top: 4px;
+            opacity: 0.8;
+            color: white;
+        }
+        
+        .edit-section {
+            background: rgba(20, 25, 45, 0.8);
+            backdrop-filter: blur(14px);
+            border-radius: 25px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255,255,255,0.1);
+            animation: slideDown 0.3s ease;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .edit-section h4 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #e50914;
+        }
+        
+        .edit-section input,
+        .edit-section textarea,
+        .edit-section select {
+            width: 100%;
+            padding: 12px 15px;
+            margin: 8px 0;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .edit-section input:focus,
+        .edit-section textarea:focus,
+        .edit-section select:focus {
+            outline: none;
+            border-color: #e50914;
+        }
+        
+        .edit-section textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        
+        .edit-section-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .edit-section-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .edit-section .btn {
+            width: auto;
+            padding: 12px 24px;
+            margin: 0;
+        }
+        
+        .ddi-select {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .ddi-select select {
+            width: 100px;
+            margin: 0;
+        }
+        
+        .ddi-select input {
+            flex: 1;
+        }
+        
+        .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.95);
+            background: rgba(0, 0, 0, 0.95);
             backdrop-filter: blur(20px);
-            z-index: 2300;
+            z-index: 3000;
             display: flex;
             align-items: center;
             justify-content: center;
         }
-        .create-post-content {
-            background: rgba(25,25,45,0.95);
+        
+        .modal-content {
+            background: rgba(25, 25, 45, 0.95);
             backdrop-filter: blur(24px);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 32px;
-            padding: 24px;
+            border-radius: 20px;
             width: 90%;
             max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 24px;
+            border: 1px solid rgba(255,255,255,0.2);
+            position: relative;
         }
-        .preview-container {
-            width: 100%;
-            margin-top: 12px;
+        
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .modal-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .modal-item {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+        }
+        
+        .modal-item-label {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-bottom: 4px;
             display: flex;
+            align-items: center;
             justify-content: center;
+            gap: 4px;
         }
-        .preview-image {
-            max-width: 100%;
-            max-height: 300px;
-            object-fit: contain;
-            border-radius: 16px;
-            background: #1a1a1a;
+        
+        .modal-item-value {
+            font-size: 18px;
+            font-weight: 600;
         }
-        .preview-video {
-            max-width: 100%;
-            max-height: 300px;
-            border-radius: 16px;
-            background: #1a1a1a;
+        
+        .modal-timeline {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .modal-timeline-item {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        
+        .modal-timeline-date {
+            font-size: 12px;
+            opacity: 0.6;
+            margin-bottom: 8px;
+        }
+        
+        .modal-timeline-data p {
+            margin: 4px 0;
+            font-size: 14px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #e50914;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            opacity: 0.8;
+        }
+        
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .image-upload-progress {
+            position: absolute;
+            bottom: -20px;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .image-upload-progress-bar {
+            height: 100%;
+            background: #e50914;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        body.light-mode .profile-top-bar,
+        body.light-mode .edit-section,
+        body.light-mode .modal-content {
+            background: rgba(255, 255, 255, 0.95);
+        }
+        
+        body.light-mode .profile-top-bar .back-btn,
+        body.light-mode .profile-top-bar .profile-username-top,
+        body.light-mode .profile-top-bar .action-icon,
+        body.light-mode .profile-display-name,
+        body.light-mode .stat-value,
+        body.light-mode .profile-fullname,
+        body.light-mode .profile-bio-text {
+            color: #1a1a1a;
+        }
+        
+        body.light-mode .profile-action-btn.secondary {
+            background: rgba(0,0,0,0.1);
+            color: #1a1a1a;
+        }
+        
+        body.light-mode .edit-section input,
+        body.light-mode .edit-section textarea,
+        body.light-mode .edit-section select {
+            background: rgba(0,0,0,0.05);
+            color: #1a1a1a;
+            border-color: rgba(0,0,0,0.2);
+        }
+        
+        @media (max-width: 768px) {
+            .profile-avatar-section {
+                flex: 0 0 80px;
+                margin-right: 12px;
+            }
+            
+            .profile-avatar-large {
+                width: 80px;
+                height: 80px;
+                font-size: 32px;
+            }
+            
+            .profile-stats-row {
+                gap: 15px;
+            }
+            
+            .stat-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0;
+            }
+            
+            .posts-grid {
+                gap: 2px;
+            }
+            
+            .edit-section-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .ddi-select {
+                flex-direction: column;
+            }
+            
+            .ddi-select select {
+                width: 100%;
+            }
+            
+            .profile-highlights {
+                gap: 15px;
+                padding: 12px;
+            }
+            
+            .highlight-circle {
+                width: 60px;
+                height: 60px;
+            }
+            
+            .highlight-circle i {
+                font-size: 28px;
+            }
+            
+            .profile-top-bar {
+                padding: 8px 12px;
+            }
+            
+            .profile-top-bar .profile-username-top {
+                font-size: 16px;
+                max-width: 150px;
+            }
+        }
+        
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .posts-grid {
+                gap: 4px;
+            }
+            
+            .profile-avatar-large {
+                width: 100px;
+                height: 100px;
+                font-size: 40px;
+            }
+        }
+        
+        @media (min-width: 1025px) {
+            .profile-container {
+                padding: 30px 20px 100px 20px;
+            }
+            
+            .profile-avatar-large {
+                width: 150px;
+                height: 150px;
+                font-size: 60px;
+            }
+            
+            .profile-avatar-section {
+                flex: 0 0 150px;
+                margin-right: 30px;
+            }
+            
+            .profile-display-name {
+                font-size: 20px;
+                max-width: 300px;
+            }
+            
+            .stat-value {
+                font-size: 18px;
+            }
+            
+            .stat-label {
+                font-size: 16px;
+            }
+            
+            .profile-fullname {
+                font-size: 16px;
+            }
+            
+            .profile-bio-text {
+                font-size: 16px;
+                line-height: 20px;
+            }
+            
+            .profile-link {
+                font-size: 16px;
+            }
+            
+            .profile-action-btn {
+                height: 40px;
+                font-size: 16px;
+            }
+            
+            .posts-grid {
+                gap: 28px;
+            }
+            
+            .profile-top-bar .profile-username-top {
+                font-size: 20px;
+                max-width: 400px;
+            }
         }
         
         /* ========== ESTILOS DO FEED INSTAGRAM ========== */
@@ -965,6 +1687,7 @@
             font-size: 18px;
             color: white;
             overflow: hidden;
+            cursor: pointer;
         }
         
         .feed-post-avatar img {
@@ -1091,7 +1814,7 @@
             text-decoration: underline;
         }
         
-        /* ========== ESTILOS DOS COMENTÁRIOS (INSTAGRAM STYLE) ========== */
+        /* ========== ESTILOS DOS COMENTÁRIOS ========== */
         .comments-modal {
             position: fixed;
             top: 0;
@@ -2169,7 +2892,7 @@
             color: #e50914;
         }
         
-        /* Swipe Delete - Botão reposicionado */
+        /* Swipe Delete */
         .swipe-delete-btn {
             position: absolute;
             right: -60px;
@@ -2247,6 +2970,11 @@
             .replies-container {
                 margin-left: 32px;
             }
+            
+            .dashboard-counters {
+                margin: 8px 12px;
+                padding: 12px;
+            }
         }
         
         @media (min-width: 769px) {
@@ -2259,7 +2987,10 @@
         body.light-mode .chat-main,
         body.light-mode .chat-header,
         body.light-mode .feed-post,
-        body.light-mode .comments-modal-content {
+        body.light-mode .comments-modal-content,
+        body.light-mode .counter-card,
+        body.light-mode .edit-section,
+        body.light-mode .modal-content {
             background: rgba(255, 255, 255, 0.9);
         }
         
@@ -2358,6 +3089,32 @@
             <div class="flex items-center gap-2">
                 <i class="fas fa-sun text-yellow-400 cursor-pointer text-sm transition hover:scale-110" id="lightModeBtn"></i>
                 <i class="fas fa-moon text-gray-300 cursor-pointer text-sm transition hover:scale-110" id="darkModeBtn"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- NOVA SEÇÃO DE CONTADORES (DASHBOARD) -->
+    <div class="dashboard-counters">
+        <div class="counters-grid">
+            <div class="counter-card">
+                <div class="counter-icon"><i class="fas fa-film"></i></div>
+                <div class="counter-number" id="dashboardFilmesCount">0</div>
+                <div class="counter-label">Filmes</div>
+            </div>
+            <div class="counter-card">
+                <div class="counter-icon"><i class="fas fa-tv"></i></div>
+                <div class="counter-number" id="dashboardSeriesCount">0</div>
+                <div class="counter-label">Séries</div>
+            </div>
+            <div class="counter-card">
+                <div class="counter-icon"><i class="fas fa-satellite-dish"></i></div>
+                <div class="counter-number" id="dashboardCanaisCount">0</div>
+                <div class="counter-label">Canais</div>
+            </div>
+            <div class="counter-card">
+                <div class="counter-icon"><i class="fas fa-users"></i></div>
+                <div class="counter-number" id="dashboardOnlineCount">0</div>
+                <div class="counter-label">Online</div>
             </div>
         </div>
     </div>
@@ -2595,10 +3352,307 @@
         </div>
     </div>
 
-    <!-- Seção Perfil com layout Instagram (NOVO) -->
+    <!-- NOVA SEÇÃO DE PERFIL - SUBSTITUÍDA COMPLETAMENTE -->
     <div id="perfilSection" class="section">
-        <div id="instagramProfileContainer" class="instagram-profile-wrapper m-3 glass-card p-4"></div>
-        <div class="px-3 mt-2"><h3 class="font-bold text-sm mb-2">⭐ Meus Favoritos</h3><div id="profileFavoritesList" class="favorites-list max-h-64 overflow-y-auto space-y-2"></div></div>
+        <div id="profileContainer">
+            <div class="profile-top-bar">
+                <button class="back-btn" onclick="backFromProfile()">←</button>
+                <span class="profile-username-top" id="profileUsernameTop">@usuario</span>
+                <div class="profile-actions-top">
+                    <button class="action-icon" onclick="toggleSettings()"><i class="fas fa-ellipsis-h"></i></button>
+                </div>
+            </div>
+
+            <div class="profile-container">
+                <!-- Cabeçalho do perfil -->
+                <div class="profile-header">
+                    <div class="profile-avatar-section">
+                        <div class="profile-avatar-large" id="profileAvatar">
+                            <span id="profileAvatarText">U</span>
+                            <img id="profileAvatarImage" src="" alt="Avatar" style="display: none;">
+                        </div>
+                        <button class="change-avatar-btn" id="changeAvatarBtn" onclick="document.getElementById('profileAvatarInput').click()" style="display: none;">
+                            <i class="fas fa-camera"></i>
+                        </button>
+                        <input type="file" id="profileAvatarInput" accept="image/*" style="display: none;" onchange="uploadProfileAvatar(this)">
+                        <div id="avatarUploadProgress" class="image-upload-progress hidden">
+                            <div id="avatarUploadProgressBar" class="image-upload-progress-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="profile-info-compact">
+                        <div class="profile-display-name-row">
+                            <span class="profile-display-name" id="profileDisplayName"></span>
+                        </div>
+                        
+                        <div class="profile-stats-row">
+                            <div class="stat-item">
+                                <span class="stat-value" id="profilePosts">0</span>
+                                <span class="stat-label">publicações</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value" id="profileFollowers">0</span>
+                                <span class="stat-label">seguidores</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value" id="profileFollowing">0</span>
+                                <span class="stat-label">seguindo</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-name-bio">
+                    <div class="profile-fullname" id="profileFullName"></div>
+                    <div class="profile-bio-text" id="profileBio">Olá, estou usando NoiteFilmes! 🎬</div>
+                    <a id="profileLink" class="profile-link" href="#" target="_blank">
+                        <span id="profileLinkText">Adicione seu link</span>
+                    </a>
+                </div>
+
+                <div class="profile-action-buttons">
+                    <button class="profile-action-btn primary" onclick="handleProfileAction()" id="profileActionBtn">Editar perfil</button>
+                    <button class="profile-action-btn secondary" onclick="shareProfile()">Compartilhar</button>
+                </div>
+
+                <div class="profile-highlights">
+                    <div class="highlight-item" onclick="showFichaModal()">
+                        <div class="highlight-circle">
+                            <i class="fas fa-clipboard-list"></i>
+                        </div>
+                        <span class="highlight-label">Ficha</span>
+                    </div>
+                    <div class="highlight-item" onclick="showHistoricoModal()">
+                        <div class="highlight-circle">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <span class="highlight-label">Progresso</span>
+                    </div>
+                </div>
+
+                <div class="profile-tabs">
+                    <button class="profile-tab active" onclick="showProfileTab('posts')">
+                        <i class="fas fa-th"></i>
+                        <span>PUBLICAÇÕES</span>
+                    </button>
+                    <button class="profile-tab" onclick="showProfileTab('saved')">
+                        <i class="fas fa-bookmark"></i>
+                        <span>SALVOS</span>
+                    </button>
+                    <button class="profile-tab" onclick="showProfileTab('tagged')">
+                        <i class="fas fa-user"></i>
+                        <span>MARCAÇÕES</span>
+                    </button>
+                </div>
+
+                <!-- Painel de Configurações do Perfil -->
+                <div id="settingsPanel" class="edit-section hidden">
+                    <h4>
+                        <i class="fas fa-cog"></i>
+                        Configurações do Perfil
+                    </h4>
+                    
+                    <div class="edit-section-row">
+                        <div>
+                            <label>WhatsApp</label>
+                            <div class="ddi-select">
+                                <select id="whatsappDDI">
+                                    <option value="+351">+351 (Portugal)</option>
+                                    <option value="+44">+44 (Reino Unido)</option>
+                                    <option value="+34">+34 (Espanha)</option>
+                                    <option value="+33">+33 (França)</option>
+                                    <option value="+49">+49 (Alemanha)</option>
+                                    <option value="+39">+39 (Itália)</option>
+                                    <option value="+31">+31 (Holanda)</option>
+                                    <option value="+32">+32 (Bélgica)</option>
+                                    <option value="+43">+43 (Áustria)</option>
+                                    <option value="+46">+46 (Suécia)</option>
+                                    <option value="+47">+47 (Noruega)</option>
+                                    <option value="+45">+45 (Dinamarca)</option>
+                                    <option value="+358">+358 (Finlândia)</option>
+                                    <option value="+353">+353 (Irlanda)</option>
+                                    <option value="+41">+41 (Suíça)</option>
+                                </select>
+                                <input type="tel" id="editWhatsApp" placeholder="Número">
+                            </div>
+                        </div>
+                        <div>
+                            <label>Telefone</label>
+                            <div class="ddi-select">
+                                <select id="phoneDDI">
+                                    <option value="+351">+351 (Portugal)</option>
+                                    <option value="+44">+44 (Reino Unido)</option>
+                                    <option value="+34">+34 (Espanha)</option>
+                                    <option value="+33">+33 (França)</option>
+                                    <option value="+49">+49 (Alemanha)</option>
+                                    <option value="+39">+39 (Itália)</option>
+                                    <option value="+31">+31 (Holanda)</option>
+                                    <option value="+32">+32 (Bélgica)</option>
+                                    <option value="+43">+43 (Áustria)</option>
+                                    <option value="+46">+46 (Suécia)</option>
+                                    <option value="+47">+47 (Noruega)</option>
+                                    <option value="+45">+45 (Dinamarca)</option>
+                                    <option value="+358">+358 (Finlândia)</option>
+                                    <option value="+353">+353 (Irlanda)</option>
+                                    <option value="+41">+41 (Suíça)</option>
+                                </select>
+                                <input type="tel" id="editPhone" placeholder="Número">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="edit-section-row">
+                        <div>
+                            <label>Data de Nascimento</label>
+                            <input type="date" id="editBirthDate">
+                        </div>
+                        <div>
+                            <label>Gênero</label>
+                            <select id="editGender">
+                                <option value="">Selecione</option>
+                                <option value="masculino">Masculino</option>
+                                <option value="feminino">Feminino</option>
+                                <option value="outro">Outro</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="edit-section-actions">
+                        <button class="btn btn-primary" onclick="saveSettings()">Salvar configurações</button>
+                        <button class="btn btn-secondary" onclick="toggleSettings()">Cancelar</button>
+                    </div>
+                </div>
+
+                <!-- Formulário de Edição de Perfil -->
+                <div id="editProfileForm" class="edit-section hidden">
+                    <h4><i class="fas fa-edit"></i> Editar Perfil</h4>
+                    <input type="text" id="editName" placeholder="Nome">
+                    <textarea id="editBio" maxlength="200" placeholder="Bio (200 caracteres)"></textarea>
+                    <input type="text" id="editLink" placeholder="Link">
+                    <div class="edit-section-actions">
+                        <button class="btn btn-primary" onclick="saveProfile()">Salvar</button>
+                        <button class="btn btn-secondary" onclick="toggleEditProfile()">Cancelar</button>
+                    </div>
+                </div>
+
+                <!-- Formulário de Ficha do Usuário -->
+                <div id="userCardForm" class="edit-section hidden">
+                    <h4>
+                        <i class="fas fa-edit"></i>
+                        Atualizar Ficha
+                    </h4>
+                    
+                    <div class="edit-section-row">
+                        <div>
+                            <label>Peso (kg)</label>
+                            <input type="number" id="editWeight" step="0.1" placeholder="Ex: 75.5" oninput="calculateIMC()">
+                        </div>
+                        <div>
+                            <label>Altura (cm)</label>
+                            <input type="number" id="editHeight" placeholder="Ex: 175" oninput="calculateIMC()">
+                        </div>
+                    </div>
+                    
+                    <div class="edit-section-row">
+                        <div>
+                            <label>Idade</label>
+                            <input type="number" id="editAge" placeholder="Ex: 30">
+                        </div>
+                        <div>
+                            <label>IMC</label>
+                            <input type="text" id="editImc" readonly placeholder="Calculado automaticamente">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label>Objetivo</label>
+                        <select id="editGoal">
+                            <option value="">Selecione seu objetivo</option>
+                            <option value="emagrecimento">Emagrecimento</option>
+                            <option value="hipertrofia">Hipertrofia</option>
+                            <option value="definicao">Definição muscular</option>
+                            <option value="saude">Saúde e bem-estar</option>
+                            <option value="resistencia">Resistência</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label>Observações</label>
+                        <textarea id="editNotes" placeholder="Lesões, restrições, etc..."></textarea>
+                    </div>
+                    
+                    <div class="edit-section-actions">
+                        <button class="btn btn-primary" onclick="saveUserCard()">Salvar ficha</button>
+                        <button class="btn btn-secondary" onclick="toggleUserCardForm()">Cancelar</button>
+                    </div>
+                </div>
+
+                <!-- Grid de postagens do perfil -->
+                <div class="profile-posts" id="profilePostsTab">
+                    <div class="posts-grid" id="profilePostsGrid"></div>
+                </div>
+
+                <!-- Grid de posts salvos -->
+                <div class="profile-posts hidden" id="profileSavedTab">
+                    <div class="posts-grid" id="profileSavedGrid">
+                        <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
+                            <i class="fas fa-bookmark" style="font-size: 48px; margin-bottom: 16px;"></i>
+                            <p>Salve posts para ver aqui</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grid de marcações -->
+                <div class="profile-posts hidden" id="profileTaggedTab">
+                    <div class="posts-grid" id="profileTaggedGrid">
+                        <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
+                            <i class="fas fa-user" style="font-size: 48px; margin-bottom: 16px;"></i>
+                            <p>Fotos e vídeos com você</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal da Ficha Fitness -->
+        <div id="fichaModal" class="modal-overlay hidden" onclick="closeModal(event)">
+            <div class="modal-content">
+                <button class="modal-close" onclick="closeModal()">✕</button>
+                <h3 class="modal-title">Minha Ficha Fitness</h3>
+                <div class="modal-grid" id="fichaModalContent">
+                    <div class="modal-item">
+                        <div class="modal-item-label"><i class="fas fa-weight-scale"></i> Peso</div>
+                        <div class="modal-item-value">-- <small>kg</small></div>
+                    </div>
+                    <div class="modal-item">
+                        <div class="modal-item-label"><i class="fas fa-ruler"></i> Altura</div>
+                        <div class="modal-item-value">-- <small>cm</small></div>
+                    </div>
+                    <div class="modal-item">
+                        <div class="modal-item-label"><i class="fas fa-calendar"></i> Idade</div>
+                        <div class="modal-item-value">-- <small>anos</small></div>
+                    </div>
+                    <div class="modal-item">
+                        <div class="modal-item-label"><i class="fas fa-chart-line"></i> IMC</div>
+                        <div class="modal-item-value" id="fichaImc">--</div>
+                    </div>
+                    <div class="modal-item" style="grid-column: span 2;">
+                        <div class="modal-item-label"><i class="fas fa-bullseye"></i> Objetivo</div>
+                        <div class="modal-item-value" id="fichaGoal">Não definido</div>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="toggleUserCardForm()">Atualizar Ficha</button>
+            </div>
+        </div>
+
+        <!-- Modal de Histórico de Progresso -->
+        <div id="historicoModal" class="modal-overlay hidden" onclick="closeModal(event)">
+            <div class="modal-content">
+                <button class="modal-close" onclick="closeModal()">✕</button>
+                <h3 class="modal-title">Histórico de Progresso</h3>
+                <div class="modal-timeline" id="historicoModalContent"></div>
+            </div>
+        </div>
     </div>
 
     <!-- Bottom Navigation -->
@@ -2821,10 +3875,777 @@
         let currentAudio = null;
         let messageStatusListeners = new Map();
         
+        // ==================== VARIÁVEIS DO NOVO PERFIL ====================
+        let viewingProfileId = null;
+        let userCache = new Map();
+        let followersCache = new Map();
+        let followingCache = new Map();
+        
         // ==================== FUNÇÕES DE POSTAGEM ====================
         let selectedPostMediaFile = null;
         let selectedMediaType = null;
         
+        // ==================== FUNÇÕES DE CONTADORES E ONLINE ====================
+        let onlineUsersListener = null;
+        
+        function updateDashboardCounters() {
+            const dashboardFilmes = document.getElementById('dashboardFilmesCount');
+            const dashboardSeries = document.getElementById('dashboardSeriesCount');
+            const dashboardCanais = document.getElementById('dashboardCanaisCount');
+            
+            if (dashboardFilmes) dashboardFilmes.innerText = filmes.length;
+            if (dashboardSeries) dashboardSeries.innerText = series.length;
+            if (dashboardCanais) dashboardCanais.innerText = canais.length;
+        }
+        
+        function setupOnlineUsersPresence() {
+            if (!currentUser) return;
+            
+            const userStatusRef = database.ref(`online_users/${currentUser.uid}`);
+            const connectedRef = database.ref('.info/connected');
+            
+            connectedRef.on('value', (snap) => {
+                if (snap.val() === true) {
+                    userStatusRef.onDisconnect().remove();
+                    userStatusRef.set(true);
+                }
+            });
+            
+            if (onlineUsersListener) {
+                onlineUsersListener.off();
+            }
+            
+            onlineUsersListener = database.ref('online_users').on('value', (snapshot) => {
+                const onlineCount = snapshot.val() ? Object.keys(snapshot.val()).length : 0;
+                const dashboardOnline = document.getElementById('dashboardOnlineCount');
+                if (dashboardOnline) dashboardOnline.innerText = onlineCount;
+            });
+        }
+        
+        function removeOnlineUser() {
+            if (currentUser) {
+                database.ref(`online_users/${currentUser.uid}`).remove();
+            }
+        }
+        
+        // ==================== FUNÇÕES DO PERFIL ====================
+        function viewProfile(userId) {
+            if (!userId) return;
+            
+            if (userId === currentUser?.uid) {
+                viewingProfileId = null;
+                loadProfile();
+                loadProfilePosts();
+                switchSection('perfil');
+                return;
+            }
+            
+            database.ref(`usuarios/${userId}`).once('value').then(async snapshot => {
+                const userData = snapshot.val();
+                if (userData) {
+                    viewingProfileId = userId;
+                    
+                    document.getElementById('profileUsernameTop').innerText = userData.nickname || '@usuario';
+                    document.getElementById('profileDisplayName').innerText = userData.displayName || userData.nickname || 'Usuário';
+                    document.getElementById('profileFullName').innerText = userData.displayName || '';
+                    
+                    const bioText = userData.bio || 'Olá, estou usando NoiteFilmes! 🎬';
+                    document.getElementById('profileBio').innerHTML = makeNicknamesClickable(bioText);
+                    
+                    document.getElementById('profileLinkText').innerText = userData.externalLink || 'Adicione seu link';
+                    document.getElementById('profileLink').href = userData.externalLink || '#';
+                    
+                    if (userData.avatarUrl) {
+                        document.getElementById('profileAvatarText').style.display = 'none';
+                        const avatarImg = document.getElementById('profileAvatarImage');
+                        avatarImg.src = userData.avatarUrl;
+                        avatarImg.style.display = 'block';
+                    } else {
+                        document.getElementById('profileAvatarText').style.display = 'flex';
+                        document.getElementById('profileAvatarImage').style.display = 'none';
+                        document.getElementById('profileAvatarText').innerText = userData.displayName ? userData.displayName.charAt(0).toUpperCase() : (userData.nickname ? userData.nickname.charAt(0).toUpperCase() : 'U');
+                    }
+                    
+                    document.getElementById('changeAvatarBtn').style.display = 'none';
+                    
+                    const followersCount = await loadFollowersCount(userId);
+                    const followingCount = await loadFollowingCount(userId);
+                    document.getElementById('profileFollowers').innerText = followersCount;
+                    document.getElementById('profileFollowing').innerText = followingCount;
+                    
+                    const isFollowing = followingRelations[userId] === true;
+                    const actionBtn = document.getElementById('profileActionBtn');
+                    
+                    if (isFollowing) {
+                        actionBtn.innerText = 'Seguindo';
+                        actionBtn.className = 'profile-action-btn following';
+                        actionBtn.onclick = () => unfollowUser(userId);
+                    } else {
+                        actionBtn.innerText = 'Seguir';
+                        actionBtn.className = 'profile-action-btn primary';
+                        actionBtn.onclick = () => followUser(userId);
+                    }
+                    
+                    loadProfilePosts(userId);
+                    
+                    switchSection('perfil');
+                } else {
+                    showToast('Usuário não encontrado');
+                }
+            }).catch(error => {
+                console.error('Erro ao carregar perfil:', error);
+                showToast('Erro ao carregar perfil');
+            });
+        }
+        
+        function loadProfile(userId = null) {
+            const targetUserId = userId || currentUser?.uid;
+            if (!targetUserId) return;
+            
+            database.ref(`usuarios/${targetUserId}`).once('value').then(async snapshot => {
+                const data = snapshot.val();
+                userCache.set(targetUserId, data);
+                
+                document.getElementById('profileUsernameTop').innerText = data.nickname || '@usuario';
+                document.getElementById('profileDisplayName').innerText = data.displayName || data.nickname || 'Usuário';
+                document.getElementById('profileFullName').innerText = data.displayName || '';
+                
+                const bioText = data.bio || 'Olá, estou usando NoiteFilmes! 🎬';
+                document.getElementById('profileBio').innerHTML = makeNicknamesClickable(bioText);
+                
+                document.getElementById('profileLinkText').innerText = data.externalLink || 'Adicione seu link';
+                document.getElementById('profileLink').href = data.externalLink || '#';
+                
+                if (data.avatarUrl) {
+                    document.getElementById('profileAvatarText').style.display = 'none';
+                    const avatarImg = document.getElementById('profileAvatarImage');
+                    avatarImg.src = data.avatarUrl;
+                    avatarImg.style.display = 'block';
+                } else {
+                    document.getElementById('profileAvatarText').style.display = 'flex';
+                    document.getElementById('profileAvatarImage').style.display = 'none';
+                    document.getElementById('profileAvatarText').innerText = data.displayName ? data.displayName.charAt(0).toUpperCase() : (data.nickname ? data.nickname.charAt(0).toUpperCase() : 'U');
+                }
+                
+                const changeAvatarBtn = document.getElementById('changeAvatarBtn');
+                if (targetUserId === currentUser?.uid) {
+                    changeAvatarBtn.style.display = 'flex';
+                } else {
+                    changeAvatarBtn.style.display = 'none';
+                }
+                
+                const followersCount = await loadFollowersCount(targetUserId);
+                const followingCount = await loadFollowingCount(targetUserId);
+                document.getElementById('profileFollowers').innerText = followersCount;
+                document.getElementById('profileFollowing').innerText = followingCount;
+                
+                if (targetUserId === currentUser?.uid) {
+                    const actionBtn = document.getElementById('profileActionBtn');
+                    actionBtn.innerText = 'Editar perfil';
+                    actionBtn.className = 'profile-action-btn primary';
+                    actionBtn.onclick = toggleEditProfile;
+                }
+                
+                const whatsappDDI = document.getElementById('whatsappDDI');
+                if (whatsappDDI) whatsappDDI.value = data.whatsappDDI || '+351';
+                const editWhatsApp = document.getElementById('editWhatsApp');
+                if (editWhatsApp) editWhatsApp.value = data.whatsapp || '';
+                const phoneDDI = document.getElementById('phoneDDI');
+                if (phoneDDI) phoneDDI.value = data.phoneDDI || '+351';
+                const editPhone = document.getElementById('editPhone');
+                if (editPhone) editPhone.value = data.phone || '';
+                const editBirthDate = document.getElementById('editBirthDate');
+                if (editBirthDate) editBirthDate.value = data.birthDate || '';
+                const editGender = document.getElementById('editGender');
+                if (editGender) editGender.value = data.gender || '';
+                
+                loadProfileStats(targetUserId);
+            }).catch(error => {
+                console.error('Erro ao carregar perfil:', error);
+            });
+        }
+        
+        function loadProfileStats(userId = null) {
+            const targetUserId = userId || currentUser?.uid;
+            if (!targetUserId) return;
+            
+            database.ref(`feed_posts`).orderByChild('userId').equalTo(targetUserId).once('value', (snapshot) => {
+                const count = snapshot.val() ? Object.keys(snapshot.val()).length : 0;
+                document.getElementById('profilePosts').innerText = count;
+            }).catch(console.error);
+        }
+        
+        function loadProfilePosts(userId = null) {
+            const targetUserId = userId || currentUser?.uid;
+            if (!targetUserId) return;
+            
+            database.ref('feed_posts').orderByChild('userId').equalTo(targetUserId).once('value', (snapshot) => {
+                const posts = snapshot.val();
+                const grid = document.getElementById('profilePostsGrid');
+                grid.innerHTML = '';
+                
+                if (!posts) {
+                    grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: rgba(255,255,255,0.6);"><i class="fas fa-camera" style="font-size: 48px; margin-bottom: 16px;"></i><p>Nenhum post ainda</p></div>';
+                    return;
+                }
+                
+                const postsList = Object.values(posts).sort((a, b) => b.createdAt - a.createdAt);
+                postsList.forEach(post => {
+                    const postElement = document.createElement('div');
+                    postElement.className = 'post-thumb';
+                    postElement.onclick = () => goToPostInFeed(post.id);
+                    postElement.innerHTML = `
+                        <div class="post-thumb-content">
+                            <img src="${post.mediaUrl}" alt="Post">
+                            <i class="fas fa-${post.mediaType === 'video' ? 'video' : 'image'}"></i>
+                            <p>${post.caption ? post.caption.substring(0, 20) + (post.caption.length > 20 ? '...' : '') : '📷'}</p>
+                            <div class="post-thumb-date">${formatTimeAgo(post.createdAt)}</div>
+                        </div>
+                    `;
+                    grid.appendChild(postElement);
+                });
+            }).catch(error => {
+                console.error('Erro ao carregar posts do perfil:', error);
+            });
+        }
+        
+        function goToPostInFeed(postId) {
+            switchSection('feed');
+            setTimeout(() => {
+                const postElement = document.getElementById(`post-${postId}`);
+                if (postElement) {
+                    postElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    postElement.style.animation = 'pulse 1s';
+                    setTimeout(() => {
+                        postElement.style.animation = '';
+                    }, 1000);
+                }
+            }, 500);
+        }
+        
+        function showProfileTab(tabName) {
+            const postsTab = document.getElementById('profilePostsTab');
+            const savedTab = document.getElementById('profileSavedTab');
+            const taggedTab = document.getElementById('profileTaggedTab');
+            const tabs = document.querySelectorAll('.profile-tab');
+            
+            tabs.forEach(tab => tab.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            
+            postsTab.classList.add('hidden');
+            savedTab.classList.add('hidden');
+            taggedTab.classList.add('hidden');
+            
+            if (tabName === 'posts') {
+                postsTab.classList.remove('hidden');
+            } else if (tabName === 'saved') {
+                savedTab.classList.remove('hidden');
+            } else if (tabName === 'tagged') {
+                taggedTab.classList.remove('hidden');
+            }
+        }
+        
+        function toggleEditProfile() {
+            const form = document.getElementById('editProfileForm');
+            form.classList.toggle('hidden');
+            if (!form.classList.contains('hidden')) {
+                database.ref(`usuarios/${currentUser.uid}`).once('value').then(snapshot => {
+                    const data = snapshot.val();
+                    document.getElementById('editName').value = data.displayName || '';
+                    document.getElementById('editBio').value = data.bio || '';
+                    document.getElementById('editLink').value = data.externalLink || '';
+                });
+            }
+        }
+        
+        function saveProfile() {
+            const name = document.getElementById('editName').value;
+            const bio = document.getElementById('editBio').value;
+            const link = document.getElementById('editLink').value;
+            
+            const updates = {};
+            if (name) updates.displayName = name;
+            if (bio) updates.bio = bio;
+            if (link) updates.externalLink = link;
+            
+            database.ref(`usuarios/${currentUser.uid}`).update(updates).then(() => {
+                loadProfile();
+                toggleEditProfile();
+                showToast('Perfil atualizado!');
+            }).catch(error => {
+                showToast('Erro: ' + error.message);
+            });
+        }
+        
+        function shareProfile() {
+            const username = document.getElementById('profileUsernameTop').innerText;
+            if (navigator.share) {
+                navigator.share({
+                    title: 'NoiteFilmes - Perfil',
+                    text: `Confira o perfil ${username} no NoiteFilmes!`,
+                    url: window.location.href
+                }).catch(console.error);
+            } else {
+                navigator.clipboard.writeText(`${username} no NoiteFilmes`).then(() => {
+                    showToast('Perfil copiado para compartilhar!');
+                }).catch(() => {
+                    showToast('Compartilhamento em breve!');
+                });
+            }
+        }
+        
+        function toggleSettings() {
+            document.getElementById('settingsPanel').classList.toggle('hidden');
+        }
+        
+        function saveSettings() {
+            const whatsappDDI = document.getElementById('whatsappDDI').value;
+            const whatsapp = document.getElementById('editWhatsApp').value;
+            const phoneDDI = document.getElementById('phoneDDI').value;
+            const phone = document.getElementById('editPhone').value;
+            const birthDate = document.getElementById('editBirthDate').value;
+            const gender = document.getElementById('editGender').value;
+            
+            const updates = {};
+            if (whatsappDDI) updates.whatsappDDI = whatsappDDI;
+            if (whatsapp) updates.whatsapp = whatsapp;
+            if (phoneDDI) updates.phoneDDI = phoneDDI;
+            if (phone) updates.phone = phone;
+            if (birthDate) updates.birthDate = birthDate;
+            if (gender) updates.gender = gender;
+            
+            database.ref(`usuarios/${currentUser.uid}`).update(updates).then(() => {
+                toggleSettings();
+                showToast('Configurações salvas!');
+            }).catch(error => {
+                showToast('Erro: ' + error.message);
+            });
+        }
+        
+        async function uploadProfileAvatar(input) {
+            if (!input.files || !input.files[0]) return;
+            
+            const currentUserId = currentUser?.uid;
+            if (!currentUserId || (viewingProfileId && viewingProfileId !== currentUserId)) {
+                showToast('Você só pode alterar sua própria foto de perfil!');
+                input.value = '';
+                return;
+            }
+            
+            const file = input.files[0];
+            const progressBar = document.getElementById('avatarUploadProgressBar');
+            const progressContainer = document.getElementById('avatarUploadProgress');
+            
+            progressContainer.classList.remove('hidden');
+            progressBar.style.width = '0%';
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+                
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, true);
+                
+                xhr.upload.onprogress = (e) => {
+                    if (e.lengthComputable) {
+                        const percent = (e.loaded / e.total) * 100;
+                        progressBar.style.width = percent + '%';
+                    }
+                };
+                
+                const imageUrl = await new Promise((resolve, reject) => {
+                    xhr.onload = () => {
+                        if (xhr.status === 200) {
+                            const response = JSON.parse(xhr.responseText);
+                            resolve(response.secure_url);
+                        } else {
+                            reject(new Error('Upload failed'));
+                        }
+                    };
+                    xhr.onerror = () => reject(new Error('Upload failed'));
+                    xhr.send(formData);
+                });
+                
+                await database.ref(`usuarios/${currentUserId}`).update({
+                    avatarUrl: imageUrl
+                });
+                
+                document.getElementById('profileAvatarText').style.display = 'none';
+                const avatarImg = document.getElementById('profileAvatarImage');
+                avatarImg.src = imageUrl;
+                avatarImg.style.display = 'block';
+                
+                setTimeout(() => {
+                    progressContainer.classList.add('hidden');
+                }, 1000);
+                
+                showToast('Foto de perfil atualizada com sucesso!');
+            } catch (error) {
+                console.error('Erro ao fazer upload:', error);
+                showToast('Erro ao fazer upload da imagem. Tente novamente.');
+                progressContainer.classList.add('hidden');
+            }
+        }
+        
+        function handleProfileAction() {
+            if (viewingProfileId && viewingProfileId !== currentUser?.uid) {
+                const actionBtn = document.getElementById('profileActionBtn');
+                if (actionBtn.innerText === 'Seguir') {
+                    followUser(viewingProfileId);
+                } else {
+                    unfollowUser(viewingProfileId);
+                }
+            } else {
+                toggleEditProfile();
+            }
+        }
+        
+        async function followUser(userId) {
+            if (!currentUser) {
+                showToast('Faça login para seguir usuários');
+                return;
+            }
+            
+            if (userId === currentUser.uid) return;
+            
+            try {
+                await database.ref(`followers/${userId}/${currentUser.uid}`).set(true);
+                await database.ref(`following/${currentUser.uid}/${userId}`).set(true);
+                followingRelations[userId] = true;
+                
+                await updateFollowersCount(userId);
+                await updateFollowingCount(currentUser.uid);
+                
+                const actionBtn = document.getElementById('profileActionBtn');
+                if (actionBtn) {
+                    actionBtn.innerText = 'Seguindo';
+                    actionBtn.className = 'profile-action-btn following';
+                    actionBtn.onclick = () => unfollowUser(userId);
+                }
+                
+                showToast('Usuário seguido com sucesso!');
+            } catch (error) {
+                console.error('Erro ao seguir:', error);
+                showToast('Erro ao seguir usuário. Tente novamente.');
+            }
+        }
+        
+        async function unfollowUser(userId) {
+            if (!currentUser) return;
+            
+            try {
+                await database.ref(`followers/${userId}/${currentUser.uid}`).remove();
+                await database.ref(`following/${currentUser.uid}/${userId}`).remove();
+                followingRelations[userId] = false;
+                
+                await updateFollowersCount(userId);
+                await updateFollowingCount(currentUser.uid);
+                
+                const actionBtn = document.getElementById('profileActionBtn');
+                if (actionBtn) {
+                    actionBtn.innerText = 'Seguir';
+                    actionBtn.className = 'profile-action-btn primary';
+                    actionBtn.onclick = () => followUser(userId);
+                }
+                
+                showToast('Você deixou de seguir este usuário');
+            } catch (error) {
+                console.error('Erro ao deixar de seguir:', error);
+                showToast('Erro ao processar. Tente novamente.');
+            }
+        }
+        
+        async function updateFollowersCount(userId) {
+            try {
+                const snapshot = await database.ref(`followers/${userId}`).once('value');
+                const count = snapshot.val() ? Object.keys(snapshot.val()).length : 0;
+                
+                if (viewingProfileId === userId || userId === currentUser?.uid) {
+                    document.getElementById('profileFollowers').innerText = count;
+                }
+                
+                followersCache.set(userId, count);
+            } catch (error) {
+                console.error('Erro ao atualizar contagem de seguidores:', error);
+            }
+        }
+        
+        async function updateFollowingCount(userId) {
+            try {
+                const snapshot = await database.ref(`following/${userId}`).once('value');
+                const count = snapshot.val() ? Object.keys(snapshot.val()).length : 0;
+                
+                if (viewingProfileId === userId || userId === currentUser?.uid) {
+                    document.getElementById('profileFollowing').innerText = count;
+                }
+                
+                followingCache.set(userId, count);
+            } catch (error) {
+                console.error('Erro ao atualizar contagem de seguindo:', error);
+            }
+        }
+        
+        async function loadFollowersCount(userId) {
+            if (followersCache.has(userId)) {
+                return followersCache.get(userId);
+            }
+            
+            try {
+                const snapshot = await database.ref(`followers/${userId}`).once('value');
+                const count = snapshot.val() ? Object.keys(snapshot.val()).length : 0;
+                followersCache.set(userId, count);
+                return count;
+            } catch (error) {
+                console.error('Erro ao carregar seguidores:', error);
+                return 0;
+            }
+        }
+        
+        async function loadFollowingCount(userId) {
+            if (followingCache.has(userId)) {
+                return followingCache.get(userId);
+            }
+            
+            try {
+                const snapshot = await database.ref(`following/${userId}`).once('value');
+                const count = snapshot.val() ? Object.keys(snapshot.val()).length : 0;
+                followingCache.set(userId, count);
+                return count;
+            } catch (error) {
+                console.error('Erro ao carregar seguindo:', error);
+                return 0;
+            }
+        }
+        
+        function backFromProfile() {
+            viewingProfileId = null;
+            switchSection('filmes');
+        }
+        
+        function showFichaModal() {
+            const modal = document.getElementById('fichaModal');
+            modal.classList.remove('hidden');
+            
+            database.ref('user_cards').orderByChild('userId').equalTo(currentUser.uid).once('value', (snapshot) => {
+                const cards = snapshot.val();
+                if (!cards) {
+                    document.getElementById('fichaModalContent').innerHTML = `
+                        <div style="grid-column: 1/-1; text-align: center; padding: 20px;">
+                            Nenhuma ficha cadastrada. Clique em "Atualizar Ficha" para começar.
+                        </div>
+                    `;
+                    return;
+                }
+                
+                let latest = null;
+                let latestDate = null;
+                Object.values(cards).forEach(data => {
+                    const date = data.createdAt || 0;
+                    if (!latestDate || date > latestDate) {
+                        latestDate = date;
+                        latest = data;
+                    }
+                });
+                
+                if (latest) {
+                    const imc = (latest.weight / Math.pow(latest.height / 100, 2)).toFixed(2);
+                    let imcColor = '#10b981';
+                    if (imc < 18.5) imcColor = '#f59e0b';
+                    else if (imc < 25) imcColor = '#10b981';
+                    else if (imc < 30) imcColor = '#f59e0b';
+                    else imcColor = '#ef4444';
+                    
+                    const goalNames = {
+                        'emagrecimento': 'Emagrecimento',
+                        'hipertrofia': 'Hipertrofia',
+                        'definicao': 'Definição muscular',
+                        'saude': 'Saúde e bem-estar',
+                        'resistencia': 'Resistência'
+                    };
+                    
+                    document.getElementById('fichaModalContent').innerHTML = `
+                        <div class="modal-item">
+                            <div class="modal-item-label"><i class="fas fa-weight-scale"></i> Peso</div>
+                            <div class="modal-item-value">${latest.weight} <small>kg</small></div>
+                        </div>
+                        <div class="modal-item">
+                            <div class="modal-item-label"><i class="fas fa-ruler"></i> Altura</div>
+                            <div class="modal-item-value">${latest.height} <small>cm</small></div>
+                        </div>
+                        <div class="modal-item">
+                            <div class="modal-item-label"><i class="fas fa-calendar"></i> Idade</div>
+                            <div class="modal-item-value">${latest.age} <small>anos</small></div>
+                        </div>
+                        <div class="modal-item">
+                            <div class="modal-item-label"><i class="fas fa-chart-line"></i> IMC</div>
+                            <div class="modal-item-value" style="color: ${imcColor}">${imc}</div>
+                        </div>
+                        <div class="modal-item" style="grid-column: span 2;">
+                            <div class="modal-item-label"><i class="fas fa-bullseye"></i> Objetivo</div>
+                            <div class="modal-item-value">${goalNames[latest.goal] || latest.goal || 'Não definido'}</div>
+                        </div>
+                    `;
+                }
+            }).catch(console.error);
+        }
+        
+        function showHistoricoModal() {
+            const modal = document.getElementById('historicoModal');
+            modal.classList.remove('hidden');
+            
+            database.ref('user_cards').orderByChild('userId').equalTo(currentUser.uid).once('value', (snapshot) => {
+                const cards = snapshot.val();
+                if (!cards) {
+                    document.getElementById('historicoModalContent').innerHTML = `
+                        <div style="text-align: center; padding: 20px;">
+                            Atualize sua ficha pelo menos duas vezes para ver o histórico.
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const cardsList = Object.values(cards);
+                if (cardsList.length <= 1) {
+                    document.getElementById('historicoModalContent').innerHTML = `
+                        <div style="text-align: center; padding: 20px;">
+                            Atualize sua ficha pelo menos duas vezes para ver o histórico.
+                        </div>
+                    `;
+                    return;
+                }
+                
+                cardsList.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                
+                const goalNames = {
+                    'emagrecimento': 'Emagrecimento',
+                    'hipertrofia': 'Hipertrofia',
+                    'definicao': 'Definição muscular',
+                    'saude': 'Saúde e bem-estar',
+                    'resistencia': 'Resistência'
+                };
+                
+                let html = '';
+                cardsList.forEach(data => {
+                    const imc = (data.weight / Math.pow(data.height / 100, 2)).toFixed(2);
+                    let imcColor = '#10b981';
+                    if (imc < 18.5) imcColor = '#f59e0b';
+                    else if (imc < 25) imcColor = '#10b981';
+                    else if (imc < 30) imcColor = '#f59e0b';
+                    else imcColor = '#ef4444';
+                    
+                    html += `
+                        <div class="modal-timeline-item">
+                            <div class="modal-timeline-date">${new Date(data.createdAt).toLocaleDateString('pt-BR')}</div>
+                            <div class="modal-timeline-data">
+                                <p><strong>Peso:</strong> ${data.weight} kg</p>
+                                <p><strong>Altura:</strong> ${data.height} cm</p>
+                                <p><strong>Idade:</strong> ${data.age} anos</p>
+                                <p><strong>IMC:</strong> <span style="color: ${imcColor}">${imc}</span></p>
+                                ${data.goal ? `<p><strong>Objetivo:</strong> ${goalNames[data.goal] || data.goal}</p>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                document.getElementById('historicoModalContent').innerHTML = html;
+            }).catch(console.error);
+        }
+        
+        function closeModal(event) {
+            const modals = document.querySelectorAll('.modal-overlay');
+            modals.forEach(modal => {
+                if (!event || event.target === modal) {
+                    modal.classList.add('hidden');
+                }
+            });
+        }
+        
+        function toggleUserCardForm() {
+            closeModal();
+            document.getElementById('userCardForm').classList.toggle('hidden');
+            if (!document.getElementById('userCardForm').classList.contains('hidden')) loadCurrentUserCard();
+        }
+        
+        function loadCurrentUserCard() {
+            database.ref('user_cards').orderByChild('userId').equalTo(currentUser.uid).once('value', (snapshot) => {
+                const cards = snapshot.val();
+                if (cards) {
+                    let latest = null;
+                    let latestDate = null;
+                    Object.values(cards).forEach(data => {
+                        const date = data.createdAt || 0;
+                        if (!latestDate || date > latestDate) {
+                            latestDate = date;
+                            latest = data;
+                        }
+                    });
+                    if (latest) {
+                        document.getElementById('editWeight').value = latest.weight || '';
+                        document.getElementById('editHeight').value = latest.height || '';
+                        document.getElementById('editAge').value = latest.age || '';
+                        document.getElementById('editGoal').value = latest.goal || '';
+                        document.getElementById('editNotes').value = latest.notes || '';
+                        calculateIMC();
+                    }
+                }
+            }).catch(console.error);
+        }
+        
+        function calculateIMC() {
+            const weight = parseFloat(document.getElementById('editWeight').value);
+            const height = parseFloat(document.getElementById('editHeight').value);
+            if (weight && height) {
+                const imc = weight / Math.pow(height / 100, 2);
+                document.getElementById('editImc').value = imc.toFixed(2);
+            } else {
+                document.getElementById('editImc').value = '';
+            }
+        }
+        
+        function saveUserCard() {
+            const weight = parseFloat(document.getElementById('editWeight').value);
+            const height = parseFloat(document.getElementById('editHeight').value);
+            const age = parseInt(document.getElementById('editAge').value);
+            const goal = document.getElementById('editGoal').value;
+            const notes = document.getElementById('editNotes').value;
+            
+            if (isNaN(weight) || weight <= 0 || isNaN(height) || height <= 0 || isNaN(age) || age <= 0) {
+                showToast('Preencha valores válidos');
+                return;
+            }
+            
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = 'Salvando...';
+            btn.disabled = true;
+            
+            const cardData = {
+                userId: currentUser.uid,
+                weight, height, age, goal, notes,
+                createdAt: Date.now()
+            };
+            
+            database.ref('user_cards').push(cardData).then(() => {
+                showToast('Ficha salva!');
+                toggleUserCardForm();
+            }).catch(error => {
+                showToast('Erro: ' + error.message);
+            }).finally(() => {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            });
+        }
+        
+        function makeNicknamesClickable(text) {
+            if (!text) return text;
+            const regex = /@([a-zA-Z0-9_]+)/g;
+            return text.replace(regex, (match, nickname) => {
+                return `<span class="clickable-nickname" data-nickname="${nickname}">${match}</span>`;
+            });
+        }
+        
+        // ==================== FUNÇÕES DE POSTAGEM ====================
         function openCreatePostModal() {
             if (!currentUser) {
                 showToast('Faça login para criar uma postagem');
@@ -3213,11 +5034,11 @@
                 commentsHtml += `
                     <div class="comment-item-modal" data-comment-id="${comment.id}">
                         <div class="comment-main">
-                            <div class="comment-avatar-modal" onclick="viewProfileFromPost('${comment.userId}')">
+                            <div class="comment-avatar-modal" onclick="viewProfile('${comment.userId}')">
                                 ${comment.userName ? comment.userName.charAt(0).toUpperCase() : 'U'}
                             </div>
                             <div class="comment-content-modal">
-                                <div class="comment-username-modal" onclick="viewProfileFromPost('${comment.userId}')">${escapeHtml(comment.userDisplayName || comment.userName)}</div>
+                                <div class="comment-username-modal" onclick="viewProfile('${comment.userId}')">${escapeHtml(comment.userDisplayName || comment.userName)}</div>
                                 <div class="comment-text-modal">${makeNicknamesClickable(escapeHtml(comment.text))}</div>
                                 <div class="comment-time-modal">${formatTimeAgo(comment.createdAt)}</div>
                                 <div class="comment-actions">
@@ -3246,11 +5067,11 @@
                     commentsHtml += `
                         <div class="reply-item">
                             <div class="reply-main">
-                                <div class="reply-avatar" onclick="viewProfileFromPost('${reply.userId}')">
+                                <div class="reply-avatar" onclick="viewProfile('${reply.userId}')">
                                     ${reply.userName ? reply.userName.charAt(0).toUpperCase() : 'U'}
                                 </div>
                                 <div class="reply-content">
-                                    <div class="reply-username" onclick="viewProfileFromPost('${reply.userId}')">${escapeHtml(reply.userDisplayName || reply.userName)}</div>
+                                    <div class="reply-username" onclick="viewProfile('${reply.userId}')">${escapeHtml(reply.userDisplayName || reply.userName)}</div>
                                     <div class="reply-text">${makeNicknamesClickable(escapeHtml(reply.text))}</div>
                                     <div class="reply-time">${formatTimeAgo(reply.createdAt)}</div>
                                     <div class="reply-actions">
@@ -3397,11 +5218,11 @@
                     postElement.innerHTML = `
                         <div class="feed-post-header">
                             <div class="feed-post-user">
-                                <div class="feed-post-avatar" onclick="viewProfileFromPost('${post.userId}')">
+                                <div class="feed-post-avatar" onclick="viewProfile('${post.userId}')">
                                     ${post.userName ? post.userName.charAt(0).toUpperCase() : 'U'}
                                 </div>
                                 <div class="feed-post-userinfo">
-                                    <span class="feed-post-username" onclick="viewProfileFromPost('${post.userId}')">${escapeHtml(displayName)}</span>
+                                    <span class="feed-post-username" onclick="viewProfile('${post.userId}')">${escapeHtml(displayName)}</span>
                                     <span class="feed-post-time">${timeAgo}</span>
                                 </div>
                             </div>
@@ -3413,7 +5234,7 @@
                         </div>
                         ${mediaHtml}
                         <div class="feed-post-caption">
-                            <strong onclick="viewProfileFromPost('${post.userId}')">${escapeHtml(displayName)}</strong>
+                            <strong onclick="viewProfile('${post.userId}')">${escapeHtml(displayName)}</strong>
                             <span>${makeNicknamesClickable(escapeHtml(post.caption || ''))}</span>
                         </div>
                         <div class="feed-post-stats">
@@ -3538,16 +5359,6 @@
             }
         }
         
-        function viewProfileFromPost(userId) {
-            if (userId && currentUser && userId !== currentUser.uid) {
-                renderInstagramProfile(userId);
-                switchSection('perfil');
-            } else if (userId && currentUser && userId === currentUser.uid) {
-                renderInstagramProfile();
-                switchSection('perfil');
-            }
-        }
-        
         // ==================== FUNÇÕES DE NAVEGAÇÃO ====================
         function switchSection(sectionId) {
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active-section'));
@@ -3563,7 +5374,15 @@
             }
             
             if (sectionId === 'feed') renderFeed();
-            if (sectionId === 'perfil') renderInstagramProfile();
+            if (sectionId === 'perfil') {
+                if (viewingProfileId) {
+                    loadProfile(viewingProfileId);
+                    loadProfilePosts(viewingProfileId);
+                } else {
+                    loadProfile();
+                    loadProfilePosts();
+                }
+            }
             if (sectionId === 'chat') {
                 document.getElementById('chatSidebar').classList.remove('hidden');
                 document.getElementById('chatMain').classList.add('hidden');
@@ -3575,14 +5394,7 @@
             document.getElementById('filmesCount').innerText = filmes.length;
             document.getElementById('seriesCount').innerText = series.length;
             document.getElementById('canaisCount').innerText = canais.length;
-        }
-        
-        function makeNicknamesClickable(text) {
-            if (!text) return text;
-            const regex = /@([a-zA-Z0-9_]+)/g;
-            return text.replace(regex, (match, nickname) => {
-                return `<span class="clickable-nickname" data-nickname="${nickname}">${match}</span>`;
-            });
+            updateDashboardCounters();
         }
         
         function setupNicknameClickHandlers() {
@@ -3601,268 +5413,16 @@
                     if (users) {
                         const userId = Object.keys(users)[0];
                         if (userId && currentUser && userId !== currentUser.uid) {
-                            renderInstagramProfile(userId);
-                            switchSection('perfil');
+                            viewProfile(userId);
                         } else if (userId && currentUser && userId === currentUser.uid) {
-                            renderInstagramProfile();
+                            loadProfile();
+                            loadProfilePosts();
                             switchSection('perfil');
                         } else {
                             showToast(`Usuário ${nickname} não encontrado`);
                         }
                     } else {
                         showToast(`Usuário ${nickname} não encontrado`);
-                    }
-                });
-            }
-        }
-        
-        // ==================== PERFIL INSTAGRAM ====================
-        function renderInstagramProfile(showOtherUserId = null) {
-            const container = document.getElementById('instagramProfileContainer');
-            if (!container) return;
-            
-            if (!currentUser) {
-                container.innerHTML = `<div class="text-center p-4">Faça login para acessar o perfil</div>`;
-                return;
-            }
-            
-            let targetUserId = currentUser.uid;
-            let targetNickname = currentUsername;
-            let isOwnProfile = true;
-            
-            if (showOtherUserId && showOtherUserId !== currentUser.uid) {
-                targetUserId = showOtherUserId;
-                isOwnProfile = false;
-                database.ref(`usuarios/${targetUserId}`).once('value').then(snap => {
-                    const data = snap.val();
-                    if (data && data.nickname) targetNickname = data.nickname;
-                    if (data && data.displayName) userProfileData.displayName = data.displayName;
-                    if (data && data.bio) userProfileData.bio = data.bio;
-                    if (data && data.externalLink) userProfileData.externalLink = data.externalLink;
-                    renderProfileHtml(targetUserId, targetNickname, isOwnProfile);
-                }).catch(() => renderProfileHtml(targetUserId, targetNickname, isOwnProfile));
-            } else {
-                database.ref(`usuarios/${currentUser.uid}`).once('value').then(snap => {
-                    const data = snap.val();
-                    if (data) {
-                        if (data.displayName) userProfileData.displayName = data.displayName;
-                        if (data.bio) userProfileData.bio = data.bio;
-                        if (data.externalLink) userProfileData.externalLink = data.externalLink;
-                    }
-                });
-                renderProfileHtml(targetUserId, targetNickname, isOwnProfile);
-            }
-            
-            function renderProfileHtml(uid, nickname, isSelf) {
-                database.ref(`feed_posts`).orderByChild('userId').equalTo(uid).once('value', (snap) => {
-                    const posts = snap.val();
-                    const postsList = posts ? Object.values(posts) : [];
-                    const totalPosts = postsList.length;
-                    
-                    const followersSpan = document.getElementById('statFollowersValue');
-                    const followingSpan = document.getElementById('statFollowingValue');
-                    if (followersSpan) {
-                        database.ref(`followers/${uid}`).once('value', (snap) => {
-                            followersSpan.innerText = snap.val() ? Object.keys(snap.val()).length : 0;
-                        });
-                    }
-                    if (followingSpan) {
-                        database.ref(`following/${uid}`).once('value', (snap) => {
-                            followingSpan.innerText = snap.val() ? Object.keys(snap.val()).length : 0;
-                        });
-                    }
-                    
-                    const displayNameText = userProfileData.displayName || nickname;
-                    const bioText = userProfileData.bio || "🎬 Apaixonado por cinema e séries. NoiteFilmes é minha segunda casa! 🍿✨";
-                    const truncatedBio = bioText.length > 300 ? bioText.substring(0, 300) : bioText;
-                    const showExpand = bioText.length > 120;
-                    const externalLink = userProfileData.externalLink || "https://instagram.com/noitefilmes";
-                    const isFollowing = followingRelations[uid] === true;
-                    
-                    let actionButtonHtml = '';
-                    if (!isSelf) {
-                        actionButtonHtml = `<button class="follow-button ${isFollowing ? 'following' : ''}" id="followActionBtn">${isFollowing ? 'Seguindo' : 'Seguir'}</button>`;
-                    }
-                    
-                    container.innerHTML = `
-                        <div class="profile-header-instagram">
-                            <div class="top-bar">
-                                <div class="profile-username-top">@${nickname}</div>
-                                <div class="profile-options-icon" id="profileOptionsIcon"><i class="fas fa-ellipsis-h"></i></div>
-                            </div>
-                            <div class="profile-info-row">
-                                <div class="profile-picture"><i class="fas fa-user fa-2x"></i></div>
-                                <div class="profile-stats-grid">
-                                    <div><span class="stat-number" id="statPosts">${totalPosts}</span><span class="stat-label"> posts</span></div>
-                                    <div><span class="stat-number" id="statFollowersValue">0</span><span class="stat-label"> seguidores</span></div>
-                                    <div><span class="stat-number" id="statFollowingValue">0</span><span class="stat-label"> seguindo</span></div>
-                                </div>
-                            </div>
-                            <div class="profile-bio">
-                                <div class="profile-bio-text" id="profileBioText">${makeNicknamesClickable(escapeHtml(truncatedBio))}</div>
-                                ${showExpand ? `<button class="bio-expand-btn" id="bioExpandBtn">...ver mais</button>` : ''}
-                            </div>
-                            <a href="${externalLink}" target="_blank" class="profile-external-link"><i class="fas fa-link"></i> ${externalLink}</a>
-                            ${actionButtonHtml}
-                        </div>
-                        <div class="post-grid" id="profilePostGrid"></div>
-                    `;
-                    
-                    setupNicknameClickHandlers();
-                    
-                    const gridContainer = document.getElementById('profilePostGrid');
-                    if (gridContainer) {
-                        if (postsList.length === 0) {
-                            gridContainer.innerHTML = '<div class="col-span-full text-center text-gray-500 py-4 text-xs">Nenhuma postagem ainda</div>';
-                        } else {
-                            gridContainer.innerHTML = postsList.map(post => `
-                                <div class="post-grid-item ripple-btn" data-post-id="${post.id}" onclick="viewPostDetail('${post.id}')">
-                                    ${post.mediaType === 'video' ? 
-                                        `<video src="${post.mediaUrl}" style="width:100%;height:100%;object-fit:cover;"></video>` : 
-                                        `<img src="${post.mediaUrl}" onerror="this.src='https://via.placeholder.com/150x150'">`
-                                    }
-                                </div>
-                            `).join('');
-                        }
-                    }
-                    
-                    const bioDiv = document.getElementById('profileBioText');
-                    const expandBtn = document.getElementById('bioExpandBtn');
-                    if (expandBtn && bioDiv) {
-                        let expanded = false;
-                        expandBtn.addEventListener('click', () => {
-                            if (!expanded) {
-                                bioDiv.style.maxHeight = '200px';
-                                bioDiv.classList.add('expanded');
-                                expandBtn.innerText = 'ver menos';
-                            } else {
-                                bioDiv.style.maxHeight = '4.2em';
-                                bioDiv.classList.remove('expanded');
-                                expandBtn.innerText = '...ver mais';
-                            }
-                            expanded = !expanded;
-                        });
-                    }
-                    
-                    if (!isSelf) {
-                        const followBtn = document.getElementById('followActionBtn');
-                        if (followBtn) {
-                            followBtn.addEventListener('click', () => {
-                                const newStatus = !isFollowing;
-                                if (newStatus) {
-                                    database.ref(`followers/${uid}/${currentUser.uid}`).set(true);
-                                    database.ref(`following/${currentUser.uid}/${uid}`).set(true);
-                                    followingRelations[uid] = true;
-                                    showToast(`Você agora segue @${nickname}`);
-                                } else {
-                                    database.ref(`followers/${uid}/${currentUser.uid}`).remove();
-                                    database.ref(`following/${currentUser.uid}/${uid}`).remove();
-                                    followingRelations[uid] = false;
-                                    showToast(`Você deixou de seguir @${nickname}`);
-                                }
-                                renderInstagramProfile(uid);
-                            });
-                        }
-                    }
-                    
-                    const optionsIcon = document.getElementById('profileOptionsIcon');
-                    if (optionsIcon && isSelf) {
-                        optionsIcon.addEventListener('click', () => {
-                            openEditProfileModal();
-                        });
-                    }
-                });
-            }
-        }
-        
-        function viewPostDetail(postId) {
-            showToast('Visualizando publicação');
-            switchSection('feed');
-            setTimeout(() => {
-                const postElement = document.getElementById(`post-${postId}`);
-                if (postElement) {
-                    postElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    postElement.style.transition = 'background 0.3s';
-                    postElement.style.background = 'rgba(229,9,20,0.2)';
-                    setTimeout(() => {
-                        postElement.style.background = '';
-                    }, 1000);
-                }
-            }, 100);
-        }
-        
-        function openEditProfileModal() {
-            document.getElementById('editDisplayName').value = userProfileData.displayName || '';
-            document.getElementById('editNickname').value = currentUsername;
-            document.getElementById('editBio').value = userProfileData.bio || '';
-            document.getElementById('editExternalLink').value = userProfileData.externalLink || '';
-            document.getElementById('editProfileModal').classList.remove('hidden');
-        }
-        
-        function saveEditProfile() {
-            const newDisplayName = document.getElementById('editDisplayName').value.trim();
-            let newNickname = document.getElementById('editNickname').value.trim();
-            const newBio = document.getElementById('editBio').value.trim();
-            const newExternalLink = document.getElementById('editExternalLink').value.trim();
-            
-            if (newNickname.startsWith('@')) newNickname = newNickname.substring(1);
-            if (!newNickname) {
-                showToast('Nickname não pode estar vazio');
-                return;
-            }
-            
-            const updates = {};
-            if (newDisplayName) updates.displayName = newDisplayName;
-            if (newNickname !== currentUsername) updates.nickname = newNickname;
-            if (newBio) updates.bio = newBio;
-            if (newExternalLink) updates.externalLink = newExternalLink;
-            
-            database.ref(`usuarios/${currentUser.uid}`).update(updates).then(() => {
-                if (newNickname !== currentUsername) {
-                    currentUsername = newNickname;
-                    localStorage.setItem('noitefilmes_username', currentUsername);
-                }
-                userProfileData.displayName = newDisplayName;
-                userProfileData.bio = newBio;
-                userProfileData.externalLink = newExternalLink;
-                showToast('Perfil atualizado com sucesso!');
-                document.getElementById('editProfileModal').classList.add('hidden');
-                renderInstagramProfile();
-                updateProfileUI();
-            }).catch(error => {
-                showToast('Erro ao atualizar perfil: ' + error.message);
-            });
-        }
-        
-        function updateProfileUI() {
-            if (currentUser) renderInstagramProfile();
-            else {
-                const container = document.getElementById('instagramProfileContainer');
-                if(container) container.innerHTML = '<div class="text-center p-4">Faça login para acessar o perfil</div>';
-                document.getElementById('profileFavoritesList').innerHTML = '';
-            }
-            if(currentUser){
-                database.ref(`favoritos/${currentUser.uid}`).once('value', (snapshot) => {
-                    const favData = snapshot.val();
-                    favoritos = favData ? Object.values(favData) : [];
-                    const favContainer = document.getElementById('profileFavoritesList');
-                    if (favoritos.length === 0) {
-                        favContainer.innerHTML = '<div class="text-center text-gray-500 py-3 text-xs">Nenhum favorito ainda</div>';
-                    } else {
-                        favContainer.innerHTML = favoritos.map(fav => `
-                            <div class="favorite-item flex gap-2 p-2 glass-card rounded-xl cursor-pointer ripple-btn" data-id="${fav.id}" data-type="${fav.type || 'filme'}">
-                                <img src="${fav.thumb || 'https://via.placeholder.com/40x50'}" class="w-10 h-12 object-cover rounded-lg" onerror="this.src='https://via.placeholder.com/40x50'">
-                                <div class="flex-1"><div class="font-semibold text-xs">${fav.title}</div><div class="text-[9px] opacity-60">${fav.type === 'filme' ? '🎬 Filme' : (fav.type === 'serie' ? '📺 Série' : '📡 Canal')}</div></div>
-                            </div>
-                        `).join('');
-                        document.querySelectorAll('#profileFavoritesList .favorite-item').forEach(el => {
-                            el.addEventListener('click', () => {
-                                const id = el.getAttribute('data-id');
-                                const type = el.getAttribute('data-type');
-                                playMediaById(id, type);
-                                switchSection('filmes');
-                            });
-                        });
                     }
                 });
             }
@@ -5252,11 +6812,7 @@
         
         function viewProfile(userId) {
             if (userId && userId !== 'geral') {
-                renderInstagramProfile(userId);
-                switchSection('perfil');
-                if (window.innerWidth <= 768) {
-                    backToUsersList();
-                }
+                viewProfile(userId);
             }
         }
         
@@ -5360,7 +6916,14 @@
                 loadChatList();
                 setupChatUnreadListener();
                 renderFeed();
-            } else { showLoginModal(); updateProfileUI(); }
+                setupOnlineUsersPresence();
+                loadProfile();
+                loadProfilePosts();
+            } else { 
+                showLoginModal(); 
+                updateProfileUI();
+                removeOnlineUser();
+            }
         }
         async function loadUserNickname(userId) { const snapshot = await database.ref(`usuarios/${userId}`).once('value'); const data = snapshot.val(); if (data && data.nickname) { currentUsername = data.nickname; localStorage.setItem('noitefilmes_username', currentUsername); } }
         function updateLastSeen() { if (currentUser) { database.ref(`usuarios/${currentUser.uid}/lastSeen`).set(Date.now()); } }
@@ -5432,7 +6995,11 @@
         }
         function openSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); document.getElementById('usernameInput').value = currentUsername; }
         function saveUsername() { const newUsername = document.getElementById('usernameInput').value.trim(); if (newUsername) { currentUsername = newUsername; localStorage.setItem('noitefilmes_username', currentUsername); if (currentUser) database.ref(`usuarios/${currentUser.uid}/nickname`).set(currentUsername); showToast(`✅ Nome alterado para: @${currentUsername}`); document.getElementById('settingsModal').classList.add('hidden'); updateProfileUI(); } }
-        function logoutUser() { auth.signOut(); document.getElementById('settingsModal').classList.add('hidden'); }
+        function logoutUser() { 
+            removeOnlineUser();
+            auth.signOut(); 
+            document.getElementById('settingsModal').classList.add('hidden'); 
+        }
         function setDarkMode() { document.body.classList.remove('light-mode'); document.body.classList.add('dark-mode'); localStorage.setItem('noitefilmes_theme', 'dark'); }
         function setLightMode() { document.body.classList.remove('dark-mode'); document.body.classList.add('light-mode'); localStorage.setItem('noitefilmes_theme', 'light'); }
         function loadTheme() { const theme = localStorage.getItem('noitefilmes_theme'); if (theme === 'light') setLightMode(); else setDarkMode(); }
@@ -5459,7 +7026,7 @@
         window.sharePost = sharePost;
         window.deletePost = deletePost;
         window.showPostOptions = showPostOptions;
-        window.viewProfileFromPost = viewProfileFromPost;
+        window.viewProfileFromPost = viewProfile;
         window.addComment = addComment;
         window.addReply = addReply;
         window.toggleCommentLike = toggleCommentLike;
@@ -5481,6 +7048,23 @@
         window.confirmDeleteMessage = confirmDeleteMessage;
         window.closeMessageConfirmModal = closeMessageConfirmModal;
         window.viewProfile = viewProfile;
+        window.followUser = followUser;
+        window.unfollowUser = unfollowUser;
+        window.handleProfileAction = handleProfileAction;
+        window.toggleSettings = toggleSettings;
+        window.saveSettings = saveSettings;
+        window.toggleEditProfile = toggleEditProfile;
+        window.saveProfile = saveProfile;
+        window.shareProfile = shareProfile;
+        window.showProfileTab = showProfileTab;
+        window.showFichaModal = showFichaModal;
+        window.showHistoricoModal = showHistoricoModal;
+        window.closeModal = closeModal;
+        window.toggleUserCardForm = toggleUserCardForm;
+        window.calculateIMC = calculateIMC;
+        window.saveUserCard = saveUserCard;
+        window.backFromProfile = backFromProfile;
+        window.uploadProfileAvatar = uploadProfileAvatar;
     </script>
 </body>
 </html>
