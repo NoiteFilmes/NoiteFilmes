@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -704,7 +703,7 @@
             border-radius: 20px;
         }
         
-        /* ========== ESTILOS DO PERFIL INSTAGRAM (EDITÁVEL) ========== */
+        /* ========== ESTILOS DO PERFIL INSTAGRAM (NOVOS) ========== */
         .profile-header-instagram {
             text-align: center;
             position: relative;
@@ -739,13 +738,6 @@
             justify-content: center;
             font-size: 32px;
             flex-shrink: 0;
-            overflow: hidden;
-            cursor: pointer;
-        }
-        .profile-picture img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
         }
         .profile-stats-grid {
             flex: 1;
@@ -867,15 +859,6 @@
             width: 90%;
             max-width: 450px;
         }
-        .profile-image-preview {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            object-fit: cover;
-            margin: 0 auto 16px;
-            display: block;
-            background: #1a1a1a;
-        }
         
         /* Create Post Button */
         .create-post-btn {
@@ -898,7 +881,7 @@
             transform: scale(0.92);
         }
         
-        /* Create Post Modal */
+        /* Create Post Modal - NOVO ESTILO INSTAGRAM */
         .create-post-modal {
             position: fixed;
             top: 0;
@@ -1108,7 +1091,7 @@
             text-decoration: underline;
         }
         
-        /* ========== ESTILOS DOS COMENTÁRIOS ========== */
+        /* ========== ESTILOS DOS COMENTÁRIOS (INSTAGRAM STYLE) ========== */
         .comments-modal {
             position: fixed;
             top: 0;
@@ -1185,13 +1168,6 @@
             font-size: 14px;
             flex-shrink: 0;
             cursor: pointer;
-            overflow: hidden;
-        }
-        
-        .comment-avatar-modal img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
         }
         
         .comment-content-modal {
@@ -1281,13 +1257,6 @@
             font-size: 12px;
             flex-shrink: 0;
             cursor: pointer;
-            overflow: hidden;
-        }
-        
-        .reply-avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
         }
         
         .reply-content {
@@ -2200,7 +2169,7 @@
             color: #e50914;
         }
         
-        /* Swipe Delete */
+        /* Swipe Delete - Botão reposicionado */
         .swipe-delete-btn {
             position: absolute;
             right: -60px;
@@ -2278,15 +2247,6 @@
             .replies-container {
                 margin-left: 32px;
             }
-            
-            .profile-info-row {
-                flex-direction: column;
-                text-align: center;
-            }
-            
-            .profile-stats-grid {
-                justify-content: center;
-            }
         }
         
         @media (min-width: 769px) {
@@ -2299,8 +2259,7 @@
         body.light-mode .chat-main,
         body.light-mode .chat-header,
         body.light-mode .feed-post,
-        body.light-mode .comments-modal-content,
-        body.light-mode .edit-profile-content {
+        body.light-mode .comments-modal-content {
             background: rgba(255, 255, 255, 0.9);
         }
         
@@ -2636,7 +2595,7 @@
         </div>
     </div>
 
-    <!-- Seção Perfil com layout Instagram (EDITÁVEL) -->
+    <!-- Seção Perfil com layout Instagram (NOVO) -->
     <div id="perfilSection" class="section">
         <div id="instagramProfileContainer" class="instagram-profile-wrapper m-3 glass-card p-4"></div>
         <div class="px-3 mt-2"><h3 class="font-bold text-sm mb-2">⭐ Meus Favoritos</h3><div id="profileFavoritesList" class="favorites-list max-h-64 overflow-y-auto space-y-2"></div></div>
@@ -2748,14 +2707,10 @@
         </div>
     </div>
     
-    <!-- Edit Profile Modal - COMPLETO COM FOTO E NOME -->
+    <!-- Edit Profile Modal -->
     <div id="editProfileModal" class="edit-profile-modal hidden">
         <div class="edit-profile-content">
             <h3 class="text-xl font-bold mb-4 text-center">✏️ Editar Perfil</h3>
-            <div style="text-align: center;">
-                <img id="editProfileImagePreview" class="profile-image-preview" src="" alt="Preview">
-                <input type="file" id="editProfileImage" accept="image/*" class="w-full p-2 bg-white/10 rounded-full text-sm mb-3">
-            </div>
             <input type="text" id="editDisplayName" class="w-full p-2 bg-white/10 rounded-full text-sm mb-3" placeholder="Nome de perfil">
             <input type="text" id="editNickname" class="w-full p-2 bg-white/10 rounded-full text-sm mb-3" placeholder="@Nickname">
             <textarea id="editBio" rows="3" class="w-full p-2 bg-white/10 rounded-xl text-sm mb-3" placeholder="Bio (máx 300 caracteres)" maxlength="300"></textarea>
@@ -2832,7 +2787,7 @@
         let currentReportId = null;
         let currentReportData = null;
         
-        // Instagram profile
+        // Instagram profile simulation (following)
         let followingRelations = {};
         let currentProfileViewMode = 'self';
         let otherProfileUserId = null;
@@ -2841,9 +2796,7 @@
         let userProfileData = {
             displayName: '',
             bio: '',
-            externalLink: '',
-            profileImageUrl: '',
-            profileImagePublicId: ''
+            externalLink: ''
         };
         
         // ==================== VARIÁVEIS DO CHAT ====================
@@ -2867,348 +2820,6 @@
         let currentSwipingMessage = null;
         let currentAudio = null;
         let messageStatusListeners = new Map();
-        
-        // ==================== FUNÇÕES DE PERFIL (EDITÁVEL) ====================
-        let selectedProfileImageFile = null;
-        
-        function openEditProfileModal() {
-            if (!currentUser) {
-                showToast('Faça login para editar o perfil');
-                return;
-            }
-            
-            document.getElementById('editDisplayName').value = userProfileData.displayName || '';
-            document.getElementById('editNickname').value = currentUsername;
-            document.getElementById('editBio').value = userProfileData.bio || '';
-            document.getElementById('editExternalLink').value = userProfileData.externalLink || '';
-            
-            const previewImg = document.getElementById('editProfileImagePreview');
-            if (userProfileData.profileImageUrl) {
-                previewImg.src = userProfileData.profileImageUrl;
-            } else {
-                previewImg.src = '';
-                previewImg.style.display = 'none';
-            }
-            
-            selectedProfileImageFile = null;
-            document.getElementById('editProfileImage').value = '';
-            document.getElementById('editProfileModal').classList.remove('hidden');
-        }
-        
-        function previewProfileImage() {
-            const file = document.getElementById('editProfileImage').files[0];
-            if (file && file.type.startsWith('image/')) {
-                selectedProfileImageFile = file;
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const preview = document.getElementById('editProfileImagePreview');
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-        
-        async function saveEditProfile() {
-            if (!currentUser) {
-                showToast('Faça login para salvar as alterações');
-                return;
-            }
-            
-            const newDisplayName = document.getElementById('editDisplayName').value.trim();
-            let newNickname = document.getElementById('editNickname').value.trim();
-            const newBio = document.getElementById('editBio').value.trim();
-            const newExternalLink = document.getElementById('editExternalLink').value.trim();
-            
-            if (newNickname.startsWith('@')) newNickname = newNickname.substring(1);
-            if (!newNickname) {
-                showToast('Nickname não pode estar vazio');
-                return;
-            }
-            
-            showToast('Salvando alterações...');
-            
-            let profileImageUrl = userProfileData.profileImageUrl;
-            let profileImagePublicId = userProfileData.profileImagePublicId;
-            
-            if (selectedProfileImageFile) {
-                try {
-                    const formData = new FormData();
-                    formData.append('file', selectedProfileImageFile);
-                    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-                    formData.append('resource_type', 'image');
-                    
-                    const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
-                    const response = await fetch(cloudinaryUrl, { method: 'POST', body: formData });
-                    const data = await response.json();
-                    
-                    if (response.ok) {
-                        if (userProfileData.profileImagePublicId) {
-                            try {
-                                const deleteUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/destroy`;
-                                const deleteFormData = new FormData();
-                                deleteFormData.append('public_id', userProfileData.profileImagePublicId);
-                                deleteFormData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-                                await fetch(deleteUrl, { method: 'POST', body: deleteFormData });
-                            } catch(e) { console.warn('Erro ao deletar imagem antiga:', e); }
-                        }
-                        
-                        profileImageUrl = data.secure_url;
-                        profileImagePublicId = data.public_id;
-                    } else {
-                        throw new Error('Erro no upload');
-                    }
-                } catch (error) {
-                    console.error('Erro ao fazer upload da imagem:', error);
-                    showToast('Erro ao enviar imagem. Tente novamente.');
-                    return;
-                }
-            }
-            
-            const updates = {};
-            if (newDisplayName) updates.displayName = newDisplayName;
-            if (newNickname !== currentUsername) updates.nickname = newNickname;
-            if (newBio) updates.bio = newBio;
-            if (newExternalLink) updates.externalLink = newExternalLink;
-            if (profileImageUrl) updates.profileImageUrl = profileImageUrl;
-            if (profileImagePublicId) updates.profileImagePublicId = profileImagePublicId;
-            
-            try {
-                await database.ref(`usuarios/${currentUser.uid}`).update(updates);
-                
-                if (newNickname !== currentUsername) {
-                    currentUsername = newNickname;
-                    localStorage.setItem('noitefilmes_username', currentUsername);
-                }
-                
-                userProfileData.displayName = newDisplayName;
-                userProfileData.bio = newBio;
-                userProfileData.externalLink = newExternalLink;
-                userProfileData.profileImageUrl = profileImageUrl;
-                userProfileData.profileImagePublicId = profileImagePublicId;
-                
-                showToast('Perfil atualizado com sucesso!');
-                document.getElementById('editProfileModal').classList.add('hidden');
-                renderInstagramProfile();
-                updateProfileUI();
-            } catch (error) {
-                showToast('Erro ao atualizar perfil: ' + error.message);
-            }
-        }
-        
-        function renderInstagramProfile(showOtherUserId = null) {
-            const container = document.getElementById('instagramProfileContainer');
-            if (!container) return;
-            
-            if (!currentUser) {
-                container.innerHTML = `<div class="text-center p-4">Faça login para acessar o perfil</div>`;
-                return;
-            }
-            
-            let targetUserId = currentUser.uid;
-            let targetNickname = currentUsername;
-            let isOwnProfile = true;
-            
-            if (showOtherUserId && showOtherUserId !== currentUser.uid) {
-                targetUserId = showOtherUserId;
-                isOwnProfile = false;
-                database.ref(`usuarios/${targetUserId}`).once('value').then(snap => {
-                    const data = snap.val();
-                    if (data && data.nickname) targetNickname = data.nickname;
-                    if (data && data.displayName) userProfileData.displayName = data.displayName;
-                    if (data && data.bio) userProfileData.bio = data.bio;
-                    if (data && data.externalLink) userProfileData.externalLink = data.externalLink;
-                    if (data && data.profileImageUrl) userProfileData.profileImageUrl = data.profileImageUrl;
-                    renderProfileHtml(targetUserId, targetNickname, isOwnProfile, data);
-                }).catch(() => renderProfileHtml(targetUserId, targetNickname, isOwnProfile, null));
-            } else {
-                renderProfileHtml(targetUserId, targetNickname, isOwnProfile, {
-                    displayName: userProfileData.displayName,
-                    bio: userProfileData.bio,
-                    externalLink: userProfileData.externalLink,
-                    profileImageUrl: userProfileData.profileImageUrl
-                });
-            }
-            
-            function renderProfileHtml(uid, nickname, isSelf, userData) {
-                database.ref(`feed_posts`).orderByChild('userId').equalTo(uid).once('value', (snap) => {
-                    const posts = snap.val();
-                    const postsList = posts ? Object.values(posts) : [];
-                    const totalPosts = postsList.length;
-                    
-                    const displayNameText = (userData && userData.displayName) || nickname;
-                    const bioText = (userData && userData.bio) || "🎬 Apaixonado por cinema e séries. NoiteFilmes é minha segunda casa! 🍿✨";
-                    const externalLink = (userData && userData.externalLink) || "https://instagram.com/noitefilmes";
-                    const profileImageUrl = (userData && userData.profileImageUrl) || null;
-                    const isFollowing = followingRelations[uid] === true;
-                    
-                    let actionButtonHtml = '';
-                    if (!isSelf) {
-                        actionButtonHtml = `<button class="follow-button ${isFollowing ? 'following' : ''}" id="followActionBtn">${isFollowing ? 'Seguindo' : 'Seguir'}</button>`;
-                    }
-                    
-                    container.innerHTML = `
-                        <div class="profile-header-instagram">
-                            <div class="top-bar">
-                                <div class="profile-username-top">@${nickname}</div>
-                                <div class="profile-options-icon" id="profileOptionsIcon"><i class="fas fa-ellipsis-h"></i></div>
-                            </div>
-                            <div class="profile-info-row">
-                                <div class="profile-picture" id="profilePictureClick">
-                                    ${profileImageUrl ? `<img src="${profileImageUrl}" alt="Foto de perfil">` : `<i class="fas fa-user fa-2x"></i>`}
-                                </div>
-                                <div class="profile-stats-grid">
-                                    <div><span class="stat-number" id="statPosts">${totalPosts}</span><span class="stat-label"> posts</span></div>
-                                    <div><span class="stat-number" id="statFollowersValue">0</span><span class="stat-label"> seguidores</span></div>
-                                    <div><span class="stat-number" id="statFollowingValue">0</span><span class="stat-label"> seguindo</span></div>
-                                </div>
-                            </div>
-                            <div class="profile-bio">
-                                <div class="profile-bio-text" id="profileBioText">${makeNicknamesClickable(escapeHtml(bioText))}</div>
-                                ${bioText.length > 120 ? `<button class="bio-expand-btn" id="bioExpandBtn">...ver mais</button>` : ''}
-                            </div>
-                            <a href="${externalLink}" target="_blank" class="profile-external-link"><i class="fas fa-link"></i> ${externalLink}</a>
-                            ${actionButtonHtml}
-                        </div>
-                        <div class="post-grid" id="profilePostGrid"></div>
-                    `;
-                    
-                    if (isSelf) {
-                        const profilePicture = document.getElementById('profilePictureClick');
-                        if (profilePicture) {
-                            profilePicture.style.cursor = 'pointer';
-                            profilePicture.onclick = () => openEditProfileModal();
-                        }
-                    }
-                    
-                    database.ref(`followers/${uid}`).once('value', (snap) => {
-                        const followersCount = snap.val() ? Object.keys(snap.val()).length : 0;
-                        const followersSpan = document.getElementById('statFollowersValue');
-                        if (followersSpan) followersSpan.innerText = followersCount;
-                    });
-                    
-                    database.ref(`following/${uid}`).once('value', (snap) => {
-                        const followingCount = snap.val() ? Object.keys(snap.val()).length : 0;
-                        const followingSpan = document.getElementById('statFollowingValue');
-                        if (followingSpan) followingSpan.innerText = followingCount;
-                    });
-                    
-                    setupNicknameClickHandlers();
-                    
-                    const gridContainer = document.getElementById('profilePostGrid');
-                    if (gridContainer) {
-                        if (postsList.length === 0) {
-                            gridContainer.innerHTML = '<div class="col-span-full text-center text-gray-500 py-4 text-xs">Nenhuma postagem ainda</div>';
-                        } else {
-                            gridContainer.innerHTML = postsList.map(post => `
-                                <div class="post-grid-item ripple-btn" data-post-id="${post.id}" onclick="viewPostDetail('${post.id}')">
-                                    ${post.mediaType === 'video' ? 
-                                        `<video src="${post.mediaUrl}" style="width:100%;height:100%;object-fit:cover;"></video>` : 
-                                        `<img src="${post.mediaUrl}" onerror="this.src='https://via.placeholder.com/150x150'">`
-                                    }
-                                </div>
-                            `).join('');
-                        }
-                    }
-                    
-                    const bioDiv = document.getElementById('profileBioText');
-                    const expandBtn = document.getElementById('bioExpandBtn');
-                    if (expandBtn && bioDiv) {
-                        let expanded = false;
-                        expandBtn.addEventListener('click', () => {
-                            if (!expanded) {
-                                bioDiv.style.maxHeight = '200px';
-                                bioDiv.classList.add('expanded');
-                                expandBtn.innerText = 'ver menos';
-                            } else {
-                                bioDiv.style.maxHeight = '4.2em';
-                                bioDiv.classList.remove('expanded');
-                                expandBtn.innerText = '...ver mais';
-                            }
-                            expanded = !expanded;
-                        });
-                    }
-                    
-                    if (!isSelf) {
-                        const followBtn = document.getElementById('followActionBtn');
-                        if (followBtn) {
-                            followBtn.addEventListener('click', () => {
-                                const newStatus = !isFollowing;
-                                if (newStatus) {
-                                    database.ref(`followers/${uid}/${currentUser.uid}`).set(true);
-                                    database.ref(`following/${currentUser.uid}/${uid}`).set(true);
-                                    followingRelations[uid] = true;
-                                    showToast(`Você agora segue @${nickname}`);
-                                } else {
-                                    database.ref(`followers/${uid}/${currentUser.uid}`).remove();
-                                    database.ref(`following/${currentUser.uid}/${uid}`).remove();
-                                    followingRelations[uid] = false;
-                                    showToast(`Você deixou de seguir @${nickname}`);
-                                }
-                                renderInstagramProfile(uid);
-                            });
-                        }
-                    }
-                    
-                    const optionsIcon = document.getElementById('profileOptionsIcon');
-                    if (optionsIcon && isSelf) {
-                        optionsIcon.addEventListener('click', () => {
-                            openEditProfileModal();
-                        });
-                    }
-                });
-            }
-        }
-        
-        function viewPostDetail(postId) {
-            showToast('Visualizando publicação');
-            switchSection('feed');
-            setTimeout(() => {
-                const postElement = document.getElementById(`post-${postId}`);
-                if (postElement) {
-                    postElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    postElement.style.transition = 'background 0.3s';
-                    postElement.style.background = 'rgba(229,9,20,0.2)';
-                    setTimeout(() => {
-                        postElement.style.background = '';
-                    }, 1000);
-                }
-            }, 100);
-        }
-        
-        function updateProfileUI() {
-            if (currentUser) renderInstagramProfile();
-            else {
-                const container = document.getElementById('instagramProfileContainer');
-                if(container) container.innerHTML = '<div class="text-center p-4">Faça login para acessar o perfil</div>';
-                document.getElementById('profileFavoritesList').innerHTML = '';
-            }
-            if(currentUser){
-                database.ref(`favoritos/${currentUser.uid}`).once('value', (snapshot) => {
-                    const favData = snapshot.val();
-                    favoritos = favData ? Object.values(favData) : [];
-                    const favContainer = document.getElementById('profileFavoritesList');
-                    if (favoritos.length === 0) {
-                        favContainer.innerHTML = '<div class="text-center text-gray-500 py-3 text-xs">Nenhum favorito ainda</div>';
-                    } else {
-                        favContainer.innerHTML = favoritos.map(fav => `
-                            <div class="favorite-item flex gap-2 p-2 glass-card rounded-xl cursor-pointer ripple-btn" data-id="${fav.id}" data-type="${fav.type || 'filme'}">
-                                <img src="${fav.thumb || 'https://via.placeholder.com/40x50'}" class="w-10 h-12 object-cover rounded-lg" onerror="this.src='https://via.placeholder.com/40x50'">
-                                <div class="flex-1"><div class="font-semibold text-xs">${fav.title}</div><div class="text-[9px] opacity-60">${fav.type === 'filme' ? '🎬 Filme' : (fav.type === 'serie' ? '📺 Série' : '📡 Canal')}</div></div>
-                            </div>
-                        `).join('');
-                        document.querySelectorAll('#profileFavoritesList .favorite-item').forEach(el => {
-                            el.addEventListener('click', () => {
-                                const id = el.getAttribute('data-id');
-                                const type = el.getAttribute('data-type');
-                                playMediaById(id, type);
-                                switchSection('filmes');
-                            });
-                        });
-                    }
-                });
-            }
-        }
         
         // ==================== FUNÇÕES DE POSTAGEM ====================
         let selectedPostMediaFile = null;
@@ -3470,7 +3081,7 @@
             }
         }
         
-        // ==================== FUNÇÕES DE COMENTÁRIOS ====================
+        // ==================== FUNÇÕES DE COMENTÁRIOS COMPLETAS ====================
         
         async function addComment(postId, commentText) {
             if (!currentUser) {
@@ -3598,7 +3209,6 @@
                 const likesCount = comment.likes ? Object.keys(comment.likes).length : 0;
                 const replies = comment.replies || {};
                 const repliesList = Object.values(replies).sort((a, b) => a.createdAt - b.createdAt);
-                const commentUserData = { displayName: comment.userDisplayName || comment.userName, profileImageUrl: null };
                 
                 commentsHtml += `
                     <div class="comment-item-modal" data-comment-id="${comment.id}">
@@ -4001,6 +3611,258 @@
                         }
                     } else {
                         showToast(`Usuário ${nickname} não encontrado`);
+                    }
+                });
+            }
+        }
+        
+        // ==================== PERFIL INSTAGRAM ====================
+        function renderInstagramProfile(showOtherUserId = null) {
+            const container = document.getElementById('instagramProfileContainer');
+            if (!container) return;
+            
+            if (!currentUser) {
+                container.innerHTML = `<div class="text-center p-4">Faça login para acessar o perfil</div>`;
+                return;
+            }
+            
+            let targetUserId = currentUser.uid;
+            let targetNickname = currentUsername;
+            let isOwnProfile = true;
+            
+            if (showOtherUserId && showOtherUserId !== currentUser.uid) {
+                targetUserId = showOtherUserId;
+                isOwnProfile = false;
+                database.ref(`usuarios/${targetUserId}`).once('value').then(snap => {
+                    const data = snap.val();
+                    if (data && data.nickname) targetNickname = data.nickname;
+                    if (data && data.displayName) userProfileData.displayName = data.displayName;
+                    if (data && data.bio) userProfileData.bio = data.bio;
+                    if (data && data.externalLink) userProfileData.externalLink = data.externalLink;
+                    renderProfileHtml(targetUserId, targetNickname, isOwnProfile);
+                }).catch(() => renderProfileHtml(targetUserId, targetNickname, isOwnProfile));
+            } else {
+                database.ref(`usuarios/${currentUser.uid}`).once('value').then(snap => {
+                    const data = snap.val();
+                    if (data) {
+                        if (data.displayName) userProfileData.displayName = data.displayName;
+                        if (data.bio) userProfileData.bio = data.bio;
+                        if (data.externalLink) userProfileData.externalLink = data.externalLink;
+                    }
+                });
+                renderProfileHtml(targetUserId, targetNickname, isOwnProfile);
+            }
+            
+            function renderProfileHtml(uid, nickname, isSelf) {
+                database.ref(`feed_posts`).orderByChild('userId').equalTo(uid).once('value', (snap) => {
+                    const posts = snap.val();
+                    const postsList = posts ? Object.values(posts) : [];
+                    const totalPosts = postsList.length;
+                    
+                    const followersSpan = document.getElementById('statFollowersValue');
+                    const followingSpan = document.getElementById('statFollowingValue');
+                    if (followersSpan) {
+                        database.ref(`followers/${uid}`).once('value', (snap) => {
+                            followersSpan.innerText = snap.val() ? Object.keys(snap.val()).length : 0;
+                        });
+                    }
+                    if (followingSpan) {
+                        database.ref(`following/${uid}`).once('value', (snap) => {
+                            followingSpan.innerText = snap.val() ? Object.keys(snap.val()).length : 0;
+                        });
+                    }
+                    
+                    const displayNameText = userProfileData.displayName || nickname;
+                    const bioText = userProfileData.bio || "🎬 Apaixonado por cinema e séries. NoiteFilmes é minha segunda casa! 🍿✨";
+                    const truncatedBio = bioText.length > 300 ? bioText.substring(0, 300) : bioText;
+                    const showExpand = bioText.length > 120;
+                    const externalLink = userProfileData.externalLink || "https://instagram.com/noitefilmes";
+                    const isFollowing = followingRelations[uid] === true;
+                    
+                    let actionButtonHtml = '';
+                    if (!isSelf) {
+                        actionButtonHtml = `<button class="follow-button ${isFollowing ? 'following' : ''}" id="followActionBtn">${isFollowing ? 'Seguindo' : 'Seguir'}</button>`;
+                    }
+                    
+                    container.innerHTML = `
+                        <div class="profile-header-instagram">
+                            <div class="top-bar">
+                                <div class="profile-username-top">@${nickname}</div>
+                                <div class="profile-options-icon" id="profileOptionsIcon"><i class="fas fa-ellipsis-h"></i></div>
+                            </div>
+                            <div class="profile-info-row">
+                                <div class="profile-picture"><i class="fas fa-user fa-2x"></i></div>
+                                <div class="profile-stats-grid">
+                                    <div><span class="stat-number" id="statPosts">${totalPosts}</span><span class="stat-label"> posts</span></div>
+                                    <div><span class="stat-number" id="statFollowersValue">0</span><span class="stat-label"> seguidores</span></div>
+                                    <div><span class="stat-number" id="statFollowingValue">0</span><span class="stat-label"> seguindo</span></div>
+                                </div>
+                            </div>
+                            <div class="profile-bio">
+                                <div class="profile-bio-text" id="profileBioText">${makeNicknamesClickable(escapeHtml(truncatedBio))}</div>
+                                ${showExpand ? `<button class="bio-expand-btn" id="bioExpandBtn">...ver mais</button>` : ''}
+                            </div>
+                            <a href="${externalLink}" target="_blank" class="profile-external-link"><i class="fas fa-link"></i> ${externalLink}</a>
+                            ${actionButtonHtml}
+                        </div>
+                        <div class="post-grid" id="profilePostGrid"></div>
+                    `;
+                    
+                    setupNicknameClickHandlers();
+                    
+                    const gridContainer = document.getElementById('profilePostGrid');
+                    if (gridContainer) {
+                        if (postsList.length === 0) {
+                            gridContainer.innerHTML = '<div class="col-span-full text-center text-gray-500 py-4 text-xs">Nenhuma postagem ainda</div>';
+                        } else {
+                            gridContainer.innerHTML = postsList.map(post => `
+                                <div class="post-grid-item ripple-btn" data-post-id="${post.id}" onclick="viewPostDetail('${post.id}')">
+                                    ${post.mediaType === 'video' ? 
+                                        `<video src="${post.mediaUrl}" style="width:100%;height:100%;object-fit:cover;"></video>` : 
+                                        `<img src="${post.mediaUrl}" onerror="this.src='https://via.placeholder.com/150x150'">`
+                                    }
+                                </div>
+                            `).join('');
+                        }
+                    }
+                    
+                    const bioDiv = document.getElementById('profileBioText');
+                    const expandBtn = document.getElementById('bioExpandBtn');
+                    if (expandBtn && bioDiv) {
+                        let expanded = false;
+                        expandBtn.addEventListener('click', () => {
+                            if (!expanded) {
+                                bioDiv.style.maxHeight = '200px';
+                                bioDiv.classList.add('expanded');
+                                expandBtn.innerText = 'ver menos';
+                            } else {
+                                bioDiv.style.maxHeight = '4.2em';
+                                bioDiv.classList.remove('expanded');
+                                expandBtn.innerText = '...ver mais';
+                            }
+                            expanded = !expanded;
+                        });
+                    }
+                    
+                    if (!isSelf) {
+                        const followBtn = document.getElementById('followActionBtn');
+                        if (followBtn) {
+                            followBtn.addEventListener('click', () => {
+                                const newStatus = !isFollowing;
+                                if (newStatus) {
+                                    database.ref(`followers/${uid}/${currentUser.uid}`).set(true);
+                                    database.ref(`following/${currentUser.uid}/${uid}`).set(true);
+                                    followingRelations[uid] = true;
+                                    showToast(`Você agora segue @${nickname}`);
+                                } else {
+                                    database.ref(`followers/${uid}/${currentUser.uid}`).remove();
+                                    database.ref(`following/${currentUser.uid}/${uid}`).remove();
+                                    followingRelations[uid] = false;
+                                    showToast(`Você deixou de seguir @${nickname}`);
+                                }
+                                renderInstagramProfile(uid);
+                            });
+                        }
+                    }
+                    
+                    const optionsIcon = document.getElementById('profileOptionsIcon');
+                    if (optionsIcon && isSelf) {
+                        optionsIcon.addEventListener('click', () => {
+                            openEditProfileModal();
+                        });
+                    }
+                });
+            }
+        }
+        
+        function viewPostDetail(postId) {
+            showToast('Visualizando publicação');
+            switchSection('feed');
+            setTimeout(() => {
+                const postElement = document.getElementById(`post-${postId}`);
+                if (postElement) {
+                    postElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    postElement.style.transition = 'background 0.3s';
+                    postElement.style.background = 'rgba(229,9,20,0.2)';
+                    setTimeout(() => {
+                        postElement.style.background = '';
+                    }, 1000);
+                }
+            }, 100);
+        }
+        
+        function openEditProfileModal() {
+            document.getElementById('editDisplayName').value = userProfileData.displayName || '';
+            document.getElementById('editNickname').value = currentUsername;
+            document.getElementById('editBio').value = userProfileData.bio || '';
+            document.getElementById('editExternalLink').value = userProfileData.externalLink || '';
+            document.getElementById('editProfileModal').classList.remove('hidden');
+        }
+        
+        function saveEditProfile() {
+            const newDisplayName = document.getElementById('editDisplayName').value.trim();
+            let newNickname = document.getElementById('editNickname').value.trim();
+            const newBio = document.getElementById('editBio').value.trim();
+            const newExternalLink = document.getElementById('editExternalLink').value.trim();
+            
+            if (newNickname.startsWith('@')) newNickname = newNickname.substring(1);
+            if (!newNickname) {
+                showToast('Nickname não pode estar vazio');
+                return;
+            }
+            
+            const updates = {};
+            if (newDisplayName) updates.displayName = newDisplayName;
+            if (newNickname !== currentUsername) updates.nickname = newNickname;
+            if (newBio) updates.bio = newBio;
+            if (newExternalLink) updates.externalLink = newExternalLink;
+            
+            database.ref(`usuarios/${currentUser.uid}`).update(updates).then(() => {
+                if (newNickname !== currentUsername) {
+                    currentUsername = newNickname;
+                    localStorage.setItem('noitefilmes_username', currentUsername);
+                }
+                userProfileData.displayName = newDisplayName;
+                userProfileData.bio = newBio;
+                userProfileData.externalLink = newExternalLink;
+                showToast('Perfil atualizado com sucesso!');
+                document.getElementById('editProfileModal').classList.add('hidden');
+                renderInstagramProfile();
+                updateProfileUI();
+            }).catch(error => {
+                showToast('Erro ao atualizar perfil: ' + error.message);
+            });
+        }
+        
+        function updateProfileUI() {
+            if (currentUser) renderInstagramProfile();
+            else {
+                const container = document.getElementById('instagramProfileContainer');
+                if(container) container.innerHTML = '<div class="text-center p-4">Faça login para acessar o perfil</div>';
+                document.getElementById('profileFavoritesList').innerHTML = '';
+            }
+            if(currentUser){
+                database.ref(`favoritos/${currentUser.uid}`).once('value', (snapshot) => {
+                    const favData = snapshot.val();
+                    favoritos = favData ? Object.values(favData) : [];
+                    const favContainer = document.getElementById('profileFavoritesList');
+                    if (favoritos.length === 0) {
+                        favContainer.innerHTML = '<div class="text-center text-gray-500 py-3 text-xs">Nenhum favorito ainda</div>';
+                    } else {
+                        favContainer.innerHTML = favoritos.map(fav => `
+                            <div class="favorite-item flex gap-2 p-2 glass-card rounded-xl cursor-pointer ripple-btn" data-id="${fav.id}" data-type="${fav.type || 'filme'}">
+                                <img src="${fav.thumb || 'https://via.placeholder.com/40x50'}" class="w-10 h-12 object-cover rounded-lg" onerror="this.src='https://via.placeholder.com/40x50'">
+                                <div class="flex-1"><div class="font-semibold text-xs">${fav.title}</div><div class="text-[9px] opacity-60">${fav.type === 'filme' ? '🎬 Filme' : (fav.type === 'serie' ? '📺 Série' : '📡 Canal')}</div></div>
+                            </div>
+                        `).join('');
+                        document.querySelectorAll('#profileFavoritesList .favorite-item').forEach(el => {
+                            el.addEventListener('click', () => {
+                                const id = el.getAttribute('data-id');
+                                const type = el.getAttribute('data-type');
+                                playMediaById(id, type);
+                                switchSection('filmes');
+                            });
+                        });
                     }
                 });
             }
@@ -5493,8 +5355,6 @@
                         if (data.displayName) userProfileData.displayName = data.displayName;
                         if (data.bio) userProfileData.bio = data.bio;
                         if (data.externalLink) userProfileData.externalLink = data.externalLink;
-                        if (data.profileImageUrl) userProfileData.profileImageUrl = data.profileImageUrl;
-                        if (data.profileImagePublicId) userProfileData.profileImagePublicId = data.profileImagePublicId;
                     }
                 });
                 loadChatList();
@@ -5536,7 +5396,6 @@
         document.getElementById('cancelPostBtn').onclick = () => document.getElementById('createPostModal').classList.add('hidden');
         document.getElementById('submitPostBtn').onclick = submitPost;
         document.getElementById('postMediaInput').addEventListener('change', previewMedia);
-        document.getElementById('editProfileImage').addEventListener('change', previewProfileImage);
         
         document.getElementById('doLogin').onclick = () => { const email = document.getElementById('loginEmail').value; const password = document.getElementById('loginPassword').value; auth.signInWithEmailAndPassword(email, password).catch(e => showToast('Erro: ' + e.message)); };
         document.getElementById('doRegister').onclick = registerUser;
@@ -5592,7 +5451,7 @@
         switchSection('filmes');
         loadChatReadTimestamps();
         
-        // Expor funções globalmente
+        // Expor funções globalmente para os botões
         window.toggleLike = toggleLike;
         window.toggleSave = toggleSave;
         window.showCommentsModal = showCommentsModal;
@@ -5622,10 +5481,6 @@
         window.confirmDeleteMessage = confirmDeleteMessage;
         window.closeMessageConfirmModal = closeMessageConfirmModal;
         window.viewProfile = viewProfile;
-        window.viewPostDetail = viewPostDetail;
-        window.openEditProfileModal = openEditProfileModal;
-        window.previewProfileImage = previewProfileImage;
-        window.saveEditProfile = saveEditProfile;
     </script>
 </body>
 </html>
