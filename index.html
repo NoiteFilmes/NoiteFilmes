@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -4054,10 +4055,111 @@
         
         let castSession = null, castContext = null, castInitialized = false;
         function loadCastSDK() { if (document.getElementById('cast-sdk')) return; const script = document.createElement('script'); script.id = 'cast-sdk'; script.src = 'https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1'; script.async = true; document.head.appendChild(script); }
-        function initializeCastFramework() { if (!window.chrome || !chrome.cast || !chrome.cast.isAvailable) { setTimeout(initializeCastFramework, 1000); return; } try { castContext = cast.framework.CastContext.getInstance(); castContext.setOptions({ receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID, autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED }); castContext.addEventListener(cast.framework.CastContextEventType.SESSION_STATE_CHANGED, (event) => { const castBtn = document.getElementById('castButton'); if (event.sessionState === cast.framework.SessionState.SESSION_STARTED) { castSession = castContext.getCurrentSession(); castBtn.classList.add('casting'); castBtn.innerHTML = '<i class="fas fa-stop text-xs"></i>'; showToast('✅ Conectado ao Chromecast'); if (currentMedia) loadCurrentMediaToCast(); } else if (event.sessionState === cast.framework.SessionState.SESSION_ENDED) { castSession = null; castBtn.classList.remove('casting'); castBtn.innerHTML = '<i class="fas fa-tv text-xs"></i>'; showToast('❌ Desconectado'); } }); castInitialized = true; } catch (e) { console.error(e); } }
-        function toggleCast() { if (!castInitialized) { showToast('⏳ Aguarde...'); loadCastSDK(); setTimeout(() => { if (!castInitialized) initializeCastFramework(); setTimeout(() => toggleCast(), 1000); }, 1000); return; } if (!castContext) { showToast('Chromecast não disponível.'); return; } if (castSession) castSession.endSession(true); else castContext.requestSession().catch(e => console.error(e)); }
-        function loadCurrentMediaToCast() { if (!castSession || !currentMedia) return; const videoId = extractYoutubeId(currentMedia.link); const isHls = isIptvLink(currentMedia.link); let mediaUrl = currentMedia.link, mediaType = 'video/mp4'; if (videoId) { mediaUrl = `https://www.youtube.com/watch?v=${videoId}`; mediaType = 'video/mp4'; } else if (isHls) mediaType = 'application/x-mpegURL'; const mediaInfo = new chrome.cast.media.MediaInfo(mediaUrl, mediaType); mediaInfo.metadata = new chrome.cast.media.GenericMediaMetadata(); mediaInfo.metadata.title = currentMedia.title; mediaInfo.metadata.images = [{ url: currentMedia.thumb || 'https://via.placeholder.com/300x200' }]; const request = new chrome.cast.media.LoadRequest(mediaInfo); request.autoplay = true; castSession.loadMedia(request).then(() => showToast(`📺 Transmitindo: ${currentMedia.title}`)).catch(e => console.error(e)); }
-        loadCastSDK(); window.__onGCastApiAvailable = function(isAvailable) { if (isAvailable) initializeCastFramework(); }; setTimeout(() => { if (!castInitialized && window.chrome && chrome.cast && chrome.cast.isAvailable) initializeCastFramework(); }, 3000);
+        
+        // ========== FUNÇÕES CHROMECAST MELHORADAS ==========
+        function initializeCastFramework() {
+            if (!window.chrome || !chrome.cast || !chrome.cast.isAvailable) {
+                setTimeout(initializeCastFramework, 1000);
+                return;
+            }
+            try {
+                castContext = cast.framework.CastContext.getInstance();
+                castContext.setOptions({
+                    receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
+                    autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
+                });
+                
+                // Atualiza visibilidade do botão conforme disponibilidade
+                const castBtn = document.getElementById('castButton');
+                if (castBtn) {
+                    castBtn.style.display = castContext.getCastState() === cast.framework.CastState.NOT_CONNECTED ? 'flex' : 'flex';
+                }
+                
+                castContext.addEventListener(cast.framework.CastContextEventType.SESSION_STATE_CHANGED, (event) => {
+                    const castBtn = document.getElementById('castButton');
+                    if (event.sessionState === cast.framework.SessionState.SESSION_STARTED) {
+                        castSession = castContext.getCurrentSession();
+                        castBtn.classList.add('casting');
+                        castBtn.innerHTML = '<i class="fas fa-stop text-xs"></i>';
+                        showToast('✅ Conectado ao Chromecast');
+                        // Carrega o vídeo atual imediatamente
+                        if (currentMedia) loadCurrentMediaToCast();
+                    } else if (event.sessionState === cast.framework.SessionState.SESSION_ENDED) {
+                        castSession = null;
+                        castBtn.classList.remove('casting');
+                        castBtn.innerHTML = '<i class="fas fa-tv text-xs"></i>';
+                        showToast('❌ Desconectado do Chromecast');
+                    }
+                });
+                
+                castInitialized = true;
+            } catch (e) {
+                console.error('Erro ao inicializar Cast:', e);
+            }
+        }
+        
+        function updateCastMedia() {
+            if (castSession && currentMedia) {
+                loadCurrentMediaToCast();
+            }
+        }
+        
+        function loadCurrentMediaToCast() {
+            if (!castSession || !currentMedia) return;
+            
+            const videoId = extractYoutubeId(currentMedia.link);
+            const isHls = isIptvLink(currentMedia.link);
+            let mediaUrl = currentMedia.link;
+            let mediaType = 'video/mp4';
+            
+            if (videoId) {
+                mediaUrl = `https://www.youtube.com/watch?v=${videoId}`;
+                // YouTube funciona com tipo video/mp4 no receiver padrão
+            } else if (isHls) {
+                mediaType = 'application/x-mpegURL';
+            }
+            
+            const mediaInfo = new chrome.cast.media.MediaInfo(mediaUrl, mediaType);
+            mediaInfo.metadata = new chrome.cast.media.GenericMediaMetadata();
+            mediaInfo.metadata.title = currentMedia.title;
+            mediaInfo.metadata.images = [{ url: currentMedia.thumb || 'https://via.placeholder.com/300x200' }];
+            
+            const request = new chrome.cast.media.LoadRequest(mediaInfo);
+            request.autoplay = true;
+            
+            castSession.loadMedia(request)
+                .then(() => showToast(`📺 Transmitindo: ${currentMedia.title}`))
+                .catch(error => {
+                    console.error('Erro ao carregar mídia no Chromecast:', error);
+                    showToast('❌ Falha ao transmitir. Tente novamente.');
+                });
+        }
+        
+        function toggleCast() { 
+            if (!castInitialized) { 
+                showToast('⏳ Aguarde...'); 
+                loadCastSDK(); 
+                setTimeout(() => { 
+                    if (!castInitialized) initializeCastFramework(); 
+                    setTimeout(() => toggleCast(), 1000); 
+                }, 1000); 
+                return; 
+            } 
+            if (!castContext) { 
+                showToast('Chromecast não disponível.'); 
+                return; 
+            } 
+            if (castSession) castSession.endSession(true); 
+            else castContext.requestSession().catch(e => console.error(e)); 
+        }
+        
+        loadCastSDK(); 
+        window.__onGCastApiAvailable = function(isAvailable) { 
+            if (isAvailable) initializeCastFramework(); 
+        }; 
+        setTimeout(() => { 
+            if (!castInitialized && window.chrome && chrome.cast && chrome.cast.isAvailable) initializeCastFramework(); 
+        }, 3000);
         
         function saveProgress(mediaId, currentTime) { if (!currentUser) return; database.ref(`progresso/${currentUser.uid}/${mediaId}`).set(currentTime); }
         function loadProgress(mediaId, callback) { if (!currentUser) { callback(0); return; } database.ref(`progresso/${currentUser.uid}/${mediaId}`).once('value', (snapshot) => callback(snapshot.val() || 0)); }
@@ -4125,6 +4227,12 @@
             setupDescriptionToggle();
             currentMedia = item;
             currentMediaType = type;
+            
+            // Atualiza o Chromecast se estiver conectado
+            if (castSession) {
+                updateCastMedia();
+            }
+            
             incrementViewCount(item.id);
             loadViewCount(item.id);
             startRealtimeUpdates(item.id);
