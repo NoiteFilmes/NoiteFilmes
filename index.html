@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -738,6 +737,12 @@
             justify-content: center;
             font-size: 32px;
             flex-shrink: 0;
+            overflow: hidden;
+        }
+        .profile-picture img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
         .profile-stats-grid {
             flex: 1;
@@ -2349,6 +2354,57 @@
             padding: 2px 8px;
             font-size: 0.65rem;
         }
+
+        /* Avatar upload styles */
+        .avatar-upload-container {
+            position: relative;
+            cursor: pointer;
+        }
+        .avatar-upload-overlay {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: #e50914;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid white;
+            cursor: pointer;
+        }
+        .avatar-upload-overlay i {
+            font-size: 12px;
+            color: white;
+        }
+        .avatar-upload-progress {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        .avatar-upload-progress .progress-bar {
+            width: 60%;
+            height: 4px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        .avatar-upload-progress .progress-fill {
+            height: 100%;
+            background: #e50914;
+            width: 0%;
+            transition: width 0.3s;
+        }
     </style>
     <script>
         (function blockPinchZoom() {
@@ -2628,7 +2684,7 @@
         </div>
     </div>
 
-    <!-- Seção Perfil com layout Instagram MELHORADO -->
+    <!-- Seção Perfil com layout Instagram MELHORADO (NOVO PERFIL) -->
     <div id="perfilSection" class="section">
         <div id="instagramProfileContainer" class="instagram-profile-wrapper m-3 glass-card p-4"></div>
         <div class="px-3 mt-2"><h3 class="font-bold text-sm mb-2">⭐ Meus Favoritos</h3><div id="profileFavoritesList" class="favorites-list max-h-64 overflow-y-auto space-y-2"></div></div>
@@ -2771,6 +2827,9 @@
         </div>
     </div>
 
+    <!-- Avatar Upload Input (hidden) -->
+    <input type="file" id="avatarUploadInput" accept="image/*" style="display: none;">
+
     <script>
         // ==================== FIREBASE CONFIG ====================
         const firebaseConfig = {
@@ -2832,7 +2891,8 @@
             bio: '',
             externalLink: '',
             phone: '',
-            whatsapp: ''
+            whatsapp: '',
+            avatarUrl: ''
         };
         
         // ==================== VARIÁVEIS DO CHAT ====================
@@ -3406,9 +3466,10 @@
             }
         }
         
-        // ==================== PERFIL INSTAGRAM MELHORADO (com abas e histórico) ====================
+        // ==================== PERFIL INSTAGRAM MELHORADO (com abas e histórico e upload de avatar) ====================
         // Variáveis para controle de aba ativa no perfil
         let currentProfileTab = 'posts';
+        let currentViewingUserId = null; // ID do usuário que está sendo visualizado (null = próprio perfil)
         
         function renderInstagramProfile(showOtherUserId = null) {
             const container = document.getElementById('instagramProfileContainer');
@@ -3417,9 +3478,13 @@
             let targetUserId = currentUser.uid;
             let targetNickname = currentUsername;
             let isOwnProfile = true;
+            currentViewingUserId = null;
+            
             if (showOtherUserId && showOtherUserId !== currentUser.uid) {
                 targetUserId = showOtherUserId;
                 isOwnProfile = false;
+                currentViewingUserId = targetUserId;
+                // Carregar dados do outro usuário
                 database.ref(`usuarios/${targetUserId}`).once('value').then(snap => {
                     const data = snap.val();
                     if (data) {
@@ -3429,10 +3494,12 @@
                         if (data.externalLink) userProfileData.externalLink = data.externalLink;
                         if (data.phone) userProfileData.phone = data.phone;
                         if (data.whatsapp) userProfileData.whatsapp = data.whatsapp;
+                        if (data.avatarUrl) userProfileData.avatarUrl = data.avatarUrl;
                     }
                     renderProfileHtml(targetUserId, targetNickname, isOwnProfile);
                 }).catch(() => renderProfileHtml(targetUserId, targetNickname, isOwnProfile));
             } else {
+                // Carregar dados do próprio usuário
                 database.ref(`usuarios/${currentUser.uid}`).once('value').then(snap => {
                     const data = snap.val();
                     if (data) {
@@ -3441,6 +3508,7 @@
                         if (data.externalLink) userProfileData.externalLink = data.externalLink;
                         if (data.phone) userProfileData.phone = data.phone;
                         if (data.whatsapp) userProfileData.whatsapp = data.whatsapp;
+                        if (data.avatarUrl) userProfileData.avatarUrl = data.avatarUrl;
                     }
                 });
                 renderProfileHtml(targetUserId, targetNickname, isOwnProfile);
@@ -3464,9 +3532,32 @@
                 const truncatedBio = bioText.length > 300 ? bioText.substring(0, 300) : bioText;
                 const showExpand = bioText.length > 120;
                 const externalLink = userProfileData.externalLink || "https://instagram.com/noitefilmes";
-                const isFollowing = followingRelations[uid] === true;
+                
+                // Verificar se o usuário logado segue este perfil
+                let isFollowing = false;
+                if (!isSelf && currentUser) {
+                    const followCheck = await database.ref(`followers/${uid}/${currentUser.uid}`).once('value');
+                    isFollowing = followCheck.val() === true;
+                    followingRelations[uid] = isFollowing;
+                }
+                
                 let actionButtonHtml = '';
-                if (!isSelf) actionButtonHtml = `<button class="follow-button ${isFollowing ? 'following' : ''}" id="followActionBtn">${isFollowing ? 'Seguindo' : 'Seguir'}</button>`;
+                if (!isSelf) {
+                    actionButtonHtml = `<button class="follow-button ${isFollowing ? 'following' : ''}" id="followActionBtn">${isFollowing ? 'Seguindo' : 'Seguir'}</button>`;
+                }
+                
+                // Avatar HTML
+                let avatarHtml = '';
+                if (userProfileData.avatarUrl) {
+                    avatarHtml = `<img src="${userProfileData.avatarUrl}" alt="Avatar">`;
+                } else {
+                    avatarHtml = `<i class="fas fa-user fa-2x"></i>`;
+                }
+                
+                let avatarUploadHtml = '';
+                if (isSelf) {
+                    avatarUploadHtml = `<div class="avatar-upload-overlay" id="changeAvatarBtn"><i class="fas fa-camera"></i></div>`;
+                }
                 
                 container.innerHTML = `
                     <div class="profile-header-instagram">
@@ -3475,7 +3566,14 @@
                             <div class="profile-options-icon" id="profileOptionsIcon"><i class="fas fa-ellipsis-h"></i></div>
                         </div>
                         <div class="profile-info-row">
-                            <div class="profile-picture"><i class="fas fa-user fa-2x"></i></div>
+                            <div class="profile-picture avatar-upload-container" id="profilePictureContainer">
+                                ${avatarHtml}
+                                ${avatarUploadHtml}
+                                <div id="avatarUploadProgress" class="avatar-upload-progress hidden">
+                                    <i class="fas fa-spinner fa-pulse"></i>
+                                    <div class="progress-bar"><div class="progress-fill" id="avatarProgressFill"></div></div>
+                                </div>
+                            </div>
                             <div class="profile-stats-grid">
                                 <div><span class="stat-number" id="statPosts">${totalPosts}</span><span class="stat-label"> posts</span></div>
                                 <div><span class="stat-number" id="statFollowersValue">${followersCount}</span><span class="stat-label"> seguidores</span></div>
@@ -3510,19 +3608,22 @@
                         expanded = !expanded;
                     });
                 }
+                
+                // Botão de seguir
                 if (!isSelf) {
                     const followBtn = document.getElementById('followActionBtn');
                     if (followBtn) {
-                        followBtn.addEventListener('click', () => {
+                        followBtn.addEventListener('click', async () => {
+                            if (!currentUser) { showToast('Faça login para seguir'); return; }
                             const newStatus = !isFollowing;
                             if (newStatus) {
-                                database.ref(`followers/${uid}/${currentUser.uid}`).set(true);
-                                database.ref(`following/${currentUser.uid}/${uid}`).set(true);
+                                await database.ref(`followers/${uid}/${currentUser.uid}`).set(true);
+                                await database.ref(`following/${currentUser.uid}/${uid}`).set(true);
                                 followingRelations[uid] = true;
                                 showToast(`Você agora segue @${nickname}`);
                             } else {
-                                database.ref(`followers/${uid}/${currentUser.uid}`).remove();
-                                database.ref(`following/${currentUser.uid}/${uid}`).remove();
+                                await database.ref(`followers/${uid}/${currentUser.uid}`).remove();
+                                await database.ref(`following/${currentUser.uid}/${uid}`).remove();
                                 followingRelations[uid] = false;
                                 showToast(`Você deixou de seguir @${nickname}`);
                             }
@@ -3530,8 +3631,24 @@
                         });
                     }
                 }
+                
+                // Opções (apenas para próprio perfil - editar)
                 const optionsIcon = document.getElementById('profileOptionsIcon');
-                if (optionsIcon && isSelf) optionsIcon.addEventListener('click', () => openEditProfileModal());
+                if (optionsIcon && isSelf) {
+                    optionsIcon.addEventListener('click', () => openEditProfileModal());
+                } else if (optionsIcon && !isSelf) {
+                    optionsIcon.style.display = 'none';
+                }
+                
+                // Upload de avatar (apenas próprio perfil)
+                if (isSelf) {
+                    const changeAvatarBtn = document.getElementById('changeAvatarBtn');
+                    if (changeAvatarBtn) {
+                        changeAvatarBtn.addEventListener('click', () => {
+                            document.getElementById('avatarUploadInput').click();
+                        });
+                    }
+                }
                 
                 // Eventos das abas
                 document.querySelectorAll('.profile-tab').forEach(tab => {
@@ -3586,7 +3703,6 @@
                 `).join('')}</div>`;
                 container.innerHTML = savedHtml;
             } else if (tab === 'marcacoes') {
-                // Buscar menções em comentários e replies
                 const postsSnap = await database.ref('feed_posts').once('value');
                 const allPosts = postsSnap.val();
                 if (!allPosts) { container.innerHTML = '<div class="text-center text-gray-500 py-4 text-xs">Nenhuma marcação encontrada</div>'; return; }
@@ -3699,82 +3815,59 @@
             }).catch(error => showToast('Erro ao atualizar perfil: ' + error.message));
         }
         
-        function updateProfileUI() {
-            if (currentUser) renderInstagramProfile();
-            else { const container = document.getElementById('instagramProfileContainer'); if(container) container.innerHTML = '<div class="text-center p-4">Faça login para acessar o perfil</div>'; document.getElementById('profileFavoritesList').innerHTML = ''; }
-            if(currentUser){
-                database.ref(`favoritos/${currentUser.uid}`).once('value', (snapshot) => {
-                    const favData = snapshot.val();
-                    favoritos = favData ? Object.values(favData) : [];
-                    const favContainer = document.getElementById('profileFavoritesList');
-                    if (favoritos.length === 0) favContainer.innerHTML = '<div class="text-center text-gray-500 py-3 text-xs">Nenhum favorito ainda</div>';
-                    else {
-                        favContainer.innerHTML = favoritos.map(fav => `
-                            <div class="favorite-item flex gap-2 p-2 glass-card rounded-xl cursor-pointer ripple-btn" data-id="${fav.id}" data-type="${fav.type || 'filme'}">
-                                <img src="${fav.thumb || 'https://via.placeholder.com/40x50'}" class="w-10 h-12 object-cover rounded-lg" onerror="this.src='https://via.placeholder.com/40x50'">
-                                <div class="flex-1"><div class="font-semibold text-xs">${fav.title}</div><div class="text-[9px] opacity-60">${fav.type === 'filme' ? '🎬 Filme' : (fav.type === 'serie' ? '📺 Série' : '📡 Canal')}</div></div>
-                            </div>
-                        `).join('');
-                        document.querySelectorAll('#profileFavoritesList .favorite-item').forEach(el => {
-                            el.addEventListener('click', () => { const id = el.getAttribute('data-id'); const type = el.getAttribute('data-type'); playMediaById(id, type); switchSection('filmes'); });
-                        });
+        // ==================== UPLOAD DE AVATAR ====================
+        async function uploadProfileAvatar(file) {
+            if (!file || !currentUser) return;
+            
+            const progressContainer = document.getElementById('avatarUploadProgress');
+            const progressFill = document.getElementById('avatarProgressFill');
+            progressContainer.classList.remove('hidden');
+            progressFill.style.width = '0%';
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+                
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, true);
+                
+                xhr.upload.onprogress = (e) => {
+                    if (e.lengthComputable) {
+                        const percent = (e.loaded / e.total) * 100;
+                        progressFill.style.width = percent + '%';
                     }
+                };
+                
+                const uploadPromise = new Promise((resolve, reject) => {
+                    xhr.onload = () => {
+                        if (xhr.status === 200) {
+                            const response = JSON.parse(xhr.responseText);
+                            resolve(response.secure_url);
+                        } else {
+                            reject(new Error('Upload failed'));
+                        }
+                    };
+                    xhr.onerror = () => reject(new Error('Upload failed'));
+                    xhr.send(formData);
                 });
+                
+                const imageUrl = await uploadPromise;
+                
+                // Salvar URL no Realtime Database
+                await database.ref(`usuarios/${currentUser.uid}/avatarUrl`).set(imageUrl);
+                userProfileData.avatarUrl = imageUrl;
+                
+                showToast('Foto de perfil atualizada!');
+                renderInstagramProfile();
+            } catch (error) {
+                console.error('Erro ao fazer upload:', error);
+                showToast('Erro ao fazer upload da imagem. Tente novamente.');
+            } finally {
+                setTimeout(() => {
+                    progressContainer.classList.add('hidden');
+                }, 1000);
             }
-        }
-        
-        // ==================== VISUALIZAÇÕES E HISTÓRICO ====================
-        async function loadAllViews() {
-            const snapshot = await database.ref('visualizacoes').once('value');
-            viewsCache = snapshot.val() || {};
-            generateTop10ByViews();
-            if (currentSort === 'views') renderGrid();
-        }
-        
-        function generateTop10ByViews() {
-            const allItems = [
-                ...filmes.map(f => ({ ...f, contentType: 'filme', views: viewsCache[f.id] || 0 })),
-                ...series.map(s => ({ ...s, contentType: 'serie', views: viewsCache[s.id] || 0 })),
-                ...canais.map(c => ({ ...c, contentType: 'canal', views: viewsCache[c.id] || 0 }))
-            ];
-            allItems.sort((a, b) => b.views - a.views);
-            top10List = allItems.slice(0, 10);
-            renderTop10Carousel();
-        }
-        
-        function incrementViewCount(mediaId) {
-            if (!mediaId) return;
-            database.ref(`visualizacoes/${mediaId}`).transaction((cv) => (cv || 0) + 1);
-            setTimeout(() => loadAllViews(), 500);
-        }
-        
-        function loadViewCount(mediaId) {
-            database.ref(`visualizacoes/${mediaId}`).once('value', (snapshot) => {
-                const views = snapshot.val() || 0;
-                const viewSpan = document.getElementById('viewCountNumber');
-                if (viewSpan) viewSpan.innerText = views.toLocaleString();
-            });
-        }
-        
-        // Registrar histórico de assistidos (com progresso)
-        async function registerWatchedHistory(mediaId, mediaTitle, mediaType, thumb, progressPercent = 0) {
-            if (!currentUser) return;
-            const historyRef = database.ref(`watched_history/${currentUser.uid}/${mediaId}`);
-            const snapshot = await historyRef.once('value');
-            const existing = snapshot.val();
-            const data = {
-                mediaId, mediaTitle, mediaType, thumb: thumb || 'https://via.placeholder.com/100x150',
-                watchedAt: Date.now(),
-                progress: progressPercent
-            };
-            if (existing) {
-                data.firstWatchedAt = existing.firstWatchedAt || existing.watchedAt;
-                data.watchCount = (existing.watchCount || 1) + 1;
-            } else {
-                data.firstWatchedAt = Date.now();
-                data.watchCount = 1;
-            }
-            await historyRef.set(data);
         }
         
         // ==================== FUNÇÕES AUXILIARES ====================
@@ -4188,10 +4281,87 @@
         async function saveBatch() { if (batchPreviewItems.length === 0) { showToast('❌ Clique em "Pré-visualizar" primeiro'); return; } const existingTitles = filmes.map(f => f.title); const newItems = batchPreviewItems.filter(item => !existingTitles.includes(item.title)); const duplicates = batchPreviewItems.filter(item => existingTitles.includes(item.title)); if (duplicates.length > 0) { if (!confirm(`⚠️ ${duplicates.length} duplicados. Adicionar apenas ${newItems.length} novos?`)) return; } if (newItems.length === 0) { showToast('❌ Nenhum filme novo'); return; } showToast(`💾 Salvando ${newItems.length} filmes...`); let salvos = 0; for (let item of newItems) { const safeId = generateSafeId(); await database.ref(`filmes/${safeId}`).set({ id: safeId, title: item.title, link: item.link, thumb: item.thumb, category: item.genre, year: item.year, description: item.description, createdAt: Date.now(), mediaType: 'youtube' }); salvos++; } showToast(`✅ ${salvos} filmes salvos!`); document.getElementById('batchLinksInput').value = ''; document.getElementById('batchPreview').innerHTML = ''; batchPreviewItems = []; loadFilmesFromFirebase(); }
         async function saveEpisodes() { const serieName = document.getElementById('serieTitle').value.trim(); const episodesText = document.getElementById('episodesLinksInput').value; if (!serieName) { alert('Digite o nome da série'); return; } const lines = episodesText.split('\n').filter(l => l.trim()); if (lines.length === 0) { alert('Cole os episódios'); return; } showToast(`💾 Salvando ${lines.length} episódios...`); let salvos = 0; for (let line of lines) { let episodeTitle = '', link = ''; if (line.includes(':')) { const parts = line.split(':'); episodeTitle = parts[0].trim(); link = parts.slice(1).join(':').trim(); } else { link = line.trim(); episodeTitle = `EP${String(salvos + 1).padStart(2, '0')}`; } const metadata = await fetchVideoDataFromLink(link, 'youtube'); const safeId = generateSafeId(); await database.ref(`series/${safeId}`).set({ id: safeId, title: `${serieName} - ${episodeTitle}`, link: link, thumb: metadata?.thumb || 'https://via.placeholder.com/300x200', category: metadata?.genre || 'Série', year: metadata?.year || new Date().getFullYear(), description: metadata?.description || `Episódio ${episodeTitle}`, createdAt: Date.now(), mediaType: 'youtube' }); salvos++; } showToast(`✅ ${salvos} episódios salvos!`); document.getElementById('serieTitle').value = ''; document.getElementById('episodesLinksInput').value = ''; loadSeriesFromFirebase(); }
         function refreshAdminLists() { if (!isAdminLogged) return; document.getElementById('canaisAdminList').innerHTML = canais.map(c => `<div class="bg-white/10 p-1 rounded-lg flex justify-between items-center text-[10px] mb-0.5"><span>${c.title.substring(0, 20)}</span><div class="admin-item-actions flex gap-1"><button class="edit-canal edit-item-btn text-green-400 text-[10px] px-1" data-id="${c.id}" data-type="canais"><i class="fas fa-edit"></i></button><button class="delete-canal delete-item-btn text-red-400 text-[10px] px-1" data-id="${c.id}"><i class="fas fa-trash"></i></button></div></div>`).join(''); document.getElementById('filmesAdminList').innerHTML = filmes.map(f => `<div class="bg-white/10 p-1 rounded-lg flex justify-between items-center text-[10px] mb-0.5"><span>${f.title.substring(0, 20)}</span><div class="admin-item-actions flex gap-1"><button class="edit-filme edit-item-btn text-green-400 text-[10px] px-1" data-id="${f.id}" data-type="filmes"><i class="fas fa-edit"></i></button><button class="delete-filme delete-item-btn text-red-400 text-[10px] px-1" data-id="${f.id}"><i class="fas fa-trash"></i></button></div></div>`).join(''); document.getElementById('seriesAdminList').innerHTML = series.map(s => `<div class="bg-white/10 p-1 rounded-lg flex justify-between items-center text-[10px] mb-0.5"><span>${s.title.substring(0, 20)}</span><div class="admin-item-actions flex gap-1"><button class="edit-serie edit-item-btn text-green-400 text-[10px] px-1" data-id="${s.id}" data-type="series"><i class="fas fa-edit"></i></button><button class="delete-serie delete-item-btn text-red-400 text-[10px] px-1" data-id="${s.id}"><i class="fas fa-trash"></i></button></div></div>`).join(''); document.querySelectorAll('.edit-canal, .edit-filme, .edit-serie').forEach(btn => { btn.addEventListener('click', () => { const id = btn.getAttribute('data-id'); const type = btn.getAttribute('data-type'); editItem(id, type); }); }); document.querySelectorAll('.delete-canal').forEach(btn => btn.addEventListener('click', () => { const id = btn.getAttribute('data-id'); database.ref(`canais/${id}`).remove(); showToast('Canal removido'); loadCanaisFromFirebase(); })); document.querySelectorAll('.delete-filme').forEach(btn => btn.addEventListener('click', () => { const id = btn.getAttribute('data-id'); database.ref(`filmes/${id}`).remove(); showToast('Filme removido'); loadFilmesFromFirebase(); })); document.querySelectorAll('.delete-serie').forEach(btn => btn.addEventListener('click', () => { const id = btn.getAttribute('data-id'); database.ref(`series/${id}`).remove(); showToast('Episódio removido'); loadSeriesFromFirebase(); })); }
-        function updateUserUI(user) { if (user) { hideLoginModal(); loadUserNickname(user.uid); database.ref(`favoritos/${user.uid}`).on('value', (snapshot) => { favoritos = snapshot.val() ? Object.values(snapshot.val()) : []; updateProfileUI(); }); database.ref('top10').on('value', (snapshot) => { const data = snapshot.val(); if (data) { top10List = data; renderTop10Carousel(); } else { generateTop10ByViews(); } }); updateProfileUI(); updateLastSeen(); database.ref(`usuarios/${user.uid}`).once('value').then(snap => { const data = snap.val(); if (data) { if (data.displayName) userProfileData.displayName = data.displayName; if (data.bio) userProfileData.bio = data.bio; if (data.externalLink) userProfileData.externalLink = data.externalLink; if (data.phone) userProfileData.phone = data.phone; if (data.whatsapp) userProfileData.whatsapp = data.whatsapp; } }); loadChatList(); setupChatUnreadListener(); renderFeed(); } else { showLoginModal(); updateProfileUI(); } }
+        function updateUserUI(user) { if (user) { hideLoginModal(); loadUserNickname(user.uid); database.ref(`favoritos/${user.uid}`).on('value', (snapshot) => { favoritos = snapshot.val() ? Object.values(snapshot.val()) : []; updateProfileUI(); }); database.ref('top10').on('value', (snapshot) => { const data = snapshot.val(); if (data) { top10List = data; renderTop10Carousel(); } else { generateTop10ByViews(); } }); updateProfileUI(); updateLastSeen(); database.ref(`usuarios/${user.uid}`).once('value').then(snap => { const data = snap.val(); if (data) { if (data.displayName) userProfileData.displayName = data.displayName; if (data.bio) userProfileData.bio = data.bio; if (data.externalLink) userProfileData.externalLink = data.externalLink; if (data.phone) userProfileData.phone = data.phone; if (data.whatsapp) userProfileData.whatsapp = data.whatsapp; if (data.avatarUrl) userProfileData.avatarUrl = data.avatarUrl; } }); loadChatList(); setupChatUnreadListener(); renderFeed(); } else { showLoginModal(); updateProfileUI(); } }
         async function loadUserNickname(userId) { const snapshot = await database.ref(`usuarios/${userId}`).once('value'); const data = snapshot.val(); if (data && data.nickname) { currentUsername = data.nickname; localStorage.setItem('noitefilmes_username', currentUsername); } }
         function updateLastSeen() { if (currentUser) { database.ref(`usuarios/${currentUser.uid}/lastSeen`).set(Date.now()); } }
         setInterval(updateLastSeen, 30000);
+        
+        // Registrar histórico de assistidos (com progresso)
+        async function registerWatchedHistory(mediaId, mediaTitle, mediaType, thumb, progressPercent = 0) {
+            if (!currentUser) return;
+            const historyRef = database.ref(`watched_history/${currentUser.uid}/${mediaId}`);
+            const snapshot = await historyRef.once('value');
+            const existing = snapshot.val();
+            const data = {
+                mediaId, mediaTitle, mediaType, thumb: thumb || 'https://via.placeholder.com/100x150',
+                watchedAt: Date.now(),
+                progress: progressPercent
+            };
+            if (existing) {
+                data.firstWatchedAt = existing.firstWatchedAt || existing.watchedAt;
+                data.watchCount = (existing.watchCount || 1) + 1;
+            } else {
+                data.firstWatchedAt = Date.now();
+                data.watchCount = 1;
+            }
+            await historyRef.set(data);
+        }
+        
+        async function loadAllViews() {
+            const snapshot = await database.ref('visualizacoes').once('value');
+            viewsCache = snapshot.val() || {};
+            generateTop10ByViews();
+            if (currentSort === 'views') renderGrid();
+        }
+        
+        function generateTop10ByViews() {
+            const allItems = [
+                ...filmes.map(f => ({ ...f, contentType: 'filme', views: viewsCache[f.id] || 0 })),
+                ...series.map(s => ({ ...s, contentType: 'serie', views: viewsCache[s.id] || 0 })),
+                ...canais.map(c => ({ ...c, contentType: 'canal', views: viewsCache[c.id] || 0 }))
+            ];
+            allItems.sort((a, b) => b.views - a.views);
+            top10List = allItems.slice(0, 10);
+            renderTop10Carousel();
+        }
+        
+        function incrementViewCount(mediaId) {
+            if (!mediaId) return;
+            database.ref(`visualizacoes/${mediaId}`).transaction((cv) => (cv || 0) + 1);
+            setTimeout(() => loadAllViews(), 500);
+        }
+        
+        function loadViewCount(mediaId) {
+            database.ref(`visualizacoes/${mediaId}`).once('value', (snapshot) => {
+                const views = snapshot.val() || 0;
+                const viewSpan = document.getElementById('viewCountNumber');
+                if (viewSpan) viewSpan.innerText = views.toLocaleString();
+            });
+        }
+        
+        function updateProfileUI() {
+            if (currentUser) renderInstagramProfile();
+            else { const container = document.getElementById('instagramProfileContainer'); if(container) container.innerHTML = '<div class="text-center p-4">Faça login para acessar o perfil</div>'; document.getElementById('profileFavoritesList').innerHTML = ''; }
+            if(currentUser){
+                database.ref(`favoritos/${currentUser.uid}`).once('value', (snapshot) => {
+                    const favData = snapshot.val();
+                    favoritos = favData ? Object.values(favData) : [];
+                    const favContainer = document.getElementById('profileFavoritesList');
+                    if (favoritos.length === 0) favContainer.innerHTML = '<div class="text-center text-gray-500 py-3 text-xs">Nenhum favorito ainda</div>';
+                    else {
+                        favContainer.innerHTML = favoritos.map(fav => `
+                            <div class="favorite-item flex gap-2 p-2 glass-card rounded-xl cursor-pointer ripple-btn" data-id="${fav.id}" data-type="${fav.type || 'filme'}">
+                                <img src="${fav.thumb || 'https://via.placeholder.com/40x50'}" class="w-10 h-12 object-cover rounded-lg" onerror="this.src='https://via.placeholder.com/40x50'">
+                                <div class="flex-1"><div class="font-semibold text-xs">${fav.title}</div><div class="text-[9px] opacity-60">${fav.type === 'filme' ? '🎬 Filme' : (fav.type === 'serie' ? '📺 Série' : '📡 Canal')}</div></div>
+                            </div>
+                        `).join('');
+                        document.querySelectorAll('#profileFavoritesList .favorite-item').forEach(el => {
+                            el.addEventListener('click', () => { const id = el.getAttribute('data-id'); const type = el.getAttribute('data-type'); playMediaById(id, type); switchSection('filmes'); });
+                        });
+                    }
+                });
+            }
+        }
         
         document.getElementById('navCanaisBtn').onclick = () => setNavTab('canais');
         document.getElementById('navFilmesBtn').onclick = () => setNavTab('filmes');
@@ -4223,6 +4393,13 @@
         document.getElementById('cancelPostBtn').onclick = () => document.getElementById('createPostModal').classList.add('hidden');
         document.getElementById('submitPostBtn').onclick = submitPost;
         document.getElementById('postMediaInput').addEventListener('change', previewMedia);
+        
+        // Avatar upload listener
+        document.getElementById('avatarUploadInput').addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
+                uploadProfileAvatar(e.target.files[0]);
+            }
+        });
         
         document.getElementById('doLogin').onclick = () => { const email = document.getElementById('loginEmail').value; const password = document.getElementById('loginPassword').value; auth.signInWithEmailAndPassword(email, password).catch(e => showToast('Erro: ' + e.message)); };
         document.getElementById('doRegister').onclick = registerUser;
