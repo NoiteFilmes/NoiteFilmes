@@ -2761,7 +2761,7 @@
                             <span id="reportBadgeCount" class="badge-count hidden">0</span>
                         </button>
                     </div>
-                    <div id="adminFormArea" class="bg-gray-800/50 p-3 rounded-xl mb-3"><h3 class="font-semibold text-sm mb-2 text-white" id="formTitle">Adicionar / Editar</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-2"><input type="text" id="itemTitle" placeholder="Título" class="bg-gray-700 p-1.5 rounded-full text-xs text-white"><div class="link-input-wrapper flex gap-2"><input type="text" id="itemLink" placeholder="Link (YouTube ou .m3u8)" class="bg-gray-700 p-1.5 rounded-full text-xs flex-1 text-white"><button id="autoFillBtn" class="auto-fill-btn bg-red-600 px-2 rounded-full text-[10px] transition hover:bg-red-700 ripple-btn">Auto</button></div><input type="text" id="itemThumb" placeholder="Miniatura URL" class="bg-gray-700 p-1.5 rounded-full text-xs text-white"><input type="text" id="itemCategory" placeholder="Gênero" class="bg-gray-700 p-1.5 rounded-full text-xs text-white"><input type="text" id="itemYear" placeholder="Ano" class="bg-gray-700 p-1.5 rounded-full text-xs text-white"><textarea id="itemDescription" rows="2" placeholder="Descrição" class="bg-gray-700 p-1.5 rounded-xl text-xs text-white col-span-2"></textarea></div><div class="iptv-selector flex gap-3 mt-2"><label class="text-xs text-gray-300"><input type="radio" name="mediaType" value="youtube" checked> 🎬 YouTube</label><label class="text-xs text-gray-300"><input type="radio" name="mediaType" value="iptv"> 📡 IPTV (.m3u8)</label></div><div class="mt-2 flex gap-2"><button id="saveItemBtn" class="bg-green-700 hover:bg-green-800 px-3 py-1 rounded-full text-xs transition ripple-btn">Salvar</button><button id="cancelEditBtn" class="bg-gray-600 hover:bg-gray-500 px-3 py-1 rounded-full text-xs hidden transition ripple-btn">Cancelar</button></div></div>
+                    <div id="adminFormArea" class="bg-gray-800/50 p-3 rounded-xl mb-3"><h3 class="font-semibold text-sm mb-2 text-white" id="formTitle">Adicionar / Editar</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-2"><input type="text" id="itemTitle" placeholder="Título" class="bg-gray-700 p-1.5 rounded-full text-xs text-white"><div class="link-input-wrapper flex gap-2"><input type="text" id="itemLink" placeholder="Link (YouTube, .m3u8 ou .m3u)" class="bg-gray-700 p-1.5 rounded-full text-xs flex-1 text-white"><button id="autoFillBtn" class="auto-fill-btn bg-red-600 px-2 rounded-full text-[10px] transition hover:bg-red-700 ripple-btn">Auto</button></div><input type="text" id="itemThumb" placeholder="Miniatura URL" class="bg-gray-700 p-1.5 rounded-full text-xs text-white"><input type="text" id="itemCategory" placeholder="Gênero" class="bg-gray-700 p-1.5 rounded-full text-xs text-white"><input type="text" id="itemYear" placeholder="Ano" class="bg-gray-700 p-1.5 rounded-full text-xs text-white"><textarea id="itemDescription" rows="2" placeholder="Descrição" class="bg-gray-700 p-1.5 rounded-xl text-xs text-white col-span-2"></textarea></div><div class="iptv-selector flex gap-3 mt-2"><label class="text-xs text-gray-300"><input type="radio" name="mediaType" value="youtube" checked> 🎬 YouTube</label><label class="text-xs text-gray-300"><input type="radio" name="mediaType" value="iptv"> 📡 IPTV (.m3u8/.m3u)</label></div><div class="mt-2 flex gap-2"><button id="saveItemBtn" class="bg-green-700 hover:bg-green-800 px-3 py-1 rounded-full text-xs transition ripple-btn">Salvar</button><button id="cancelEditBtn" class="bg-gray-600 hover:bg-gray-500 px-3 py-1 rounded-full text-xs hidden transition ripple-btn">Cancelar</button></div></div>
                     <div id="batchFilmesArea" class="bg-gray-800/50 p-3 rounded-xl mb-3"><h3 class="font-semibold text-sm mb-1 text-white">📦 Adicionar Lote</h3><textarea id="batchLinksInput" rows="2" class="batch-input w-full p-2 rounded-xl text-xs bg-gray-700 text-white"></textarea><div class="flex gap-2 mt-2"><button id="previewBatchBtn" class="bg-blue-700 hover:bg-blue-800 px-2 py-1 rounded-full text-xs transition ripple-btn">🔍 Prévia</button><button id="saveBatchBtn" class="bg-green-700 hover:bg-green-800 px-2 py-1 rounded-full text-xs transition ripple-btn">💾 Salvar Lote</button></div><div id="batchPreview" class="mt-2 text-xs max-h-28 overflow-y-auto text-gray-300"></div></div>
                     <div id="batchSeriesArea" class="bg-gray-800/50 p-3 rounded-xl mb-3 hidden"><h3 class="font-semibold text-sm mb-1 text-white">📺 Adicionar Episódios</h3><input type="text" id="serieTitle" placeholder="Nome da Série" class="bg-gray-700 p-1.5 rounded-full w-full text-xs text-white mb-1"><textarea id="episodesLinksInput" rows="2" class="batch-input w-full p-2 rounded-xl text-xs bg-gray-700 text-white"></textarea><button id="saveEpisodesBtn" class="bg-green-700 hover:bg-green-800 px-2 py-1 rounded-full text-xs mt-1 transition ripple-btn">💾 Salvar</button></div>
                     <div id="adminListsContainer"><div id="adminCanaisList" class="mb-3 hidden"><h3 class="font-bold text-xs mb-1 text-white">Canais</h3><div id="canaisAdminList" class="space-y-1 max-h-32 overflow-y-auto"></div></div><div id="adminFilmesList"><h3 class="font-bold text-xs mb-1 text-white">Filmes</h3><div id="filmesAdminList" class="space-y-1 max-h-32 overflow-y-auto"></div></div><div id="adminSeriesList" class="hidden"><h3 class="font-bold text-xs mb-1 text-white">Séries</h3><div id="seriesAdminList" class="space-y-1 max-h-32 overflow-y-auto"></div></div><div id="adminDuplicadosList" class="hidden"><h3 class="font-bold text-xs mb-1 text-white">🎬 Filmes Duplicados</h3><div id="duplicadosAdminList" class="space-y-2 max-h-48 overflow-y-auto text-xs"></div></div></div>
@@ -3872,46 +3872,98 @@
         
         // ==================== FUNÇÕES AUXILIARES ====================
         function extractYoutubeId(url) { if (!url) return null; const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/; const match = url.match(regExp); return (match && match[2].length === 11) ? match[2] : null; }
-        function isIptvLink(url) { if (!url) return false; return url.includes('.m3u8') || url.includes('playlist') || url.includes('sdp') || url.includes('mpd') || url.includes('.m3u'); }
+        function isIptvLink(url) { if (!url) return false; return url.includes('.m3u8') || url.includes('.m3u') || url.includes('playlist') || url.includes('sdp') || url.includes('mpd'); }
+        
+        // Função melhorada para buscar dados do YouTube (título, descrição, thumbnail, ano, gênero)
+        async function fetchYouTubeVideoData(videoId) {
+            try {
+                // Tentar buscar via oEmbed primeiro (mais rápido, sem API key)
+                const oembedRes = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
+                const oembedData = await oembedRes.json();
+                
+                let title = oembedData.title || 'Sem título';
+                let description = oembedData.title || '';
+                let thumb = oembedData.thumbnail_url || `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                let year = new Date().getFullYear().toString();
+                let genre = 'Geral';
+                
+                // Tentar buscar dados adicionais via API do YouTube (para descrição completa, ano e gênero)
+                try {
+                    const apiKey = 'AIzaSyD7wE6M3k7xJ5pLqR2tY9uI8oP1zXcVbN';
+                    const apiRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${apiKey}`);
+                    const apiData = await apiRes.json();
+                    
+                    if (apiData.items && apiData.items[0] && apiData.items[0].snippet) {
+                        const snippet = apiData.items[0].snippet;
+                        description = snippet.description || oembedData.title;
+                        if (snippet.publishedAt) {
+                            year = new Date(snippet.publishedAt).getFullYear().toString();
+                        }
+                        // Tentar detectar gênero pelo título
+                        const titleLower = snippet.title.toLowerCase();
+                        const genres = ['ação', 'comédia', 'drama', 'terror', 'ficção', 'romance', 'aventura', 'suspense', 'animação', 'documentário', 'ação', 'comedia', 'drama', 'terror', 'ficcao', 'romance', 'aventura', 'suspense', 'animacao', 'documentario'];
+                        for (let g of genres) {
+                            if (titleLower.includes(g)) {
+                                genre = g.charAt(0).toUpperCase() + g.slice(1);
+                                if (genre === 'Comedia') genre = 'Comédia';
+                                if (genre === 'Ficcao') genre = 'Ficção';
+                                if (genre === 'Animacao') genre = 'Animação';
+                                if (genre === 'Documentario') genre = 'Documentário';
+                                break;
+                            }
+                        }
+                    }
+                } catch (apiError) {
+                    console.log('API do YouTube não disponível, usando dados básicos');
+                }
+                
+                return { title, description: description.substring(0, 500), thumb, year, genre };
+            } catch (error) {
+                console.error('Erro ao buscar dados do YouTube:', error);
+                return null;
+            }
+        }
         
         async function fetchVideoDataFromLink(link, mediaType) {
             const videoId = extractYoutubeId(link);
             if (mediaType === 'youtube' && videoId) {
-                try {
-                    showToast('🔍 Buscando dados do vídeo no YouTube...');
-                    const oembedRes = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
-                    const oembedData = await oembedRes.json();
-                    let year = new Date().getFullYear();
-                    let genre = 'Geral';
-                    let description = oembedData.title || '';
-                    try {
-                        const apiKey = 'AIzaSyD7wE6M3k7xJ5pLqR2tY9uI8oP1zXcVbN';
-                        const apiRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${apiKey}`);
-                        const apiData = await apiRes.json();
-                        if (apiData.items && apiData.items[0] && apiData.items[0].snippet) {
-                            const snippet = apiData.items[0].snippet;
-                            description = snippet.description || oembedData.title;
-                            if (snippet.publishedAt) year = new Date(snippet.publishedAt).getFullYear();
-                            const title = snippet.title.toLowerCase();
-                            const genres = ['ação', 'comédia', 'drama', 'terror', 'ficção', 'romance', 'aventura', 'suspense', 'animação', 'documentário'];
-                            for (let g of genres) if (title.includes(g)) { genre = g.charAt(0).toUpperCase() + g.slice(1); break; }
-                        }
-                    } catch (e) { console.log('API Key não disponível'); }
-                    return { title: oembedData.title || 'Sem título', description: description.substring(0, 500), thumb: oembedData.thumbnail_url || `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`, year: year.toString(), genre: genre, link: link };
-                } catch (error) { showToast('⚠️ Erro ao buscar dados.'); return null; }
+                showToast('🔍 Buscando dados do vídeo no YouTube...');
+                const videoData = await fetchYouTubeVideoData(videoId);
+                if (videoData) {
+                    return { 
+                        title: videoData.title, 
+                        description: videoData.description, 
+                        thumb: videoData.thumb, 
+                        year: videoData.year, 
+                        genre: videoData.genre, 
+                        link: link 
+                    };
+                }
+                return null;
             } else if (mediaType === 'iptv' && isIptvLink(link)) {
                 let fileName = '';
-                try { const urlParts = link.split('/'); fileName = urlParts[urlParts.length-1].split('.')[0]; fileName = fileName.replace(/[_-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()); } catch(e) {}
-                return { title: fileName || 'Canal IPTV', description: 'Conteúdo IPTV - Streaming ao vivo', thumb: 'https://via.placeholder.com/300x200?text=IPTV', year: new Date().getFullYear().toString(), genre: 'IPTV', link: link };
+                try { 
+                    const urlParts = link.split('/'); 
+                    fileName = urlParts[urlParts.length-1].split('.')[0]; 
+                    fileName = fileName.replace(/[_-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()); 
+                } catch(e) {}
+                return { 
+                    title: fileName || 'Canal IPTV', 
+                    description: 'Conteúdo IPTV - Streaming ao vivo', 
+                    thumb: 'https://via.placeholder.com/300x200?text=IPTV', 
+                    year: new Date().getFullYear().toString(), 
+                    genre: 'IPTV', 
+                    link: link 
+                };
             }
-            showToast('⚠️ Link não reconhecido.');
+            showToast('⚠️ Link não reconhecido. Use YouTube, .m3u8 ou .m3u');
             return null;
         }
         
         async function autoFillFromLink() {
             const link = document.getElementById('itemLink').value.trim();
             const mediaType = document.querySelector('input[name="mediaType"]:checked').value;
-            if (!link) { showToast('Cole um link do YouTube ou .m3u8 primeiro!'); return; }
+            if (!link) { showToast('Cole um link do YouTube, .m3u8 ou .m3u primeiro!'); return; }
             const videoData = await fetchVideoDataFromLink(link, mediaType);
             if (videoData) {
                 if (videoData.title) document.getElementById('itemTitle').value = videoData.title;
@@ -3920,22 +3972,20 @@
                 if (videoData.genre) document.getElementById('itemCategory').value = videoData.genre;
                 if (videoData.description) document.getElementById('itemDescription').value = videoData.description;
                 showToast('✅ Campos preenchidos automaticamente!');
+            } else {
+                showToast('❌ Não foi possível obter dados do link');
             }
         }
         
         async function fetchVideoDescription(videoUrl, title) {
             const videoId = extractYoutubeId(videoUrl);
             if (videoId) {
-                try {
-                    const apiKey = 'AIzaSyD7wE6M3k7xJ5pLqR2tY9uI8oP1zXcVbN';
-                    const response = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${apiKey}`);
-                    const data = await response.json();
-                    if (data.items && data.items[0] && data.items[0].snippet && data.items[0].snippet.description) {
-                        let desc = data.items[0].snippet.description;
-                        if (desc.length > 500) desc = desc.substring(0, 500) + '...';
-                        return desc;
-                    }
-                } catch (e) { console.log(e); }
+                const videoData = await fetchYouTubeVideoData(videoId);
+                if (videoData && videoData.description) {
+                    let desc = videoData.description;
+                    if (desc.length > 500) desc = desc.substring(0, 500) + '...';
+                    return desc;
+                }
                 return `🎬 ${title} - Assista este vídeo incrível no NoiteFilmes! Compartilhe com seus amigos.`;
             }
             return `📺 ${title} - Conteúdo exclusivo disponível no NoiteFilmes. Aproveite!`;
@@ -4275,11 +4325,11 @@
         function editItem(id, type) { let item = null; if (type === 'canais') item = canais.find(c => c.id === id); else if (type === 'filmes') item = filmes.find(f => f.id === id); else if (type === 'series') item = series.find(s => s.id === id); if (!item) return; editingItem = { ...item, type: type }; document.getElementById('itemTitle').value = item.title; document.getElementById('itemLink').value = item.link; document.getElementById('itemThumb').value = item.thumb || ''; document.getElementById('itemCategory').value = item.category || ''; document.getElementById('itemYear').value = item.year || ''; document.getElementById('itemDescription').value = item.description || ''; const mediaTypeRadio = item.mediaType === 'iptv' ? 'iptv' : 'youtube'; document.querySelector(`input[name="mediaType"][value="${mediaTypeRadio}"]`).checked = true; document.getElementById('cancelEditBtn').classList.remove('hidden'); document.getElementById('formTitle').innerHTML = '✏️ Editando: ' + item.title.substring(0, 25); showToast('Modo edição ativado.'); }
         function resetForm() { document.getElementById('itemTitle').value = ''; document.getElementById('itemLink').value = ''; document.getElementById('itemThumb').value = ''; document.getElementById('itemCategory').value = ''; document.getElementById('itemYear').value = ''; document.getElementById('itemDescription').value = ''; document.querySelector('input[name="mediaType"][value="youtube"]').checked = true; editingItem = null; document.getElementById('cancelEditBtn').classList.add('hidden'); document.getElementById('formTitle').innerHTML = 'Adicionar / Editar'; }
         function generateSafeId() { return Date.now() + '-' + Math.random().toString(36).substring(2, 15); }
-        async function saveSingleItem() { const title = document.getElementById('itemTitle').value.trim(); let link = document.getElementById('itemLink').value.trim(); const thumb = document.getElementById('itemThumb').value.trim(); const category = document.getElementById('itemCategory').value.trim(); const year = document.getElementById('itemYear').value.trim(); const description = document.getElementById('itemDescription').value.trim(); const mediaType = document.querySelector('input[name="mediaType"]:checked').value; if (!title || !link) { showToast('❌ Preencha título e link'); return; } if (mediaType === 'youtube') { if (!extractYoutubeId(link)) { showToast('❌ Link do YouTube inválido.'); return; } } else if (mediaType === 'iptv') { if (!isIptvLink(link)) { showToast('❌ Link IPTV inválido.'); return; } } const activeAdminTab = document.querySelector('#adminPanel .admin-tab-btn.border-b-2.border-red-600')?.id; let finalThumb = thumb; if (mediaType === 'youtube' && !finalThumb) { const videoId = extractYoutubeId(link); if (videoId) finalThumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`; } if (!finalThumb) finalThumb = 'https://via.placeholder.com/300x200'; const itemData = { title, link, thumb: finalThumb, category: category || (mediaType === 'iptv' ? 'IPTV' : 'Geral'), year: year || new Date().getFullYear(), description: description || title, mediaType, createdAt: Date.now() }; try { if (editingItem) { const refPath = editingItem.type === 'canais' ? `canais/${editingItem.id}` : (editingItem.type === 'filmes' ? `filmes/${editingItem.id}` : `series/${editingItem.id}`); await database.ref(refPath).update(itemData); showToast('✅ Item atualizado!'); resetForm(); if (editingItem.type === 'canais') loadCanaisFromFirebase(); else if (editingItem.type === 'filmes') loadFilmesFromFirebase(); else if (editingItem.type === 'series') loadSeriesFromFirebase(); } else { const safeId = generateSafeId(); const newItem = { id: safeId, ...itemData }; if (activeAdminTab === 'adminTabCanais') { await database.ref(`canais/${safeId}`).set(newItem); showToast('✅ Canal salvo!'); loadCanaisFromFirebase(); } else if (activeAdminTab === 'adminTabFilmes') { await database.ref(`filmes/${safeId}`).set(newItem); showToast('✅ Filme salvo!'); loadFilmesFromFirebase(); } else if (activeAdminTab === 'adminTabSeries') { await database.ref(`series/${safeId}`).set(newItem); showToast('✅ Episódio salvo!'); loadSeriesFromFirebase(); } resetForm(); } } catch (error) { console.error(error); showToast('❌ Erro ao salvar: ' + error.message); } }
-        async function previewBatch() { const linksText = document.getElementById('batchLinksInput').value; const links = linksText.split('\n').filter(l => l.trim() && extractYoutubeId(l.trim())); const previewDiv = document.getElementById('batchPreview'); if (links.length === 0) { previewDiv.innerHTML = '<div class="text-yellow-500 text-[10px]">⚠️ Nenhum link válido</div>'; return; } previewDiv.innerHTML = '<div class="text-yellow-500 text-[10px]">🔄 Buscando...</div>'; const items = []; for (let i = 0; i < links.length; i++) { const link = links[i].trim(); const metadata = await fetchVideoDataFromLink(link, 'youtube'); if (metadata) items.push(metadata); } batchPreviewItems = items; if (items.length === 0) { previewDiv.innerHTML = '<div class="text-red-500 text-[10px]">❌ Nenhum vídeo encontrado</div>'; return; } const existingTitles = filmes.map(f => f.title); const previewHtml = items.map((item) => { const isDuplicate = existingTitles.includes(item.title); return `<div class="p-0.5 border-b border-white/10 text-[10px] ${isDuplicate ? 'duplicate-item' : ''}"><div class="flex justify-between"><span><strong>${item.title.substring(0, 25)}</strong></span>${isDuplicate ? '<span class="text-red-500">⚠️</span>' : '<span class="text-green-500">✅</span>'}</div></div>`; }).join(''); previewDiv.innerHTML = `<div class="mb-0.5 text-[10px]">📊 ${items.length} filmes | ${items.filter(i => existingTitles.includes(i.title)).length} duplicados</div>${previewHtml}`; showToast(`✅ ${items.length} filmes carregados`); }
+        async function saveSingleItem() { const title = document.getElementById('itemTitle').value.trim(); let link = document.getElementById('itemLink').value.trim(); const thumb = document.getElementById('itemThumb').value.trim(); const category = document.getElementById('itemCategory').value.trim(); const year = document.getElementById('itemYear').value.trim(); const description = document.getElementById('itemDescription').value.trim(); const mediaType = document.querySelector('input[name="mediaType"]:checked').value; if (!title || !link) { showToast('❌ Preencha título e link'); return; } if (mediaType === 'youtube') { if (!extractYoutubeId(link)) { showToast('❌ Link do YouTube inválido.'); return; } } else if (mediaType === 'iptv') { if (!isIptvLink(link)) { showToast('❌ Link IPTV inválido. Use .m3u8 ou .m3u'); return; } } const activeAdminTab = document.querySelector('#adminPanel .admin-tab-btn.border-b-2.border-red-600')?.id; let finalThumb = thumb; if (mediaType === 'youtube' && !finalThumb) { const videoId = extractYoutubeId(link); if (videoId) finalThumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`; } if (!finalThumb) finalThumb = 'https://via.placeholder.com/300x200'; const itemData = { title, link, thumb: finalThumb, category: category || (mediaType === 'iptv' ? 'IPTV' : 'Geral'), year: year || new Date().getFullYear(), description: description || title, mediaType, createdAt: Date.now() }; try { if (editingItem) { const refPath = editingItem.type === 'canais' ? `canais/${editingItem.id}` : (editingItem.type === 'filmes' ? `filmes/${editingItem.id}` : `series/${editingItem.id}`); await database.ref(refPath).update(itemData); showToast('✅ Item atualizado!'); resetForm(); if (editingItem.type === 'canais') loadCanaisFromFirebase(); else if (editingItem.type === 'filmes') loadFilmesFromFirebase(); else if (editingItem.type === 'series') loadSeriesFromFirebase(); } else { const safeId = generateSafeId(); const newItem = { id: safeId, ...itemData }; if (activeAdminTab === 'adminTabCanais') { await database.ref(`canais/${safeId}`).set(newItem); showToast('✅ Canal salvo!'); loadCanaisFromFirebase(); } else if (activeAdminTab === 'adminTabFilmes') { await database.ref(`filmes/${safeId}`).set(newItem); showToast('✅ Filme salvo!'); loadFilmesFromFirebase(); } else if (activeAdminTab === 'adminTabSeries') { await database.ref(`series/${safeId}`).set(newItem); showToast('✅ Episódio salvo!'); loadSeriesFromFirebase(); } resetForm(); } } catch (error) { console.error(error); showToast('❌ Erro ao salvar: ' + error.message); } }
+        async function previewBatch() { const linksText = document.getElementById('batchLinksInput').value; const links = linksText.split('\n').filter(l => l.trim() && (extractYoutubeId(l.trim()) || isIptvLink(l.trim()))); const previewDiv = document.getElementById('batchPreview'); if (links.length === 0) { previewDiv.innerHTML = '<div class="text-yellow-500 text-[10px]">⚠️ Nenhum link válido (YouTube, .m3u8 ou .m3u)</div>'; return; } previewDiv.innerHTML = '<div class="text-yellow-500 text-[10px]">🔄 Buscando...</div>'; const items = []; for (let i = 0; i < links.length; i++) { const link = links[i].trim(); let metadata; if (extractYoutubeId(link)) metadata = await fetchVideoDataFromLink(link, 'youtube'); else if (isIptvLink(link)) metadata = await fetchVideoDataFromLink(link, 'iptv'); if (metadata) items.push(metadata); } batchPreviewItems = items; if (items.length === 0) { previewDiv.innerHTML = '<div class="text-red-500 text-[10px]">❌ Nenhum vídeo encontrado</div>'; return; } const existingTitles = filmes.map(f => f.title); const previewHtml = items.map((item) => { const isDuplicate = existingTitles.includes(item.title); return `<div class="p-0.5 border-b border-white/10 text-[10px] ${isDuplicate ? 'duplicate-item' : ''}"><div class="flex justify-between"><span><strong>${item.title.substring(0, 25)}</strong></span>${isDuplicate ? '<span class="text-red-500">⚠️</span>' : '<span class="text-green-500">✅</span>'}</div></div>`; }).join(''); previewDiv.innerHTML = `<div class="mb-0.5 text-[10px]">📊 ${items.length} filmes | ${items.filter(i => existingTitles.includes(i.title)).length} duplicados</div>${previewHtml}`; showToast(`✅ ${items.length} filmes carregados`); }
         let batchPreviewItems = [];
-        async function saveBatch() { if (batchPreviewItems.length === 0) { showToast('❌ Clique em "Pré-visualizar" primeiro'); return; } const existingTitles = filmes.map(f => f.title); const newItems = batchPreviewItems.filter(item => !existingTitles.includes(item.title)); const duplicates = batchPreviewItems.filter(item => existingTitles.includes(item.title)); if (duplicates.length > 0) { if (!confirm(`⚠️ ${duplicates.length} duplicados. Adicionar apenas ${newItems.length} novos?`)) return; } if (newItems.length === 0) { showToast('❌ Nenhum filme novo'); return; } showToast(`💾 Salvando ${newItems.length} filmes...`); let salvos = 0; for (let item of newItems) { const safeId = generateSafeId(); await database.ref(`filmes/${safeId}`).set({ id: safeId, title: item.title, link: item.link, thumb: item.thumb, category: item.genre, year: item.year, description: item.description, createdAt: Date.now(), mediaType: 'youtube' }); salvos++; } showToast(`✅ ${salvos} filmes salvos!`); document.getElementById('batchLinksInput').value = ''; document.getElementById('batchPreview').innerHTML = ''; batchPreviewItems = []; loadFilmesFromFirebase(); }
-        async function saveEpisodes() { const serieName = document.getElementById('serieTitle').value.trim(); const episodesText = document.getElementById('episodesLinksInput').value; if (!serieName) { alert('Digite o nome da série'); return; } const lines = episodesText.split('\n').filter(l => l.trim()); if (lines.length === 0) { alert('Cole os episódios'); return; } showToast(`💾 Salvando ${lines.length} episódios...`); let salvos = 0; for (let line of lines) { let episodeTitle = '', link = ''; if (line.includes(':')) { const parts = line.split(':'); episodeTitle = parts[0].trim(); link = parts.slice(1).join(':').trim(); } else { link = line.trim(); episodeTitle = `EP${String(salvos + 1).padStart(2, '0')}`; } const metadata = await fetchVideoDataFromLink(link, 'youtube'); const safeId = generateSafeId(); await database.ref(`series/${safeId}`).set({ id: safeId, title: `${serieName} - ${episodeTitle}`, link: link, thumb: metadata?.thumb || 'https://via.placeholder.com/300x200', category: metadata?.genre || 'Série', year: metadata?.year || new Date().getFullYear(), description: metadata?.description || `Episódio ${episodeTitle}`, createdAt: Date.now(), mediaType: 'youtube' }); salvos++; } showToast(`✅ ${salvos} episódios salvos!`); document.getElementById('serieTitle').value = ''; document.getElementById('episodesLinksInput').value = ''; loadSeriesFromFirebase(); }
+        async function saveBatch() { if (batchPreviewItems.length === 0) { showToast('❌ Clique em "Pré-visualizar" primeiro'); return; } const existingTitles = filmes.map(f => f.title); const newItems = batchPreviewItems.filter(item => !existingTitles.includes(item.title)); const duplicates = batchPreviewItems.filter(item => existingTitles.includes(item.title)); if (duplicates.length > 0) { if (!confirm(`⚠️ ${duplicates.length} duplicados. Adicionar apenas ${newItems.length} novos?`)) return; } if (newItems.length === 0) { showToast('❌ Nenhum filme novo'); return; } showToast(`💾 Salvando ${newItems.length} filmes...`); let salvos = 0; for (let item of newItems) { const safeId = generateSafeId(); const mediaType = extractYoutubeId(item.link) ? 'youtube' : 'iptv'; await database.ref(`filmes/${safeId}`).set({ id: safeId, title: item.title, link: item.link, thumb: item.thumb, category: item.genre, year: item.year, description: item.description, createdAt: Date.now(), mediaType: mediaType }); salvos++; } showToast(`✅ ${salvos} filmes salvos!`); document.getElementById('batchLinksInput').value = ''; document.getElementById('batchPreview').innerHTML = ''; batchPreviewItems = []; loadFilmesFromFirebase(); }
+        async function saveEpisodes() { const serieName = document.getElementById('serieTitle').value.trim(); const episodesText = document.getElementById('episodesLinksInput').value; if (!serieName) { alert('Digite o nome da série'); return; } const lines = episodesText.split('\n').filter(l => l.trim()); if (lines.length === 0) { alert('Cole os episódios'); return; } showToast(`💾 Salvando ${lines.length} episódios...`); let salvos = 0; for (let line of lines) { let episodeTitle = '', link = ''; if (line.includes(':')) { const parts = line.split(':'); episodeTitle = parts[0].trim(); link = parts.slice(1).join(':').trim(); } else { link = line.trim(); episodeTitle = `EP${String(salvos + 1).padStart(2, '0')}`; } let metadata; if (extractYoutubeId(link)) metadata = await fetchVideoDataFromLink(link, 'youtube'); else if (isIptvLink(link)) metadata = await fetchVideoDataFromLink(link, 'iptv'); const safeId = generateSafeId(); const mediaType = extractYoutubeId(link) ? 'youtube' : 'iptv'; await database.ref(`series/${safeId}`).set({ id: safeId, title: `${serieName} - ${episodeTitle}`, link: link, thumb: metadata?.thumb || 'https://via.placeholder.com/300x200', category: metadata?.genre || 'Série', year: metadata?.year || new Date().getFullYear(), description: metadata?.description || `Episódio ${episodeTitle}`, createdAt: Date.now(), mediaType: mediaType }); salvos++; } showToast(`✅ ${salvos} episódios salvos!`); document.getElementById('serieTitle').value = ''; document.getElementById('episodesLinksInput').value = ''; loadSeriesFromFirebase(); }
         function refreshAdminLists() { if (!isAdminLogged) return; document.getElementById('canaisAdminList').innerHTML = canais.map(c => `<div class="bg-white/10 p-1 rounded-lg flex justify-between items-center text-[10px] mb-0.5"><span>${c.title.substring(0, 20)}</span><div class="admin-item-actions flex gap-1"><button class="edit-canal edit-item-btn text-green-400 text-[10px] px-1" data-id="${c.id}" data-type="canais"><i class="fas fa-edit"></i></button><button class="delete-canal delete-item-btn text-red-400 text-[10px] px-1" data-id="${c.id}"><i class="fas fa-trash"></i></button></div></div>`).join(''); document.getElementById('filmesAdminList').innerHTML = filmes.map(f => `<div class="bg-white/10 p-1 rounded-lg flex justify-between items-center text-[10px] mb-0.5"><span>${f.title.substring(0, 20)}</span><div class="admin-item-actions flex gap-1"><button class="edit-filme edit-item-btn text-green-400 text-[10px] px-1" data-id="${f.id}" data-type="filmes"><i class="fas fa-edit"></i></button><button class="delete-filme delete-item-btn text-red-400 text-[10px] px-1" data-id="${f.id}"><i class="fas fa-trash"></i></button></div></div>`).join(''); document.getElementById('seriesAdminList').innerHTML = series.map(s => `<div class="bg-white/10 p-1 rounded-lg flex justify-between items-center text-[10px] mb-0.5"><span>${s.title.substring(0, 20)}</span><div class="admin-item-actions flex gap-1"><button class="edit-serie edit-item-btn text-green-400 text-[10px] px-1" data-id="${s.id}" data-type="series"><i class="fas fa-edit"></i></button><button class="delete-serie delete-item-btn text-red-400 text-[10px] px-1" data-id="${s.id}"><i class="fas fa-trash"></i></button></div></div>`).join(''); document.querySelectorAll('.edit-canal, .edit-filme, .edit-serie').forEach(btn => { btn.addEventListener('click', () => { const id = btn.getAttribute('data-id'); const type = btn.getAttribute('data-type'); editItem(id, type); }); }); document.querySelectorAll('.delete-canal').forEach(btn => btn.addEventListener('click', () => { const id = btn.getAttribute('data-id'); database.ref(`canais/${id}`).remove(); showToast('Canal removido'); loadCanaisFromFirebase(); })); document.querySelectorAll('.delete-filme').forEach(btn => btn.addEventListener('click', () => { const id = btn.getAttribute('data-id'); database.ref(`filmes/${id}`).remove(); showToast('Filme removido'); loadFilmesFromFirebase(); })); document.querySelectorAll('.delete-serie').forEach(btn => btn.addEventListener('click', () => { const id = btn.getAttribute('data-id'); database.ref(`series/${id}`).remove(); showToast('Episódio removido'); loadSeriesFromFirebase(); })); }
         function updateUserUI(user) { if (user) { hideLoginModal(); loadUserNickname(user.uid); database.ref(`favoritos/${user.uid}`).on('value', (snapshot) => { favoritos = snapshot.val() ? Object.values(snapshot.val()) : []; updateProfileUI(); }); database.ref('top10').on('value', (snapshot) => { const data = snapshot.val(); if (data) { top10List = data; renderTop10Carousel(); } else { generateTop10ByViews(); } }); updateProfileUI(); updateLastSeen(); database.ref(`usuarios/${user.uid}`).once('value').then(snap => { const data = snap.val(); if (data) { if (data.displayName) userProfileData.displayName = data.displayName; if (data.bio) userProfileData.bio = data.bio; if (data.externalLink) userProfileData.externalLink = data.externalLink; if (data.phone) userProfileData.phone = data.phone; if (data.whatsapp) userProfileData.whatsapp = data.whatsapp; if (data.avatarUrl) userProfileData.avatarUrl = data.avatarUrl; } }); loadChatList(); setupChatUnreadListener(); renderFeed(); } else { showLoginModal(); updateProfileUI(); } }
         async function loadUserNickname(userId) { const snapshot = await database.ref(`usuarios/${userId}`).once('value'); const data = snapshot.val(); if (data && data.nickname) { currentUsername = data.nickname; localStorage.setItem('noitefilmes_username', currentUsername); } }
