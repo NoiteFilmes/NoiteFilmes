@@ -3457,6 +3457,32 @@
             renderFeed();
         }
         
+        // Função para excluir repost - CORREÇÃO CRÍTICA
+        async function deleteRepost(postId) {
+            if (!currentUser) { showToast('Faça login para excluir repost'); return; }
+            const postSnapshot = await database.ref(`feed_posts/${postId}`).once('value');
+            const post = postSnapshot.val();
+            if (!post) { showToast('Postagem não encontrada'); return; }
+            // Verificar se é um repost (tem originalPostId) e se foi feito pelo usuário atual
+            if (!post.originalPostId || post.repostedBy !== currentUser.uid) {
+                showToast('Você só pode excluir seus próprios reposts');
+                return;
+            }
+            try {
+                // Remover o repost do feed
+                await database.ref(`feed_posts/${postId}`).remove();
+                // Atualizar a contagem de reposts no post original
+                const originalPostRef = database.ref(`feed_posts/${post.originalPostId}`);
+                await originalPostRef.child(`reposts/${currentUser.uid}`).remove();
+                await originalPostRef.child('repostsCount').transaction(count => (count || 1) - 1);
+                showToast('Repost removido com sucesso!');
+                renderFeed();
+            } catch (error) {
+                console.error('Erro ao excluir repost:', error);
+                showToast('Erro ao excluir repost');
+            }
+        }
+        
         async function sharePost(postId) {
             const postUrl = `${window.location.origin}?postId=${postId}`;
             if (navigator.share) {
@@ -3468,7 +3494,7 @@
             }
         }
         
-        // ==================== FUNÇÕES DE COMENTÁRIOS COMPLETAS ====================
+        // ==================== FUNÇÕES DE COMENTÁRIOS COMPLETAS (CORREÇÃO CRÍTICA) ====================
         async function addComment(postId, commentText) {
             if (!currentUser) { showToast('Faça login para comentar'); return; }
             if (!commentText.trim()) return;
@@ -3492,6 +3518,7 @@
                 commentsCountSpan.innerText = count === 1 ? '1 comentário' : `${count} comentários`;
             }
             if (document.getElementById(`comments-modal-${postId}`)) renderCommentsModal(postId);
+            renderFeed(); // Atualiza o feed para mostrar o comentário imediatamente
         }
         
         async function addReply(postId, commentId, replyText) {
@@ -3510,6 +3537,7 @@
             await database.ref(`feed_posts/${postId}/comments/${commentId}/replies/${replyId}`).set(replyData);
             showToast('Resposta adicionada!');
             if (document.getElementById(`comments-modal-${postId}`)) renderCommentsModal(postId);
+            renderFeed();
         }
         
         async function toggleCommentLike(postId, commentId, isReply, parentCommentId = null) {
@@ -3523,6 +3551,7 @@
             if (isLiked) await likeRef.remove();
             else await likeRef.set(true);
             if (document.getElementById(`comments-modal-${postId}`)) renderCommentsModal(postId);
+            renderFeed();
         }
         
         async function showCommentsModal(postId) {
@@ -3622,7 +3651,7 @@
             modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
             const submitBtn = modal.querySelector('#submitCommentModalBtn');
             const input = modal.querySelector('#newCommentModalInput');
-            submitBtn.onclick = async () => { const text = input.value.trim(); if (text) { await addComment(postId, text); await renderCommentsModal(postId); } };
+            submitBtn.onclick = async () => { const text = input.value.trim(); if (text) { await addComment(postId, text); await renderCommentsModal(postId); renderFeed(); } };
             input.onkeypress = (e) => { if (e.key === 'Enter') submitBtn.click(); };
         }
         
@@ -3636,7 +3665,7 @@
         }
         async function submitReply(postId, commentId) {
             const replyText = document.getElementById(`reply-text-${commentId}`).value.trim();
-            if (replyText) { await addReply(postId, commentId, replyText); document.getElementById(`reply-text-${commentId}`).value = ''; hideReplyInput(commentId); }
+            if (replyText) { await addReply(postId, commentId, replyText); document.getElementById(`reply-text-${commentId}`).value = ''; hideReplyInput(commentId); renderFeed(); }
         }
         
         // ==================== RENDER FEED ====================
@@ -3652,6 +3681,8 @@
                 feedContainer.innerHTML = '';
                 for (const post of postsList) {
                     const isOwner = currentUser && post.userId === currentUser.uid;
+                    // Verifica se é um repost do usuário atual para mostrar opção de excluir repost
+                    const isUserRepost = currentUser && post.originalPostId && post.repostedBy === currentUser.uid;
                     const isLiked = currentUser && post.likes && post.likes[currentUser.uid] === true;
                     const isSaved = currentUser && post.saves && post.saves[currentUser.uid] === true;
                     const likesCount = post.likesCount || 0;
@@ -3684,7 +3715,7 @@
                                     <span class="feed-post-time">${timeAgo}</span>
                                 </div>
                             </div>
-                            ${isOwner ? `<button class="feed-post-options ripple-btn" onclick="showPostOptions(event, '${post.id}')"><i class="fas fa-ellipsis-h"></i></button>` : ''}
+                            ${(isOwner || isUserRepost) ? `<button class="feed-post-options ripple-btn" onclick="showPostOptions(event, '${post.id}', ${isUserRepost})"><i class="fas fa-ellipsis-h"></i></button>` : ''}
                         </div>
                         ${mediaHtml}
                         <div class="feed-post-caption">
@@ -3724,7 +3755,7 @@
             return new Date(timestamp).toLocaleDateString('pt-BR');
         }
         
-        function showPostOptions(event, postId) {
+        function showPostOptions(event, postId, isRepost = false) {
             event.stopPropagation();
             const existingMenu = document.querySelector('.options-menu');
             if (existingMenu) existingMenu.remove();
@@ -3734,7 +3765,11 @@
             menu.className = 'options-menu';
             menu.style.top = rect.bottom + 5 + 'px';
             menu.style.right = (window.innerWidth - rect.right) + 'px';
-            menu.innerHTML = `<div class="options-menu-item danger" onclick="deletePost('${postId}')"><i class="fas fa-trash-alt"></i><span>Excluir publicação</span></div>`;
+            if (isRepost) {
+                menu.innerHTML = `<div class="options-menu-item danger" onclick="deleteRepost('${postId}')"><i class="fas fa-trash-alt"></i><span>Excluir repost</span></div>`;
+            } else {
+                menu.innerHTML = `<div class="options-menu-item danger" onclick="deletePost('${postId}')"><i class="fas fa-trash-alt"></i><span>Excluir publicação</span></div>`;
+            }
             document.body.appendChild(menu);
             setTimeout(() => {
                 document.addEventListener('click', function closeMenu(e) { if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('click', closeMenu); } });
@@ -3972,7 +4007,9 @@
                 const postsSnap = await database.ref(`feed_posts`).orderByChild('userId').equalTo(uid).once('value');
                 const posts = postsSnap.val();
                 const postsList = posts ? Object.values(posts) : [];
-                const totalPosts = postsList.length;
+                // ORDENAÇÃO CORRETA: do mais recente para o mais antigo
+                const sortedPostsList = postsList.sort((a, b) => b.createdAt - a.createdAt);
+                const totalPosts = sortedPostsList.length;
                 
                 const followersSnap = await database.ref(`followers/${uid}`).once('value');
                 const followingSnap = await database.ref(`following/${uid}`).once('value');
@@ -4118,8 +4155,10 @@
                 const postsSnap = await database.ref(`feed_posts`).orderByChild('userId').equalTo(uid).once('value');
                 const posts = postsSnap.val();
                 const postsList = posts ? Object.values(posts) : [];
-                if (postsList.length === 0) { container.innerHTML = '<div class="text-center text-gray-500 py-4 text-xs">Nenhuma postagem ainda</div>'; return; }
-                const gridHtml = `<div class="post-grid">${postsList.map(post => `
+                // ORDENAÇÃO CORRETA: do mais recente para o mais antigo
+                const sortedPostsList = postsList.sort((a, b) => b.createdAt - a.createdAt);
+                if (sortedPostsList.length === 0) { container.innerHTML = '<div class="text-center text-gray-500 py-4 text-xs">Nenhuma postagem ainda</div>'; return; }
+                const gridHtml = `<div class="post-grid">${sortedPostsList.map(post => `
                     <div class="post-grid-item ripple-btn" data-post-id="${post.id}" onclick="viewPostDetail('${post.id}')">
                         ${post.mediaType === 'video' ? `<video src="${post.mediaUrl}" style="width:100%;height:100%;object-fit:cover;"></video>` : `<img src="${post.mediaUrl}" onerror="this.src='https://via.placeholder.com/150x150'">`}
                     </div>
@@ -4261,7 +4300,7 @@
             }).catch(error => showToast('Erro ao atualizar perfil: ' + error.message));
         }
         
-        // ==================== UPLOAD DE AVATAR COM COMPRESSÃO ====================
+        // ==================== UPLOAD DE AVATAR COM COMPRESSÃO E ASSOCIAÇÃO INDIVIDUAL ====================
         async function uploadProfileAvatar(file) {
             if (!file || !currentUser) return;
             
@@ -4306,6 +4345,7 @@
                 
                 const imageUrl = await uploadPromise;
                 
+                // Salvar apenas no usuário atual - cada usuário tem sua própria foto
                 await database.ref(`usuarios/${currentUser.uid}/avatarUrl`).set(imageUrl);
                 userProfileData.avatarUrl = imageUrl;
                 
@@ -5027,6 +5067,7 @@
         window.toggleSave = toggleSave;
         window.showCommentsModal = showCommentsModal;
         window.repost = repost;
+        window.deleteRepost = deleteRepost;
         window.sharePost = sharePost;
         window.deletePost = deletePost;
         window.showPostOptions = showPostOptions;
