@@ -32,7 +32,6 @@
             font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
         }
         
-        /* Glassmorphism Core */
         .glass {
             background: rgba(20, 25, 45, 0.5);
             backdrop-filter: blur(14px);
@@ -52,7 +51,6 @@
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
         }
         
-        /* Ripple Effect */
         .ripple-btn {
             position: relative;
             overflow: hidden;
@@ -81,7 +79,6 @@
             opacity: 0;
         }
         
-        /* Player Wrapper */
         .player-wrapper { 
             background: #000; 
             position: relative;
@@ -103,7 +100,6 @@
             background: #000;
         }
         
-        /* Botões uniformes */
         .action-btn, .report-btn, .share-native-btn {
             background: rgba(255,255,255,0.08);
             border-radius: 60px;
@@ -122,7 +118,6 @@
             background: rgba(229,9,20,0.25);
         }
         
-        /* ========== LAYOUT MOBILE VERTICAL ========== */
         @media (max-width: 768px) and (orientation: portrait) {
             .player-comments-container {
                 position: fixed;
@@ -259,7 +254,6 @@
             }
         }
         
-        /* ========== LAYOUT MOBILE HORIZONTAL ========== */
         @media (max-width: 1023px) and (orientation: landscape) {
             .player-comments-container {
                 position: fixed;
@@ -346,7 +340,6 @@
             }
         }
         
-        /* ========== LAYOUT DESKTOP ========== */
         @media (min-width: 1024px) {
             .player-comments-container {
                 position: fixed;
@@ -430,7 +423,6 @@
             }
         }
         
-        /* Light Mode */
         body.light-mode { 
             background: radial-gradient(circle at 10% 20%, #e0e8f5, #c5d0e5);
             color: #1a1a1a; 
@@ -446,7 +438,6 @@
             color: #1a1a1a;
         }
         
-        /* Toast */
         .toast { 
             position: fixed; 
             bottom: 90px; 
@@ -471,7 +462,6 @@
             100% { opacity: 0; visibility: hidden; } 
         }
         
-        /* Menu */
         .logo-line { 
             padding: 10px 16px; 
             border-bottom: 1px solid rgba(255,255,255,0.08); 
@@ -511,7 +501,6 @@
             border-color: rgba(229,9,20,0.6);
         }
         
-        /* Bottom Navigation */
         .bottom-nav {
             background: rgba(0, 0, 0, 0.6);
             backdrop-filter: blur(24px);
@@ -526,7 +515,6 @@
             color: #e50914;
         }
         
-        /* Rating Stars */
         .rating-stars i {
             font-size: 14px;
             color: rgba(255,255,255,0.25);
@@ -544,18 +532,15 @@
             opacity: 0.7;
         }
         
-        /* Genre Filter */
         .genre-filter-active { 
             background: linear-gradient(135deg, #e50914, #b20710) !important; 
             color: white !important; 
         }
         
-        /* Scrollbar */
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: rgba(255,255,255,0.08); border-radius: 10px; }
         ::-webkit-scrollbar-thumb { background: #e50914; border-radius: 10px; }
         
-        /* Counter */
         .counter-item {
             background: rgba(0,0,0,0.35);
             backdrop-filter: blur(8px);
@@ -564,7 +549,6 @@
             font-size: 0.65rem;
         }
         
-        /* Cast Button */
         .cast-btn.casting { 
             background: #e50914; 
             animation: pulse 1.5s infinite;
@@ -575,7 +559,6 @@
             100% { opacity: 0.8; box-shadow: 0 0 0 0 rgba(229,9,20,0); } 
         }
         
-        /* Description Toggle */
         .description-toggle {
             font-size: 0.65rem;
             color: #e50914;
@@ -588,7 +571,6 @@
             margin-top: 2px;
         }
         
-        /* Notification Badge */
         .notification-badge {
             position: relative;
             display: inline-flex;
@@ -611,7 +593,6 @@
             font-weight: bold;
         }
         
-        /* Report Popup */
         .report-popup {
             position: fixed;
             top: 0;
@@ -635,7 +616,6 @@
             max-width: 400px;
         }
         
-        /* Reply Popup */
         .reply-popup {
             position: fixed;
             top: 0;
@@ -659,7 +639,6 @@
             max-width: 450px;
         }
         
-        /* Report Detail Popup */
         .report-detail-popup {
             position: fixed;
             top: 0;
@@ -685,11 +664,9 @@
             overflow-y: auto;
         }
         
-        /* Seções */
         .section { display: none; }
         .section.active-section { display: block; }
         
-        /* Admin Inputs - Layout Melhorado */
         .batch-input, .admin-input {
             background: rgba(255,255,255,0.1);
             border: 1px solid rgba(255,255,255,0.2);
@@ -732,7 +709,6 @@
             align-items: center;
         }
         
-        /* Search Bar */
         .search-bar {
             background: rgba(255,255,255,0.1);
             border-radius: 60px;
@@ -754,7 +730,6 @@
             color: rgba(255,255,255,0.5);
         }
         
-        /* Reports Cards Melhorados */
         .report-card-improved {
             background: rgba(0,0,0,0.4);
             backdrop-filter: blur(8px);
@@ -782,7 +757,6 @@
             background: #b20710;
         }
         
-        /* ========== ESTILOS DO PERFIL INSTAGRAM (MELHORADO) ========== */
         .profile-header-instagram {
             text-align: center;
             position: relative;
@@ -873,7 +847,6 @@
             color: #0095f6;
             text-decoration: none;
         }
-        /* Tabs do perfil - scroll horizontal */
         .profile-tabs-container {
             overflow-x: auto;
             overflow-y: hidden;
@@ -957,7 +930,6 @@
             opacity: 0.8;
             text-decoration: underline;
         }
-        /* Edit Profile Modal */
         .edit-profile-modal {
             position: fixed;
             top: 0;
@@ -981,7 +953,6 @@
             max-width: 450px;
         }
         
-        /* Create Post Button */
         .create-post-btn {
             position: fixed;
             bottom: 80px;
@@ -1002,7 +973,6 @@
             transform: scale(0.92);
         }
         
-        /* Create Post Modal */
         .create-post-modal {
             position: fixed;
             top: 0;
@@ -1045,7 +1015,6 @@
             background: #1a1a1a;
         }
         
-        /* ========== ESTILOS DO FEED INSTAGRAM ========== */
         .instagram-feed-container {
             max-width: 600px;
             margin: 0 auto;
@@ -1212,7 +1181,6 @@
             text-decoration: underline;
         }
         
-        /* ========== ESTILOS DOS COMENTÁRIOS ========== */
         .comments-modal {
             position: fixed;
             top: 0;
@@ -1535,7 +1503,6 @@
             color: #e50914;
         }
         
-        /* ========== ESTILOS DO CHAT ========== */
         .chat-container {
             max-width: 1200px;
             margin: 0 auto;
@@ -2444,7 +2411,6 @@
             font-size: 0.65rem;
         }
 
-        /* Avatar upload styles */
         .avatar-upload-container {
             position: relative;
             cursor: pointer;
@@ -2495,7 +2461,6 @@
             transition: width 0.3s;
         }
 
-        /* Listas de seguidores/seguindo */
         .follow-list-modal {
             position: fixed;
             top: 0;
@@ -2579,7 +2544,6 @@
             opacity: 0.7;
         }
         
-        /* Loading indicator para compressão */
         .compression-toast {
             position: fixed;
             bottom: 100px;
@@ -2604,6 +2568,104 @@
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
+
+        /* Estilos para a busca global */
+        .global-search-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.95);
+            backdrop-filter: blur(20px);
+            z-index: 3000;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 60px;
+        }
+        .global-search-content {
+            background: rgba(25,25,45,0.95);
+            backdrop-filter: blur(24px);
+            border-radius: 32px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .global-search-header {
+            padding: 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .global-search-header h3 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .global-search-input-area {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .global-search-input-area input {
+            width: 100%;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 60px;
+            padding: 12px 16px;
+            color: white;
+            font-size: 14px;
+            outline: none;
+        }
+        .global-search-input-area input::placeholder {
+            color: rgba(255,255,255,0.5);
+        }
+        .global-search-results {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+        .global-search-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-bottom: 8px;
+            background: rgba(255,255,255,0.05);
+        }
+        .global-search-item:hover {
+            background: rgba(255,255,255,0.15);
+        }
+        .global-search-item-img {
+            width: 50px;
+            height: 70px;
+            border-radius: 10px;
+            object-fit: cover;
+            background: #1a1a1a;
+        }
+        .global-search-item-info {
+            flex: 1;
+        }
+        .global-search-item-title {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+        .global-search-item-type {
+            font-size: 11px;
+            opacity: 0.6;
+            margin-bottom: 4px;
+        }
+        .global-search-item-category {
+            font-size: 10px;
+            opacity: 0.5;
+        }
     </style>
     <script>
         (function blockPinchZoom() {
@@ -2620,13 +2682,9 @@
         })();
     </script>
     
-    <!-- Ícone para iOS / iPadOS (adicionar à tela de início) -->
-<link rel="apple-touch-icon" href="https://i.ibb.co/prnRsYbD/fd0f7999-e91b-44ce-ba4d-cdccb1ff6473.jpg">
-
-<!-- Ícone para Android / Chrome (tamanhos variados) -->
-<link rel="icon" sizes="192x192" href="https://i.ibb.co/prnRsYbD/fd0f7999-e91b-44ce-ba4d-cdccb1ff6473.jpg">
-<link rel="icon" sizes="512x512" href="https://i.ibb.co/prnRsYbD/fd0f7999-e91b-44ce-ba4d-cdccb1ff6473.jpg">
-        
+    <link rel="apple-touch-icon" href="https://i.ibb.co/prnRsYbD/fd0f7999-e91b-44ce-ba4d-cdccb1ff6473.jpg">
+    <link rel="icon" sizes="192x192" href="https://i.ibb.co/prnRsYbD/fd0f7999-e91b-44ce-ba4d-cdccb1ff6473.jpg">
+    <link rel="icon" sizes="512x512" href="https://i.ibb.co/prnRsYbD/fd0f7999-e91b-44ce-ba4d-cdccb1ff6473.jpg">
     
 </head>
 <body class="dark-mode">
@@ -2661,13 +2719,6 @@
         <div class="nav-item ripple-btn" id="adminBtn"><i class="fas fa-user-cog"></i><span>Admin</span></div>
         <div class="cast-btn w-7 h-7 rounded-full flex items-center justify-center bg-black/50 border border-red-500/50 ripple-btn" id="castButton"><i class="fas fa-tv text-xs"></i></div>
         <div class="nav-item ripple-btn" id="settingsBtn"><i class="fas fa-cog"></i><span>Ajustes</span></div>
-    </div>
-
-    <!-- Campo de Busca Global (visível nas seções de conteúdo) -->
-    <div id="searchBarContainer" class="search-bar">
-        <i class="fas fa-search text-gray-400 text-xs"></i>
-        <input type="text" id="globalSearchInput" placeholder="Buscar por título ou URL...">
-        <button id="clearSearchBtn" class="text-gray-400 hover:text-white text-xs"><i class="fas fa-times"></i></button>
     </div>
 
     <!-- Seção Filmes -->
@@ -2890,7 +2941,7 @@
         </div>
     </div>
 
-    <!-- Seção Perfil com layout Instagram MELHORADO (NOVO PERFIL) -->
+    <!-- Seção Perfil com layout Instagram -->
     <div id="perfilSection" class="section">
         <div id="instagramProfileContainer" class="instagram-profile-wrapper m-3 glass-card p-4"></div>
     </div>
@@ -2903,7 +2954,23 @@
         <div class="bottom-nav-item flex flex-col items-center gap-0 px-3 py-1 ripple-btn" data-section="perfil"><i class="fas fa-user text-lg"></i><span class="text-[10px] font-medium">Perfil</span></div>
     </div>
 
-    <!-- LOGIN MODAL -->
+    <!-- Modal de Busca Global (nova função) -->
+    <div id="globalSearchModal" class="global-search-modal hidden">
+        <div class="global-search-content">
+            <div class="global-search-header">
+                <h3><i class="fas fa-search mr-2"></i> Buscar Conteúdo</h3>
+                <button id="closeGlobalSearch" class="text-2xl text-gray-400 hover:text-white transition">&times;</button>
+            </div>
+            <div class="global-search-input-area">
+                <input type="text" id="globalSearchInputModal" placeholder="Digite o nome do filme, série ou canal..." autocomplete="off">
+            </div>
+            <div id="globalSearchResults" class="global-search-results">
+                <div class="text-center text-gray-500 py-8 text-sm">Digite para começar a buscar</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGIN MODAL (inalterado) -->
     <div id="loginModal" class="login-modal fixed inset-0 z-[2000] flex items-center justify-center bg-black/95 backdrop-blur-lg">
         <div class="login-box bg-[#1a1a1a] rounded-2xl p-6 w-[90%] max-w-[350px] border border-[#e50914]">
             <h2 class="text-xl font-bold mb-4 text-center text-white">🎬 NoiteFilmes</h2>
@@ -2937,15 +3004,6 @@
         </div>
     </div>
 
-    <!-- Search Popup -->
-    <div id="searchPopup" class="search-popup hidden fixed inset-0 z-[1000] flex items-start justify-center pt-16 bg-black/95 backdrop-blur-lg">
-        <div class="search-popup-content bg-[#1a1a1a] rounded-2xl p-5 w-[90%] max-w-[600px] border border-[#333]">
-            <div class="flex justify-between items-center mb-3"><h3 class="text-xl font-bold text-white">🔍 Buscar</h3><button id="closeSearchPopup" class="text-2xl text-gray-400 hover:text-white transition">&times;</button></div>
-            <input type="text" id="popupSearchInput" placeholder="Digite o nome..." class="w-full p-2 bg-[#2a2a2a] border-2 border-[#e50914] rounded-full text-white outline-none text-sm">
-            <div id="popupSearchResults" class="search-results-popup max-h-80 overflow-y-auto mt-3 space-y-2"></div>
-        </div>
-    </div>
-
     <!-- Admin Modal -->
     <div id="adminModal" class="fixed inset-0 bg-black/90 backdrop-blur-xl z-50 flex items-center justify-center p-2 hidden">
         <div class="bg-[#1a1a1a]/95 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-gray-700">
@@ -2954,7 +3012,7 @@
                 <button id="closeAdminModal" class="text-2xl text-gray-400 hover:text-white transition">&times;</button>
             </div>
             <div class="p-4">
-                <div id="adminLoginArea" class="mb-3"><label class="block mb-1 text-xs text-gray-300">Senha Admin:</label><div class="flex gap-2"><input type="password" id="adminPassword" placeholder="Senha" class="bg-gray-800 border border-gray-600 rounded-full px-3 py-1.5 flex-1 text-white text-sm"><button id="loginAdminBtn" class="bg-red-700 hover:bg-red-800 px-4 py-1.5 rounded-full text-sm text-white transition ripple-btn">Entrar</button></div><p class="text-[10px] text-gray-400 mt-1">Senha: <strong class="text-red-500">*******</strong></p></div>
+                <div id="adminLoginArea" class="mb-3"><label class="block mb-1 text-xs text-gray-300">Senha Admin:</label><div class="flex gap-2"><input type="password" id="adminPassword" placeholder="Senha" class="bg-gray-800 border border-gray-600 rounded-full px-3 py-1.5 flex-1 text-white text-sm"><button id="loginAdminBtn" class="bg-red-700 hover:bg-red-800 px-4 py-1.5 rounded-full text-sm text-white transition ripple-btn">Entrar</button></div><p class="text-[10px] text-gray-400 mt-1">Senha: <strong class="text-red-500">admin123</strong></p></div>
                 <div id="adminPanel" class="hidden">
                     <div class="flex space-x-2 border-b border-gray-700 mb-3">
                         <button id="adminTabCanais" class="admin-tab-btn py-1 px-2 text-gray-400 text-xs">Canais</button>
@@ -2968,7 +3026,6 @@
                     </div>
                     <div id="adminFormArea" class="bg-gray-800/50 p-3 rounded-xl mb-3">
                         <h3 class="font-semibold text-sm mb-2 text-white" id="formTitle">Adicionar / Editar</h3>
-                        <!-- Linha de campos otimizada: Miniatura 50%, Gênero 25%, Ano 25% -->
                         <div class="form-row-inline mb-2">
                             <input type="text" id="itemTitle" placeholder="Título" class="admin-input flex-1 w-full mb-2">
                             <div class="link-input-wrapper flex gap-2 w-full">
@@ -3025,7 +3082,7 @@
         </div>
     </div>
     
-    <!-- Edit Profile Modal MELHORADO com Telefone e WhatsApp -->
+    <!-- Edit Profile Modal -->
     <div id="editProfileModal" class="edit-profile-modal hidden">
         <div class="edit-profile-content">
             <h3 class="text-xl font-bold mb-4 text-center">✏️ Editar Perfil</h3>
@@ -3056,7 +3113,7 @@
         </div>
     </div>
 
-    <!-- Avatar Upload Input (hidden) -->
+    <!-- Avatar Upload Input -->
     <input type="file" id="avatarUploadInput" accept="image/*" style="display: none;">
 
     <script>
@@ -3114,7 +3171,6 @@
         let currentProfileViewMode = 'self';
         let otherProfileUserId = null;
         
-        // Dados do perfil do usuário (incluindo telefone/WhatsApp)
         let userProfileData = {
             displayName: '',
             bio: '',
@@ -3146,7 +3202,7 @@
         let currentAudio = null;
         let messageStatusListeners = new Map();
         
-        // ==================== FUNÇÕES DE POSTAGEM ====================
+        // ==================== VARIÁVEIS DE POSTAGEM ====================
         let selectedPostMediaFile = null;
         let selectedMediaType = null;
         
@@ -3203,12 +3259,7 @@
             });
         }
         
-        // ==================== FUNÇÃO DE COMPRESSÃO DE VÍDEO (via Cloudinary transformations como fallback) ====================
-        // Como compressão completa de vídeo no frontend é inviável, usamos Cloudinary com transformations
         async function compressVideo(file) {
-            // Para vídeos, não fazemos compressão no frontend (muito pesado)
-            // A compressão será feita via Cloudinary com transformations
-            // Apenas validamos o tamanho e retornamos o arquivo original
             if (file.size > 100 * 1024 * 1024) {
                 throw new Error('Vídeo muito grande. Máximo 100MB');
             }
@@ -3230,6 +3281,73 @@
             if (toast && toast.remove) toast.remove();
         }
         
+        // ==================== NOVA FUNÇÃO DE BUSCA GLOBAL ====================
+        function openGlobalSearch() {
+            document.getElementById('globalSearchModal').classList.remove('hidden');
+            document.getElementById('globalSearchInputModal').value = '';
+            document.getElementById('globalSearchResults').innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Digite para começar a buscar</div>';
+            document.getElementById('globalSearchInputModal').focus();
+        }
+        
+        function closeGlobalSearch() {
+            document.getElementById('globalSearchModal').classList.add('hidden');
+        }
+        
+        function performGlobalSearch() {
+            const term = document.getElementById('globalSearchInputModal').value.trim().toLowerCase();
+            const resultsContainer = document.getElementById('globalSearchResults');
+            
+            if (term.length === 0) {
+                resultsContainer.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Digite para começar a buscar</div>';
+                return;
+            }
+            
+            // Buscar em todos os tipos de conteúdo
+            const allItems = [
+                ...filmes.map(f => ({ ...f, type: 'filme', typeIcon: '🎬', typeName: 'Filme' })),
+                ...series.map(s => ({ ...s, type: 'serie', typeIcon: '📺', typeName: 'Série' })),
+                ...canais.map(c => ({ ...c, type: 'canal', typeIcon: '📡', typeName: 'Canal' }))
+            ];
+            
+            const matches = allItems.filter(item => 
+                item.title.toLowerCase().includes(term) || 
+                (item.category && item.category.toLowerCase().includes(term))
+            );
+            
+            if (matches.length === 0) {
+                resultsContainer.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Nenhum resultado encontrado</div>';
+                return;
+            }
+            
+            resultsContainer.innerHTML = matches.map(item => `
+                <div class="global-search-item ripple-btn" data-id="${item.id}" data-type="${item.type}">
+                    <img src="${item.thumb || 'https://via.placeholder.com/50x70'}" class="global-search-item-img" onerror="this.src='https://via.placeholder.com/50x70'">
+                    <div class="global-search-item-info">
+                        <div class="global-search-item-title">${escapeHtml(item.title)}</div>
+                        <div class="global-search-item-type">${item.typeIcon} ${item.typeName}</div>
+                        <div class="global-search-item-category">${item.category || 'Geral'} ${item.year ? `• ${item.year}` : ''}</div>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Adicionar eventos de clique
+            document.querySelectorAll('#globalSearchResults .global-search-item').forEach(el => {
+                el.addEventListener('click', () => {
+                    const id = el.getAttribute('data-id');
+                    const type = el.getAttribute('data-type');
+                    let item;
+                    if (type === 'filme') item = filmes.find(f => f.id === id);
+                    else if (type === 'serie') item = series.find(s => s.id === id);
+                    else item = canais.find(c => c.id === id);
+                    if (item) {
+                        playMedia(item, type);
+                        closeGlobalSearch();
+                    }
+                });
+            });
+        }
+        
+        // ==================== FUNÇÕES DE POSTAGEM ====================
         function openCreatePostModal() {
             if (!currentUser) {
                 showToast('Faça login para criar uma postagem');
@@ -3457,21 +3575,17 @@
             renderFeed();
         }
         
-        // Função para excluir repost - CORREÇÃO CRÍTICA
         async function deleteRepost(postId) {
             if (!currentUser) { showToast('Faça login para excluir repost'); return; }
             const postSnapshot = await database.ref(`feed_posts/${postId}`).once('value');
             const post = postSnapshot.val();
             if (!post) { showToast('Postagem não encontrada'); return; }
-            // Verificar se é um repost (tem originalPostId) e se foi feito pelo usuário atual
             if (!post.originalPostId || post.repostedBy !== currentUser.uid) {
                 showToast('Você só pode excluir seus próprios reposts');
                 return;
             }
             try {
-                // Remover o repost do feed
                 await database.ref(`feed_posts/${postId}`).remove();
-                // Atualizar a contagem de reposts no post original
                 const originalPostRef = database.ref(`feed_posts/${post.originalPostId}`);
                 await originalPostRef.child(`reposts/${currentUser.uid}`).remove();
                 await originalPostRef.child('repostsCount').transaction(count => (count || 1) - 1);
@@ -3494,7 +3608,7 @@
             }
         }
         
-        // ==================== FUNÇÕES DE COMENTÁRIOS COMPLETAS (CORREÇÃO CRÍTICA) ====================
+        // ==================== FUNÇÕES DE COMENTÁRIOS ====================
         async function addComment(postId, commentText) {
             if (!currentUser) { showToast('Faça login para comentar'); return; }
             if (!commentText.trim()) return;
@@ -3518,7 +3632,7 @@
                 commentsCountSpan.innerText = count === 1 ? '1 comentário' : `${count} comentários`;
             }
             if (document.getElementById(`comments-modal-${postId}`)) renderCommentsModal(postId);
-            renderFeed(); // Atualiza o feed para mostrar o comentário imediatamente
+            renderFeed();
         }
         
         async function addReply(postId, commentId, replyText) {
@@ -3681,7 +3795,6 @@
                 feedContainer.innerHTML = '';
                 for (const post of postsList) {
                     const isOwner = currentUser && post.userId === currentUser.uid;
-                    // Verifica se é um repost do usuário atual para mostrar opção de excluir repost
                     const isUserRepost = currentUser && post.originalPostId && post.repostedBy === currentUser.uid;
                     const isLiked = currentUser && post.likes && post.likes[currentUser.uid] === true;
                     const isSaved = currentUser && post.saves && post.saves[currentUser.uid] === true;
@@ -3812,14 +3925,10 @@
             document.querySelectorAll('.bottom-nav-item').forEach(item => item.classList.remove('active'));
             document.querySelector(`.bottom-nav-item[data-section="${sectionId}"]`).classList.add('active');
             const topMenu = document.getElementById('topMenuContainer');
-            const searchBar = document.getElementById('searchBarContainer');
             if (sectionId === 'filmes') {
                 topMenu.style.display = 'flex';
-                searchBar.style.display = 'flex';
             } else {
                 topMenu.style.display = 'none';
-                if (sectionId === 'feed' || sectionId === 'perfil') searchBar.style.display = 'none';
-                else searchBar.style.display = 'flex';
             }
             if (sectionId === 'feed') renderFeed();
             if (sectionId === 'perfil') renderInstagramProfile();
@@ -3861,12 +3970,10 @@
             }
         }
         
-        // ==================== PERFIL INSTAGRAM MELHORADO (com abas e histórico e upload de avatar) ====================
-        // Variáveis para controle de aba ativa no perfil
+        // ==================== PERFIL INSTAGRAM (com upload de avatar individual) ====================
         let currentProfileTab = 'posts';
         let currentViewingUserId = null;
         
-        // Função para mostrar lista de seguidores
         async function showFollowersList(userId) {
             if (!userId) return;
             const followersSnapshot = await database.ref(`followers/${userId}`).once('value');
@@ -4007,7 +4114,6 @@
                 const postsSnap = await database.ref(`feed_posts`).orderByChild('userId').equalTo(uid).once('value');
                 const posts = postsSnap.val();
                 const postsList = posts ? Object.values(posts) : [];
-                // ORDENAÇÃO CORRETA: do mais recente para o mais antigo
                 const sortedPostsList = postsList.sort((a, b) => b.createdAt - a.createdAt);
                 const totalPosts = sortedPostsList.length;
                 
@@ -4155,7 +4261,6 @@
                 const postsSnap = await database.ref(`feed_posts`).orderByChild('userId').equalTo(uid).once('value');
                 const posts = postsSnap.val();
                 const postsList = posts ? Object.values(posts) : [];
-                // ORDENAÇÃO CORRETA: do mais recente para o mais antigo
                 const sortedPostsList = postsList.sort((a, b) => b.createdAt - a.createdAt);
                 if (sortedPostsList.length === 0) { container.innerHTML = '<div class="text-center text-gray-500 py-4 text-xs">Nenhuma postagem ainda</div>'; return; }
                 const gridHtml = `<div class="post-grid">${sortedPostsList.map(post => `
@@ -4300,7 +4405,7 @@
             }).catch(error => showToast('Erro ao atualizar perfil: ' + error.message));
         }
         
-        // ==================== UPLOAD DE AVATAR COM COMPRESSÃO E ASSOCIAÇÃO INDIVIDUAL ====================
+        // ==================== UPLOAD DE AVATAR INDIVIDUAL POR USUÁRIO ====================
         async function uploadProfileAvatar(file) {
             if (!file || !currentUser) return;
             
@@ -4345,7 +4450,7 @@
                 
                 const imageUrl = await uploadPromise;
                 
-                // Salvar apenas no usuário atual - cada usuário tem sua própria foto
+                // Salvar avatar APENAS para o usuário atual - cada usuário tem sua própria foto
                 await database.ref(`usuarios/${currentUser.uid}/avatarUrl`).set(imageUrl);
                 userProfileData.avatarUrl = imageUrl;
                 
@@ -4527,7 +4632,6 @@
                 if (!reportsContainer) return;
                 unreadReportsCount = 0;
                 if (!reports) { reportsContainer.innerHTML = '<div class="text-center text-gray-500 py-2 text-xs">Nenhum relatório ainda</div>'; document.getElementById('reportBadgeCount').classList.add('hidden'); return; }
-                // Ordenar reports: mais recente primeiro
                 const reportsListArray = Object.entries(reports).map(([key, report]) => ({ key, ...report }));
                 reportsListArray.sort((a, b) => b.reportedAt - a.reportedAt);
                 let html = '';
@@ -4550,7 +4654,6 @@
                 reportsContainer.innerHTML = html;
                 const badge = document.getElementById('reportBadgeCount');
                 if (unreadReportsCount > 0) { badge.classList.remove('hidden'); badge.innerText = unreadReportsCount; } else badge.classList.add('hidden');
-                // Eventos dos botões "Ver conteúdo"
                 document.querySelectorAll('.view-content-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         e.stopPropagation();
@@ -4559,13 +4662,11 @@
                         const videoLink = btn.getAttribute('data-video-link');
                         const videoTitle = btn.getAttribute('data-video-title');
                         const videoThumb = btn.getAttribute('data-video-thumb');
-                        // Criar um objeto de mídia temporário e reproduzir
                         const tempMedia = { id: videoId, title: videoTitle, link: videoLink, thumb: videoThumb, description: '' };
                         playMedia(tempMedia, videoType);
                         document.getElementById('adminModal').classList.add('hidden');
                     });
                 });
-                // Evento de clique no card do report
                 document.querySelectorAll('.report-card-improved').forEach(card => {
                     card.addEventListener('click', (e) => {
                         if (e.target.classList.contains('view-content-btn')) return;
@@ -4743,13 +4844,7 @@
         
         function sortItems(items) { if (!items) return []; const sorted = [...items]; switch (currentSort) { case 'recent': sorted.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); break; case 'views': sorted.sort((a, b) => (viewsCache[b.id] || 0) - (viewsCache[a.id] || 0)); break; case 'az': sorted.sort((a, b) => a.title.localeCompare(b.title)); break; case 'za': sorted.sort((a, b) => b.title.localeCompare(a.title)); break; case 'year_asc': sorted.sort((a, b) => (parseInt(a.year) || 0) - (parseInt(b.year) || 0)); break; case 'year_desc': sorted.sort((a, b) => (parseInt(b.year) || 0) - (parseInt(a.year) || 0)); break; case 'genre': sorted.sort((a, b) => (a.category || '').localeCompare(b.category || '')); break; default: sorted.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); } return sorted; }
         
-        // Variável para busca global
-        let globalSearchTerm = '';
-        function filterItemsBySearch(items, term) {
-            if (!term) return items;
-            const lowerTerm = term.toLowerCase();
-            return items.filter(item => item.title.toLowerCase().includes(lowerTerm) || (item.link && item.link.toLowerCase().includes(lowerTerm)));
-        }
+        // Busca global removida da barra - não há mais campo de busca na barra de menu
         
         function renderGrid() {
             let items = [];
@@ -4757,8 +4852,6 @@
             else if (currentNavTab === 'filmes') items = filmes;
             else if (currentNavTab === 'series') items = series;
             if (currentGenreFilter !== 'todos' && currentNavTab !== 'canais') items = items.filter(i => i.category === currentGenreFilter);
-            // Aplicar busca global
-            if (globalSearchTerm) items = filterItemsBySearch(items, globalSearchTerm);
             items = sortItems(items);
             const grid = document.getElementById('contentGrid');
             if (items.length === 0) { grid.innerHTML = '<div class="col-span-full text-center py-4 text-gray-500 text-xs">📀 Nenhum conteúdo encontrado.</div>'; return; }
@@ -4771,7 +4864,6 @@
             if (currentNavTab === 'canais') items = canais;
             else if (currentNavTab === 'filmes') items = filmes;
             else if (currentNavTab === 'series') items = series;
-            if (globalSearchTerm) items = filterItemsBySearch(items, globalSearchTerm);
             const genres = new Set();
             items.forEach(item => { if (item.category) genres.add(item.category); });
             const scrollContainer = document.getElementById('genreScroll');
@@ -4873,7 +4965,7 @@
         function editItem(id, type) { let item = null; if (type === 'canais') item = canais.find(c => c.id === id); else if (type === 'filmes') item = filmes.find(f => f.id === id); else if (type === 'series') item = series.find(s => s.id === id); if (!item) return; editingItem = { ...item, type: type }; document.getElementById('itemTitle').value = item.title; document.getElementById('itemLink').value = item.link; document.getElementById('itemThumb').value = item.thumb || ''; document.getElementById('itemCategory').value = item.category || ''; document.getElementById('itemYear').value = item.year || ''; document.getElementById('itemDescription').value = item.description || ''; const mediaTypeRadio = item.mediaType === 'iptv' ? 'iptv' : 'youtube'; document.querySelector(`input[name="mediaType"][value="${mediaTypeRadio}"]`).checked = true; document.getElementById('cancelEditBtn').classList.remove('hidden'); document.getElementById('formTitle').innerHTML = '✏️ Editando: ' + item.title.substring(0, 25); showToast('Modo edição ativado.'); }
         function resetForm() { document.getElementById('itemTitle').value = ''; document.getElementById('itemLink').value = ''; document.getElementById('itemThumb').value = ''; document.getElementById('itemCategory').value = ''; document.getElementById('itemYear').value = ''; document.getElementById('itemDescription').value = ''; document.querySelector('input[name="mediaType"][value="youtube"]').checked = true; editingItem = null; document.getElementById('cancelEditBtn').classList.add('hidden'); document.getElementById('formTitle').innerHTML = 'Adicionar / Editar'; }
         function generateSafeId() { return Date.now() + '-' + Math.random().toString(36).substring(2, 15); }
-        async function saveSingleItem() { const title = document.getElementById('itemTitle').value.trim(); let link = document.getElementById('itemLink').value.trim(); const thumb = document.getElementById('itemThumb').value.trim(); const category = document.getElementById('itemCategory').value.trim(); const year = document.getElementById('itemYear').value.trim(); const description = document.getElementById('itemDescription').value.trim(); const mediaType = document.querySelector('input[name="mediaType"]:checked').value; if (!title || !link) { showToast('❌ Preencha título e link'); return; } if (mediaType === 'youtube') { if (!extractYoutubeId(link)) { showToast('❌ Link do YouTube inválido.'); return; } } else if (mediaType === 'iptv') { if (!isIptvLink(link)) { showToast('❌ Link IPTV/MP4 inválido. Use .mp4, .m3u8 ou .m3u'); return; } } const activeAdminTab = document.querySelector('#adminPanel .admin-tab-btn.border-b-2.border-red-600')?.id; let finalThumb = thumb; if (mediaType === 'youtube' && !finalThumb) { const videoId = extractYoutubeId(link); if (videoId) finalThumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`; } if (!finalThumb) finalThumb = 'https://via.placeholder.com/300x200'; const itemData = { title, link, thumb: finalThumb, category: category || (mediaType === 'iptv' ? 'Vídeo' : 'Geral'), year: year || new Date().getFullYear(), description: description || title, mediaType, createdAt: Date.now() }; // Verificação de duplicados antes de salvar
+        async function saveSingleItem() { const title = document.getElementById('itemTitle').value.trim(); let link = document.getElementById('itemLink').value.trim(); const thumb = document.getElementById('itemThumb').value.trim(); const category = document.getElementById('itemCategory').value.trim(); const year = document.getElementById('itemYear').value.trim(); const description = document.getElementById('itemDescription').value.trim(); const mediaType = document.querySelector('input[name="mediaType"]:checked').value; if (!title || !link) { showToast('❌ Preencha título e link'); return; } if (mediaType === 'youtube') { if (!extractYoutubeId(link)) { showToast('❌ Link do YouTube inválido.'); return; } } else if (mediaType === 'iptv') { if (!isIptvLink(link)) { showToast('❌ Link IPTV/MP4 inválido. Use .mp4, .m3u8 ou .m3u'); return; } } const activeAdminTab = document.querySelector('#adminPanel .admin-tab-btn.border-b-2.border-red-600')?.id; let finalThumb = thumb; if (mediaType === 'youtube' && !finalThumb) { const videoId = extractYoutubeId(link); if (videoId) finalThumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`; } if (!finalThumb) finalThumb = 'https://via.placeholder.com/300x200'; const itemData = { title, link, thumb: finalThumb, category: category || (mediaType === 'iptv' ? 'Vídeo' : 'Geral'), year: year || new Date().getFullYear(), description: description || title, mediaType, createdAt: Date.now() };
         if (!editingItem) {
             let existingItems = [];
             if (activeAdminTab === 'adminTabCanais') existingItems = canais;
@@ -4953,34 +5045,20 @@
             else { const container = document.getElementById('instagramProfileContainer'); if(container) container.innerHTML = '<div class="text-center p-4">Faça login para acessar o perfil</div>'; }
         }
         
-        // Eventos da busca global
-        const searchInput = document.getElementById('globalSearchInput');
-        const clearSearchBtn = document.getElementById('clearSearchBtn');
-        if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                globalSearchTerm = e.target.value.trim();
-                if (currentNavTab === 'canais' || currentNavTab === 'filmes' || currentNavTab === 'series') {
-                    updateGenreFilters();
-                    renderGrid();
-                }
-            });
-        }
-        if (clearSearchBtn) {
-            clearSearchBtn.addEventListener('click', () => {
-                if (searchInput) searchInput.value = '';
-                globalSearchTerm = '';
-                if (currentNavTab === 'canais' || currentNavTab === 'filmes' || currentNavTab === 'series') {
-                    updateGenreFilters();
-                    renderGrid();
-                }
+        // Eventos da busca global - removida a busca na barra, agora apenas o botão Buscar no menu
+        document.getElementById('navSearchBtn').onclick = openGlobalSearch;
+        document.getElementById('closeGlobalSearch').onclick = closeGlobalSearch;
+        const globalSearchInput = document.getElementById('globalSearchInputModal');
+        if (globalSearchInput) {
+            globalSearchInput.addEventListener('input', performGlobalSearch);
+            globalSearchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') performGlobalSearch();
             });
         }
         
         document.getElementById('navCanaisBtn').onclick = () => setNavTab('canais');
         document.getElementById('navFilmesBtn').onclick = () => setNavTab('filmes');
         document.getElementById('navSeriesBtn').onclick = () => setNavTab('series');
-        document.getElementById('navSearchBtn').onclick = openSearchPopup;
-        document.getElementById('closeSearchPopup').onclick = () => document.getElementById('searchPopup').classList.add('hidden');
         document.getElementById('closePlayerComments').onclick = closePlayer;
         document.getElementById('floatingPlayerOverlay').onclick = closePlayer;
         document.getElementById('darkModeBtn').onclick = setDarkMode;
@@ -5034,14 +5112,11 @@
         document.getElementById('saveEpisodesBtn').onclick = saveEpisodes;
         document.getElementById('sortSelect').addEventListener('change', (e) => { currentSort = e.target.value; renderGrid(); });
         document.getElementById('settingsModal').addEventListener('click', (e) => { if (e.target === document.getElementById('settingsModal')) document.getElementById('settingsModal').classList.add('hidden'); });
-        document.getElementById('searchPopup').addEventListener('click', (e) => { if (e.target === document.getElementById('searchPopup')) document.getElementById('searchPopup').classList.add('hidden'); });
-        document.getElementById('favoritesPopup').addEventListener('click', (e) => { if (e.target === document.getElementById('favoritesPopup')) document.getElementById('favoritesPopup').classList.add('hidden'); });
         document.getElementById('editProfileModal').addEventListener('click', (e) => { if (e.target === document.getElementById('editProfileModal')) document.getElementById('editProfileModal').classList.add('hidden'); });
         document.getElementById('createPostModal').addEventListener('click', (e) => { if (e.target === document.getElementById('createPostModal')) document.getElementById('createPostModal').classList.add('hidden'); });
+        document.getElementById('globalSearchModal').addEventListener('click', (e) => { if (e.target === document.getElementById('globalSearchModal')) closeGlobalSearch(); });
         document.querySelectorAll('.bottom-nav-item').forEach(item => { item.addEventListener('click', () => { const section = item.getAttribute('data-section'); switchSection(section); }); });
         
-        function openSearchPopup() { document.getElementById('searchPopup').classList.remove('hidden'); document.getElementById('popupSearchInput').focus(); }
-        function setupSearchPopup() { const searchInput = document.getElementById('popupSearchInput'); const resultsDiv = document.getElementById('popupSearchResults'); searchInput.addEventListener('input', (e) => { const term = e.target.value.toLowerCase().trim(); if (term.length === 0) { resultsDiv.innerHTML = ''; return; } const allItems = [...canais.map(c => ({ ...c, type: 'canal' })), ...filmes.map(f => ({ ...f, type: 'filme' })), ...series.map(s => ({ ...s, type: 'serie' }))]; const matches = allItems.filter(item => item.title.toLowerCase().includes(term)); if (matches.length === 0) resultsDiv.innerHTML = '<div class="text-center text-gray-500 py-3 text-xs">Nenhum resultado</div>'; else { resultsDiv.innerHTML = matches.map(item => `<div class="search-result-item flex gap-2 p-2 glass-card rounded-xl cursor-pointer mb-1 ripple-btn" data-id="${item.id}" data-type="${item.type}"><img src="${item.thumb || 'https://via.placeholder.com/40x50'}" class="w-10 h-12 object-cover rounded-lg" onerror="this.src='https://via.placeholder.com/40x50'"><div><div class="font-semibold text-xs">${item.title} ${isIptvLink(item.link) ? '<span class="iptv-badge text-[7px] bg-red-600 px-1 rounded ml-0.5">VIDEO</span>' : ''}</div><div class="text-[9px] opacity-70">${item.category || 'Geral'} • ${item.year || ''}</div></div></div>`).join(''); document.querySelectorAll('#popupSearchResults .search-result-item').forEach(el => { el.addEventListener('click', () => { const id = el.getAttribute('data-id'); const type = el.getAttribute('data-type'); let item; if (type === 'canal') item = canais.find(c => c.id === id); else if (type === 'filme') item = filmes.find(f => f.id === id); else item = series.find(s => s.id === id); if (item) { playMedia(item, type); document.getElementById('searchPopup').classList.add('hidden'); } }); }); } }); }
         function openSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); document.getElementById('usernameInput').value = currentUsername; }
         function saveUsername() { const newUsername = document.getElementById('usernameInput').value.trim(); if (newUsername) { currentUsername = newUsername; localStorage.setItem('noitefilmes_username', currentUsername); if (currentUser) database.ref(`usuarios/${currentUser.uid}/nickname`).set(currentUsername); showToast(`✅ Nome alterado para: @${currentUsername}`); document.getElementById('settingsModal').classList.add('hidden'); updateProfileUI(); } }
         function logoutUser() { auth.signOut(); document.getElementById('settingsModal').classList.add('hidden'); }
@@ -5055,7 +5130,6 @@
         loadFilmesFromFirebase();
         loadSeriesFromFirebase();
         auth.onAuthStateChanged((user) => { currentUser = user; updateUserUI(user); });
-        setupSearchPopup();
         loadTheme();
         if (typeof YT === 'undefined') { window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady; } else { onYouTubeIframeAPIReady(); }
         window.addEventListener('popstate', (event) => { if (event.state && event.state.mediaId && event.state.type) playMediaById(event.state.mediaId, event.state.type); else closePlayer(); });
