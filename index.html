@@ -689,7 +689,7 @@
         .section { display: none; }
         .section.active-section { display: block; }
         
-        /* Admin Inputs */
+        /* Admin Inputs - Layout Melhorado */
         .batch-input, .admin-input {
             background: rgba(255,255,255,0.1);
             border: 1px solid rgba(255,255,255,0.2);
@@ -700,6 +700,86 @@
         }
         textarea.batch-input {
             border-radius: 20px;
+        }
+        .form-row-inline {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+        .form-row-inline .thumbnail-input {
+            flex: 0 0 calc(50% - 4px);
+            min-width: 0;
+        }
+        .form-row-inline .genre-input {
+            flex: 0 0 calc(25% - 6px);
+            min-width: 0;
+        }
+        .form-row-inline .year-input {
+            flex: 0 0 calc(25% - 6px);
+            min-width: 0;
+        }
+        .save-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+        .save-row .radio-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        /* Search Bar */
+        .search-bar {
+            background: rgba(255,255,255,0.1);
+            border-radius: 60px;
+            padding: 6px 12px;
+            margin: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .search-bar input {
+            background: transparent;
+            border: none;
+            color: white;
+            flex: 1;
+            font-size: 0.75rem;
+            outline: none;
+        }
+        .search-bar input::placeholder {
+            color: rgba(255,255,255,0.5);
+        }
+        
+        /* Reports Cards Melhorados */
+        .report-card-improved {
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(8px);
+            border-radius: 20px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(255,255,255,0.15);
+            transition: all 0.2s;
+        }
+        .report-card-improved:hover {
+            transform: scale(1.01);
+            background: rgba(0,0,0,0.6);
+        }
+        .view-content-btn {
+            background: #e50914;
+            border: none;
+            border-radius: 40px;
+            padding: 6px 16px;
+            font-size: 0.7rem;
+            color: white;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .view-content-btn:hover {
+            background: #b20710;
         }
         
         /* ========== ESTILOS DO PERFIL INSTAGRAM (MELHORADO) ========== */
@@ -2583,6 +2663,13 @@
         <div class="nav-item ripple-btn" id="settingsBtn"><i class="fas fa-cog"></i><span>Ajustes</span></div>
     </div>
 
+    <!-- Campo de Busca Global (visível nas seções de conteúdo) -->
+    <div id="searchBarContainer" class="search-bar">
+        <i class="fas fa-search text-gray-400 text-xs"></i>
+        <input type="text" id="globalSearchInput" placeholder="Buscar por título ou URL...">
+        <button id="clearSearchBtn" class="text-gray-400 hover:text-white text-xs"><i class="fas fa-times"></i></button>
+    </div>
+
     <!-- Seção Filmes -->
     <div id="filmesSection" class="section active-section">
         <div class="container mx-auto px-3 mt-2">
@@ -2879,7 +2966,31 @@
                             <span id="reportBadgeCount" class="badge-count hidden">0</span>
                         </button>
                     </div>
-                    <div id="adminFormArea" class="bg-gray-800/50 p-3 rounded-xl mb-3"><h3 class="font-semibold text-sm mb-2 text-white" id="formTitle">Adicionar / Editar</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-2"><input type="text" id="itemTitle" placeholder="Título" class="bg-gray-700 p-1.5 rounded-full text-xs text-white"><div class="link-input-wrapper flex gap-2"><input type="text" id="itemLink" placeholder="Link (YouTube, .m3u8 ou .m3u)" class="bg-gray-700 p-1.5 rounded-full text-xs flex-1 text-white"><button id="autoFillBtn" class="auto-fill-btn bg-red-600 px-2 rounded-full text-[10px] transition hover:bg-red-700 ripple-btn">Auto</button></div><input type="text" id="itemThumb" placeholder="Miniatura URL" class="bg-gray-700 p-1.5 rounded-full text-xs text-white"><input type="text" id="itemCategory" placeholder="Gênero" class="bg-gray-700 p-1.5 rounded-full text-xs text-white"><input type="text" id="itemYear" placeholder="Ano" class="bg-gray-700 p-1.5 rounded-full text-xs text-white"><textarea id="itemDescription" rows="2" placeholder="Descrição" class="bg-gray-700 p-1.5 rounded-xl text-xs text-white col-span-2"></textarea></div><div class="iptv-selector flex gap-3 mt-2"><label class="text-xs text-gray-300"><input type="radio" name="mediaType" value="youtube" checked> 🎬 YouTube</label><label class="text-xs text-gray-300"><input type="radio" name="mediaType" value="iptv"> 📡 IPTV (.m3u8/.m3u)</label></div><div class="mt-2 flex gap-2"><button id="saveItemBtn" class="bg-green-700 hover:bg-green-800 px-3 py-1 rounded-full text-xs transition ripple-btn">Salvar</button><button id="cancelEditBtn" class="bg-gray-600 hover:bg-gray-500 px-3 py-1 rounded-full text-xs hidden transition ripple-btn">Cancelar</button></div></div>
+                    <div id="adminFormArea" class="bg-gray-800/50 p-3 rounded-xl mb-3">
+                        <h3 class="font-semibold text-sm mb-2 text-white" id="formTitle">Adicionar / Editar</h3>
+                        <!-- Linha de campos otimizada: Miniatura 50%, Gênero 25%, Ano 25% -->
+                        <div class="form-row-inline mb-2">
+                            <input type="text" id="itemTitle" placeholder="Título" class="admin-input flex-1 w-full mb-2">
+                            <div class="link-input-wrapper flex gap-2 w-full">
+                                <input type="text" id="itemLink" placeholder="Link (YouTube, .mp4, .m3u8 ou .m3u)" class="admin-input flex-1">
+                                <button id="autoFillBtn" class="auto-fill-btn bg-red-600 px-2 rounded-full text-[10px] transition hover:bg-red-700 ripple-btn">Auto</button>
+                            </div>
+                        </div>
+                        <div class="form-row-inline mb-2">
+                            <input type="text" id="itemThumb" placeholder="Miniatura URL" class="admin-input thumbnail-input w-full" style="width: calc(50% - 4px);">
+                            <input type="text" id="itemCategory" placeholder="Gênero" class="admin-input genre-input w-full" style="width: calc(25% - 6px);">
+                            <input type="text" id="itemYear" placeholder="Ano" class="admin-input year-input w-full" style="width: calc(25% - 6px);">
+                        </div>
+                        <textarea id="itemDescription" rows="2" placeholder="Descrição" class="batch-input w-full rounded-xl text-xs mb-2"></textarea>
+                        <div class="save-row">
+                            <div class="radio-group">
+                                <label class="text-xs text-gray-300"><input type="radio" name="mediaType" value="youtube" checked> 🎬 YouTube</label>
+                                <label class="text-xs text-gray-300"><input type="radio" name="mediaType" value="iptv"> 📡 IPTV / MP4</label>
+                            </div>
+                            <button id="saveItemBtn" class="bg-green-700 hover:bg-green-800 px-4 py-1 rounded-full text-xs transition ripple-btn ml-auto">Salvar</button>
+                            <button id="cancelEditBtn" class="bg-gray-600 hover:bg-gray-500 px-3 py-1 rounded-full text-xs hidden transition ripple-btn">Cancelar</button>
+                        </div>
+                    </div>
                     <div id="batchFilmesArea" class="bg-gray-800/50 p-3 rounded-xl mb-3"><h3 class="font-semibold text-sm mb-1 text-white">📦 Adicionar Lote</h3><textarea id="batchLinksInput" rows="2" class="batch-input w-full p-2 rounded-xl text-xs bg-gray-700 text-white"></textarea><div class="flex gap-2 mt-2"><button id="previewBatchBtn" class="bg-blue-700 hover:bg-blue-800 px-2 py-1 rounded-full text-xs transition ripple-btn">🔍 Prévia</button><button id="saveBatchBtn" class="bg-green-700 hover:bg-green-800 px-2 py-1 rounded-full text-xs transition ripple-btn">💾 Salvar Lote</button></div><div id="batchPreview" class="mt-2 text-xs max-h-28 overflow-y-auto text-gray-300"></div></div>
                     <div id="batchSeriesArea" class="bg-gray-800/50 p-3 rounded-xl mb-3 hidden"><h3 class="font-semibold text-sm mb-1 text-white">📺 Adicionar Episódios</h3><input type="text" id="serieTitle" placeholder="Nome da Série" class="bg-gray-700 p-1.5 rounded-full w-full text-xs text-white mb-1"><textarea id="episodesLinksInput" rows="2" class="batch-input w-full p-2 rounded-xl text-xs bg-gray-700 text-white"></textarea><button id="saveEpisodesBtn" class="bg-green-700 hover:bg-green-800 px-2 py-1 rounded-full text-xs mt-1 transition ripple-btn">💾 Salvar</button></div>
                     <div id="adminListsContainer"><div id="adminCanaisList" class="mb-3 hidden"><h3 class="font-bold text-xs mb-1 text-white">Canais</h3><div id="canaisAdminList" class="space-y-1 max-h-32 overflow-y-auto"></div></div><div id="adminFilmesList"><h3 class="font-bold text-xs mb-1 text-white">Filmes</h3><div id="filmesAdminList" class="space-y-1 max-h-32 overflow-y-auto"></div></div><div id="adminSeriesList" class="hidden"><h3 class="font-bold text-xs mb-1 text-white">Séries</h3><div id="seriesAdminList" class="space-y-1 max-h-32 overflow-y-auto"></div></div><div id="adminDuplicadosList" class="hidden"><h3 class="font-bold text-xs mb-1 text-white">🎬 Filmes Duplicados</h3><div id="duplicadosAdminList" class="space-y-2 max-h-48 overflow-y-auto text-xs"></div></div></div>
@@ -3666,8 +3777,15 @@
             document.querySelectorAll('.bottom-nav-item').forEach(item => item.classList.remove('active'));
             document.querySelector(`.bottom-nav-item[data-section="${sectionId}"]`).classList.add('active');
             const topMenu = document.getElementById('topMenuContainer');
-            if (sectionId === 'filmes') topMenu.style.display = 'flex';
-            else topMenu.style.display = 'none';
+            const searchBar = document.getElementById('searchBarContainer');
+            if (sectionId === 'filmes') {
+                topMenu.style.display = 'flex';
+                searchBar.style.display = 'flex';
+            } else {
+                topMenu.style.display = 'none';
+                if (sectionId === 'feed' || sectionId === 'perfil') searchBar.style.display = 'none';
+                else searchBar.style.display = 'flex';
+            }
             if (sectionId === 'feed') renderFeed();
             if (sectionId === 'perfil') renderInstagramProfile();
             if (sectionId === 'chat') { document.getElementById('chatSidebar').classList.remove('hidden'); document.getElementById('chatMain').classList.add('hidden'); loadChatList(); }
@@ -4206,7 +4324,7 @@
         
         // ==================== FUNÇÕES AUXILIARES ====================
         function extractYoutubeId(url) { if (!url) return null; const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/; const match = url.match(regExp); return (match && match[2].length === 11) ? match[2] : null; }
-        function isIptvLink(url) { if (!url) return false; return url.includes('.m3u8') || url.includes('.m3u') || url.includes('playlist') || url.includes('sdp') || url.includes('mpd'); }
+        function isIptvLink(url) { if (!url) return false; return url.includes('.m3u8') || url.includes('.m3u') || url.includes('playlist') || url.includes('sdp') || url.includes('mpd') || url.toLowerCase().endsWith('.mp4'); }
         
         async function fetchYouTubeVideoData(videoId) {
             try {
@@ -4278,22 +4396,22 @@
                     fileName = fileName.replace(/[_-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()); 
                 } catch(e) {}
                 return { 
-                    title: fileName || 'Canal IPTV', 
-                    description: 'Conteúdo IPTV - Streaming ao vivo', 
-                    thumb: 'https://via.placeholder.com/300x200?text=IPTV', 
+                    title: fileName || 'Conteúdo MP4/IPTV', 
+                    description: 'Conteúdo de vídeo - Streaming', 
+                    thumb: 'https://via.placeholder.com/300x200?text=Video', 
                     year: new Date().getFullYear().toString(), 
-                    genre: 'IPTV', 
+                    genre: 'Vídeo', 
                     link: link 
                 };
             }
-            showToast('⚠️ Link não reconhecido. Use YouTube, .m3u8 ou .m3u');
+            showToast('⚠️ Link não reconhecido. Use YouTube, .mp4, .m3u8 ou .m3u');
             return null;
         }
         
         async function autoFillFromLink() {
             const link = document.getElementById('itemLink').value.trim();
             const mediaType = document.querySelector('input[name="mediaType"]:checked').value;
-            if (!link) { showToast('Cole um link do YouTube, .m3u8 ou .m3u primeiro!'); return; }
+            if (!link) { showToast('Cole um link do YouTube, .mp4, .m3u8 ou .m3u primeiro!'); return; }
             const videoData = await fetchVideoDataFromLink(link, mediaType);
             if (videoData) {
                 if (videoData.title) document.getElementById('itemTitle').value = videoData.title;
@@ -4369,11 +4487,60 @@
                 if (!reportsContainer) return;
                 unreadReportsCount = 0;
                 if (!reports) { reportsContainer.innerHTML = '<div class="text-center text-gray-500 py-2 text-xs">Nenhum relatório ainda</div>'; document.getElementById('reportBadgeCount').classList.add('hidden'); return; }
-                const reportsList = Object.entries(reports).map(([key, report]) => { if (!report.read) unreadReportsCount++; const date = new Date(report.reportedAt).toLocaleString(); const statusClass = report.status === 'resolved' ? 'text-green-400' : 'text-yellow-400'; const readClass = report.read ? 'opacity-60' : 'border-l-4 border-red-500'; return `<div class="report-card bg-gray-800 p-2 rounded-lg cursor-pointer hover:bg-gray-700 transition ${readClass}" data-report-id="${key}"><div class="font-bold text-red-400 text-xs">${report.videoTitle}</div><div class="text-[9px] text-gray-400">Reportado por: @${report.reportedByName}</div><div class="text-[9px] text-gray-500">Motivo: ${report.reasonText}</div><div class="text-[9px] text-gray-500">Data: ${date}</div><div class="text-[9px] ${statusClass}">Status: ${report.status === 'resolved' ? 'Resolvido' : 'Pendente'}</div></div>`; }).join('');
-                reportsContainer.innerHTML = reportsList;
+                // Ordenar reports: mais recente primeiro
+                const reportsListArray = Object.entries(reports).map(([key, report]) => ({ key, ...report }));
+                reportsListArray.sort((a, b) => b.reportedAt - a.reportedAt);
+                let html = '';
+                for (const report of reportsListArray) {
+                    if (!report.read) unreadReportsCount++;
+                    const date = new Date(report.reportedAt).toLocaleString();
+                    const statusClass = report.status === 'resolved' ? 'text-green-400' : 'text-yellow-400';
+                    const readClass = report.read ? 'opacity-60' : 'border-l-4 border-red-500';
+                    html += `<div class="report-card-improved ${readClass}" data-report-id="${report.key}">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div class="font-bold text-red-400 text-sm">${escapeHtml(report.videoTitle)}</div>
+                                    <button class="view-content-btn" data-video-id="${report.videoId}" data-video-type="filme" data-video-link="${report.videoLink}" data-video-title="${escapeHtml(report.videoTitle)}" data-video-thumb="${report.videoThumb || ''}">Ver conteúdo</button>
+                                </div>
+                                <div class="text-[10px] text-gray-300">Reportado por: @${report.reportedByName}</div>
+                                <div class="text-[10px] text-gray-400">Motivo: ${report.reasonText}</div>
+                                <div class="text-[10px] text-gray-500">Data: ${date}</div>
+                                <div class="text-[10px] ${statusClass} mt-1">Status: ${report.status === 'resolved' ? 'Resolvido' : 'Pendente'}</div>
+                            </div>`;
+                }
+                reportsContainer.innerHTML = html;
                 const badge = document.getElementById('reportBadgeCount');
                 if (unreadReportsCount > 0) { badge.classList.remove('hidden'); badge.innerText = unreadReportsCount; } else badge.classList.add('hidden');
-                document.querySelectorAll('.report-card').forEach(card => { card.addEventListener('click', (e) => { const reportId = card.getAttribute('data-report-id'); const report = reports[reportId]; if (report && !report.read) { database.ref(`reports/${reportId}/read`).set(true); unreadReportsCount--; if (unreadReportsCount === 0) document.getElementById('reportBadgeCount').classList.add('hidden'); else document.getElementById('reportBadgeCount').innerText = unreadReportsCount; card.classList.remove('border-l-4', 'border-red-500'); } openReportDetail(reportId, report); }); });
+                // Eventos dos botões "Ver conteúdo"
+                document.querySelectorAll('.view-content-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const videoId = btn.getAttribute('data-video-id');
+                        const videoType = btn.getAttribute('data-video-type');
+                        const videoLink = btn.getAttribute('data-video-link');
+                        const videoTitle = btn.getAttribute('data-video-title');
+                        const videoThumb = btn.getAttribute('data-video-thumb');
+                        // Criar um objeto de mídia temporário e reproduzir
+                        const tempMedia = { id: videoId, title: videoTitle, link: videoLink, thumb: videoThumb, description: '' };
+                        playMedia(tempMedia, videoType);
+                        document.getElementById('adminModal').classList.add('hidden');
+                    });
+                });
+                // Evento de clique no card do report
+                document.querySelectorAll('.report-card-improved').forEach(card => {
+                    card.addEventListener('click', (e) => {
+                        if (e.target.classList.contains('view-content-btn')) return;
+                        const reportId = card.getAttribute('data-report-id');
+                        const report = reports[reportId];
+                        if (report && !report.read) {
+                            database.ref(`reports/${reportId}/read`).set(true);
+                            unreadReportsCount--;
+                            if (unreadReportsCount === 0) document.getElementById('reportBadgeCount').classList.add('hidden');
+                            else document.getElementById('reportBadgeCount').innerText = unreadReportsCount;
+                            card.classList.remove('border-l-4', 'border-red-500');
+                        }
+                        openReportDetail(reportId, report);
+                    });
+                });
             });
         }
         function openReportDetail(reportId, report) { currentReportId = reportId; currentReportData = report; const detailContainer = document.getElementById('reportDetailContent'); const date = new Date(report.reportedAt).toLocaleString(); const statusClass = report.status === 'resolved' ? 'text-green-400' : 'text-yellow-400'; detailContainer.innerHTML = `<div class="space-y-3"><div class="flex justify-center"><img src="${report.videoThumb || 'https://via.placeholder.com/120x160'}" class="w-24 h-32 object-cover rounded-lg"></div><div><strong class="text-red-400">Título:</strong> ${report.videoTitle}</div><div><strong class="text-red-400">Link:</strong> <a href="${report.videoLink}" target="_blank" class="text-blue-400 text-xs break-all">${report.videoLink.substring(0, 50)}...</a></div><div><strong class="text-red-400">Reportado por:</strong> @${report.reportedByName}</div><div><strong class="text-red-400">Motivo:</strong> ${report.reasonText}</div><div><strong class="text-red-400">Comentário:</strong> ${report.comment || 'Nenhum comentário'}</div><div><strong class="text-red-400">Data:</strong> ${date}</div><div><strong class="text-red-400">Status:</strong> <span class="${statusClass}">${report.status === 'resolved' ? 'Resolvido' : 'Pendente'}</span></div></div>`; document.getElementById('reportDetailPopup').classList.remove('hidden'); }
@@ -4536,16 +4703,26 @@
         
         function sortItems(items) { if (!items) return []; const sorted = [...items]; switch (currentSort) { case 'recent': sorted.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); break; case 'views': sorted.sort((a, b) => (viewsCache[b.id] || 0) - (viewsCache[a.id] || 0)); break; case 'az': sorted.sort((a, b) => a.title.localeCompare(b.title)); break; case 'za': sorted.sort((a, b) => b.title.localeCompare(a.title)); break; case 'year_asc': sorted.sort((a, b) => (parseInt(a.year) || 0) - (parseInt(b.year) || 0)); break; case 'year_desc': sorted.sort((a, b) => (parseInt(b.year) || 0) - (parseInt(a.year) || 0)); break; case 'genre': sorted.sort((a, b) => (a.category || '').localeCompare(b.category || '')); break; default: sorted.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); } return sorted; }
         
+        // Variável para busca global
+        let globalSearchTerm = '';
+        function filterItemsBySearch(items, term) {
+            if (!term) return items;
+            const lowerTerm = term.toLowerCase();
+            return items.filter(item => item.title.toLowerCase().includes(lowerTerm) || (item.link && item.link.toLowerCase().includes(lowerTerm)));
+        }
+        
         function renderGrid() {
             let items = [];
             if (currentNavTab === 'canais') items = canais;
             else if (currentNavTab === 'filmes') items = filmes;
             else if (currentNavTab === 'series') items = series;
             if (currentGenreFilter !== 'todos' && currentNavTab !== 'canais') items = items.filter(i => i.category === currentGenreFilter);
+            // Aplicar busca global
+            if (globalSearchTerm) items = filterItemsBySearch(items, globalSearchTerm);
             items = sortItems(items);
             const grid = document.getElementById('contentGrid');
             if (items.length === 0) { grid.innerHTML = '<div class="col-span-full text-center py-4 text-gray-500 text-xs">📀 Nenhum conteúdo encontrado.</div>'; return; }
-            grid.innerHTML = items.map(item => { const isIptv = isIptvLink(item.link); const views = viewsCache[item.id] || 0; return `<div class="glass-card overflow-hidden cursor-pointer transition-all card-hover ripple-btn" data-id="${item.id}" data-type="${currentNavTab}"><img src="${item.thumb || 'https://via.placeholder.com/300x200'}" class="w-full h-28 object-cover" onerror="this.src='https://via.placeholder.com/300x200'"><div class="p-1"><h3 class="font-semibold text-xs truncate">${item.title} ${isIptv ? '<span class="iptv-badge text-[7px] bg-red-600 px-1 rounded ml-0.5">IPTV</span>' : ''}</h3><p class="text-[9px] opacity-70">${item.category || 'Geral'} ${item.year ? `• ${item.year}` : ''}</p><p class="text-[9px]"><i class="fas fa-eye"></i> ${views}</p></div></div>`; }).join('');
+            grid.innerHTML = items.map(item => { const isIptv = isIptvLink(item.link); const views = viewsCache[item.id] || 0; return `<div class="glass-card overflow-hidden cursor-pointer transition-all card-hover ripple-btn" data-id="${item.id}" data-type="${currentNavTab}"><img src="${item.thumb || 'https://via.placeholder.com/300x200'}" class="w-full h-28 object-cover" onerror="this.src='https://via.placeholder.com/300x200'"><div class="p-1"><h3 class="font-semibold text-xs truncate">${item.title} ${isIptv ? '<span class="iptv-badge text-[7px] bg-red-600 px-1 rounded ml-0.5">VIDEO</span>' : ''}</h3><p class="text-[9px] opacity-70">${item.category || 'Geral'} ${item.year ? `• ${item.year}` : ''}</p><p class="text-[9px]"><i class="fas fa-eye"></i> ${views}</p></div></div>`; }).join('');
             document.querySelectorAll('#contentGrid > div').forEach(card => { card.addEventListener('click', () => { const id = card.getAttribute('data-id'); const type = card.getAttribute('data-type'); let item; if (type === 'canais') item = canais.find(c => c.id === id); else if (type === 'filmes') item = filmes.find(f => f.id === id); else item = series.find(s => s.id === id); if (item) playMedia(item, type); }); });
         }
         
@@ -4554,6 +4731,7 @@
             if (currentNavTab === 'canais') items = canais;
             else if (currentNavTab === 'filmes') items = filmes;
             else if (currentNavTab === 'series') items = series;
+            if (globalSearchTerm) items = filterItemsBySearch(items, globalSearchTerm);
             const genres = new Set();
             items.forEach(item => { if (item.category) genres.add(item.category); });
             const scrollContainer = document.getElementById('genreScroll');
@@ -4655,8 +4833,20 @@
         function editItem(id, type) { let item = null; if (type === 'canais') item = canais.find(c => c.id === id); else if (type === 'filmes') item = filmes.find(f => f.id === id); else if (type === 'series') item = series.find(s => s.id === id); if (!item) return; editingItem = { ...item, type: type }; document.getElementById('itemTitle').value = item.title; document.getElementById('itemLink').value = item.link; document.getElementById('itemThumb').value = item.thumb || ''; document.getElementById('itemCategory').value = item.category || ''; document.getElementById('itemYear').value = item.year || ''; document.getElementById('itemDescription').value = item.description || ''; const mediaTypeRadio = item.mediaType === 'iptv' ? 'iptv' : 'youtube'; document.querySelector(`input[name="mediaType"][value="${mediaTypeRadio}"]`).checked = true; document.getElementById('cancelEditBtn').classList.remove('hidden'); document.getElementById('formTitle').innerHTML = '✏️ Editando: ' + item.title.substring(0, 25); showToast('Modo edição ativado.'); }
         function resetForm() { document.getElementById('itemTitle').value = ''; document.getElementById('itemLink').value = ''; document.getElementById('itemThumb').value = ''; document.getElementById('itemCategory').value = ''; document.getElementById('itemYear').value = ''; document.getElementById('itemDescription').value = ''; document.querySelector('input[name="mediaType"][value="youtube"]').checked = true; editingItem = null; document.getElementById('cancelEditBtn').classList.add('hidden'); document.getElementById('formTitle').innerHTML = 'Adicionar / Editar'; }
         function generateSafeId() { return Date.now() + '-' + Math.random().toString(36).substring(2, 15); }
-        async function saveSingleItem() { const title = document.getElementById('itemTitle').value.trim(); let link = document.getElementById('itemLink').value.trim(); const thumb = document.getElementById('itemThumb').value.trim(); const category = document.getElementById('itemCategory').value.trim(); const year = document.getElementById('itemYear').value.trim(); const description = document.getElementById('itemDescription').value.trim(); const mediaType = document.querySelector('input[name="mediaType"]:checked').value; if (!title || !link) { showToast('❌ Preencha título e link'); return; } if (mediaType === 'youtube') { if (!extractYoutubeId(link)) { showToast('❌ Link do YouTube inválido.'); return; } } else if (mediaType === 'iptv') { if (!isIptvLink(link)) { showToast('❌ Link IPTV inválido. Use .m3u8 ou .m3u'); return; } } const activeAdminTab = document.querySelector('#adminPanel .admin-tab-btn.border-b-2.border-red-600')?.id; let finalThumb = thumb; if (mediaType === 'youtube' && !finalThumb) { const videoId = extractYoutubeId(link); if (videoId) finalThumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`; } if (!finalThumb) finalThumb = 'https://via.placeholder.com/300x200'; const itemData = { title, link, thumb: finalThumb, category: category || (mediaType === 'iptv' ? 'IPTV' : 'Geral'), year: year || new Date().getFullYear(), description: description || title, mediaType, createdAt: Date.now() }; try { if (editingItem) { const refPath = editingItem.type === 'canais' ? `canais/${editingItem.id}` : (editingItem.type === 'filmes' ? `filmes/${editingItem.id}` : `series/${editingItem.id}`); await database.ref(refPath).update(itemData); showToast('✅ Item atualizado!'); resetForm(); if (editingItem.type === 'canais') loadCanaisFromFirebase(); else if (editingItem.type === 'filmes') loadFilmesFromFirebase(); else if (editingItem.type === 'series') loadSeriesFromFirebase(); } else { const safeId = generateSafeId(); const newItem = { id: safeId, ...itemData }; if (activeAdminTab === 'adminTabCanais') { await database.ref(`canais/${safeId}`).set(newItem); showToast('✅ Canal salvo!'); loadCanaisFromFirebase(); } else if (activeAdminTab === 'adminTabFilmes') { await database.ref(`filmes/${safeId}`).set(newItem); showToast('✅ Filme salvo!'); loadFilmesFromFirebase(); } else if (activeAdminTab === 'adminTabSeries') { await database.ref(`series/${safeId}`).set(newItem); showToast('✅ Episódio salvo!'); loadSeriesFromFirebase(); } resetForm(); } } catch (error) { console.error(error); showToast('❌ Erro ao salvar: ' + error.message); } }
-        async function previewBatch() { const linksText = document.getElementById('batchLinksInput').value; const links = linksText.split('\n').filter(l => l.trim() && (extractYoutubeId(l.trim()) || isIptvLink(l.trim()))); const previewDiv = document.getElementById('batchPreview'); if (links.length === 0) { previewDiv.innerHTML = '<div class="text-yellow-500 text-[10px]">⚠️ Nenhum link válido (YouTube, .m3u8 ou .m3u)</div>'; return; } previewDiv.innerHTML = '<div class="text-yellow-500 text-[10px]">🔄 Buscando...</div>'; const items = []; for (let i = 0; i < links.length; i++) { const link = links[i].trim(); let metadata; if (extractYoutubeId(link)) metadata = await fetchVideoDataFromLink(link, 'youtube'); else if (isIptvLink(link)) metadata = await fetchVideoDataFromLink(link, 'iptv'); if (metadata) items.push(metadata); } batchPreviewItems = items; if (items.length === 0) { previewDiv.innerHTML = '<div class="text-red-500 text-[10px]">❌ Nenhum vídeo encontrado</div>'; return; } const existingTitles = filmes.map(f => f.title); const previewHtml = items.map((item) => { const isDuplicate = existingTitles.includes(item.title); return `<div class="p-0.5 border-b border-white/10 text-[10px] ${isDuplicate ? 'duplicate-item' : ''}"><div class="flex justify-between"><span><strong>${item.title.substring(0, 25)}</strong></span>${isDuplicate ? '<span class="text-red-500">⚠️</span>' : '<span class="text-green-500">✅</span>'}</div></div>`; }).join(''); previewDiv.innerHTML = `<div class="mb-0.5 text-[10px]">📊 ${items.length} filmes | ${items.filter(i => existingTitles.includes(i.title)).length} duplicados</div>${previewHtml}`; showToast(`✅ ${items.length} filmes carregados`); }
+        async function saveSingleItem() { const title = document.getElementById('itemTitle').value.trim(); let link = document.getElementById('itemLink').value.trim(); const thumb = document.getElementById('itemThumb').value.trim(); const category = document.getElementById('itemCategory').value.trim(); const year = document.getElementById('itemYear').value.trim(); const description = document.getElementById('itemDescription').value.trim(); const mediaType = document.querySelector('input[name="mediaType"]:checked').value; if (!title || !link) { showToast('❌ Preencha título e link'); return; } if (mediaType === 'youtube') { if (!extractYoutubeId(link)) { showToast('❌ Link do YouTube inválido.'); return; } } else if (mediaType === 'iptv') { if (!isIptvLink(link)) { showToast('❌ Link IPTV/MP4 inválido. Use .mp4, .m3u8 ou .m3u'); return; } } const activeAdminTab = document.querySelector('#adminPanel .admin-tab-btn.border-b-2.border-red-600')?.id; let finalThumb = thumb; if (mediaType === 'youtube' && !finalThumb) { const videoId = extractYoutubeId(link); if (videoId) finalThumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`; } if (!finalThumb) finalThumb = 'https://via.placeholder.com/300x200'; const itemData = { title, link, thumb: finalThumb, category: category || (mediaType === 'iptv' ? 'Vídeo' : 'Geral'), year: year || new Date().getFullYear(), description: description || title, mediaType, createdAt: Date.now() }; // Verificação de duplicados antes de salvar
+        if (!editingItem) {
+            let existingItems = [];
+            if (activeAdminTab === 'adminTabCanais') existingItems = canais;
+            else if (activeAdminTab === 'adminTabFilmes') existingItems = filmes;
+            else if (activeAdminTab === 'adminTabSeries') existingItems = series;
+            const isDuplicate = existingItems.some(item => item.title.toLowerCase() === title.toLowerCase() || item.link === link);
+            if (isDuplicate) {
+                showToast('⚠️ Conteúdo duplicado! Título ou URL já existe.');
+                return;
+            }
+        }
+        try { if (editingItem) { const refPath = editingItem.type === 'canais' ? `canais/${editingItem.id}` : (editingItem.type === 'filmes' ? `filmes/${editingItem.id}` : `series/${editingItem.id}`); await database.ref(refPath).update(itemData); showToast('✅ Item atualizado!'); resetForm(); if (editingItem.type === 'canais') loadCanaisFromFirebase(); else if (editingItem.type === 'filmes') loadFilmesFromFirebase(); else if (editingItem.type === 'series') loadSeriesFromFirebase(); } else { const safeId = generateSafeId(); const newItem = { id: safeId, ...itemData }; if (activeAdminTab === 'adminTabCanais') { await database.ref(`canais/${safeId}`).set(newItem); showToast('✅ Canal salvo!'); loadCanaisFromFirebase(); } else if (activeAdminTab === 'adminTabFilmes') { await database.ref(`filmes/${safeId}`).set(newItem); showToast('✅ Filme salvo!'); loadFilmesFromFirebase(); } else if (activeAdminTab === 'adminTabSeries') { await database.ref(`series/${safeId}`).set(newItem); showToast('✅ Episódio salvo!'); loadSeriesFromFirebase(); } resetForm(); } } catch (error) { console.error(error); showToast('❌ Erro ao salvar: ' + error.message); } }
+        async function previewBatch() { const linksText = document.getElementById('batchLinksInput').value; const links = linksText.split('\n').filter(l => l.trim() && (extractYoutubeId(l.trim()) || isIptvLink(l.trim()))); const previewDiv = document.getElementById('batchPreview'); if (links.length === 0) { previewDiv.innerHTML = '<div class="text-yellow-500 text-[10px]">⚠️ Nenhum link válido (YouTube, .mp4, .m3u8 ou .m3u)</div>'; return; } previewDiv.innerHTML = '<div class="text-yellow-500 text-[10px]">🔄 Buscando...</div>'; const items = []; for (let i = 0; i < links.length; i++) { const link = links[i].trim(); let metadata; if (extractYoutubeId(link)) metadata = await fetchVideoDataFromLink(link, 'youtube'); else if (isIptvLink(link)) metadata = await fetchVideoDataFromLink(link, 'iptv'); if (metadata) items.push(metadata); } batchPreviewItems = items; if (items.length === 0) { previewDiv.innerHTML = '<div class="text-red-500 text-[10px]">❌ Nenhum vídeo encontrado</div>'; return; } const existingTitles = filmes.map(f => f.title); const previewHtml = items.map((item) => { const isDuplicate = existingTitles.includes(item.title); return `<div class="p-0.5 border-b border-white/10 text-[10px] ${isDuplicate ? 'duplicate-item' : ''}"><div class="flex justify-between"><span><strong>${item.title.substring(0, 25)}</strong></span>${isDuplicate ? '<span class="text-red-500">⚠️</span>' : '<span class="text-green-500">✅</span>'}</div></div>`; }).join(''); previewDiv.innerHTML = `<div class="mb-0.5 text-[10px]">📊 ${items.length} filmes | ${items.filter(i => existingTitles.includes(i.title)).length} duplicados</div>${previewHtml}`; showToast(`✅ ${items.length} filmes carregados`); }
         let batchPreviewItems = [];
         async function saveBatch() { if (batchPreviewItems.length === 0) { showToast('❌ Clique em "Pré-visualizar" primeiro'); return; } const existingTitles = filmes.map(f => f.title); const newItems = batchPreviewItems.filter(item => !existingTitles.includes(item.title)); const duplicates = batchPreviewItems.filter(item => existingTitles.includes(item.title)); if (duplicates.length > 0) { if (!confirm(`⚠️ ${duplicates.length} duplicados. Adicionar apenas ${newItems.length} novos?`)) return; } if (newItems.length === 0) { showToast('❌ Nenhum filme novo'); return; } showToast(`💾 Salvando ${newItems.length} filmes...`); let salvos = 0; for (let item of newItems) { const safeId = generateSafeId(); const mediaType = extractYoutubeId(item.link) ? 'youtube' : 'iptv'; await database.ref(`filmes/${safeId}`).set({ id: safeId, title: item.title, link: item.link, thumb: item.thumb, category: item.genre, year: item.year, description: item.description, createdAt: Date.now(), mediaType: mediaType }); salvos++; } showToast(`✅ ${salvos} filmes salvos!`); document.getElementById('batchLinksInput').value = ''; document.getElementById('batchPreview').innerHTML = ''; batchPreviewItems = []; loadFilmesFromFirebase(); }
         async function saveEpisodes() { const serieName = document.getElementById('serieTitle').value.trim(); const episodesText = document.getElementById('episodesLinksInput').value; if (!serieName) { alert('Digite o nome da série'); return; } const lines = episodesText.split('\n').filter(l => l.trim()); if (lines.length === 0) { alert('Cole os episódios'); return; } showToast(`💾 Salvando ${lines.length} episódios...`); let salvos = 0; for (let line of lines) { let episodeTitle = '', link = ''; if (line.includes(':')) { const parts = line.split(':'); episodeTitle = parts[0].trim(); link = parts.slice(1).join(':').trim(); } else { link = line.trim(); episodeTitle = `EP${String(salvos + 1).padStart(2, '0')}`; } let metadata; if (extractYoutubeId(link)) metadata = await fetchVideoDataFromLink(link, 'youtube'); else if (isIptvLink(link)) metadata = await fetchVideoDataFromLink(link, 'iptv'); const safeId = generateSafeId(); const mediaType = extractYoutubeId(link) ? 'youtube' : 'iptv'; await database.ref(`series/${safeId}`).set({ id: safeId, title: `${serieName} - ${episodeTitle}`, link: link, thumb: metadata?.thumb || 'https://via.placeholder.com/300x200', category: metadata?.genre || 'Série', year: metadata?.year || new Date().getFullYear(), description: metadata?.description || `Episódio ${episodeTitle}`, createdAt: Date.now(), mediaType: mediaType }); salvos++; } showToast(`✅ ${salvos} episódios salvos!`); document.getElementById('serieTitle').value = ''; document.getElementById('episodesLinksInput').value = ''; loadSeriesFromFirebase(); }
@@ -4721,6 +4911,29 @@
         function updateProfileUI() {
             if (currentUser) renderInstagramProfile();
             else { const container = document.getElementById('instagramProfileContainer'); if(container) container.innerHTML = '<div class="text-center p-4">Faça login para acessar o perfil</div>'; }
+        }
+        
+        // Eventos da busca global
+        const searchInput = document.getElementById('globalSearchInput');
+        const clearSearchBtn = document.getElementById('clearSearchBtn');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                globalSearchTerm = e.target.value.trim();
+                if (currentNavTab === 'canais' || currentNavTab === 'filmes' || currentNavTab === 'series') {
+                    updateGenreFilters();
+                    renderGrid();
+                }
+            });
+        }
+        if (clearSearchBtn) {
+            clearSearchBtn.addEventListener('click', () => {
+                if (searchInput) searchInput.value = '';
+                globalSearchTerm = '';
+                if (currentNavTab === 'canais' || currentNavTab === 'filmes' || currentNavTab === 'series') {
+                    updateGenreFilters();
+                    renderGrid();
+                }
+            });
         }
         
         document.getElementById('navCanaisBtn').onclick = () => setNavTab('canais');
@@ -4788,7 +5001,7 @@
         document.querySelectorAll('.bottom-nav-item').forEach(item => { item.addEventListener('click', () => { const section = item.getAttribute('data-section'); switchSection(section); }); });
         
         function openSearchPopup() { document.getElementById('searchPopup').classList.remove('hidden'); document.getElementById('popupSearchInput').focus(); }
-        function setupSearchPopup() { const searchInput = document.getElementById('popupSearchInput'); const resultsDiv = document.getElementById('popupSearchResults'); searchInput.addEventListener('input', (e) => { const term = e.target.value.toLowerCase().trim(); if (term.length === 0) { resultsDiv.innerHTML = ''; return; } const allItems = [...canais.map(c => ({ ...c, type: 'canal' })), ...filmes.map(f => ({ ...f, type: 'filme' })), ...series.map(s => ({ ...s, type: 'serie' }))]; const matches = allItems.filter(item => item.title.toLowerCase().includes(term)); if (matches.length === 0) resultsDiv.innerHTML = '<div class="text-center text-gray-500 py-3 text-xs">Nenhum resultado</div>'; else { resultsDiv.innerHTML = matches.map(item => `<div class="search-result-item flex gap-2 p-2 glass-card rounded-xl cursor-pointer mb-1 ripple-btn" data-id="${item.id}" data-type="${item.type}"><img src="${item.thumb || 'https://via.placeholder.com/40x50'}" class="w-10 h-12 object-cover rounded-lg" onerror="this.src='https://via.placeholder.com/40x50'"><div><div class="font-semibold text-xs">${item.title} ${isIptvLink(item.link) ? '<span class="iptv-badge text-[7px] bg-red-600 px-1 rounded ml-0.5">IPTV</span>' : ''}</div><div class="text-[9px] opacity-70">${item.category || 'Geral'} • ${item.year || ''}</div></div></div>`).join(''); document.querySelectorAll('#popupSearchResults .search-result-item').forEach(el => { el.addEventListener('click', () => { const id = el.getAttribute('data-id'); const type = el.getAttribute('data-type'); let item; if (type === 'canal') item = canais.find(c => c.id === id); else if (type === 'filme') item = filmes.find(f => f.id === id); else item = series.find(s => s.id === id); if (item) { playMedia(item, type); document.getElementById('searchPopup').classList.add('hidden'); } }); }); } }); }
+        function setupSearchPopup() { const searchInput = document.getElementById('popupSearchInput'); const resultsDiv = document.getElementById('popupSearchResults'); searchInput.addEventListener('input', (e) => { const term = e.target.value.toLowerCase().trim(); if (term.length === 0) { resultsDiv.innerHTML = ''; return; } const allItems = [...canais.map(c => ({ ...c, type: 'canal' })), ...filmes.map(f => ({ ...f, type: 'filme' })), ...series.map(s => ({ ...s, type: 'serie' }))]; const matches = allItems.filter(item => item.title.toLowerCase().includes(term)); if (matches.length === 0) resultsDiv.innerHTML = '<div class="text-center text-gray-500 py-3 text-xs">Nenhum resultado</div>'; else { resultsDiv.innerHTML = matches.map(item => `<div class="search-result-item flex gap-2 p-2 glass-card rounded-xl cursor-pointer mb-1 ripple-btn" data-id="${item.id}" data-type="${item.type}"><img src="${item.thumb || 'https://via.placeholder.com/40x50'}" class="w-10 h-12 object-cover rounded-lg" onerror="this.src='https://via.placeholder.com/40x50'"><div><div class="font-semibold text-xs">${item.title} ${isIptvLink(item.link) ? '<span class="iptv-badge text-[7px] bg-red-600 px-1 rounded ml-0.5">VIDEO</span>' : ''}</div><div class="text-[9px] opacity-70">${item.category || 'Geral'} • ${item.year || ''}</div></div></div>`).join(''); document.querySelectorAll('#popupSearchResults .search-result-item').forEach(el => { el.addEventListener('click', () => { const id = el.getAttribute('data-id'); const type = el.getAttribute('data-type'); let item; if (type === 'canal') item = canais.find(c => c.id === id); else if (type === 'filme') item = filmes.find(f => f.id === id); else item = series.find(s => s.id === id); if (item) { playMedia(item, type); document.getElementById('searchPopup').classList.add('hidden'); } }); }); } }); }
         function openSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); document.getElementById('usernameInput').value = currentUsername; }
         function saveUsername() { const newUsername = document.getElementById('usernameInput').value.trim(); if (newUsername) { currentUsername = newUsername; localStorage.setItem('noitefilmes_username', currentUsername); if (currentUser) database.ref(`usuarios/${currentUser.uid}/nickname`).set(currentUsername); showToast(`✅ Nome alterado para: @${currentUsername}`); document.getElementById('settingsModal').classList.add('hidden'); updateProfileUI(); } }
         function logoutUser() { auth.signOut(); document.getElementById('settingsModal').classList.add('hidden'); }
