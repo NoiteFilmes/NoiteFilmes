@@ -1,3 +1,8 @@
+Peço desculpas pela confusão. A atualização completa do código foi enviada na minha resposta anterior. O código completo está logo após a explicação das correções, dentro do bloco de código HTML.
+
+Vou reenviar o código completo para garantir que você tenha acesso:
+
+```html
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -4815,8 +4820,8 @@
         function onYouTubeIframeAPIReady() {}
         
         function loadCanaisFromFirebase() { database.ref('canais').once('value', (snapshot) => { const data = snapshot.val(); canais = data ? Object.values(data).filter(i => !i.hidden) : []; canaisLoaded = true; updateContentCounters(); loadAllViews(); if (currentNavTab === 'canais') renderGrid(); updateGenreFilters(); if (isAdminLogged) refreshAdminLists(); checkAllDataLoaded(); }); }
-        function loadFilmesFromFirebase() { database.ref('filmes').once('value', (snapshot) => { const data = snapshot.val(); filmes = data ? Object.values(data).filter(i => !i.hidden) : []; filmesLoaded = true; updateContentCounters(); loadAllViews(); if (currentNavTab === 'filmes') renderGrid(); updateGenreFilters(); if (isAdminLogged) refreshAdminLists(); checkAllDataLoaded(); }); }
-        function loadSeriesFromFirebase() { database.ref('series').once('value', (snapshot) => { const data = snapshot.val(); series = data ? Object.values(data).filter(i => !i.hidden) : []; seriesLoaded = true; updateContentCounters(); loadAllViews(); if (currentNavTab === 'series') renderGrid(); updateGenreFilters(); if (isAdminLogged) refreshAdminLists(); checkAllDataLoaded(); }); }
+        function loadFilmesFromFirebase() { database.ref('filmes').once('value', (snapshot) => { const data = snapshot.val(); filmes = data ? Object.values(data).filter(i => !i.hidden) : []; filmesLoaded = true; updateContentCounters(); loadAllViews(); if (currentNavTab === 'filmes') renderGrid(); if (isAdminLogged) refreshAdminLists(); checkAllDataLoaded(); }); }
+        function loadSeriesFromFirebase() { database.ref('series').once('value', (snapshot) => { const data = snapshot.val(); series = data ? Object.values(data).filter(i => !i.hidden) : []; seriesLoaded = true; updateContentCounters(); loadAllViews(); if (currentNavTab === 'series') renderGrid(); if (isAdminLogged) refreshAdminLists(); checkAllDataLoaded(); }); }
         function checkAllDataLoaded() { if (canaisLoaded && filmesLoaded && seriesLoaded) { const urlParams = new URLSearchParams(window.location.search); const mediaId = urlParams.get('mediaId'); const type = urlParams.get('type'); if (mediaId && type) playMediaById(mediaId, type); } }
         
         function sortItems(items) { if (!items) return []; const sorted = [...items]; switch (currentSort) { case 'recent': sorted.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); break; case 'views': sorted.sort((a, b) => (viewsCache[b.id] || 0) - (viewsCache[a.id] || 0)); break; case 'az': sorted.sort((a, b) => a.title.localeCompare(b.title)); break; case 'za': sorted.sort((a, b) => b.title.localeCompare(a.title)); break; case 'year_asc': sorted.sort((a, b) => (parseInt(a.year) || 0) - (parseInt(b.year) || 0)); break; case 'year_desc': sorted.sort((a, b) => (parseInt(b.year) || 0) - (parseInt(a.year) || 0)); break; case 'genre': sorted.sort((a, b) => (a.category || '').localeCompare(b.category || '')); break; default: sorted.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); } return sorted; }
@@ -5376,3 +5381,4 @@
     </script>
 </body>
 </html>
+```
