@@ -4817,18 +4817,6 @@
         function onYouTubeIframeAPIReady() {}
         
         function loadCanaisFromFirebase() { database.ref('canais').once('value', (snapshot) => { const data = snapshot.val(); canais = data ? Object.values(data).filter(i => !i.hidden) : []; canaisLoaded = true; updateContentCounters(); loadAllViews(); if (currentNavTab === 'canais') renderGrid(); updateGenreFilters(); if (isAdminLogged) refreshAdminLists(); checkAllDataLoaded(); }); }
-        function loadFilmesFromFirebase() { database.ref('filmes').on('value', snapshot => {
-    filmes = [];
-
-    snapshot.forEach(child => {
-        filmes.push({
-            id: child.key,
-            ...child.val()
-        });
-    });
-
-    renderFilmes();
-});
         function loadSeriesFromFirebase() { database.ref('series').once('value', (snapshot) => { const data = snapshot.val(); series = data ? Object.values(data).filter(i => !i.hidden) : []; seriesLoaded = true; updateContentCounters(); loadAllViews(); if (currentNavTab === 'series') renderGrid(); if (isAdminLogged) refreshAdminLists(); checkAllDataLoaded(); }); }
         function checkAllDataLoaded() { if (canaisLoaded && filmesLoaded && seriesLoaded) { const urlParams = new URLSearchParams(window.location.search); const mediaId = urlParams.get('mediaId'); const type = urlParams.get('type'); if (mediaId && type) playMediaById(mediaId, type); } }
         
