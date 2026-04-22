@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -4427,7 +4428,6 @@
                 
                 const imageUrl = await uploadPromise;
                 
-                // Salvar avatar APENAS para o usuário atual - cada usuário tem sua própria foto
                 await database.ref(`usuarios/${currentUser.uid}/avatarUrl`).set(imageUrl);
                 userProfileData.avatarUrl = imageUrl;
                 
@@ -4814,10 +4814,55 @@
         
         function onYouTubeIframeAPIReady() {}
         
-        function loadCanaisFromFirebase() { database.ref('canais').once('value', (snapshot) => { const data = snapshot.val(); canais = data ? Object.values(data).filter(i => !i.hidden) : []; canaisLoaded = true; updateContentCounters(); loadAllViews(); if (currentNavTab === 'canais') renderGrid(); updateGenreFilters(); if (isAdminLogged) refreshAdminLists(); checkAllDataLoaded(); }); }
-        function loadFilmesFromFirebase() { database.ref('filmes').once('value', (snapshot) => { const data = snapshot.val(); filmes = data ? Object.values(data).filter(i => !i.hidden) : []; filmesLoaded = true; updateContentCounters(); loadAllViews(); if (currentNavTab === 'filmes') renderGrid(); if (isAdminLogged) refreshAdminLists(); checkAllDataLoaded(); }); }
-        function loadSeriesFromFirebase() { database.ref('series').once('value', (snapshot) => { const data = snapshot.val(); series = data ? Object.values(data).filter(i => !i.hidden) : []; seriesLoaded = true; updateContentCounters(); loadAllViews(); if (currentNavTab === 'series') renderGrid(); if (isAdminLogged) refreshAdminLists(); checkAllDataLoaded(); }); }
-        function checkAllDataLoaded() { if (canaisLoaded && filmesLoaded && seriesLoaded) { const urlParams = new URLSearchParams(window.location.search); const mediaId = urlParams.get('mediaId'); const type = urlParams.get('type'); if (mediaId && type) playMediaById(mediaId, type); } }
+        // ==================== CARREGAMENTO DE DADOS COM REFRESH ADMIN ====================
+        function loadCanaisFromFirebase() { 
+            database.ref('canais').once('value', (snapshot) => { 
+                const data = snapshot.val(); 
+                canais = data ? Object.values(data).filter(i => !i.hidden) : []; 
+                canaisLoaded = true; 
+                updateContentCounters(); 
+                loadAllViews(); 
+                if (currentNavTab === 'canais') renderGrid(); 
+                updateGenreFilters(); 
+                if (isAdminLogged) refreshAdminLists(); 
+                checkAllDataLoaded(); 
+            }); 
+        }
+        
+        function loadFilmesFromFirebase() { 
+            database.ref('filmes').once('value', (snapshot) => { 
+                const data = snapshot.val(); 
+                filmes = data ? Object.values(data).filter(i => !i.hidden) : []; 
+                filmesLoaded = true; 
+                updateContentCounters(); 
+                loadAllViews(); 
+                if (currentNavTab === 'filmes') renderGrid(); 
+                if (isAdminLogged) refreshAdminLists(); 
+                checkAllDataLoaded(); 
+            }); 
+        }
+        
+        function loadSeriesFromFirebase() { 
+            database.ref('series').once('value', (snapshot) => { 
+                const data = snapshot.val(); 
+                series = data ? Object.values(data).filter(i => !i.hidden) : []; 
+                seriesLoaded = true; 
+                updateContentCounters(); 
+                loadAllViews(); 
+                if (currentNavTab === 'series') renderGrid(); 
+                if (isAdminLogged) refreshAdminLists(); 
+                checkAllDataLoaded(); 
+            }); 
+        }
+        
+        function checkAllDataLoaded() { 
+            if (canaisLoaded && filmesLoaded && seriesLoaded) { 
+                const urlParams = new URLSearchParams(window.location.search); 
+                const mediaId = urlParams.get('mediaId'); 
+                const type = urlParams.get('type'); 
+                if (mediaId && type) playMediaById(mediaId, type); 
+            } 
+        }
         
         function sortItems(items) { if (!items) return []; const sorted = [...items]; switch (currentSort) { case 'recent': sorted.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); break; case 'views': sorted.sort((a, b) => (viewsCache[b.id] || 0) - (viewsCache[a.id] || 0)); break; case 'az': sorted.sort((a, b) => a.title.localeCompare(b.title)); break; case 'za': sorted.sort((a, b) => b.title.localeCompare(a.title)); break; case 'year_asc': sorted.sort((a, b) => (parseInt(a.year) || 0) - (parseInt(b.year) || 0)); break; case 'year_desc': sorted.sort((a, b) => (parseInt(b.year) || 0) - (parseInt(a.year) || 0)); break; case 'genre': sorted.sort((a, b) => (a.category || '').localeCompare(b.category || '')); break; default: sorted.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); } return sorted; }
         
@@ -5017,7 +5062,6 @@
             else if (type === 'series') item = series.find(s => s.id === id);
             if (!item) return;
             editingItem = { ...item, type: type };
-            // Atualizar a aba ativa para o tipo correto
             if (type === 'canais') currentAdminTab = 'adminTabCanais';
             else if (type === 'filmes') currentAdminTab = 'adminTabFilmes';
             else if (type === 'series') currentAdminTab = 'adminTabSeries';
@@ -5073,7 +5117,6 @@
                 mediaType, createdAt: Date.now() 
             };
             
-            // Verificar duplicados apenas se não estiver editando
             if (!editingItem) {
                 let existingItems = [];
                 if (currentAdminTab === 'adminTabCanais') existingItems = canais;
@@ -5233,8 +5276,20 @@
         const modal = document.getElementById('adminModal');
         document.getElementById('adminBtn').onclick = () => { modal.classList.remove('hidden'); document.getElementById('adminLoginArea').classList.remove('hidden'); document.getElementById('adminPanel').classList.add('hidden'); };
         document.getElementById('closeAdminModal').onclick = () => modal.classList.add('hidden');
-        document.getElementById('loginAdminBtn').onclick = () => { if (document.getElementById('adminPassword').value === 'admin123') { isAdminLogged = true; document.getElementById('adminLoginArea').classList.add('hidden'); document.getElementById('adminPanel').classList.remove('hidden'); refreshAdminLists(); loadReportsForAdmin(); } else alert('Senha incorreta'); };
         
+        // ===== LOGIN ADMIN COM REFRESH DAS LISTAS =====
+        document.getElementById('loginAdminBtn').onclick = () => { 
+            if (document.getElementById('adminPassword').value === 'admin123') { 
+                isAdminLogged = true; 
+                document.getElementById('adminLoginArea').classList.add('hidden'); 
+                document.getElementById('adminPanel').classList.remove('hidden'); 
+                refreshAdminLists(); 
+                loadReportsForAdmin(); 
+                showToast('✅ Admin logado - listas atualizadas');
+            } else alert('Senha incorreta'); 
+        };
+        
+        // ===== EVENTOS DAS ABAS DO ADMIN COM REFRESH FORÇADO =====
         document.getElementById('adminTabCanais').onclick = () => { 
             document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); 
             document.getElementById('adminTabCanais').classList.add('border-b-2', 'border-red-600', 'text-red-500'); 
@@ -5248,6 +5303,7 @@
             document.getElementById('batchSeriesArea').classList.add('hidden'); 
             document.getElementById('adminFormArea').classList.remove('hidden'); 
             resetForm(); 
+            refreshAdminLists(); // FORÇA ATUALIZAÇÃO DA LISTA
         };
         document.getElementById('adminTabFilmes').onclick = () => { 
             document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); 
@@ -5262,6 +5318,7 @@
             document.getElementById('batchSeriesArea').classList.add('hidden'); 
             document.getElementById('adminFormArea').classList.remove('hidden'); 
             resetForm(); 
+            refreshAdminLists(); // FORÇA ATUALIZAÇÃO DA LISTA
         };
         document.getElementById('adminTabSeries').onclick = () => { 
             document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); 
@@ -5276,6 +5333,7 @@
             document.getElementById('batchSeriesArea').classList.remove('hidden'); 
             document.getElementById('adminFormArea').classList.remove('hidden'); 
             resetForm(); 
+            refreshAdminLists(); // FORÇA ATUALIZAÇÃO DA LISTA
         };
         document.getElementById('adminTabDuplicados').onclick = () => { 
             document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); 
