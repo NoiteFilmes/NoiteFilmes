@@ -2933,7 +2933,7 @@
         <div class="bottom-nav-item flex flex-col items-center gap-0 px-3 py-1 ripple-btn" data-section="perfil"><i class="fas fa-user text-lg"></i><span class="text-[10px] font-medium">Perfil</span></div>
     </div>
 
-    <!-- Modal de Busca Global (nova função) -->
+    <!-- Modal de Busca Global -->
     <div id="globalSearchModal" class="global-search-modal hidden">
         <div class="global-search-content">
             <div class="global-search-header">
@@ -2991,7 +2991,7 @@
                 <button id="closeAdminModal" class="text-2xl text-gray-400 hover:text-white transition">&times;</button>
             </div>
             <div class="p-4">
-                <div id="adminLoginArea" class="mb-3"><label class="block mb-1 text-xs text-gray-300">Senha Admin:</label><div class="flex gap-2"><input type="password" id="adminPassword" placeholder="Senha" class="bg-gray-800 border border-gray-600 rounded-full px-3 py-1.5 flex-1 text-white text-sm"><button id="loginAdminBtn" class="bg-red-700 hover:bg-red-800 px-4 py-1.5 rounded-full text-sm text-white transition ripple-btn">Entrar</button></div><p class="text-[10px] text-gray-400 mt-1">Senha: <strong class="text-red-500">*******</strong></p></div>
+                <div id="adminLoginArea" class="mb-3"><label class="block mb-1 text-xs text-gray-300">Senha Admin:</label><div class="flex gap-2"><input type="password" id="adminPassword" placeholder="Senha" class="bg-gray-800 border border-gray-600 rounded-full px-3 py-1.5 flex-1 text-white text-sm"><button id="loginAdminBtn" class="bg-red-700 hover:bg-red-800 px-4 py-1.5 rounded-full text-sm text-white transition ripple-btn">Entrar</button></div><p class="text-[10px] text-gray-400 mt-1">Senha: <strong class="text-red-500">admin123</strong></p></div>
                 <div id="adminPanel" class="hidden">
                     <div class="flex space-x-2 border-b border-gray-700 mb-3">
                         <button id="adminTabCanais" class="admin-tab-btn py-1 px-2 text-gray-400 text-xs">Canais</button>
@@ -3131,6 +3131,7 @@
         let isAdminLogged = false;
         let currentUsername = localStorage.getItem('noitefilmes_username') || 'Cinéfilo';
         let editingItem = null;
+        let currentAdminTab = 'adminTabFilmes'; // Variável para controlar a aba ativa do admin
         
         let canaisLoaded = false;
         let filmesLoaded = false;
@@ -3260,7 +3261,7 @@
             if (toast && toast.remove) toast.remove();
         }
         
-        // ==================== NOVA FUNÇÃO DE BUSCA GLOBAL ====================
+        // ==================== FUNÇÃO DE BUSCA GLOBAL ====================
         function openGlobalSearch() {
             document.getElementById('globalSearchModal').classList.remove('hidden');
             document.getElementById('globalSearchInputModal').value = '';
@@ -3281,7 +3282,6 @@
                 return;
             }
             
-            // Buscar em todos os tipos de conteúdo
             const allItems = [
                 ...filmes.map(f => ({ ...f, type: 'filme', typeIcon: '🎬', typeName: 'Filme' })),
                 ...series.map(s => ({ ...s, type: 'serie', typeIcon: '📺', typeName: 'Série' })),
@@ -3309,7 +3309,6 @@
                 </div>
             `).join('');
             
-            // Adicionar eventos de clique
             document.querySelectorAll('#globalSearchResults .global-search-item').forEach(el => {
                 el.addEventListener('click', () => {
                     const id = el.getAttribute('data-id');
@@ -4939,27 +4938,134 @@
         function findDuplicates() { const allItems = [...canais.map(c => ({ ...c, type: 'canais' })), ...filmes.map(f => ({ ...f, type: 'filmes' })), ...series.map(s => ({ ...s, type: 'series' }))]; const duplicates = []; const titleMap = new Map(); allItems.forEach(item => { const title = item.title.toLowerCase().trim(); if (titleMap.has(title)) titleMap.get(title).push(item); else titleMap.set(title, [item]); }); titleMap.forEach((items, title) => { if (items.length > 1) duplicates.push({ title: items[0].title, items: items, thumb: items[0].thumb }); }); return duplicates; }
         function renderDuplicatesList() { const container = document.getElementById('duplicadosAdminList'); const duplicates = findDuplicates(); if (duplicates.length === 0) { container.innerHTML = '<div class="text-center text-gray-500 py-3 text-xs">✨ Nenhum filme/vídeo duplicado encontrado!</div>'; return; } container.innerHTML = ''; duplicates.forEach((dup, groupIndex) => { const itemsToShow = dup.items.slice(1); if (itemsToShow.length === 0) return; const groupHtml = `<div class="duplicate-group bg-black/20 p-2 rounded-xl mb-3" data-group-id="group_${groupIndex}"><div class="duplicate-header flex gap-2 items-center mb-1"><img src="${dup.thumb || 'https://via.placeholder.com/40x50'}" class="w-8 h-10 object-cover rounded"><div><div class="font-bold text-red-500 text-xs">📌 "${dup.title}"</div><div class="text-[9px]">Total: ${dup.items.length} cópias | ${itemsToShow.length} para excluir</div></div></div><div class="duplicate-items-list ml-3 space-y-1" id="group_${groupIndex}_list">${itemsToShow.map((item, idx) => `<label class="duplicate-checkbox-item flex items-center gap-2 p-1 glass rounded-lg cursor-pointer"><input type="checkbox" class="duplicate-checkbox" data-id="${item.id}" data-type="${item.type}" data-group="group_${groupIndex}"><img src="${item.thumb || 'https://via.placeholder.com/30x40'}" class="w-7 h-9 object-cover rounded"><div class="flex-1"><div class="text-xs">${item.title}</div><div class="text-[9px] opacity-70">${item.type === 'canais' ? '📡 Canal' : (item.type === 'filmes' ? '🎬 Filme' : '📺 Série')}</div></div></label>`).join('')}</div></div>`; container.innerHTML += groupHtml; }); const buttonBar = document.createElement('div'); buttonBar.className = 'mb-3 sticky top-0 bg-black/50 p-1 rounded-xl flex gap-1'; buttonBar.innerHTML = `<button id="selectAllDuplicatesBtn" class="select-all-btn bg-blue-700 px-2 py-0.5 rounded-full text-[9px] ripple-btn">Selecionar Todos</button><button id="deleteSelectedDuplicatesBtn" class="delete-selected-btn bg-red-700 px-2 py-0.5 rounded-full text-[9px] ripple-btn">Excluir Selecionados</button><span id="selectedCount" class="text-[9px] ml-1">0 selecionados</span>`; container.insertBefore(buttonBar, container.firstChild); function updateSelectedCount() { const checkboxes = document.querySelectorAll('.duplicate-checkbox:checked'); const countSpan = document.getElementById('selectedCount'); if (countSpan) countSpan.innerText = `${checkboxes.length} selecionado(s)`; } document.querySelectorAll('.duplicate-checkbox').forEach(cb => cb.addEventListener('change', updateSelectedCount)); document.getElementById('selectAllDuplicatesBtn')?.addEventListener('click', () => { const allCheckboxes = document.querySelectorAll('.duplicate-checkbox'); const areAllChecked = Array.from(allCheckboxes).every(cb => cb.checked); allCheckboxes.forEach(cb => cb.checked = !areAllChecked); updateSelectedCount(); }); document.getElementById('deleteSelectedDuplicatesBtn')?.addEventListener('click', () => { const selected = document.querySelectorAll('.duplicate-checkbox:checked'); if (selected.length === 0) { showToast('Selecione pelo menos um item'); return; } if (confirm(`Excluir ${selected.length} item(s) duplicado(s)?`)) { let deletions = []; selected.forEach(cb => { const id = cb.getAttribute('data-id'); const type = cb.getAttribute('data-type'); deletions.push(database.ref(`${type}/${id}`).remove()); }); Promise.all(deletions).then(() => { showToast(`${selected.length} item(s) removido(s)!`); loadCanaisFromFirebase(); loadFilmesFromFirebase(); loadSeriesFromFirebase(); renderDuplicatesList(); }).catch(error => showToast('Erro: ' + error.message)); } }); updateSelectedCount(); }
         
-        function editItem(id, type) { let item = null; if (type === 'canais') item = canais.find(c => c.id === id); else if (type === 'filmes') item = filmes.find(f => f.id === id); else if (type === 'series') item = series.find(s => s.id === id); if (!item) return; editingItem = { ...item, type: type }; document.getElementById('itemTitle').value = item.title; document.getElementById('itemLink').value = item.link; document.getElementById('itemThumb').value = item.thumb || ''; document.getElementById('itemCategory').value = item.category || ''; document.getElementById('itemYear').value = item.year || ''; document.getElementById('itemDescription').value = item.description || ''; const mediaTypeRadio = item.mediaType === 'iptv' ? 'iptv' : 'youtube'; document.querySelector(`input[name="mediaType"][value="${mediaTypeRadio}"]`).checked = true; document.getElementById('cancelEditBtn').classList.remove('hidden'); document.getElementById('formTitle').innerHTML = '✏️ Editando: ' + item.title.substring(0, 25); showToast('Modo edição ativado.'); }
-        function resetForm() { document.getElementById('itemTitle').value = ''; document.getElementById('itemLink').value = ''; document.getElementById('itemThumb').value = ''; document.getElementById('itemCategory').value = ''; document.getElementById('itemYear').value = ''; document.getElementById('itemDescription').value = ''; document.querySelector('input[name="mediaType"][value="youtube"]').checked = true; editingItem = null; document.getElementById('cancelEditBtn').classList.add('hidden'); document.getElementById('formTitle').innerHTML = 'Adicionar / Editar'; }
-        function generateSafeId() { return Date.now() + '-' + Math.random().toString(36).substring(2, 15); }
-        async function saveSingleItem() { const title = document.getElementById('itemTitle').value.trim(); let link = document.getElementById('itemLink').value.trim(); const thumb = document.getElementById('itemThumb').value.trim(); const category = document.getElementById('itemCategory').value.trim(); const year = document.getElementById('itemYear').value.trim(); const description = document.getElementById('itemDescription').value.trim(); const mediaType = document.querySelector('input[name="mediaType"]:checked').value; if (!title || !link) { showToast('❌ Preencha título e link'); return; } if (mediaType === 'youtube') { if (!extractYoutubeId(link)) { showToast('❌ Link do YouTube inválido.'); return; } } else if (mediaType === 'iptv') { if (!isIptvLink(link)) { showToast('❌ Link IPTV/MP4 inválido. Use .mp4, .m3u8 ou .m3u'); return; } } const activeAdminTab = document.querySelector('#adminPanel .admin-tab-btn.border-b-2.border-red-600')?.id; let finalThumb = thumb; if (mediaType === 'youtube' && !finalThumb) { const videoId = extractYoutubeId(link); if (videoId) finalThumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`; } if (!finalThumb) finalThumb = 'https://via.placeholder.com/300x200'; const itemData = { title, link, thumb: finalThumb, category: category || (mediaType === 'iptv' ? 'Vídeo' : 'Geral'), year: year || new Date().getFullYear(), description: description || title, mediaType, createdAt: Date.now() };
-        if (!editingItem) {
-            let existingItems = [];
-            if (activeAdminTab === 'adminTabCanais') existingItems = canais;
-            else if (activeAdminTab === 'adminTabFilmes') existingItems = filmes;
-            else if (activeAdminTab === 'adminTabSeries') existingItems = series;
-            const isDuplicate = existingItems.some(item => item.title.toLowerCase() === title.toLowerCase() || item.link === link);
-            if (isDuplicate) {
-                showToast('⚠️ Conteúdo duplicado! Título ou URL já existe.');
-                return;
-            }
+        function editItem(id, type) { 
+            let item = null; 
+            if (type === 'canais') item = canais.find(c => c.id === id);
+            else if (type === 'filmes') item = filmes.find(f => f.id === id);
+            else if (type === 'series') item = series.find(s => s.id === id);
+            if (!item) return;
+            editingItem = { ...item, type: type };
+            // Atualizar a aba ativa para o tipo correto
+            if (type === 'canais') currentAdminTab = 'adminTabCanais';
+            else if (type === 'filmes') currentAdminTab = 'adminTabFilmes';
+            else if (type === 'series') currentAdminTab = 'adminTabSeries';
+            document.getElementById('itemTitle').value = item.title;
+            document.getElementById('itemLink').value = item.link;
+            document.getElementById('itemThumb').value = item.thumb || '';
+            document.getElementById('itemCategory').value = item.category || '';
+            document.getElementById('itemYear').value = item.year || '';
+            document.getElementById('itemDescription').value = item.description || '';
+            const mediaTypeRadio = item.mediaType === 'iptv' ? 'iptv' : 'youtube';
+            document.querySelector(`input[name="mediaType"][value="${mediaTypeRadio}"]`).checked = true;
+            document.getElementById('cancelEditBtn').classList.remove('hidden');
+            document.getElementById('formTitle').innerHTML = '✏️ Editando: ' + item.title.substring(0, 25);
+            showToast('Modo edição ativado.');
         }
-        try { if (editingItem) { const refPath = editingItem.type === 'canais' ? `canais/${editingItem.id}` : (editingItem.type === 'filmes' ? `filmes/${editingItem.id}` : `series/${editingItem.id}`); await database.ref(refPath).update(itemData); showToast('✅ Item atualizado!'); resetForm(); if (editingItem.type === 'canais') loadCanaisFromFirebase(); else if (editingItem.type === 'filmes') loadFilmesFromFirebase(); else if (editingItem.type === 'series') loadSeriesFromFirebase(); } else { const safeId = generateSafeId(); const newItem = { id: safeId, ...itemData }; if (activeAdminTab === 'adminTabCanais') { await database.ref(`canais/${safeId}`).set(newItem); showToast('✅ Canal salvo!'); loadCanaisFromFirebase(); } else if (activeAdminTab === 'adminTabFilmes') { await database.ref(`filmes/${safeId}`).set(newItem); showToast('✅ Filme salvo!'); loadFilmesFromFirebase(); } else if (activeAdminTab === 'adminTabSeries') { await database.ref(`series/${safeId}`).set(newItem); showToast('✅ Episódio salvo!'); loadSeriesFromFirebase(); } resetForm(); } } catch (error) { console.error(error); showToast('❌ Erro ao salvar: ' + error.message); } }
+        
+        function resetForm() { 
+            document.getElementById('itemTitle').value = ''; 
+            document.getElementById('itemLink').value = ''; 
+            document.getElementById('itemThumb').value = ''; 
+            document.getElementById('itemCategory').value = ''; 
+            document.getElementById('itemYear').value = ''; 
+            document.getElementById('itemDescription').value = ''; 
+            document.querySelector('input[name="mediaType"][value="youtube"]').checked = true; 
+            editingItem = null; 
+            document.getElementById('cancelEditBtn').classList.add('hidden'); 
+            document.getElementById('formTitle').innerHTML = 'Adicionar / Editar'; 
+        }
+        
+        function generateSafeId() { return Date.now() + '-' + Math.random().toString(36).substring(2, 15); }
+        
+        async function saveSingleItem() { 
+            const title = document.getElementById('itemTitle').value.trim(); 
+            let link = document.getElementById('itemLink').value.trim(); 
+            const thumb = document.getElementById('itemThumb').value.trim(); 
+            const category = document.getElementById('itemCategory').value.trim(); 
+            const year = document.getElementById('itemYear').value.trim(); 
+            const description = document.getElementById('itemDescription').value.trim(); 
+            const mediaType = document.querySelector('input[name="mediaType"]:checked').value; 
+            if (!title || !link) { showToast('❌ Preencha título e link'); return; } 
+            if (mediaType === 'youtube') { if (!extractYoutubeId(link)) { showToast('❌ Link do YouTube inválido.'); return; } } 
+            else if (mediaType === 'iptv') { if (!isIptvLink(link)) { showToast('❌ Link IPTV/MP4 inválido. Use .mp4, .m3u8 ou .m3u'); return; } } 
+            
+            let finalThumb = thumb; 
+            if (mediaType === 'youtube' && !finalThumb) { const videoId = extractYoutubeId(link); if (videoId) finalThumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`; } 
+            if (!finalThumb) finalThumb = 'https://via.placeholder.com/300x200'; 
+            
+            const itemData = { 
+                title, link, thumb: finalThumb, 
+                category: category || (mediaType === 'iptv' ? 'Vídeo' : 'Geral'), 
+                year: year || new Date().getFullYear(), 
+                description: description || title, 
+                mediaType, createdAt: Date.now() 
+            };
+            
+            // Verificar duplicados apenas se não estiver editando
+            if (!editingItem) {
+                let existingItems = [];
+                if (currentAdminTab === 'adminTabCanais') existingItems = canais;
+                else if (currentAdminTab === 'adminTabFilmes') existingItems = filmes;
+                else if (currentAdminTab === 'adminTabSeries') existingItems = series;
+                const isDuplicate = existingItems.some(item => item.title.toLowerCase() === title.toLowerCase() || item.link === link);
+                if (isDuplicate) { showToast('⚠️ Conteúdo duplicado! Título ou URL já existe.'); return; }
+            }
+            
+            try { 
+                if (editingItem) { 
+                    const refPath = editingItem.type === 'canais' ? `canais/${editingItem.id}` : (editingItem.type === 'filmes' ? `filmes/${editingItem.id}` : `series/${editingItem.id}`); 
+                    await database.ref(refPath).update(itemData); 
+                    showToast('✅ Item atualizado!'); 
+                    resetForm(); 
+                    if (editingItem.type === 'canais') loadCanaisFromFirebase(); 
+                    else if (editingItem.type === 'filmes') loadFilmesFromFirebase(); 
+                    else if (editingItem.type === 'series') loadSeriesFromFirebase(); 
+                } else { 
+                    const safeId = generateSafeId(); 
+                    const newItem = { id: safeId, ...itemData }; 
+                    if (currentAdminTab === 'adminTabCanais') { 
+                        await database.ref(`canais/${safeId}`).set(newItem); 
+                        showToast('✅ Canal salvo!'); 
+                        loadCanaisFromFirebase(); 
+                    } else if (currentAdminTab === 'adminTabFilmes') { 
+                        await database.ref(`filmes/${safeId}`).set(newItem); 
+                        showToast('✅ Filme salvo!'); 
+                        loadFilmesFromFirebase(); 
+                    } else if (currentAdminTab === 'adminTabSeries') { 
+                        await database.ref(`series/${safeId}`).set(newItem); 
+                        showToast('✅ Episódio salvo!'); 
+                        loadSeriesFromFirebase(); 
+                    } 
+                    resetForm(); 
+                } 
+            } catch (error) { console.error(error); showToast('❌ Erro ao salvar: ' + error.message); } 
+        }
+        
         async function previewBatch() { const linksText = document.getElementById('batchLinksInput').value; const links = linksText.split('\n').filter(l => l.trim() && (extractYoutubeId(l.trim()) || isIptvLink(l.trim()))); const previewDiv = document.getElementById('batchPreview'); if (links.length === 0) { previewDiv.innerHTML = '<div class="text-yellow-500 text-[10px]">⚠️ Nenhum link válido (YouTube, .mp4, .m3u8 ou .m3u)</div>'; return; } previewDiv.innerHTML = '<div class="text-yellow-500 text-[10px]">🔄 Buscando...</div>'; const items = []; for (let i = 0; i < links.length; i++) { const link = links[i].trim(); let metadata; if (extractYoutubeId(link)) metadata = await fetchVideoDataFromLink(link, 'youtube'); else if (isIptvLink(link)) metadata = await fetchVideoDataFromLink(link, 'iptv'); if (metadata) items.push(metadata); } batchPreviewItems = items; if (items.length === 0) { previewDiv.innerHTML = '<div class="text-red-500 text-[10px]">❌ Nenhum vídeo encontrado</div>'; return; } const existingTitles = filmes.map(f => f.title); const previewHtml = items.map((item) => { const isDuplicate = existingTitles.includes(item.title); return `<div class="p-0.5 border-b border-white/10 text-[10px] ${isDuplicate ? 'duplicate-item' : ''}"><div class="flex justify-between"><span><strong>${item.title.substring(0, 25)}</strong></span>${isDuplicate ? '<span class="text-red-500">⚠️</span>' : '<span class="text-green-500">✅</span>'}</div></div>`; }).join(''); previewDiv.innerHTML = `<div class="mb-0.5 text-[10px]">📊 ${items.length} filmes | ${items.filter(i => existingTitles.includes(i.title)).length} duplicados</div>${previewHtml}`; showToast(`✅ ${items.length} filmes carregados`); }
         let batchPreviewItems = [];
         async function saveBatch() { if (batchPreviewItems.length === 0) { showToast('❌ Clique em "Pré-visualizar" primeiro'); return; } const existingTitles = filmes.map(f => f.title); const newItems = batchPreviewItems.filter(item => !existingTitles.includes(item.title)); const duplicates = batchPreviewItems.filter(item => existingTitles.includes(item.title)); if (duplicates.length > 0) { if (!confirm(`⚠️ ${duplicates.length} duplicados. Adicionar apenas ${newItems.length} novos?`)) return; } if (newItems.length === 0) { showToast('❌ Nenhum filme novo'); return; } showToast(`💾 Salvando ${newItems.length} filmes...`); let salvos = 0; for (let item of newItems) { const safeId = generateSafeId(); const mediaType = extractYoutubeId(item.link) ? 'youtube' : 'iptv'; await database.ref(`filmes/${safeId}`).set({ id: safeId, title: item.title, link: item.link, thumb: item.thumb, category: item.genre, year: item.year, description: item.description, createdAt: Date.now(), mediaType: mediaType }); salvos++; } showToast(`✅ ${salvos} filmes salvos!`); document.getElementById('batchLinksInput').value = ''; document.getElementById('batchPreview').innerHTML = ''; batchPreviewItems = []; loadFilmesFromFirebase(); }
         async function saveEpisodes() { const serieName = document.getElementById('serieTitle').value.trim(); const episodesText = document.getElementById('episodesLinksInput').value; if (!serieName) { alert('Digite o nome da série'); return; } const lines = episodesText.split('\n').filter(l => l.trim()); if (lines.length === 0) { alert('Cole os episódios'); return; } showToast(`💾 Salvando ${lines.length} episódios...`); let salvos = 0; for (let line of lines) { let episodeTitle = '', link = ''; if (line.includes(':')) { const parts = line.split(':'); episodeTitle = parts[0].trim(); link = parts.slice(1).join(':').trim(); } else { link = line.trim(); episodeTitle = `EP${String(salvos + 1).padStart(2, '0')}`; } let metadata; if (extractYoutubeId(link)) metadata = await fetchVideoDataFromLink(link, 'youtube'); else if (isIptvLink(link)) metadata = await fetchVideoDataFromLink(link, 'iptv'); const safeId = generateSafeId(); const mediaType = extractYoutubeId(link) ? 'youtube' : 'iptv'; await database.ref(`series/${safeId}`).set({ id: safeId, title: `${serieName} - ${episodeTitle}`, link: link, thumb: metadata?.thumb || 'https://via.placeholder.com/300x200', category: metadata?.genre || 'Série', year: metadata?.year || new Date().getFullYear(), description: metadata?.description || `Episódio ${episodeTitle}`, createdAt: Date.now(), mediaType: mediaType }); salvos++; } showToast(`✅ ${salvos} episódios salvos!`); document.getElementById('serieTitle').value = ''; document.getElementById('episodesLinksInput').value = ''; loadSeriesFromFirebase(); }
-        function refreshAdminLists() { if (!isAdminLogged) return; document.getElementById('canaisAdminList').innerHTML = canais.map(c => `<div class="bg-white/10 p-1 rounded-lg flex justify-between items-center text-[10px] mb-0.5"><span>${c.title.substring(0, 20)}</span><div class="admin-item-actions flex gap-1"><button class="edit-canal edit-item-btn text-green-400 text-[10px] px-1" data-id="${c.id}" data-type="canais"><i class="fas fa-edit"></i></button><button class="delete-canal delete-item-btn text-red-400 text-[10px] px-1" data-id="${c.id}"><i class="fas fa-trash"></i></button></div></div>`).join(''); document.getElementById('filmesAdminList').innerHTML = filmes.map(f => `<div class="bg-white/10 p-1 rounded-lg flex justify-between items-center text-[10px] mb-0.5"><span>${f.title.substring(0, 20)}</span><div class="admin-item-actions flex gap-1"><button class="edit-filme edit-item-btn text-green-400 text-[10px] px-1" data-id="${f.id}" data-type="filmes"><i class="fas fa-edit"></i></button><button class="delete-filme delete-item-btn text-red-400 text-[10px] px-1" data-id="${f.id}"><i class="fas fa-trash"></i></button></div></div>`).join(''); document.getElementById('seriesAdminList').innerHTML = series.map(s => `<div class="bg-white/10 p-1 rounded-lg flex justify-between items-center text-[10px] mb-0.5"><span>${s.title.substring(0, 20)}</span><div class="admin-item-actions flex gap-1"><button class="edit-serie edit-item-btn text-green-400 text-[10px] px-1" data-id="${s.id}" data-type="series"><i class="fas fa-edit"></i></button><button class="delete-serie delete-item-btn text-red-400 text-[10px] px-1" data-id="${s.id}"><i class="fas fa-trash"></i></button></div></div>`).join(''); document.querySelectorAll('.edit-canal, .edit-filme, .edit-serie').forEach(btn => { btn.addEventListener('click', () => { const id = btn.getAttribute('data-id'); const type = btn.getAttribute('data-type'); editItem(id, type); }); }); document.querySelectorAll('.delete-canal').forEach(btn => btn.addEventListener('click', () => { const id = btn.getAttribute('data-id'); database.ref(`canais/${id}`).remove(); showToast('Canal removido'); loadCanaisFromFirebase(); })); document.querySelectorAll('.delete-filme').forEach(btn => btn.addEventListener('click', () => { const id = btn.getAttribute('data-id'); database.ref(`filmes/${id}`).remove(); showToast('Filme removido'); loadFilmesFromFirebase(); })); document.querySelectorAll('.delete-serie').forEach(btn => btn.addEventListener('click', () => { const id = btn.getAttribute('data-id'); database.ref(`series/${id}`).remove(); showToast('Episódio removido'); loadSeriesFromFirebase(); })); }
+        
+        function refreshAdminLists() { 
+            if (!isAdminLogged) return; 
+            document.getElementById('canaisAdminList').innerHTML = canais.map(c => `<div class="bg-white/10 p-1 rounded-lg flex justify-between items-center text-[10px] mb-0.5"><span>${c.title.substring(0, 20)}</span><div class="admin-item-actions flex gap-1"><button class="edit-canal edit-item-btn text-green-400 text-[10px] px-1" data-id="${c.id}" data-type="canais"><i class="fas fa-edit"></i></button><button class="delete-canal delete-item-btn text-red-400 text-[10px] px-1" data-id="${c.id}"><i class="fas fa-trash"></i></button></div></div>`).join(''); 
+            document.getElementById('filmesAdminList').innerHTML = filmes.map(f => `<div class="bg-white/10 p-1 rounded-lg flex justify-between items-center text-[10px] mb-0.5"><span>${f.title.substring(0, 20)}</span><div class="admin-item-actions flex gap-1"><button class="edit-filme edit-item-btn text-green-400 text-[10px] px-1" data-id="${f.id}" data-type="filmes"><i class="fas fa-edit"></i></button><button class="delete-filme delete-item-btn text-red-400 text-[10px] px-1" data-id="${f.id}"><i class="fas fa-trash"></i></button></div></div>`).join(''); 
+            document.getElementById('seriesAdminList').innerHTML = series.map(s => `<div class="bg-white/10 p-1 rounded-lg flex justify-between items-center text-[10px] mb-0.5"><span>${s.title.substring(0, 20)}</span><div class="admin-item-actions flex gap-1"><button class="edit-serie edit-item-btn text-green-400 text-[10px] px-1" data-id="${s.id}" data-type="series"><i class="fas fa-edit"></i></button><button class="delete-serie delete-item-btn text-red-400 text-[10px] px-1" data-id="${s.id}"><i class="fas fa-trash"></i></button></div></div>`).join(''); 
+            
+            document.querySelectorAll('.edit-canal, .edit-filme, .edit-serie').forEach(btn => { 
+                btn.removeEventListener('click', window.handleEditClick);
+                window.handleEditClick = (e) => { 
+                    const id = btn.getAttribute('data-id'); 
+                    const type = btn.getAttribute('data-type'); 
+                    editItem(id, type); 
+                };
+                btn.addEventListener('click', window.handleEditClick);
+            }); 
+            document.querySelectorAll('.delete-canal').forEach(btn => btn.addEventListener('click', () => { const id = btn.getAttribute('data-id'); database.ref(`canais/${id}`).remove(); showToast('Canal removido'); loadCanaisFromFirebase(); })); 
+            document.querySelectorAll('.delete-filme').forEach(btn => btn.addEventListener('click', () => { const id = btn.getAttribute('data-id'); database.ref(`filmes/${id}`).remove(); showToast('Filme removido'); loadFilmesFromFirebase(); })); 
+            document.querySelectorAll('.delete-serie').forEach(btn => btn.addEventListener('click', () => { const id = btn.getAttribute('data-id'); database.ref(`series/${id}`).remove(); showToast('Episódio removido'); loadSeriesFromFirebase(); })); 
+        }
+        
         function updateUserUI(user) { if (user) { hideLoginModal(); loadUserNickname(user.uid); database.ref(`favoritos/${user.uid}`).on('value', (snapshot) => { favoritos = snapshot.val() ? Object.values(snapshot.val()) : []; updateProfileUI(); }); database.ref('top10').on('value', (snapshot) => { const data = snapshot.val(); if (data) { top10List = data; renderTop10Carousel(); } else { generateTop10ByViews(); } }); updateProfileUI(); updateLastSeen(); database.ref(`usuarios/${user.uid}`).once('value').then(snap => { const data = snap.val(); if (data) { if (data.displayName) userProfileData.displayName = data.displayName; if (data.bio) userProfileData.bio = data.bio; if (data.externalLink) userProfileData.externalLink = data.externalLink; if (data.phone) userProfileData.phone = data.phone; if (data.whatsapp) userProfileData.whatsapp = data.whatsapp; if (data.avatarUrl) userProfileData.avatarUrl = data.avatarUrl; } }); loadChatList(); setupChatUnreadListener(); renderFeed(); } else { showLoginModal(); updateProfileUI(); } }
         async function loadUserNickname(userId) { const snapshot = await database.ref(`usuarios/${userId}`).once('value'); const data = snapshot.val(); if (data && data.nickname) { currentUsername = data.nickname; localStorage.setItem('noitefilmes_username', currentUsername); } }
         function updateLastSeen() { if (currentUser) { database.ref(`usuarios/${currentUser.uid}/lastSeen`).set(Date.now()); } }
@@ -5076,11 +5182,78 @@
         document.getElementById('adminBtn').onclick = () => { modal.classList.remove('hidden'); document.getElementById('adminLoginArea').classList.remove('hidden'); document.getElementById('adminPanel').classList.add('hidden'); };
         document.getElementById('closeAdminModal').onclick = () => modal.classList.add('hidden');
         document.getElementById('loginAdminBtn').onclick = () => { if (document.getElementById('adminPassword').value === 'admin123') { isAdminLogged = true; document.getElementById('adminLoginArea').classList.add('hidden'); document.getElementById('adminPanel').classList.remove('hidden'); refreshAdminLists(); loadReportsForAdmin(); } else alert('Senha incorreta'); };
-        document.getElementById('adminTabCanais').onclick = () => { document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); document.getElementById('adminTabCanais').classList.add('border-b-2', 'border-red-600', 'text-red-500'); document.getElementById('adminCanaisList').classList.remove('hidden'); document.getElementById('adminFilmesList').classList.add('hidden'); document.getElementById('adminSeriesList').classList.add('hidden'); document.getElementById('adminDuplicadosList').classList.add('hidden'); document.getElementById('reportsList').classList.add('hidden'); document.getElementById('batchFilmesArea').classList.add('hidden'); document.getElementById('batchSeriesArea').classList.add('hidden'); document.getElementById('adminFormArea').classList.remove('hidden'); resetForm(); };
-        document.getElementById('adminTabFilmes').onclick = () => { document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); document.getElementById('adminTabFilmes').classList.add('border-b-2', 'border-red-600', 'text-red-500'); document.getElementById('adminCanaisList').classList.add('hidden'); document.getElementById('adminFilmesList').classList.remove('hidden'); document.getElementById('adminSeriesList').classList.add('hidden'); document.getElementById('adminDuplicadosList').classList.add('hidden'); document.getElementById('reportsList').classList.add('hidden'); document.getElementById('batchFilmesArea').classList.remove('hidden'); document.getElementById('batchSeriesArea').classList.add('hidden'); document.getElementById('adminFormArea').classList.remove('hidden'); resetForm(); };
-        document.getElementById('adminTabSeries').onclick = () => { document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); document.getElementById('adminTabSeries').classList.add('border-b-2', 'border-red-600', 'text-red-500'); document.getElementById('adminCanaisList').classList.add('hidden'); document.getElementById('adminFilmesList').classList.add('hidden'); document.getElementById('adminSeriesList').classList.remove('hidden'); document.getElementById('adminDuplicadosList').classList.add('hidden'); document.getElementById('reportsList').classList.add('hidden'); document.getElementById('batchFilmesArea').classList.add('hidden'); document.getElementById('batchSeriesArea').classList.remove('hidden'); document.getElementById('adminFormArea').classList.remove('hidden'); resetForm(); };
-        document.getElementById('adminTabDuplicados').onclick = () => { document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); document.getElementById('adminTabDuplicados').classList.add('border-b-2', 'border-red-600', 'text-red-500'); document.getElementById('adminCanaisList').classList.add('hidden'); document.getElementById('adminFilmesList').classList.add('hidden'); document.getElementById('adminSeriesList').classList.add('hidden'); document.getElementById('adminDuplicadosList').classList.remove('hidden'); document.getElementById('reportsList').classList.add('hidden'); document.getElementById('adminFormArea').classList.add('hidden'); document.getElementById('batchFilmesArea').classList.add('hidden'); document.getElementById('batchSeriesArea').classList.add('hidden'); renderDuplicatesList(); };
-        document.getElementById('adminTabReportados').onclick = () => { document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); document.getElementById('adminTabReportados').classList.add('border-b-2', 'border-red-600', 'text-red-500'); document.getElementById('adminCanaisList').classList.add('hidden'); document.getElementById('adminFilmesList').classList.add('hidden'); document.getElementById('adminSeriesList').classList.add('hidden'); document.getElementById('adminDuplicadosList').classList.add('hidden'); document.getElementById('reportsList').classList.remove('hidden'); document.getElementById('adminFormArea').classList.add('hidden'); document.getElementById('batchFilmesArea').classList.add('hidden'); document.getElementById('batchSeriesArea').classList.add('hidden'); loadReportsForAdmin(); };
+        
+        document.getElementById('adminTabCanais').onclick = () => { 
+            document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); 
+            document.getElementById('adminTabCanais').classList.add('border-b-2', 'border-red-600', 'text-red-500'); 
+            currentAdminTab = 'adminTabCanais';
+            document.getElementById('adminCanaisList').classList.remove('hidden'); 
+            document.getElementById('adminFilmesList').classList.add('hidden'); 
+            document.getElementById('adminSeriesList').classList.add('hidden'); 
+            document.getElementById('adminDuplicadosList').classList.add('hidden'); 
+            document.getElementById('reportsList').classList.add('hidden'); 
+            document.getElementById('batchFilmesArea').classList.add('hidden'); 
+            document.getElementById('batchSeriesArea').classList.add('hidden'); 
+            document.getElementById('adminFormArea').classList.remove('hidden'); 
+            resetForm(); 
+        };
+        document.getElementById('adminTabFilmes').onclick = () => { 
+            document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); 
+            document.getElementById('adminTabFilmes').classList.add('border-b-2', 'border-red-600', 'text-red-500'); 
+            currentAdminTab = 'adminTabFilmes';
+            document.getElementById('adminCanaisList').classList.add('hidden'); 
+            document.getElementById('adminFilmesList').classList.remove('hidden'); 
+            document.getElementById('adminSeriesList').classList.add('hidden'); 
+            document.getElementById('adminDuplicadosList').classList.add('hidden'); 
+            document.getElementById('reportsList').classList.add('hidden'); 
+            document.getElementById('batchFilmesArea').classList.remove('hidden'); 
+            document.getElementById('batchSeriesArea').classList.add('hidden'); 
+            document.getElementById('adminFormArea').classList.remove('hidden'); 
+            resetForm(); 
+        };
+        document.getElementById('adminTabSeries').onclick = () => { 
+            document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); 
+            document.getElementById('adminTabSeries').classList.add('border-b-2', 'border-red-600', 'text-red-500'); 
+            currentAdminTab = 'adminTabSeries';
+            document.getElementById('adminCanaisList').classList.add('hidden'); 
+            document.getElementById('adminFilmesList').classList.add('hidden'); 
+            document.getElementById('adminSeriesList').classList.remove('hidden'); 
+            document.getElementById('adminDuplicadosList').classList.add('hidden'); 
+            document.getElementById('reportsList').classList.add('hidden'); 
+            document.getElementById('batchFilmesArea').classList.add('hidden'); 
+            document.getElementById('batchSeriesArea').classList.remove('hidden'); 
+            document.getElementById('adminFormArea').classList.remove('hidden'); 
+            resetForm(); 
+        };
+        document.getElementById('adminTabDuplicados').onclick = () => { 
+            document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); 
+            document.getElementById('adminTabDuplicados').classList.add('border-b-2', 'border-red-600', 'text-red-500'); 
+            currentAdminTab = 'adminTabDuplicados';
+            document.getElementById('adminCanaisList').classList.add('hidden'); 
+            document.getElementById('adminFilmesList').classList.add('hidden'); 
+            document.getElementById('adminSeriesList').classList.add('hidden'); 
+            document.getElementById('adminDuplicadosList').classList.remove('hidden'); 
+            document.getElementById('reportsList').classList.add('hidden'); 
+            document.getElementById('adminFormArea').classList.add('hidden'); 
+            document.getElementById('batchFilmesArea').classList.add('hidden'); 
+            document.getElementById('batchSeriesArea').classList.add('hidden'); 
+            renderDuplicatesList(); 
+        };
+        document.getElementById('adminTabReportados').onclick = () => { 
+            document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); 
+            document.getElementById('adminTabReportados').classList.add('border-b-2', 'border-red-600', 'text-red-500'); 
+            currentAdminTab = 'adminTabReportados';
+            document.getElementById('adminCanaisList').classList.add('hidden'); 
+            document.getElementById('adminFilmesList').classList.add('hidden'); 
+            document.getElementById('adminSeriesList').classList.add('hidden'); 
+            document.getElementById('adminDuplicadosList').classList.add('hidden'); 
+            document.getElementById('reportsList').classList.remove('hidden'); 
+            document.getElementById('adminFormArea').classList.add('hidden'); 
+            document.getElementById('batchFilmesArea').classList.add('hidden'); 
+            document.getElementById('batchSeriesArea').classList.add('hidden'); 
+            loadReportsForAdmin(); 
+        };
+        
         document.getElementById('saveItemBtn').onclick = saveSingleItem;
         document.getElementById('cancelEditBtn').onclick = resetForm;
         document.getElementById('autoFillBtn').onclick = autoFillFromLink;
