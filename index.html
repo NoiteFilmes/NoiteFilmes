@@ -1,8 +1,3 @@
-Peço desculpas pela confusão. A atualização completa do código foi enviada na minha resposta anterior. O código completo está logo após a explicação das correções, dentro do bloco de código HTML.
-
-Vou reenviar o código completo para garantir que você tenha acesso:
-
-```html
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -3763,6 +3758,8 @@ Vou reenviar o código completo para garantir que você tenha acesso:
             const replyText = document.getElementById(`reply-text-${commentId}`).value.trim();
             if (replyText) { await addReply(postId, commentId, replyText); document.getElementById(`reply-text-${commentId}`).value = ''; hideReplyInput(commentId); renderFeed(); }
         }
+
+        <div id="filmesList"></div>
         
         // ==================== RENDER FEED ====================
         async function renderFeed() {
@@ -4820,7 +4817,18 @@ Vou reenviar o código completo para garantir que você tenha acesso:
         function onYouTubeIframeAPIReady() {}
         
         function loadCanaisFromFirebase() { database.ref('canais').once('value', (snapshot) => { const data = snapshot.val(); canais = data ? Object.values(data).filter(i => !i.hidden) : []; canaisLoaded = true; updateContentCounters(); loadAllViews(); if (currentNavTab === 'canais') renderGrid(); updateGenreFilters(); if (isAdminLogged) refreshAdminLists(); checkAllDataLoaded(); }); }
-        function loadFilmesFromFirebase() { database.ref('filmes').once('value', (snapshot) => { const data = snapshot.val(); filmes = data ? Object.values(data).filter(i => !i.hidden) : []; filmesLoaded = true; updateContentCounters(); loadAllViews(); if (currentNavTab === 'filmes') renderGrid(); if (isAdminLogged) refreshAdminLists(); checkAllDataLoaded(); }); }
+        function loadFilmesFromFirebase() { database.ref('filmes').on('value', snapshot => {
+    filmes = [];
+
+    snapshot.forEach(child => {
+        filmes.push({
+            id: child.key,
+            ...child.val()
+        });
+    });
+
+    renderFilmes();
+});
         function loadSeriesFromFirebase() { database.ref('series').once('value', (snapshot) => { const data = snapshot.val(); series = data ? Object.values(data).filter(i => !i.hidden) : []; seriesLoaded = true; updateContentCounters(); loadAllViews(); if (currentNavTab === 'series') renderGrid(); if (isAdminLogged) refreshAdminLists(); checkAllDataLoaded(); }); }
         function checkAllDataLoaded() { if (canaisLoaded && filmesLoaded && seriesLoaded) { const urlParams = new URLSearchParams(window.location.search); const mediaId = urlParams.get('mediaId'); const type = urlParams.get('type'); if (mediaId && type) playMediaById(mediaId, type); } }
         
@@ -4838,6 +4846,25 @@ Vou reenviar o código completo para garantir que você tenha acesso:
             grid.innerHTML = items.map(item => { const isIptv = isIptvLink(item.link); const views = viewsCache[item.id] || 0; return `<div class="glass-card overflow-hidden cursor-pointer transition-all card-hover ripple-btn" data-id="${item.id}" data-type="${currentNavTab}"><img src="${item.thumb || 'https://via.placeholder.com/300x200'}" class="w-full h-28 object-cover" onerror="this.src='https://via.placeholder.com/300x200'"><div class="p-1"><h3 class="font-semibold text-xs truncate">${item.title} ${isIptv ? '<span class="iptv-badge text-[7px] bg-red-600 px-1 rounded ml-0.5">VIDEO</span>' : ''}</h3><p class="text-[9px] opacity-70">${item.category || 'Geral'} ${item.year ? `• ${item.year}` : ''}</p><p class="text-[9px]"><i class="fas fa-eye"></i> ${views}</p></div></div>`; }).join('');
             document.querySelectorAll('#contentGrid > div').forEach(card => { card.addEventListener('click', () => { const id = card.getAttribute('data-id'); const type = card.getAttribute('data-type'); let item; if (type === 'canais') item = canais.find(c => c.id === id); else if (type === 'filmes') item = filmes.find(f => f.id === id); else item = series.find(s => s.id === id); if (item) playMedia(item, type); }); });
         }
+
+                                           function renderFilmes() {
+    const container = document.getElementById('filmesList');
+    container.innerHTML = '';
+
+    filmes.forEach(f => {
+        container.innerHTML += `
+            <div>
+                <span>${f.name || f.title}</span>
+                <button onclick="editItem('${f.id}', 'filmes')">Editar</button>
+                <button onclick="deleteItem('${f.id}', 'filmes')">Excluir</button>
+            </div>
+        `;
+    });
+}
+
+                                           async function deleteItem(id, type) {
+    await database.ref(`${type}/${id}`).remove();
+}
         
         function updateGenreFilters() {
             let items = [];
@@ -5381,4 +5408,3 @@ Vou reenviar o código completo para garantir que você tenha acesso:
     </script>
 </body>
 </html>
-```
