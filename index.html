@@ -3846,25 +3846,45 @@
         }
         
         function showPostOptions(event, postId, isRepost = false) {
-            event.stopPropagation();
-            const existingMenu = document.querySelector('.options-menu');
-            if (existingMenu) existingMenu.remove();
-            const button = event.currentTarget;
-            const rect = button.getBoundingClientRect();
-            const menu = document.createElement('div');
-            menu.className = 'options-menu';
-            menu.style.top = rect.bottom + 5 + 'px';
-            menu.style.right = (window.innerWidth - rect.right) + 'px';
-            if (isRepost) {
-                menu.innerHTML = `<div class="options-menu-item danger" onclick="deleteRepost('${postId}')"><i class="fas fa-trash-alt"></i><span>Excluir repost</span></div>`;
-            } else {
-                menu.innerHTML = `<div class="options-menu-item danger" onclick="deletePost('${postId}')"><i class="fas fa-trash-alt"></i><span>Excluir publicação</span></div>`;
-            }
-            document.body.appendChild(menu);
-            setTimeout(() => {
-                document.addEventListener('click', function closeMenu(e) { if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('click', closeMenu); } });
-            }, 100);
-        }
+    event.stopPropagation();
+    const existingMenu = document.querySelector('.options-menu');
+    if (existingMenu) existingMenu.remove();
+    
+    const button = event.currentTarget;
+    const rect = button.getBoundingClientRect();
+    const menu = document.createElement('div');
+    menu.className = 'options-menu';
+    
+    // 📍 CORREÇÃO: Centralizar o menu na tela
+    menu.style.position = 'fixed';  // Garantir que é fixo em relação à viewport
+    menu.style.top = '50%';         // Centralizar verticalmente
+    menu.style.left = '50%';        // Centralizar horizontalmente
+    menu.style.transform = 'translate(-50%, -50%)';  // Ajuste fino do centro
+    menu.style.zIndex = '10000';    // Garantir que fique acima de tudo
+    
+    // Conteúdo do menu (igual ao original)
+    if (isRepost) {
+        menu.innerHTML = `<div class="options-menu-item danger" onclick="deleteRepost('${postId}')">
+            <i class="fas fa-trash-alt"></i><span>Excluir repost</span>
+        </div>`;
+    } else {
+        menu.innerHTML = `<div class="options-menu-item danger" onclick="deletePost('${postId}')">
+            <i class="fas fa-trash-alt"></i><span>Excluir publicação</span>
+        </div>`;
+    }
+    
+    document.body.appendChild(menu);
+    
+    // Fechar menu ao clicar fora
+    setTimeout(() => {
+        document.addEventListener('click', function closeMenu(e) { 
+            if (!menu.contains(e.target)) { 
+                menu.remove(); 
+                document.removeEventListener('click', closeMenu); 
+            } 
+        });
+    }, 100);
+}
         
         async function deletePost(postId) {
             if (!currentUser) return;
