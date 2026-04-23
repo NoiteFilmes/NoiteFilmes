@@ -2990,7 +2990,7 @@
                 <button id="closeAdminModal" class="text-2xl text-gray-400 hover:text-white transition">&times;</button>
             </div>
             <div class="p-4">
-                <div id="adminLoginArea" class="mb-3"><label class="block mb-1 text-xs text-gray-300">Senha Admin:</label><div class="flex gap-2"><input type="password" id="adminPassword" placeholder="Senha" class="bg-gray-800 border border-gray-600 rounded-full px-3 py-1.5 flex-1 text-white text-sm"><button id="loginAdminBtn" class="bg-red-700 hover:bg-red-800 px-4 py-1.5 rounded-full text-sm text-white transition ripple-btn">Entrar</button></div><p class="text-[10px] text-gray-400 mt-1">Senha: <strong class="text-red-500">******</strong></p></div>
+                <div id="adminLoginArea" class="mb-3"><label class="block mb-1 text-xs text-gray-300">Senha Admin:</label><div class="flex gap-2"><input type="password" id="adminPassword" placeholder="Senha" class="bg-gray-800 border border-gray-600 rounded-full px-3 py-1.5 flex-1 text-white text-sm"><button id="loginAdminBtn" class="bg-red-700 hover:bg-red-800 px-4 py-1.5 rounded-full text-sm text-white transition ripple-btn">Entrar</button></div><p class="text-[10px] text-gray-400 mt-1">Senha: <strong class="text-red-500">admin123</strong></p></div>
                 <div id="adminPanel" class="hidden">
                     <div class="flex space-x-2 border-b border-gray-700 mb-3">
                         <button id="adminTabCanais" class="admin-tab-btn py-1 px-2 text-gray-400 text-xs">Canais</button>
@@ -3947,7 +3947,7 @@
             }
         }
         
-        // ==================== PERFIL INSTAGRAM (com upload de avatar individual) ====================
+        // ==================== PERFIL INSTAGRAM ====================
         let currentProfileTab = 'posts';
         let currentViewingUserId = null;
         
@@ -4382,7 +4382,7 @@
             }).catch(error => showToast('Erro ao atualizar perfil: ' + error.message));
         }
         
-        // ==================== UPLOAD DE AVATAR INDIVIDUAL POR USUÁRIO ====================
+        // ==================== UPLOAD DE AVATAR ====================
         async function uploadProfileAvatar(file) {
             if (!file || !currentUser) return;
             
@@ -4427,7 +4427,6 @@
                 
                 const imageUrl = await uploadPromise;
                 
-                // Salvar avatar APENAS para o usuário atual - cada usuário tem sua própria foto
                 await database.ref(`usuarios/${currentUser.uid}/avatarUrl`).set(imageUrl);
                 userProfileData.avatarUrl = imageUrl;
                 
@@ -4814,9 +4813,59 @@
         
         function onYouTubeIframeAPIReady() {}
         
-        function loadCanaisFromFirebase() { database.ref('canais').once('value', (snapshot) => { const data = snapshot.val(); canais = data ? Object.values(data).filter(i => !i.hidden) : []; canaisLoaded = true; updateContentCounters(); loadAllViews(); if (currentNavTab === 'canais') renderGrid(); updateGenreFilters(); if (isAdminLogged) refreshAdminLists(); checkAllDataLoaded(); }); }
-        function loadFilmesFromFirebase() { database.ref('filmes').once('value', (snapshot) => { const data = snapshot.val(); filmes = data ? Object.values(data).filter(i => !i.hidden) : []; filmesLoaded = true; updateContentCounters(); loadAllViews(); if (currentNavTab === 'filmes') renderGrid(); if (isAdminLogged) refreshAdminLists(); checkAllDataLoaded(); }); }
-        function loadSeriesFromFirebase() { database.ref('series').once('value', (snapshot) => { const data = snapshot.val(); series = data ? Object.values(data).filter(i => !i.hidden) : []; seriesLoaded = true; updateContentCounters(); loadAllViews(); if (currentNavTab === 'series') renderGrid(); if (isAdminLogged) refreshAdminLists(); checkAllDataLoaded(); }); }
+        // ==================== FUNÇÕES DE CARREGAMENTO DE DADOS COM TRATAMENTO DE ERROS ====================
+        function loadCanaisFromFirebase() { 
+            database.ref('canais').once('value', (snapshot) => { 
+                const data = snapshot.val(); 
+                canais = data ? Object.values(data).filter(i => i && !i.hidden) : []; 
+                canaisLoaded = true; 
+                updateContentCounters(); 
+                loadAllViews(); 
+                if (currentNavTab === 'canais') renderGrid(); 
+                updateGenreFilters(); 
+                if (isAdminLogged) refreshAdminLists(); 
+                checkAllDataLoaded(); 
+            }).catch(error => {
+                console.error('Erro ao carregar canais:', error);
+                canais = [];
+                canaisLoaded = true;
+            });
+        }
+        
+        function loadFilmesFromFirebase() { 
+            database.ref('filmes').once('value', (snapshot) => { 
+                const data = snapshot.val(); 
+                filmes = data ? Object.values(data).filter(i => i && !i.hidden) : []; 
+                filmesLoaded = true; 
+                updateContentCounters(); 
+                loadAllViews(); 
+                if (currentNavTab === 'filmes') renderGrid(); 
+                if (isAdminLogged) refreshAdminLists(); 
+                checkAllDataLoaded(); 
+            }).catch(error => {
+                console.error('Erro ao carregar filmes:', error);
+                filmes = [];
+                filmesLoaded = true;
+            });
+        }
+        
+        function loadSeriesFromFirebase() { 
+            database.ref('series').once('value', (snapshot) => { 
+                const data = snapshot.val(); 
+                series = data ? Object.values(data).filter(i => i && !i.hidden) : []; 
+                seriesLoaded = true; 
+                updateContentCounters(); 
+                loadAllViews(); 
+                if (currentNavTab === 'series') renderGrid(); 
+                if (isAdminLogged) refreshAdminLists(); 
+                checkAllDataLoaded(); 
+            }).catch(error => {
+                console.error('Erro ao carregar séries:', error);
+                series = [];
+                seriesLoaded = true;
+            });
+        }
+        
         function checkAllDataLoaded() { if (canaisLoaded && filmesLoaded && seriesLoaded) { const urlParams = new URLSearchParams(window.location.search); const mediaId = urlParams.get('mediaId'); const type = urlParams.get('type'); if (mediaId && type) playMediaById(mediaId, type); } }
         
         function sortItems(items) { if (!items) return []; const sorted = [...items]; switch (currentSort) { case 'recent': sorted.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); break; case 'views': sorted.sort((a, b) => (viewsCache[b.id] || 0) - (viewsCache[a.id] || 0)); break; case 'az': sorted.sort((a, b) => a.title.localeCompare(b.title)); break; case 'za': sorted.sort((a, b) => b.title.localeCompare(a.title)); break; case 'year_asc': sorted.sort((a, b) => (parseInt(a.year) || 0) - (parseInt(b.year) || 0)); break; case 'year_desc': sorted.sort((a, b) => (parseInt(b.year) || 0) - (parseInt(a.year) || 0)); break; case 'genre': sorted.sort((a, b) => (a.category || '').localeCompare(b.category || '')); break; default: sorted.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); } return sorted; }
@@ -4958,44 +5007,63 @@
             }
         }
         
+        // ==================== FUNÇÃO REFRESH ADMIN LISTS CORRIGIDA ====================
         function refreshAdminLists() { 
             if (!isAdminLogged) return; 
             
-            // Renderizar canais
-            const canaisHtml = canais.length > 0 ? canais.map(c => `
-                <div class="bg-white/10 p-1 rounded-lg flex justify-between items-center text-[10px] mb-0.5">
-                    <span class="truncate flex-1">${escapeHtml(c.title.substring(0, 25))}</span>
-                    <div class="admin-item-actions flex gap-1 ml-2">
-                        <button class="edit-item-btn text-green-400 text-[10px] px-1" data-id="${c.id}" data-type="canais"><i class="fas fa-edit"></i></button>
-                        <button class="delete-item-btn text-red-400 text-[10px] px-1" data-id="${c.id}" data-type="canais"><i class="fas fa-trash"></i></button>
+            // Renderizar canais - com verificação de segurança
+            const canaisHtml = (canais && canais.length > 0) ? canais.map(c => {
+                const title = c && c.title ? c.title : 'Sem título';
+                const id = c && c.id ? c.id : '';
+                return `
+                    <div class="bg-white/10 p-1 rounded-lg flex justify-between items-center text-[10px] mb-0.5">
+                        <span class="truncate flex-1">${escapeHtml(title.substring(0, 25))}</span>
+                        <div class="admin-item-actions flex gap-1 ml-2">
+                            <button class="edit-item-btn text-green-400 text-[10px] px-1" data-id="${id}" data-type="canais"><i class="fas fa-edit"></i></button>
+                            <button class="delete-item-btn text-red-400 text-[10px] px-1" data-id="${id}" data-type="canais"><i class="fas fa-trash"></i></button>
+                        </div>
                     </div>
-                </div>
-            `).join('') : '<div class="text-center text-gray-500 py-2 text-[10px]">Nenhum canal adicionado ainda</div>';
-            document.getElementById('canaisAdminList').innerHTML = canaisHtml;
+                `;
+            }).join('') : '<div class="text-center text-gray-500 py-2 text-[10px]">Nenhum canal adicionado ainda</div>';
             
-            // Renderizar filmes
-            const filmesHtml = filmes.length > 0 ? filmes.map(f => `
-                <div class="bg-white/10 p-1 rounded-lg flex justify-between items-center text-[10px] mb-0.5">
-                    <span class="truncate flex-1">${escapeHtml(f.title.substring(0, 25))}</span>
-                    <div class="admin-item-actions flex gap-1 ml-2">
-                        <button class="edit-item-btn text-green-400 text-[10px] px-1" data-id="${f.id}" data-type="filmes"><i class="fas fa-edit"></i></button>
-                        <button class="delete-item-btn text-red-400 text-[10px] px-1" data-id="${f.id}" data-type="filmes"><i class="fas fa-trash"></i></button>
-                    </div>
-                </div>
-            `).join('') : '<div class="text-center text-gray-500 py-2 text-[10px]">Nenhum filme adicionado ainda</div>';
-            document.getElementById('filmesAdminList').innerHTML = filmesHtml;
+            const canaisListEl = document.getElementById('canaisAdminList');
+            if (canaisListEl) canaisListEl.innerHTML = canaisHtml;
             
-            // Renderizar séries
-            const seriesHtml = series.length > 0 ? series.map(s => `
-                <div class="bg-white/10 p-1 rounded-lg flex justify-between items-center text-[10px] mb-0.5">
-                    <span class="truncate flex-1">${escapeHtml(s.title.substring(0, 25))}</span>
-                    <div class="admin-item-actions flex gap-1 ml-2">
-                        <button class="edit-item-btn text-green-400 text-[10px] px-1" data-id="${s.id}" data-type="series"><i class="fas fa-edit"></i></button>
-                        <button class="delete-item-btn text-red-400 text-[10px] px-1" data-id="${s.id}" data-type="series"><i class="fas fa-trash"></i></button>
+            // Renderizar filmes - com verificação de segurança
+            const filmesHtml = (filmes && filmes.length > 0) ? filmes.map(f => {
+                const title = f && f.title ? f.title : 'Sem título';
+                const id = f && f.id ? f.id : '';
+                return `
+                    <div class="bg-white/10 p-1 rounded-lg flex justify-between items-center text-[10px] mb-0.5">
+                        <span class="truncate flex-1">${escapeHtml(title.substring(0, 25))}</span>
+                        <div class="admin-item-actions flex gap-1 ml-2">
+                            <button class="edit-item-btn text-green-400 text-[10px] px-1" data-id="${id}" data-type="filmes"><i class="fas fa-edit"></i></button>
+                            <button class="delete-item-btn text-red-400 text-[10px] px-1" data-id="${id}" data-type="filmes"><i class="fas fa-trash"></i></button>
+                        </div>
                     </div>
-                </div>
-            `).join('') : '<div class="text-center text-gray-500 py-2 text-[10px]">Nenhuma série/episódio adicionado ainda</div>';
-            document.getElementById('seriesAdminList').innerHTML = seriesHtml;
+                `;
+            }).join('') : '<div class="text-center text-gray-500 py-2 text-[10px]">Nenhum filme adicionado ainda</div>';
+            
+            const filmesListEl = document.getElementById('filmesAdminList');
+            if (filmesListEl) filmesListEl.innerHTML = filmesHtml;
+            
+            // Renderizar séries - com verificação de segurança
+            const seriesHtml = (series && series.length > 0) ? series.map(s => {
+                const title = s && s.title ? s.title : 'Sem título';
+                const id = s && s.id ? s.id : '';
+                return `
+                    <div class="bg-white/10 p-1 rounded-lg flex justify-between items-center text-[10px] mb-0.5">
+                        <span class="truncate flex-1">${escapeHtml(title.substring(0, 25))}</span>
+                        <div class="admin-item-actions flex gap-1 ml-2">
+                            <button class="edit-item-btn text-green-400 text-[10px] px-1" data-id="${id}" data-type="series"><i class="fas fa-edit"></i></button>
+                            <button class="delete-item-btn text-red-400 text-[10px] px-1" data-id="${id}" data-type="series"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                `;
+            }).join('') : '<div class="text-center text-gray-500 py-2 text-[10px]">Nenhuma série/episódio adicionado ainda</div>';
+            
+            const seriesListEl = document.getElementById('seriesAdminList');
+            if (seriesListEl) seriesListEl.innerHTML = seriesHtml;
             
             // Vincular eventos de edição para TODOS os botões
             document.querySelectorAll('.edit-item-btn').forEach(btn => {
@@ -5017,7 +5085,6 @@
             else if (type === 'series') item = series.find(s => s.id === id);
             if (!item) return;
             editingItem = { ...item, type: type };
-            // Atualizar a aba ativa para o tipo correto
             if (type === 'canais') currentAdminTab = 'adminTabCanais';
             else if (type === 'filmes') currentAdminTab = 'adminTabFilmes';
             else if (type === 'series') currentAdminTab = 'adminTabSeries';
@@ -5073,7 +5140,6 @@
                 mediaType, createdAt: Date.now() 
             };
             
-            // Verificar duplicados apenas se não estiver editando
             if (!editingItem) {
                 let existingItems = [];
                 if (currentAdminTab === 'adminTabCanais') existingItems = canais;
