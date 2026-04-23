@@ -2644,49 +2644,222 @@
             font-size: 10px;
             opacity: 0.5;
         }
-        .options-menu {
-    background: rgba(25, 25, 45, 0.98);
-    backdrop-filter: blur(24px);
-    border-radius: 12px;
-    padding: 8px 0;
-    min-width: 200px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    animation: menuFadeIn 0.2s ease;
+
+        /* ========== MENU LIQUID GLASS MODERNO ========== */
+.options-menu {
+    position: fixed;
+    background: rgba(18, 22, 35, 0.85);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-radius: 24px;
+    padding: 12px 8px;
+    min-width: 220px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(255, 255, 255, 0.15) inset,
+                0 0 20px rgba(229, 9, 20, 0.2);
+    animation: liquidGlassIn 0.35s cubic-bezier(0.34, 1.2, 0.64, 1);
+    transform-origin: center;
+    z-index: 10000;
 }
 
-@keyframes menuFadeIn {
-    from {
+/* Animação de entrada estilo Liquid Glass */
+@keyframes liquidGlassIn {
+    0% {
         opacity: 0;
-        transform: scale(0.95);
+        transform: scale(0.85) translateY(20px);
+        backdrop-filter: blur(0px);
+        filter: blur(5px);
     }
-    to {
+    50% {
+        transform: scale(1.02) translateY(-2px);
+    }
+    100% {
         opacity: 1;
-        transform: scale(1);
+        transform: scale(1) translateY(0);
+        backdrop-filter: blur(20px) saturate(180%);
+        filter: blur(0);
     }
 }
 
+/* Animação de saída */
+.options-menu.exit {
+    animation: liquidGlassOut 0.25s ease forwards;
+}
+
+@keyframes liquidGlassOut {
+    0% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+        backdrop-filter: blur(20px);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.9) translateY(15px);
+        backdrop-filter: blur(0px);
+        visibility: hidden;
+    }
+}
+
+/* Itens do menu */
 .options-menu-item {
-    padding: 12px 20px;
+    padding: 14px 20px;
+    margin: 4px 8px;
     cursor: pointer;
-    transition: background 0.2s;
-    font-size: 14px;
+    transition: all 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+    font-size: 15px;
+    font-weight: 500;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
+    border-radius: 16px;
+    color: rgba(255, 255, 255, 0.9);
+    letter-spacing: -0.2px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Efeito de hover com brilho */
+.options-menu-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.2), transparent 80%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.options-menu-item:hover::before {
+    opacity: 1;
 }
 
 .options-menu-item:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05));
+    transform: translateX(4px);
+    padding-left: 24px;
 }
 
+/* Ícones dos itens */
+.options-menu-item i {
+    width: 22px;
+    font-size: 18px;
+    transition: transform 0.2s ease;
+}
+
+.options-menu-item:hover i {
+    transform: scale(1.1);
+}
+
+/* Estilo para itens de perigo (excluir) */
 .options-menu-item.danger {
-    color: #e50914;
+    color: #ff4757;
+    text-shadow: 0 0 8px rgba(255, 71, 87, 0.3);
 }
 
 .options-menu-item.danger:hover {
-    background: rgba(229, 9, 20, 0.15);
+    background: linear-gradient(135deg, rgba(255, 71, 87, 0.2), rgba(255, 71, 87, 0.05));
+    color: #ff6b7c;
+    box-shadow: 0 0 15px rgba(255, 71, 87, 0.2);
 }
+
+.options-menu-item.danger i {
+    color: #ff4757;
+}
+
+/* Separador entre itens (opcional) */
+.options-menu-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    margin: 8px 12px;
+}
+
+/* Efeito de brilho líquido no fundo */
+.options-menu::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(135deg, 
+        rgba(229, 9, 20, 0.4) 0%, 
+        rgba(229, 9, 20, 0.1) 25%,
+        rgba(255, 255, 255, 0.1) 50%,
+        rgba(229, 9, 20, 0.1) 75%,
+        rgba(229, 9, 20, 0.4) 100%);
+    border-radius: 26px;
+    z-index: -1;
+    opacity: 0.5;
+    filter: blur(8px);
+    animation: liquidGlow 3s ease infinite;
+}
+
+@keyframes liquidGlow {
+    0%, 100% {
+        opacity: 0.3;
+        filter: blur(8px);
+    }
+    50% {
+        opacity: 0.6;
+        filter: blur(12px);
+    }
+}
+
+/* Estilo para dispositivos móveis (toque) */
+@media (max-width: 768px) {
+    .options-menu {
+        min-width: 260px;
+        padding: 10px 6px;
+        border-radius: 28px;
+    }
+    
+    .options-menu-item {
+        padding: 16px 20px;
+        font-size: 16px;
+    }
+    
+    .options-menu-item:active {
+        transform: scale(0.97);
+        background: rgba(255, 255, 255, 0.1);
+        transition: transform 0.05s;
+    }
+    
+    .options-menu-item:hover {
+        transform: translateX(0);
+        padding-left: 20px;
+    }
+}
+
+/* Modo claro (light mode) */
+body.light-mode .options-menu {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px) saturate(180%);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1),
+                0 0 0 1px rgba(0, 0, 0, 0.08) inset;
+}
+
+body.light-mode .options-menu-item {
+    color: rgba(0, 0, 0, 0.85);
+}
+
+body.light-mode .options-menu-item:hover {
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.03));
+}
+
+body.light-mode .options-menu-item.danger {
+    color: #e50914;
+}
+
+body.light-mode .options-menu::before {
+    background: linear-gradient(135deg, 
+        rgba(229, 9, 20, 0.3) 0%, 
+        rgba(229, 9, 20, 0.05) 50%,
+        rgba(229, 9, 20, 0.3) 100%);
+}
+        
     </style>
     <script>
         (function blockPinchZoom() {
@@ -3890,61 +4063,59 @@
         
         function showPostOptions(event, postId, isRepost = false) {
     event.stopPropagation();
+    
+    // Remove menu existente com animação
     const existingMenu = document.querySelector('.options-menu');
-    if (existingMenu) existingMenu.remove();
+    if (existingMenu) {
+        existingMenu.classList.add('exit');
+        setTimeout(() => existingMenu.remove(), 250);
+    }
     
     const button = event.currentTarget;
     const rect = button.getBoundingClientRect();
     const menu = document.createElement('div');
     menu.className = 'options-menu';
+    
+    // Posicionamento centralizado na tela
     menu.style.position = 'fixed';
+    menu.style.top = '50%';
+    menu.style.left = '50%';
+    menu.style.transform = 'translate(-50%, -50%)';
     
-    // Posicionar abaixo do botão
-    let top = rect.bottom + 5;
-    let left = rect.left;
-    
-    // 🔧 CORREÇÃO: Ajustar se sair da tela
-    const menuHeight = 100; // Altura aproximada do menu
-    const menuWidth = 180;   // Largura aproximada do menu
-    
-    // Se o menu sair pela parte de baixo da tela, colocar acima do botão
-    if (top + menuHeight > window.innerHeight) {
-        top = rect.top - menuHeight - 5;
-    }
-    
-    // Se o menu sair pela parte direita da tela, alinhar à direita
-    if (left + menuWidth > window.innerWidth) {
-        left = window.innerWidth - menuWidth - 10;
-    }
-    
-    // Se o menu sair pela parte esquerda da tela
-    if (left < 10) {
-        left = 10;
-    }
-    
-    menu.style.top = top + 'px';
-    menu.style.left = left + 'px';
-    menu.style.zIndex = '10000';
-    
+    // Conteúdo do menu com ícones mais bonitos
     if (isRepost) {
-        menu.innerHTML = `<div class="options-menu-item danger" onclick="deleteRepost('${postId}')">
-            <i class="fas fa-trash-alt"></i><span>Excluir repost</span>
-        </div>`;
+        menu.innerHTML = `
+            <div class="options-menu-item danger" onclick="deleteRepost('${postId}')">
+                <i class="fas fa-trash-alt"></i>
+                <span>Excluir repost</span>
+            </div>
+        `;
     } else {
-        menu.innerHTML = `<div class="options-menu-item danger" onclick="deletePost('${postId}')">
-            <i class="fas fa-trash-alt"></i><span>Excluir publicação</span>
-        </div>`;
+        menu.innerHTML = `
+            <div class="options-menu-item danger" onclick="deletePost('${postId}')">
+                <i class="fas fa-trash-alt"></i>
+                <span>Excluir publicação</span>
+            </div>
+        `;
     }
     
     document.body.appendChild(menu);
     
+    // Fechar menu ao clicar fora (com animação)
+    const closeMenu = (e) => {
+        if (!menu.contains(e.target)) {
+            menu.classList.add('exit');
+            setTimeout(() => {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+                document.removeEventListener('touchstart', closeMenu);
+            }, 250);
+        }
+    };
+    
     setTimeout(() => {
-        document.addEventListener('click', function closeMenu(e) { 
-            if (!menu.contains(e.target)) { 
-                menu.remove(); 
-                document.removeEventListener('click', closeMenu); 
-            } 
-        });
+        document.addEventListener('click', closeMenu);
+        document.addEventListener('touchstart', closeMenu);
     }, 100);
 }
         
