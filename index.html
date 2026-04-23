@@ -444,7 +444,7 @@
             right: 20px; 
             background: rgba(0, 0, 0, 0.85);
             backdrop-filter: blur(20px);
-            color: white;
+            color: white; 
             padding: 8px 16px; 
             border-radius: 60px;
             z-index: 10000; 
@@ -5139,73 +5139,12 @@
                 function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
                 function showToast(msg) { const toast = document.createElement('div'); toast.className = 'toast'; toast.innerText = msg; document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
                 
-                // Função auxiliar para criar slug a partir do título
-                function slugify(title) {
-                    return title
-                        .toString()
-                        .normalize('NFD')                   // separa acentos dos caracteres
-                        .replace(/[\u0300-\u036f]/g, '')    // remove acentos
-                        .toLowerCase()
-                        .trim()
-                        .replace(/[^a-z0-9\s-]/g, '')       // remove caracteres especiais
-                        .replace(/[\s_-]+/g, '-')            // substitui espaços e underscores por hífen
-                        .replace(/^-+|-+$/g, '');            // remove hífens no início/fim
+                async function playMediaById(mediaId, type) {
+                    let item = filmes.find(f => f.id === mediaId); let foundType = 'filme';
+                    if (!item) { item = series.find(s => s.id === mediaId); foundType = 'serie'; }
+                    if (!item) { item = canais.find(c => c.id === mediaId); foundType = 'canal'; }
+                    if (item) { await playMedia(item, foundType); window.history.pushState({ mediaId, type: foundType }, '', `${window.location.pathname}?mediaId=${mediaId}&type=${foundType}`); } else showToast('Conteúdo não encontrado');
                 }
-                
-                // Função para atualizar a URL com o slug do conteúdo atual
-                function updateUrlWithSlug(title, type) {
-                    if (!title) return;
-                    const slug = slugify(title);
-                    const newUrl = `${window.location.origin}${window.location.pathname}${slug}`;
-                    window.history.pushState({ mediaId: currentMedia?.id, type: type, title: title }, '', newUrl);
-                }
-                
-                // Função para encontrar conteúdo pelo slug e reproduzir automaticamente
-                async function findAndPlayBySlug(slug) {
-                    // Aguarda os dados serem carregados
-                    if (!canaisLoaded || !filmesLoaded || !seriesLoaded) {
-                        setTimeout(() => findAndPlayBySlug(slug), 500);
-                        return;
-                    }
-                    
-                    const allContents = [
-                        ...canais.map(c => ({ ...c, contentType: 'canal' })),
-                        ...filmes.map(f => ({ ...f, contentType: 'filme' })),
-                        ...series.map(s => ({ ...s, contentType: 'serie' }))
-                    ];
-                    
-                    // Tenta encontrar pelo slug correspondente
-                    const found = allContents.find(item => slugify(item.title) === slug);
-                    
-                    if (found) {
-                        console.log(`Encontrado conteúdo para slug ${slug}: ${found.title}`);
-                        await playMedia(found, found.contentType);
-                    } else {
-                        // Se não encontrar, não faz nada (apenas log)
-                        console.log(`Nenhum conteúdo encontrado para slug: ${slug}`);
-                    }
-                }
-                
-                // Sobrescrevemos a função playMedia original para incluir a atualização da URL
-                const originalPlayMedia = playMedia;
-                window.playMedia = async function(item, type) {
-                    // Chama a função original (que definimos mais tarde, mas precisamos definir antes)
-                    // Por isso, vamos armazenar a função original em uma variável e chamá-la depois que ela existir
-                    if (typeof originalPlayMediaWrapper === 'function') {
-                        await originalPlayMediaWrapper(item, type);
-                    } else {
-                        // Caso ainda não tenha sido definida, usamos a função que será sobrescrita
-                        // Isso será resolvido após a definição da função original
-                        console.warn('playMedia original ainda não disponível');
-                    }
-                    // Atualiza a URL com slug
-                    if (item && item.title) {
-                        updateUrlWithSlug(item.title, type);
-                    }
-                };
-                
-                // Mantemos referência para a função original depois que ela for definida
-                let originalPlayMediaWrapper = null;
                 
                 async function playMedia(item, type) {
                     const videoId = extractYoutubeId(item.link);
@@ -5286,34 +5225,19 @@
                         }
                     } else showToast('Formato não suportado');
                     if (castSession) loadCurrentMediaToCast();
-                    
-                    // Atualiza a URL com o slug
-                    if (item && item.title) {
-                        updateUrlWithSlug(item.title, type);
-                    }
                 }
                 
-                // Atribui a função original à variável wrapper
-                originalPlayMediaWrapper = playMedia;
-                
-                // Agora atribui a função modificada à window
-                window.playMedia = playMedia;
-                
-                // Função para fechar o player e restaurar a URL base
                 function closePlayer() {
                     if (ytPlayer) { stopProgressTracking(ytPlayer, true); ytPlayer.stopVideo(); }
                     if (window.hlsInstance) { stopProgressTracking(document.getElementById('hlsPlayer'), false); window.hlsInstance.destroy(); }
                     document.getElementById('playerCommentsContainer').classList.add('hidden');
                     document.getElementById('floatingPlayerOverlay').classList.add('hidden');
                     stopRealtimeUpdates();
-                    // Limpa o slug da URL, voltando para a raiz
-                    const cleanUrl = `${window.location.origin}${window.location.pathname}`;
-                    window.history.pushState({}, '', cleanUrl);
+                    const url = new URL(window.location);
+                    url.searchParams.delete('mediaId');
+                    url.searchParams.delete('type');
+                    window.history.pushState({}, '', url);
                 }
-                
-                // Substitui o closePlayer original
-                const originalClosePlayer = window.closePlayer;
-                window.closePlayer = closePlayer;
                 
                 function onYouTubeIframeAPIReady() {}
                 
@@ -5370,22 +5294,7 @@
                     });
                 }
                 
-                function checkAllDataLoaded() { 
-                    if (canaisLoaded && filmesLoaded && seriesLoaded) { 
-                        const urlParams = new URLSearchParams(window.location.search); 
-                        const mediaId = urlParams.get('mediaId'); 
-                        const type = urlParams.get('type'); 
-                        if (mediaId && type) playMediaById(mediaId, type); 
-                        else {
-                            // Nova verificação: se houver slug na URL (caminho após o domínio)
-                            const path = window.location.pathname;
-                            const slug = path.substring(path.lastIndexOf('/') + 1);
-                            if (slug && slug.length > 0 && slug !== 'index.html' && slug !== '' && !slug.includes('.')) {
-                                findAndPlayBySlug(slug);
-                            }
-                        }
-                    } 
-                }
+                function checkAllDataLoaded() { if (canaisLoaded && filmesLoaded && seriesLoaded) { const urlParams = new URLSearchParams(window.location.search); const mediaId = urlParams.get('mediaId'); const type = urlParams.get('type'); if (mediaId && type) playMediaById(mediaId, type); } }
                 
                 function sortItems(items) { if (!items) return []; const sorted = [...items]; switch (currentSort) { case 'recent': sorted.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); break; case 'views': sorted.sort((a, b) => (viewsCache[b.id] || 0) - (viewsCache[a.id] || 0)); break; case 'az': sorted.sort((a, b) => a.title.localeCompare(b.title)); break; case 'za': sorted.sort((a, b) => b.title.localeCompare(a.title)); break; case 'year_asc': sorted.sort((a, b) => (parseInt(a.year) || 0) - (parseInt(b.year) || 0)); break; case 'year_desc': sorted.sort((a, b) => (parseInt(b.year) || 0) - (parseInt(a.year) || 0)); break; case 'genre': sorted.sort((a, b) => (a.category || '').localeCompare(b.category || '')); break; default: sorted.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); } return sorted; }
                 
@@ -5491,843 +5400,487 @@
                 function backToUsersList() { document.getElementById('chatSidebar').classList.remove('hidden'); document.getElementById('chatMain').classList.add('hidden'); loadChatList(); }
                 function showUserSearchModal() { if (!auth.currentUser) { showToast('Faça login para iniciar conversas'); return; } document.getElementById('userSearchModal').classList.remove('hidden'); document.getElementById('userSearchInput').value = ''; document.getElementById('userSearchInput').focus(); searchUsers(); }
                 function hideUserSearchModal() { document.getElementById('userSearchModal').classList.add('hidden'); }
-                function searchUsers() { const searchTerm = document.getElementById('userSearchInput').value.toLowerCase(); const searchList = document.getElementById('userSearchList'); if (!auth.currentUser) { searchList.innerHTML = '<li class="no-users-found">Faça login para ver usuários</li>'; return; } database.ref('usuarios').once('value', (snapshot) => { const users = snapshot.val(); if (!users) { searchList.innerHTML = '<li class="no-users-found">Nenhum usuário encontrado</li>'; return; } const filteredUsers = []; for (let uid in users) { if (uid !== auth.currentUser.uid) { const nickname = users[uid].nickname || ''; const displayName = users[uid].displayName || nickname; if (nickname.toLowerCase().includes(searchTerm) || (displayName && displayName.toLowerCase().includes(searchTerm))) filteredUsers.push({ uid, nickname, displayName: displayName || nickname }); } } if (filteredUsers.length === 0) { searchList.innerHTML = '<li class="no-users-found">Nenhum usuário encontrado</li>'; return; }
-                searchList.innerHTML = '';
-                filteredUsers.forEach(user => {
-                    const displayName = user.displayName || user.nickname || 'Usuário';
-                    const li = document.createElement('li');
-                    li.className = 'user-search-item';
-                    li.onclick = () => {
-                        hideUserSearchModal();
-                        selectChat(`private_${user.uid}`, displayName, displayName.charAt(0).toUpperCase(), user.uid);
-                    };
-                    li.innerHTML = `<div class="user-search-avatar" onclick="event.stopPropagation(); viewProfile('${user.uid}')">${displayName.charAt(0).toUpperCase()}</div><div class="user-search-info"><strong onclick="event.stopPropagation(); viewProfile('${user.uid}')">${displayName}</strong><span>${user.nickname ? '@' + user.nickname : ''}</span></div>`;
-                    searchList.appendChild(li);
-                });
-            });
-        }
-        
-        function showMessageContextMenu(messageId, element) {
-            selectedMessageId = messageId;
-            selectedMessageElement = element;
-            const rect = element.getBoundingClientRect();
-            const menu = document.createElement('div');
-            menu.className = 'context-menu';
-            menu.style.top = rect.top - 100 + 'px';
-            menu.style.left = rect.left + 'px';
-            menu.id = 'messageContextMenu';
-            menu.innerHTML = `<div class="context-menu-item danger" onclick="deleteMessage()"><i class="fas fa-trash-alt"></i><span>Desfazer envio</span></div>`;
-            document.body.appendChild(menu);
-            setTimeout(() => {
-                document.addEventListener('click', closeMessageContextMenu);
-            }, 100);
-        }
-        
-        function closeMessageContextMenu(event) {
-            const menu = document.getElementById('messageContextMenu');
-            if (menu && (!event || !menu.contains(event.target))) {
-                menu.remove();
-                document.removeEventListener('click', closeMessageContextMenu);
-            }
-        }
-        
-        function deleteMessage() {
-            closeMessageContextMenu();
-            document.getElementById('confirmDeleteMessageModal').classList.remove('hidden');
-        }
-        
-        async function confirmDeleteMessage() {
-            if (!selectedMessageId) return;
-            try {
-                if (currentChat === 'geral')
-                    await database.ref(`chat_messages/${selectedMessageId}`).remove();
-                else if (currentChatUser) {
-                    const chatIdKey = `private_${[auth.currentUser.uid, currentChatUser].sort().join('_')}`;
-                    await database.ref(`private_messages/${chatIdKey}/${selectedMessageId}`).remove();
+                function searchUsers() { const searchTerm = document.getElementById('userSearchInput').value.toLowerCase(); const searchList = document.getElementById('userSearchList'); if (!auth.currentUser) { searchList.innerHTML = '<li class="no-users-found">Faça login para ver usuários</li>'; return; } database.ref('usuarios').once('value', (snapshot) => { const users = snapshot.val(); if (!users) { searchList.innerHTML = '<li class="no-users-found">Nenhum usuário encontrado</li>'; return; } const filteredUsers = []; for (let uid in users) { if (uid !== auth.currentUser.uid) { const nickname = users[uid].nickname || ''; const displayName = users[uid].displayName || nickname; if (nickname.toLowerCase().includes(searchTerm) || (displayName && displayName.toLowerCase().includes(searchTerm))) filteredUsers.push({ uid, nickname, displayName: displayName || nickname }); } } if (filteredUsers.length === 0) { searchList.innerHTML = '<li class="no-users-found">Nenhum usuário encontrado</li>'; return; } searchList.innerHTML = ''; filteredUsers.forEach(user => { const displayName = user.displayName || user.nickname || 'Usuário'; const li = document.createElement('li'); li.className = 'user-search-item'; li.onclick = () => { hideUserSearchModal(); selectChat(`private_${user.uid}`, displayName, displayName.charAt(0).toUpperCase(), user.uid); }; li.innerHTML = `<div class="user-search-avatar" onclick="event.stopPropagation(); viewProfile('${user.uid}')">${displayName.charAt(0).toUpperCase()}</div><div class="user-search-info"><strong onclick="event.stopPropagation(); viewProfile('${user.uid}')">${displayName}</strong><span>${user.nickname ? '@' + user.nickname : ''}</span></div>`; searchList.appendChild(li); }); }); }
+                function showMessageContextMenu(messageId, element) { selectedMessageId = messageId; selectedMessageElement = element; const rect = element.getBoundingClientRect(); const menu = document.createElement('div'); menu.className = 'context-menu'; menu.style.top = rect.top - 100 + 'px'; menu.style.left = rect.left + 'px'; menu.id = 'messageContextMenu'; menu.innerHTML = `<div class="context-menu-item danger" onclick="deleteMessage()"><i class="fas fa-trash-alt"></i><span>Desfazer envio</span></div>`; document.body.appendChild(menu); setTimeout(() => { document.addEventListener('click', closeMessageContextMenu); }, 100); }
+                function closeMessageContextMenu(event) { const menu = document.getElementById('messageContextMenu'); if (menu && (!event || !menu.contains(event.target))) { menu.remove(); document.removeEventListener('click', closeMessageContextMenu); } }
+                function deleteMessage() { closeMessageContextMenu(); document.getElementById('confirmDeleteMessageModal').classList.remove('hidden'); }
+                async function confirmDeleteMessage() { if (!selectedMessageId) return; try { if (currentChat === 'geral') await database.ref(`chat_messages/${selectedMessageId}`).remove(); else if (currentChatUser) { const chatIdKey = `private_${[auth.currentUser.uid, currentChatUser].sort().join('_')}`; await database.ref(`private_messages/${chatIdKey}/${selectedMessageId}`).remove(); } closeMessageConfirmModal(); if (selectedMessageElement) selectedMessageElement.remove(); showToast('Mensagem removida'); } catch (error) { console.error('Erro ao excluir mensagem:', error); showToast('Erro ao excluir mensagem'); } }
+                function closeMessageConfirmModal(event) { if (!event || event.target.classList.contains('confirm-modal-overlay') || (event.target.classList && event.target.classList.contains('cancel'))) { document.getElementById('confirmDeleteMessageModal').classList.add('hidden'); selectedMessageId = null; selectedMessageElement = null; } }
+                function formatTime(timestamp) { if (!timestamp) return ''; const date = new Date(timestamp); const now = new Date(); const diff = now - date; if (diff < 60000) return 'agora'; if (diff < 3600000) return Math.floor(diff / 60000) + 'min'; if (diff < 86400000) return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }); }
+                function viewProfile(userId) { if (userId && userId !== 'geral') { renderInstagramProfile(userId); switchSection('perfil'); if (window.innerWidth <= 768) backToUsersList(); } }
+                function loadChatReadTimestamps() { const readData = JSON.parse(localStorage.getItem('chatReadTimestamps') || '{}'); Object.entries(readData).forEach(([userId, timestamp]) => lastReadTimestamps.set(userId, timestamp)); }
+                function setupChatUnreadListener() { if (!auth.currentUser) return; const user = auth.currentUser; database.ref('chat_messages').on('child_added', (snapshot) => { const msg = snapshot.val(); if (msg && msg.senderId !== user.uid && currentChat !== 'geral') { const unread = unreadMessages.get('geral') || 0; unreadMessages.set('geral', unread + 1); updateUnreadBadges(); } }); database.ref('private_messages').on('child_added', (snapshot) => { const chatId = snapshot.key; const messages = snapshot.val(); if (messages) { Object.values(messages).forEach(msg => { if (msg && msg.senderId !== user.uid) { const parts = chatId.split('_'); const otherUserId = parts[0] === user.uid ? parts[1] : parts[0]; if (otherUserId !== currentChatUser) { const unread = unreadMessages.get(otherUserId) || 0; unreadMessages.set(otherUserId, unread + 1); updateUnreadBadges(); } } }); } }); }
+                
+                function findDuplicates() { const allItems = [...canais.map(c => ({ ...c, type: 'canais' })), ...filmes.map(f => ({ ...f, type: 'filmes' })), ...series.map(s => ({ ...s, type: 'series' }))]; const duplicates = []; const titleMap = new Map(); allItems.forEach(item => { const title = item.title.toLowerCase().trim(); if (titleMap.has(title)) titleMap.get(title).push(item); else titleMap.set(title, [item]); }); titleMap.forEach((items, title) => { if (items.length > 1) duplicates.push({ title: items[0].title, items: items, thumb: items[0].thumb }); }); return duplicates; }
+                function renderDuplicatesList() { const container = document.getElementById('duplicadosAdminList'); const duplicates = findDuplicates(); if (duplicates.length === 0) { container.innerHTML = '<div class="text-center text-gray-500 py-3 text-xs">✨ Nenhum filme/vídeo duplicado encontrado!</div>'; return; } container.innerHTML = ''; duplicates.forEach((dup, groupIndex) => { const itemsToShow = dup.items.slice(1); if (itemsToShow.length === 0) return; const groupHtml = `<div class="duplicate-group bg-black/20 p-2 rounded-xl mb-3" data-group-id="group_${groupIndex}"><div class="duplicate-header flex gap-2 items-center mb-1"><img src="${dup.thumb || 'https://via.placeholder.com/40x50'}" class="w-8 h-10 object-cover rounded"><div><div class="font-bold text-red-500 text-xs">📌 "${dup.title}"</div><div class="text-[9px]">Total: ${dup.items.length} cópias | ${itemsToShow.length} para excluir</div></div></div><div class="duplicate-items-list ml-3 space-y-1" id="group_${groupIndex}_list">${itemsToShow.map((item, idx) => `<label class="duplicate-checkbox-item flex items-center gap-2 p-1 glass rounded-lg cursor-pointer"><input type="checkbox" class="duplicate-checkbox" data-id="${item.id}" data-type="${item.type}" data-group="group_${groupIndex}"><img src="${item.thumb || 'https://via.placeholder.com/30x40'}" class="w-7 h-9 object-cover rounded"><div class="flex-1"><div class="text-xs">${item.title}</div><div class="text-[9px] opacity-70">${item.type === 'canais' ? '📡 Canal' : (item.type === 'filmes' ? '🎬 Filme' : '📺 Série')}</div></div></label>`).join('')}</div></div>`; container.innerHTML += groupHtml; }); const buttonBar = document.createElement('div'); buttonBar.className = 'mb-3 sticky top-0 bg-black/50 p-1 rounded-xl flex gap-1'; buttonBar.innerHTML = `<button id="selectAllDuplicatesBtn" class="select-all-btn bg-blue-700 px-2 py-0.5 rounded-full text-[9px] ripple-btn">Selecionar Todos</button><button id="deleteSelectedDuplicatesBtn" class="delete-selected-btn bg-red-700 px-2 py-0.5 rounded-full text-[9px] ripple-btn">Excluir Selecionados</button><span id="selectedCount" class="text-[9px] ml-1">0 selecionados</span>`; container.insertBefore(buttonBar, container.firstChild); function updateSelectedCount() { const checkboxes = document.querySelectorAll('.duplicate-checkbox:checked'); const countSpan = document.getElementById('selectedCount'); if (countSpan) countSpan.innerText = `${checkboxes.length} selecionado(s)`; } document.querySelectorAll('.duplicate-checkbox').forEach(cb => cb.addEventListener('change', updateSelectedCount)); document.getElementById('selectAllDuplicatesBtn')?.addEventListener('click', () => { const allCheckboxes = document.querySelectorAll('.duplicate-checkbox'); const areAllChecked = Array.from(allCheckboxes).every(cb => cb.checked); allCheckboxes.forEach(cb => cb.checked = !areAllChecked); updateSelectedCount(); }); document.getElementById('deleteSelectedDuplicatesBtn')?.addEventListener('click', () => { const selected = document.querySelectorAll('.duplicate-checkbox:checked'); if (selected.length === 0) { showToast('Selecione pelo menos um item'); return; } if (confirm(`Excluir ${selected.length} item(s) duplicado(s)?`)) { let deletions = []; selected.forEach(cb => { const id = cb.getAttribute('data-id'); const type = cb.getAttribute('data-type'); deletions.push(database.ref(`${type}/${id}`).remove()); }); Promise.all(deletions).then(() => { showToast(`${selected.length} item(s) removido(s)!`); loadCanaisFromFirebase(); loadFilmesFromFirebase(); loadSeriesFromFirebase(); renderDuplicatesList(); }).catch(error => showToast('Erro: ' + error.message)); } }); updateSelectedCount(); }
+                
+                // ==================== FUNÇÕES DE EDIÇÃO E EXCLUSÃO DO ADMIN ====================
+                function handleEditClick(e) {
+                    const id = this.getAttribute('data-id');
+                    const type = this.getAttribute('data-type');
+                    editItem(id, type);
                 }
-                closeMessageConfirmModal();
-                if (selectedMessageElement) selectedMessageElement.remove();
-                showToast('Mensagem removida');
-            } catch (error) {
-                console.error('Erro ao excluir mensagem:', error);
-                showToast('Erro ao excluir mensagem');
-            }
-        }
-        
-        function closeMessageConfirmModal(event) {
-            if (!event || event.target.classList.contains('confirm-modal-overlay') || (event.target.classList && event.target.classList.contains('cancel'))) {
-                document.getElementById('confirmDeleteMessageModal').classList.add('hidden');
-                selectedMessageId = null;
-                selectedMessageElement = null;
-            }
-        }
-        
-        function formatTime(timestamp) {
-            if (!timestamp) return '';
-            const date = new Date(timestamp);
-            const now = new Date();
-            const diff = now - date;
-            if (diff < 60000) return 'agora';
-            if (diff < 3600000) return Math.floor(diff / 60000) + 'min';
-            if (diff < 86400000) return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-            return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-        }
-        
-        function viewProfile(userId) {
-            if (userId && userId !== 'geral') {
-                renderInstagramProfile(userId);
-                switchSection('perfil');
-                if (window.innerWidth <= 768) backToUsersList();
-            }
-        }
-        
-        function loadChatReadTimestamps() {
-            const readData = JSON.parse(localStorage.getItem('chatReadTimestamps') || '{}');
-            Object.entries(readData).forEach(([userId, timestamp]) => lastReadTimestamps.set(userId, timestamp));
-        }
-        
-        function setupChatUnreadListener() {
-            if (!auth.currentUser) return;
-            const user = auth.currentUser;
-            database.ref('chat_messages').on('child_added', (snapshot) => {
-                const msg = snapshot.val();
-                if (msg && msg.senderId !== user.uid && currentChat !== 'geral') {
-                    const unread = unreadMessages.get('geral') || 0;
-                    unreadMessages.set('geral', unread + 1);
-                    updateUnreadBadges();
+                
+                function handleDeleteClick(e) {
+                    const id = this.getAttribute('data-id');
+                    const type = this.getAttribute('data-type');
+                    const typeName = type === 'canais' ? 'Canal' : (type === 'filmes' ? 'Filme' : 'Episódio');
+                    if (confirm(`Tem certeza que deseja excluir este ${typeName}?`)) {
+                        database.ref(`${type}/${id}`).remove().then(() => {
+                            showToast(`${typeName} removido com sucesso!`);
+                            if (type === 'canais') loadCanaisFromFirebase();
+                            else if (type === 'filmes') loadFilmesFromFirebase();
+                            else if (type === 'series') loadSeriesFromFirebase();
+                        }).catch(error => showToast('Erro ao excluir: ' + error.message));
+                    }
                 }
-            });
-            database.ref('private_messages').on('child_added', (snapshot) => {
-                const chatId = snapshot.key;
-                const messages = snapshot.val();
-                if (messages) {
-                    Object.values(messages).forEach(msg => {
-                        if (msg && msg.senderId !== user.uid) {
-                            const parts = chatId.split('_');
-                            const otherUserId = parts[0] === user.uid ? parts[1] : parts[0];
-                            if (otherUserId !== currentChatUser) {
-                                const unread = unreadMessages.get(otherUserId) || 0;
-                                unreadMessages.set(otherUserId, unread + 1);
-                                updateUnreadBadges();
-                            }
-                        }
+                
+                // ==================== FUNÇÃO REFRESH ADMIN LISTS ====================
+                function refreshAdminLists() { 
+                    if (!isAdminLogged) return; 
+                    
+                    const canaisHtml = (canais && canais.length > 0) ? canais.map(c => {
+                        const title = c && c.title ? c.title : 'Sem título';
+                        const id = c && c.id ? c.id : '';
+                        return `
+                            <div class="bg-white/10 p-1 rounded-lg flex justify-between items-center text-[10px] mb-0.5">
+                                <span class="truncate flex-1">${escapeHtml(title.substring(0, 25))}</span>
+                                <div class="admin-item-actions flex gap-1 ml-2">
+                                    <button class="edit-item-btn text-green-400 text-[10px] px-1" data-id="${id}" data-type="canais"><i class="fas fa-edit"></i></button>
+                                    <button class="delete-item-btn text-red-400 text-[10px] px-1" data-id="${id}" data-type="canais"><i class="fas fa-trash"></i></button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('') : '<div class="text-center text-gray-500 py-2 text-[10px]">Nenhum canal adicionado ainda</div>';
+                    
+                    const canaisListEl = document.getElementById('canaisAdminList');
+                    if (canaisListEl) canaisListEl.innerHTML = canaisHtml;
+                    
+                    const filmesHtml = (filmes && filmes.length > 0) ? filmes.map(f => {
+                        const title = f && f.title ? f.title : 'Sem título';
+                        const id = f && f.id ? f.id : '';
+                        return `
+                            <div class="bg-white/10 p-1 rounded-lg flex justify-between items-center text-[10px] mb-0.5">
+                                <span class="truncate flex-1">${escapeHtml(title.substring(0, 25))}</span>
+                                <div class="admin-item-actions flex gap-1 ml-2">
+                                    <button class="edit-item-btn text-green-400 text-[10px] px-1" data-id="${id}" data-type="filmes"><i class="fas fa-edit"></i></button>
+                                    <button class="delete-item-btn text-red-400 text-[10px] px-1" data-id="${id}" data-type="filmes"><i class="fas fa-trash"></i></button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('') : '<div class="text-center text-gray-500 py-2 text-[10px]">Nenhum filme adicionado ainda</div>';
+                    
+                    const filmesListEl = document.getElementById('filmesAdminList');
+                    if (filmesListEl) filmesListEl.innerHTML = filmesHtml;
+                    
+                    const seriesHtml = (series && series.length > 0) ? series.map(s => {
+                        const title = s && s.title ? s.title : 'Sem título';
+                        const id = s && s.id ? s.id : '';
+                        return `
+                            <div class="bg-white/10 p-1 rounded-lg flex justify-between items-center text-[10px] mb-0.5">
+                                <span class="truncate flex-1">${escapeHtml(title.substring(0, 25))}</span>
+                                <div class="admin-item-actions flex gap-1 ml-2">
+                                    <button class="edit-item-btn text-green-400 text-[10px] px-1" data-id="${id}" data-type="series"><i class="fas fa-edit"></i></button>
+                                    <button class="delete-item-btn text-red-400 text-[10px] px-1" data-id="${id}" data-type="series"><i class="fas fa-trash"></i></button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('') : '<div class="text-center text-gray-500 py-2 text-[10px]">Nenhuma série/episódio adicionado ainda</div>';
+                    
+                    const seriesListEl = document.getElementById('seriesAdminList');
+                    if (seriesListEl) seriesListEl.innerHTML = seriesHtml;
+                    
+                    document.querySelectorAll('.edit-item-btn').forEach(btn => {
+                        btn.removeEventListener('click', handleEditClick);
+                        btn.addEventListener('click', handleEditClick);
+                    });
+                    
+                    document.querySelectorAll('.delete-item-btn').forEach(btn => {
+                        btn.removeEventListener('click', handleDeleteClick);
+                        btn.addEventListener('click', handleDeleteClick);
                     });
                 }
-            });
-        }
-        
-        function findDuplicates() {
-            const allItems = [...canais.map(c => ({ ...c, type: 'canais' })), ...filmes.map(f => ({ ...f, type: 'filmes' })), ...series.map(s => ({ ...s, type: 'series' }))];
-            const duplicates = [];
-            const titleMap = new Map();
-            allItems.forEach(item => {
-                const title = item.title.toLowerCase().trim();
-                if (titleMap.has(title)) titleMap.get(title).push(item);
-                else titleMap.set(title, [item]);
-            });
-            titleMap.forEach((items, title) => {
-                if (items.length > 1) duplicates.push({ title: items[0].title, items: items, thumb: items[0].thumb });
-            });
-            return duplicates;
-        }
-        
-        function renderDuplicatesList() {
-            const container = document.getElementById('duplicadosAdminList');
-            const duplicates = findDuplicates();
-            if (duplicates.length === 0) {
-                container.innerHTML = '<div class="text-center text-gray-500 py-3 text-xs">✨ Nenhum filme/vídeo duplicado encontrado!</div>';
-                return;
-            }
-            container.innerHTML = '';
-            duplicates.forEach((dup, groupIndex) => {
-                const itemsToShow = dup.items.slice(1);
-                if (itemsToShow.length === 0) return;
-                const groupHtml = `<div class="duplicate-group bg-black/20 p-2 rounded-xl mb-3" data-group-id="group_${groupIndex}"><div class="duplicate-header flex gap-2 items-center mb-1"><img src="${dup.thumb || 'https://via.placeholder.com/40x50'}" class="w-8 h-10 object-cover rounded"><div><div class="font-bold text-red-500 text-xs">📌 "${dup.title}"</div><div class="text-[9px]">Total: ${dup.items.length} cópias | ${itemsToShow.length} para excluir</div></div></div><div class="duplicate-items-list ml-3 space-y-1" id="group_${groupIndex}_list">${itemsToShow.map((item, idx) => `<label class="duplicate-checkbox-item flex items-center gap-2 p-1 glass rounded-lg cursor-pointer"><input type="checkbox" class="duplicate-checkbox" data-id="${item.id}" data-type="${item.type}" data-group="group_${groupIndex}"><img src="${item.thumb || 'https://via.placeholder.com/30x40'}" class="w-7 h-9 object-cover rounded"><div class="flex-1"><div class="text-xs">${item.title}</div><div class="text-[9px] opacity-70">${item.type === 'canais' ? '📡 Canal' : (item.type === 'filmes' ? '🎬 Filme' : '📺 Série')}</div></div></label>`).join('')}</div></div>`;
-                container.innerHTML += groupHtml;
-            });
-            const buttonBar = document.createElement('div');
-            buttonBar.className = 'mb-3 sticky top-0 bg-black/50 p-1 rounded-xl flex gap-1';
-            buttonBar.innerHTML = `<button id="selectAllDuplicatesBtn" class="select-all-btn bg-blue-700 px-2 py-0.5 rounded-full text-[9px] ripple-btn">Selecionar Todos</button><button id="deleteSelectedDuplicatesBtn" class="delete-selected-btn bg-red-700 px-2 py-0.5 rounded-full text-[9px] ripple-btn">Excluir Selecionados</button><span id="selectedCount" class="text-[9px] ml-1">0 selecionados</span>`;
-            container.insertBefore(buttonBar, container.firstChild);
-            function updateSelectedCount() { const checkboxes = document.querySelectorAll('.duplicate-checkbox:checked'); const countSpan = document.getElementById('selectedCount'); if (countSpan) countSpan.innerText = `${checkboxes.length} selecionado(s)`; }
-            document.querySelectorAll('.duplicate-checkbox').forEach(cb => cb.addEventListener('change', updateSelectedCount));
-            document.getElementById('selectAllDuplicatesBtn')?.addEventListener('click', () => { const allCheckboxes = document.querySelectorAll('.duplicate-checkbox'); const areAllChecked = Array.from(allCheckboxes).every(cb => cb.checked); allCheckboxes.forEach(cb => cb.checked = !areAllChecked); updateSelectedCount(); });
-            document.getElementById('deleteSelectedDuplicatesBtn')?.addEventListener('click', () => { const selected = document.querySelectorAll('.duplicate-checkbox:checked'); if (selected.length === 0) { showToast('Selecione pelo menos um item'); return; } if (confirm(`Excluir ${selected.length} item(s) duplicado(s)?`)) { let deletions = []; selected.forEach(cb => { const id = cb.getAttribute('data-id'); const type = cb.getAttribute('data-type'); deletions.push(database.ref(`${type}/${id}`).remove()); }); Promise.all(deletions).then(() => { showToast(`${selected.length} item(s) removido(s)!`); loadCanaisFromFirebase(); loadFilmesFromFirebase(); loadSeriesFromFirebase(); renderDuplicatesList(); }).catch(error => showToast('Erro: ' + error.message)); } });
-            updateSelectedCount();
-        }
-        
-        function handleEditClick(e) {
-            const id = this.getAttribute('data-id');
-            const type = this.getAttribute('data-type');
-            editItem(id, type);
-        }
-        
-        function handleDeleteClick(e) {
-            const id = this.getAttribute('data-id');
-            const type = this.getAttribute('data-type');
-            const typeName = type === 'canais' ? 'Canal' : (type === 'filmes' ? 'Filme' : 'Episódio');
-            if (confirm(`Tem certeza que deseja excluir este ${typeName}?`)) {
-                database.ref(`${type}/${id}`).remove().then(() => {
-                    showToast(`${typeName} removido com sucesso!`);
-                    if (type === 'canais') loadCanaisFromFirebase();
-                    else if (type === 'filmes') loadFilmesFromFirebase();
-                    else if (type === 'series') loadSeriesFromFirebase();
-                }).catch(error => showToast('Erro ao excluir: ' + error.message));
-            }
-        }
-        
-        function refreshAdminLists() {
-            if (!isAdminLogged) return;
-            
-            const canaisHtml = (canais && canais.length > 0) ? canais.map(c => {
-                const title = c && c.title ? c.title : 'Sem título';
-                const id = c && c.id ? c.id : '';
-                return `<div class="bg-white/10 p-1 rounded-lg flex justify-between items-center text-[10px] mb-0.5"><span class="truncate flex-1">${escapeHtml(title.substring(0, 25))}</span><div class="admin-item-actions flex gap-1 ml-2"><button class="edit-item-btn text-green-400 text-[10px] px-1" data-id="${id}" data-type="canais"><i class="fas fa-edit"></i></button><button class="delete-item-btn text-red-400 text-[10px] px-1" data-id="${id}" data-type="canais"><i class="fas fa-trash"></i></button></div></div>`;
-            }).join('') : '<div class="text-center text-gray-500 py-2 text-[10px]">Nenhum canal adicionado ainda</div>';
-            
-            const canaisListEl = document.getElementById('canaisAdminList');
-            if (canaisListEl) canaisListEl.innerHTML = canaisHtml;
-            
-            const filmesHtml = (filmes && filmes.length > 0) ? filmes.map(f => {
-                const title = f && f.title ? f.title : 'Sem título';
-                const id = f && f.id ? f.id : '';
-                return `<div class="bg-white/10 p-1 rounded-lg flex justify-between items-center text-[10px] mb-0.5"><span class="truncate flex-1">${escapeHtml(title.substring(0, 25))}</span><div class="admin-item-actions flex gap-1 ml-2"><button class="edit-item-btn text-green-400 text-[10px] px-1" data-id="${id}" data-type="filmes"><i class="fas fa-edit"></i></button><button class="delete-item-btn text-red-400 text-[10px] px-1" data-id="${id}" data-type="filmes"><i class="fas fa-trash"></i></button></div></div>`;
-            }).join('') : '<div class="text-center text-gray-500 py-2 text-[10px]">Nenhum filme adicionado ainda</div>';
-            
-            const filmesListEl = document.getElementById('filmesAdminList');
-            if (filmesListEl) filmesListEl.innerHTML = filmesHtml;
-            
-            const seriesHtml = (series && series.length > 0) ? series.map(s => {
-                const title = s && s.title ? s.title : 'Sem título';
-                const id = s && s.id ? s.id : '';
-                return `<div class="bg-white/10 p-1 rounded-lg flex justify-between items-center text-[10px] mb-0.5"><span class="truncate flex-1">${escapeHtml(title.substring(0, 25))}</span><div class="admin-item-actions flex gap-1 ml-2"><button class="edit-item-btn text-green-400 text-[10px] px-1" data-id="${id}" data-type="series"><i class="fas fa-edit"></i></button><button class="delete-item-btn text-red-400 text-[10px] px-1" data-id="${id}" data-type="series"><i class="fas fa-trash"></i></button></div></div>`;
-            }).join('') : '<div class="text-center text-gray-500 py-2 text-[10px]">Nenhuma série/episódio adicionado ainda</div>';
-            
-            const seriesListEl = document.getElementById('seriesAdminList');
-            if (seriesListEl) seriesListEl.innerHTML = seriesHtml;
-            
-            document.querySelectorAll('.edit-item-btn').forEach(btn => {
-                btn.removeEventListener('click', handleEditClick);
-                btn.addEventListener('click', handleEditClick);
-            });
-            
-            document.querySelectorAll('.delete-item-btn').forEach(btn => {
-                btn.removeEventListener('click', handleDeleteClick);
-                btn.addEventListener('click', handleDeleteClick);
-            });
-        }
-        
-        function editItem(id, type) {
-            let item = null;
-            if (type === 'canais') item = canais.find(c => c.id === id);
-            else if (type === 'filmes') item = filmes.find(f => f.id === id);
-            else if (type === 'series') item = series.find(s => s.id === id);
-            if (!item) return;
-            editingItem = { ...item, type: type };
-            if (type === 'canais') currentAdminTab = 'adminTabCanais';
-            else if (type === 'filmes') currentAdminTab = 'adminTabFilmes';
-            else if (type === 'series') currentAdminTab = 'adminTabSeries';
-            document.getElementById('itemTitle').value = item.title;
-            document.getElementById('itemLink').value = item.link;
-            document.getElementById('itemThumb').value = item.thumb || '';
-            document.getElementById('itemCategory').value = item.category || '';
-            document.getElementById('itemYear').value = item.year || '';
-            document.getElementById('itemDescription').value = item.description || '';
-            const mediaTypeRadio = item.mediaType === 'iptv' ? 'iptv' : 'youtube';
-            document.querySelector(`input[name="mediaType"][value="${mediaTypeRadio}"]`).checked = true;
-            document.getElementById('cancelEditBtn').classList.remove('hidden');
-            document.getElementById('formTitle').innerHTML = '✏️ Editando: ' + item.title.substring(0, 25);
-            showToast('Modo edição ativado.');
-        }
-        
-        function resetForm() {
-            document.getElementById('itemTitle').value = '';
-            document.getElementById('itemLink').value = '';
-            document.getElementById('itemThumb').value = '';
-            document.getElementById('itemCategory').value = '';
-            document.getElementById('itemYear').value = '';
-            document.getElementById('itemDescription').value = '';
-            document.querySelector('input[name="mediaType"][value="youtube"]').checked = true;
-            editingItem = null;
-            document.getElementById('cancelEditBtn').classList.add('hidden');
-            document.getElementById('formTitle').innerHTML = 'Adicionar / Editar';
-        }
-        
-        function generateSafeId() { return Date.now() + '-' + Math.random().toString(36).substring(2, 15); }
-        
-        async function saveSingleItem() {
-            const title = document.getElementById('itemTitle').value.trim();
-            let link = document.getElementById('itemLink').value.trim();
-            const thumb = document.getElementById('itemThumb').value.trim();
-            const category = document.getElementById('itemCategory').value.trim();
-            const year = document.getElementById('itemYear').value.trim();
-            const description = document.getElementById('itemDescription').value.trim();
-            const mediaType = document.querySelector('input[name="mediaType"]:checked').value;
-            if (!title || !link) { showToast('❌ Preencha título e link'); return; }
-            if (mediaType === 'youtube') { if (!extractYoutubeId(link)) { showToast('❌ Link do YouTube inválido.'); return; } }
-            else if (mediaType === 'iptv') { if (!isIptvLink(link)) { showToast('❌ Link IPTV/MP4 inválido. Use .mp4, .m3u8 ou .m3u'); return; } }
-            
-            let finalThumb = thumb;
-            if (mediaType === 'youtube' && !finalThumb) { const videoId = extractYoutubeId(link); if (videoId) finalThumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`; }
-            if (!finalThumb) finalThumb = 'https://via.placeholder.com/300x200';
-            
-            const itemData = {
-                title, link, thumb: finalThumb,
-                category: category || (mediaType === 'iptv' ? 'Vídeo' : 'Geral'),
-                year: year || new Date().getFullYear(),
-                description: description || title,
-                mediaType, createdAt: Date.now()
-            };
-            
-            if (!editingItem) {
-                let existingItems = [];
-                if (currentAdminTab === 'adminTabCanais') existingItems = canais;
-                else if (currentAdminTab === 'adminTabFilmes') existingItems = filmes;
-                else if (currentAdminTab === 'adminTabSeries') existingItems = series;
-                const isDuplicate = existingItems.some(item => item.title.toLowerCase() === title.toLowerCase() || item.link === link);
-                if (isDuplicate) { showToast('⚠️ Conteúdo duplicado! Título ou URL já existe.'); return; }
-            }
-            
-            try {
-                if (editingItem) {
-                    const refPath = editingItem.type === 'canais' ? `canais/${editingItem.id}` : (editingItem.type === 'filmes' ? `filmes/${editingItem.id}` : `series/${editingItem.id}`);
-                    await database.ref(refPath).update(itemData);
-                    showToast('✅ Item atualizado!');
-                    resetForm();
-                    if (editingItem.type === 'canais') loadCanaisFromFirebase();
-                    else if (editingItem.type === 'filmes') loadFilmesFromFirebase();
-                    else if (editingItem.type === 'series') loadSeriesFromFirebase();
-                } else {
-                    const safeId = generateSafeId();
-                    const newItem = { id: safeId, ...itemData };
-                    if (currentAdminTab === 'adminTabCanais') {
-                        await database.ref(`canais/${safeId}`).set(newItem);
-                        showToast('✅ Canal salvo!');
-                        loadCanaisFromFirebase();
-                    } else if (currentAdminTab === 'adminTabFilmes') {
-                        await database.ref(`filmes/${safeId}`).set(newItem);
-                        showToast('✅ Filme salvo!');
-                        loadFilmesFromFirebase();
-                    } else if (currentAdminTab === 'adminTabSeries') {
-                        await database.ref(`series/${safeId}`).set(newItem);
-                        showToast('✅ Episódio salvo!');
-                        loadSeriesFromFirebase();
+                
+                function editItem(id, type) { 
+                    let item = null; 
+                    if (type === 'canais') item = canais.find(c => c.id === id);
+                    else if (type === 'filmes') item = filmes.find(f => f.id === id);
+                    else if (type === 'series') item = series.find(s => s.id === id);
+                    if (!item) return;
+                    editingItem = { ...item, type: type };
+                    if (type === 'canais') currentAdminTab = 'adminTabCanais';
+                    else if (type === 'filmes') currentAdminTab = 'adminTabFilmes';
+                    else if (type === 'series') currentAdminTab = 'adminTabSeries';
+                    document.getElementById('itemTitle').value = item.title;
+                    document.getElementById('itemLink').value = item.link;
+                    document.getElementById('itemThumb').value = item.thumb || '';
+                    document.getElementById('itemCategory').value = item.category || '';
+                    document.getElementById('itemYear').value = item.year || '';
+                    document.getElementById('itemDescription').value = item.description || '';
+                    const mediaTypeRadio = item.mediaType === 'iptv' ? 'iptv' : 'youtube';
+                    document.querySelector(`input[name="mediaType"][value="${mediaTypeRadio}"]`).checked = true;
+                    document.getElementById('cancelEditBtn').classList.remove('hidden');
+                    document.getElementById('formTitle').innerHTML = '✏️ Editando: ' + item.title.substring(0, 25);
+                    showToast('Modo edição ativado.');
+                }
+                
+                function resetForm() { 
+                    document.getElementById('itemTitle').value = ''; 
+                    document.getElementById('itemLink').value = ''; 
+                    document.getElementById('itemThumb').value = ''; 
+                    document.getElementById('itemCategory').value = ''; 
+                    document.getElementById('itemYear').value = ''; 
+                    document.getElementById('itemDescription').value = ''; 
+                    document.querySelector('input[name="mediaType"][value="youtube"]').checked = true; 
+                    editingItem = null; 
+                    document.getElementById('cancelEditBtn').classList.add('hidden'); 
+                    document.getElementById('formTitle').innerHTML = 'Adicionar / Editar'; 
+                }
+                
+                function generateSafeId() { return Date.now() + '-' + Math.random().toString(36).substring(2, 15); }
+                
+                async function saveSingleItem() { 
+                    const title = document.getElementById('itemTitle').value.trim(); 
+                    let link = document.getElementById('itemLink').value.trim(); 
+                    const thumb = document.getElementById('itemThumb').value.trim(); 
+                    const category = document.getElementById('itemCategory').value.trim(); 
+                    const year = document.getElementById('itemYear').value.trim(); 
+                    const description = document.getElementById('itemDescription').value.trim(); 
+                    const mediaType = document.querySelector('input[name="mediaType"]:checked').value; 
+                    if (!title || !link) { showToast('❌ Preencha título e link'); return; } 
+                    if (mediaType === 'youtube') { if (!extractYoutubeId(link)) { showToast('❌ Link do YouTube inválido.'); return; } } 
+                    else if (mediaType === 'iptv') { if (!isIptvLink(link)) { showToast('❌ Link IPTV/MP4 inválido. Use .mp4, .m3u8 ou .m3u'); return; } } 
+                    
+                    let finalThumb = thumb; 
+                    if (mediaType === 'youtube' && !finalThumb) { const videoId = extractYoutubeId(link); if (videoId) finalThumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`; } 
+                    if (!finalThumb) finalThumb = 'https://via.placeholder.com/300x200'; 
+                    
+                    const itemData = { 
+                        title, link, thumb: finalThumb, 
+                        category: category || (mediaType === 'iptv' ? 'Vídeo' : 'Geral'), 
+                        year: year || new Date().getFullYear(), 
+                        description: description || title, 
+                        mediaType, createdAt: Date.now() 
+                    };
+                    
+                    if (!editingItem) {
+                        let existingItems = [];
+                        if (currentAdminTab === 'adminTabCanais') existingItems = canais;
+                        else if (currentAdminTab === 'adminTabFilmes') existingItems = filmes;
+                        else if (currentAdminTab === 'adminTabSeries') existingItems = series;
+                        const isDuplicate = existingItems.some(item => item.title.toLowerCase() === title.toLowerCase() || item.link === link);
+                        if (isDuplicate) { showToast('⚠️ Conteúdo duplicado! Título ou URL já existe.'); return; }
                     }
-                    resetForm();
+                    
+                    try { 
+                        if (editingItem) { 
+                            const refPath = editingItem.type === 'canais' ? `canais/${editingItem.id}` : (editingItem.type === 'filmes' ? `filmes/${editingItem.id}` : `series/${editingItem.id}`); 
+                            await database.ref(refPath).update(itemData); 
+                            showToast('✅ Item atualizado!'); 
+                            resetForm(); 
+                            if (editingItem.type === 'canais') loadCanaisFromFirebase(); 
+                            else if (editingItem.type === 'filmes') loadFilmesFromFirebase(); 
+                            else if (editingItem.type === 'series') loadSeriesFromFirebase(); 
+                        } else { 
+                            const safeId = generateSafeId(); 
+                            const newItem = { id: safeId, ...itemData }; 
+                            if (currentAdminTab === 'adminTabCanais') { 
+                                await database.ref(`canais/${safeId}`).set(newItem); 
+                                showToast('✅ Canal salvo!'); 
+                                loadCanaisFromFirebase(); 
+                            } else if (currentAdminTab === 'adminTabFilmes') { 
+                                await database.ref(`filmes/${safeId}`).set(newItem); 
+                                showToast('✅ Filme salvo!'); 
+                                loadFilmesFromFirebase(); 
+                            } else if (currentAdminTab === 'adminTabSeries') { 
+                                await database.ref(`series/${safeId}`).set(newItem); 
+                                showToast('✅ Episódio salvo!'); 
+                                loadSeriesFromFirebase(); 
+                            } 
+                            resetForm(); 
+                        } 
+                    } catch (error) { console.error(error); showToast('❌ Erro ao salvar: ' + error.message); } 
                 }
-            } catch (error) { console.error(error); showToast('❌ Erro ao salvar: ' + error.message); }
-        }
-        
-        async function previewBatch() {
-            const linksText = document.getElementById('batchLinksInput').value;
-            const links = linksText.split('\n').filter(l => l.trim() && (extractYoutubeId(l.trim()) || isIptvLink(l.trim())));
-            const previewDiv = document.getElementById('batchPreview');
-            if (links.length === 0) { previewDiv.innerHTML = '<div class="text-yellow-500 text-[10px]">⚠️ Nenhum link válido (YouTube, .mp4, .m3u8 ou .m3u)</div>'; return; }
-            previewDiv.innerHTML = '<div class="text-yellow-500 text-[10px]">🔄 Buscando...</div>';
-            const items = [];
-            for (let i = 0; i < links.length; i++) {
-                const link = links[i].trim();
-                let metadata;
-                if (extractYoutubeId(link)) metadata = await fetchVideoDataFromLink(link, 'youtube');
-                else if (isIptvLink(link)) metadata = await fetchVideoDataFromLink(link, 'iptv');
-                if (metadata) items.push(metadata);
-            }
-            batchPreviewItems = items;
-            if (items.length === 0) { previewDiv.innerHTML = '<div class="text-red-500 text-[10px]">❌ Nenhum vídeo encontrado</div>'; return; }
-            const existingTitles = filmes.map(f => f.title);
-            const previewHtml = items.map((item) => {
-                const isDuplicate = existingTitles.includes(item.title);
-                return `<div class="p-0.5 border-b border-white/10 text-[10px] ${isDuplicate ? 'duplicate-item' : ''}"><div class="flex justify-between"><span><strong>${item.title.substring(0, 25)}</strong></span>${isDuplicate ? '<span class="text-red-500">⚠️</span>' : '<span class="text-green-500">✅</span>'}</div></div>`;
-            }).join('');
-            previewDiv.innerHTML = `<div class="mb-0.5 text-[10px]">📊 ${items.length} filmes | ${items.filter(i => existingTitles.includes(i.title)).length} duplicados</div>${previewHtml}`;
-            showToast(`✅ ${items.length} filmes carregados`);
-        }
-        
-        let batchPreviewItems = [];
-        async function saveBatch() {
-            if (batchPreviewItems.length === 0) { showToast('❌ Clique em "Pré-visualizar" primeiro'); return; }
-            const existingTitles = filmes.map(f => f.title);
-            const newItems = batchPreviewItems.filter(item => !existingTitles.includes(item.title));
-            const duplicates = batchPreviewItems.filter(item => existingTitles.includes(item.title));
-            if (duplicates.length > 0) { if (!confirm(`⚠️ ${duplicates.length} duplicados. Adicionar apenas ${newItems.length} novos?`)) return; }
-            if (newItems.length === 0) { showToast('❌ Nenhum filme novo'); return; }
-            showToast(`💾 Salvando ${newItems.length} filmes...`);
-            let salvos = 0;
-            for (let item of newItems) {
-                const safeId = generateSafeId();
-                const mediaType = extractYoutubeId(item.link) ? 'youtube' : 'iptv';
-                await database.ref(`filmes/${safeId}`).set({
-                    id: safeId, title: item.title, link: item.link, thumb: item.thumb,
-                    category: item.genre, year: item.year, description: item.description,
-                    createdAt: Date.now(), mediaType: mediaType
-                });
-                salvos++;
-            }
-            showToast(`✅ ${salvos} filmes salvos!`);
-            document.getElementById('batchLinksInput').value = '';
-            document.getElementById('batchPreview').innerHTML = '';
-            batchPreviewItems = [];
-            loadFilmesFromFirebase();
-        }
-        
-        async function saveEpisodes() {
-            const serieName = document.getElementById('serieTitle').value.trim();
-            const episodesText = document.getElementById('episodesLinksInput').value;
-            if (!serieName) { alert('Digite o nome da série'); return; }
-            const lines = episodesText.split('\n').filter(l => l.trim());
-            if (lines.length === 0) { alert('Cole os episódios'); return; }
-            showToast(`💾 Salvando ${lines.length} episódios...`);
-            let salvos = 0;
-            for (let line of lines) {
-                let episodeTitle = '', link = '';
-                if (line.includes(':')) {
-                    const parts = line.split(':');
-                    episodeTitle = parts[0].trim();
-                    link = parts.slice(1).join(':').trim();
-                } else {
-                    link = line.trim();
-                    episodeTitle = `EP${String(salvos + 1).padStart(2, '0')}`;
-                }
-                let metadata;
-                if (extractYoutubeId(link)) metadata = await fetchVideoDataFromLink(link, 'youtube');
-                else if (isIptvLink(link)) metadata = await fetchVideoDataFromLink(link, 'iptv');
-                const safeId = generateSafeId();
-                const mediaType = extractYoutubeId(link) ? 'youtube' : 'iptv';
-                await database.ref(`series/${safeId}`).set({
-                    id: safeId, title: `${serieName} - ${episodeTitle}`, link: link,
-                    thumb: metadata?.thumb || 'https://via.placeholder.com/300x200',
-                    category: metadata?.genre || 'Série',
-                    year: metadata?.year || new Date().getFullYear(),
-                    description: metadata?.description || `Episódio ${episodeTitle}`,
-                    createdAt: Date.now(), mediaType: mediaType
-                });
-                salvos++;
-            }
-            showToast(`✅ ${salvos} episódios salvos!`);
-            document.getElementById('serieTitle').value = '';
-            document.getElementById('episodesLinksInput').value = '';
-            loadSeriesFromFirebase();
-        }
-        
-        function updateUserUI(user) {
-            if (user) {
-                hideLoginModal();
-                loadUserNickname(user.uid);
-                database.ref(`favoritos/${user.uid}`).on('value', (snapshot) => {
-                    favoritos = snapshot.val() ? Object.values(snapshot.val()) : [];
-                    updateProfileUI();
-                });
-                database.ref('top10').on('value', (snapshot) => {
-                    const data = snapshot.val();
-                    if (data) {
-                        top10List = data;
-                        renderTop10Carousel();
+                
+                async function previewBatch() { const linksText = document.getElementById('batchLinksInput').value; const links = linksText.split('\n').filter(l => l.trim() && (extractYoutubeId(l.trim()) || isIptvLink(l.trim()))); const previewDiv = document.getElementById('batchPreview'); if (links.length === 0) { previewDiv.innerHTML = '<div class="text-yellow-500 text-[10px]">⚠️ Nenhum link válido (YouTube, .mp4, .m3u8 ou .m3u)</div>'; return; } previewDiv.innerHTML = '<div class="text-yellow-500 text-[10px]">🔄 Buscando...</div>'; const items = []; for (let i = 0; i < links.length; i++) { const link = links[i].trim(); let metadata; if (extractYoutubeId(link)) metadata = await fetchVideoDataFromLink(link, 'youtube'); else if (isIptvLink(link)) metadata = await fetchVideoDataFromLink(link, 'iptv'); if (metadata) items.push(metadata); } batchPreviewItems = items; if (items.length === 0) { previewDiv.innerHTML = '<div class="text-red-500 text-[10px]">❌ Nenhum vídeo encontrado</div>'; return; } const existingTitles = filmes.map(f => f.title); const previewHtml = items.map((item) => { const isDuplicate = existingTitles.includes(item.title); return `<div class="p-0.5 border-b border-white/10 text-[10px] ${isDuplicate ? 'duplicate-item' : ''}"><div class="flex justify-between"><span><strong>${item.title.substring(0, 25)}</strong></span>${isDuplicate ? '<span class="text-red-500">⚠️</span>' : '<span class="text-green-500">✅</span>'}</div></div>`; }).join(''); previewDiv.innerHTML = `<div class="mb-0.5 text-[10px]">📊 ${items.length} filmes | ${items.filter(i => existingTitles.includes(i.title)).length} duplicados</div>${previewHtml}`; showToast(`✅ ${items.length} filmes carregados`); }
+                let batchPreviewItems = [];
+                async function saveBatch() { if (batchPreviewItems.length === 0) { showToast('❌ Clique em "Pré-visualizar" primeiro'); return; } const existingTitles = filmes.map(f => f.title); const newItems = batchPreviewItems.filter(item => !existingTitles.includes(item.title)); const duplicates = batchPreviewItems.filter(item => existingTitles.includes(item.title)); if (duplicates.length > 0) { if (!confirm(`⚠️ ${duplicates.length} duplicados. Adicionar apenas ${newItems.length} novos?`)) return; } if (newItems.length === 0) { showToast('❌ Nenhum filme novo'); return; } showToast(`💾 Salvando ${newItems.length} filmes...`); let salvos = 0; for (let item of newItems) { const safeId = generateSafeId(); const mediaType = extractYoutubeId(item.link) ? 'youtube' : 'iptv'; await database.ref(`filmes/${safeId}`).set({ id: safeId, title: item.title, link: item.link, thumb: item.thumb, category: item.genre, year: item.year, description: item.description, createdAt: Date.now(), mediaType: mediaType }); salvos++; } showToast(`✅ ${salvos} filmes salvos!`); document.getElementById('batchLinksInput').value = ''; document.getElementById('batchPreview').innerHTML = ''; batchPreviewItems = []; loadFilmesFromFirebase(); }
+                async function saveEpisodes() { const serieName = document.getElementById('serieTitle').value.trim(); const episodesText = document.getElementById('episodesLinksInput').value; if (!serieName) { alert('Digite o nome da série'); return; } const lines = episodesText.split('\n').filter(l => l.trim()); if (lines.length === 0) { alert('Cole os episódios'); return; } showToast(`💾 Salvando ${lines.length} episódios...`); let salvos = 0; for (let line of lines) { let episodeTitle = '', link = ''; if (line.includes(':')) { const parts = line.split(':'); episodeTitle = parts[0].trim(); link = parts.slice(1).join(':').trim(); } else { link = line.trim(); episodeTitle = `EP${String(salvos + 1).padStart(2, '0')}`; } let metadata; if (extractYoutubeId(link)) metadata = await fetchVideoDataFromLink(link, 'youtube'); else if (isIptvLink(link)) metadata = await fetchVideoDataFromLink(link, 'iptv'); const safeId = generateSafeId(); const mediaType = extractYoutubeId(link) ? 'youtube' : 'iptv'; await database.ref(`series/${safeId}`).set({ id: safeId, title: `${serieName} - ${episodeTitle}`, link: link, thumb: metadata?.thumb || 'https://via.placeholder.com/300x200', category: metadata?.genre || 'Série', year: metadata?.year || new Date().getFullYear(), description: metadata?.description || `Episódio ${episodeTitle}`, createdAt: Date.now(), mediaType: mediaType }); salvos++; } showToast(`✅ ${salvos} episódios salvos!`); document.getElementById('serieTitle').value = ''; document.getElementById('episodesLinksInput').value = ''; loadSeriesFromFirebase(); }
+                
+                function updateUserUI(user) { if (user) { hideLoginModal(); loadUserNickname(user.uid); database.ref(`favoritos/${user.uid}`).on('value', (snapshot) => { favoritos = snapshot.val() ? Object.values(snapshot.val()) : []; updateProfileUI(); }); database.ref('top10').on('value', (snapshot) => { const data = snapshot.val(); if (data) { top10List = data; renderTop10Carousel(); } else { generateTop10ByViews(); } }); updateProfileUI(); updateLastSeen(); database.ref(`usuarios/${user.uid}`).once('value').then(snap => { const data = snap.val(); if (data) { if (data.displayName) userProfileData.displayName = data.displayName; if (data.bio) userProfileData.bio = data.bio; if (data.externalLink) userProfileData.externalLink = data.externalLink; if (data.phone) userProfileData.phone = data.phone; if (data.whatsapp) userProfileData.whatsapp = data.whatsapp; if (data.avatarUrl) userProfileData.avatarUrl = data.avatarUrl; } }); loadChatList(); setupChatUnreadListener(); renderFeed(); } else { showLoginModal(); updateProfileUI(); } }
+                async function loadUserNickname(userId) { const snapshot = await database.ref(`usuarios/${userId}`).once('value'); const data = snapshot.val(); if (data && data.nickname) { currentUsername = data.nickname; localStorage.setItem('noitefilmes_username', currentUsername); } }
+                function updateLastSeen() { if (currentUser) { database.ref(`usuarios/${currentUser.uid}/lastSeen`).set(Date.now()); } }
+                setInterval(updateLastSeen, 30000);
+                
+                async function registerWatchedHistory(mediaId, mediaTitle, mediaType, thumb, progressPercent = 0) {
+                    if (!currentUser) return;
+                    const historyRef = database.ref(`watched_history/${currentUser.uid}/${mediaId}`);
+                    const snapshot = await historyRef.once('value');
+                    const existing = snapshot.val();
+                    const data = {
+                        mediaId, mediaTitle, mediaType, thumb: thumb || 'https://via.placeholder.com/100x150',
+                        watchedAt: Date.now(),
+                        progress: progressPercent
+                    };
+                    if (existing) {
+                        data.firstWatchedAt = existing.firstWatchedAt || existing.watchedAt;
+                        data.watchCount = (existing.watchCount || 1) + 1;
                     } else {
-                        generateTop10ByViews();
+                        data.firstWatchedAt = Date.now();
+                        data.watchCount = 1;
+                    }
+                    await historyRef.set(data);
+                }
+                
+                async function loadAllViews() {
+                    const snapshot = await database.ref('visualizacoes').once('value');
+                    viewsCache = snapshot.val() || {};
+                    generateTop10ByViews();
+                    if (currentSort === 'views') renderGrid();
+                }
+                
+                function generateTop10ByViews() {
+                    const allItems = [
+                        ...filmes.map(f => ({ ...f, contentType: 'filme', views: viewsCache[f.id] || 0 })),
+                        ...series.map(s => ({ ...s, contentType: 'serie', views: viewsCache[s.id] || 0 })),
+                        ...canais.map(c => ({ ...c, contentType: 'canal', views: viewsCache[c.id] || 0 }))
+                    ];
+                    allItems.sort((a, b) => b.views - a.views);
+                    top10List = allItems.slice(0, 10);
+                    renderTop10Carousel();
+                }
+                
+                function incrementViewCount(mediaId) {
+                    if (!mediaId) return;
+                    database.ref(`visualizacoes/${mediaId}`).transaction((cv) => (cv || 0) + 1);
+                    setTimeout(() => loadAllViews(), 500);
+                }
+                
+                function loadViewCount(mediaId) {
+                    database.ref(`visualizacoes/${mediaId}`).once('value', (snapshot) => {
+                        const views = snapshot.val() || 0;
+                        const viewSpan = document.getElementById('viewCountNumber');
+                        if (viewSpan) viewSpan.innerText = views.toLocaleString();
+                    });
+                }
+                
+                function updateProfileUI() {
+                    if (currentUser) renderInstagramProfile();
+                    else { const container = document.getElementById('instagramProfileContainer'); if(container) container.innerHTML = '<div class="text-center p-4">Faça login para acessar o perfil</div>'; }
+                }
+                
+                // Eventos da busca - versão corrigida
+                document.getElementById('navSearchBtn').onclick = () => switchSection('search');
+                document.getElementById('closeGlobalSearch').onclick = closeGlobalSearch;
+                
+                // Configurar evento de busca em tempo real
+                const searchInputEl = document.getElementById('searchInput');
+                const clearSearchBtn = document.getElementById('clearSearchBtn');
+                
+                if (searchInputEl) {
+                    searchInputEl.addEventListener('input', performSearchInSection);
+                    searchInputEl.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') performSearchInSection();
+                    });
+                }
+                
+                if (clearSearchBtn) {
+                    clearSearchBtn.addEventListener('click', clearSearch);
+                }
+                
+                // Configurar filtros de busca
+                document.querySelectorAll('.search-filter-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const filter = btn.getAttribute('data-filter');
+                        setSearchFilter(filter);
+                    });
+                });
+                
+                document.getElementById('navCanaisBtn').onclick = () => setNavTab('canais');
+                document.getElementById('navFilmesBtn').onclick = () => setNavTab('filmes');
+                document.getElementById('navSeriesBtn').onclick = () => setNavTab('series');
+                document.getElementById('closePlayerComments').onclick = closePlayer;
+                document.getElementById('floatingPlayerOverlay').onclick = closePlayer;
+                document.getElementById('darkModeBtn').onclick = setDarkMode;
+                document.getElementById('lightModeBtn').onclick = setLightMode;
+                document.getElementById('darkModeSettingsBtn').onclick = setDarkMode;
+                document.getElementById('lightModeSettingsBtn').onclick = setLightMode;
+                document.getElementById('favoritesBtn').onclick = openFavoritesPopup;
+                document.getElementById('closeFavoritesPopup').onclick = () => document.getElementById('favoritesPopup').classList.add('hidden');
+                document.getElementById('favoritesSearchInput').addEventListener('input', (e) => renderFavoritesList(favoritos, e.target.value));
+                document.getElementById('settingsBtn').onclick = openSettingsModal;
+                document.getElementById('saveUsernameBtn').onclick = saveUsername;
+                document.getElementById('logoutSettingsBtn').onclick = logoutUser;
+                document.getElementById('castButton').onclick = toggleCast;
+                document.getElementById('cancelReportBtn').onclick = closeReportPopup;
+                document.getElementById('submitReportBtn').onclick = submitReport;
+                document.getElementById('cancelReplyBtn').onclick = closeReplyPopup;
+                document.getElementById('sendReplyBtn').onclick = sendReplyToUser;
+                document.getElementById('closeDetailBtn').onclick = closeReportDetail;
+                document.getElementById('replyToReportBtn').onclick = openReplyToReport;
+                document.getElementById('cancelEditProfileBtn').onclick = () => document.getElementById('editProfileModal').classList.add('hidden');
+                document.getElementById('saveEditProfileBtn').onclick = saveEditProfile;
+                document.getElementById('createPostBtn').onclick = openCreatePostModal;
+                document.getElementById('cancelPostBtn').onclick = () => document.getElementById('createPostModal').classList.add('hidden');
+                document.getElementById('submitPostBtn').onclick = submitPost;
+                document.getElementById('postMediaInput').addEventListener('change', previewMedia);
+                
+                document.getElementById('avatarUploadInput').addEventListener('change', (e) => {
+                    if (e.target.files && e.target.files[0]) {
+                        uploadProfileAvatar(e.target.files[0]);
                     }
                 });
-                updateProfileUI();
-                updateLastSeen();
-                database.ref(`usuarios/${user.uid}`).once('value').then(snap => {
-                    const data = snap.val();
-                    if (data) {
-                        if (data.displayName) userProfileData.displayName = data.displayName;
-                        if (data.bio) userProfileData.bio = data.bio;
-                        if (data.externalLink) userProfileData.externalLink = data.externalLink;
-                        if (data.phone) userProfileData.phone = data.phone;
-                        if (data.whatsapp) userProfileData.whatsapp = data.whatsapp;
-                        if (data.avatarUrl) userProfileData.avatarUrl = data.avatarUrl;
-                    }
-                });
-                loadChatList();
-                setupChatUnreadListener();
-                renderFeed();
-            } else {
-                showLoginModal();
-                updateProfileUI();
-            }
-        }
-        
-        async function loadUserNickname(userId) {
-            const snapshot = await database.ref(`usuarios/${userId}`).once('value');
-            const data = snapshot.val();
-            if (data && data.nickname) {
-                currentUsername = data.nickname;
-                localStorage.setItem('noitefilmes_username', currentUsername);
-            }
-        }
-        
-        function updateLastSeen() {
-            if (currentUser) {
-                database.ref(`usuarios/${currentUser.uid}/lastSeen`).set(Date.now());
-            }
-        }
-        setInterval(updateLastSeen, 30000);
-        
-        async function registerWatchedHistory(mediaId, mediaTitle, mediaType, thumb, progressPercent = 0) {
-            if (!currentUser) return;
-            const historyRef = database.ref(`watched_history/${currentUser.uid}/${mediaId}`);
-            const snapshot = await historyRef.once('value');
-            const existing = snapshot.val();
-            const data = {
-                mediaId, mediaTitle, mediaType, thumb: thumb || 'https://via.placeholder.com/100x150',
-                watchedAt: Date.now(),
-                progress: progressPercent
-            };
-            if (existing) {
-                data.firstWatchedAt = existing.firstWatchedAt || existing.watchedAt;
-                data.watchCount = (existing.watchCount || 1) + 1;
-            } else {
-                data.firstWatchedAt = Date.now();
-                data.watchCount = 1;
-            }
-            await historyRef.set(data);
-        }
-        
-        async function loadAllViews() {
-            const snapshot = await database.ref('visualizacoes').once('value');
-            viewsCache = snapshot.val() || {};
-            generateTop10ByViews();
-            if (currentSort === 'views') renderGrid();
-        }
-        
-        function generateTop10ByViews() {
-            const allItems = [
-                ...filmes.map(f => ({ ...f, contentType: 'filme', views: viewsCache[f.id] || 0 })),
-                ...series.map(s => ({ ...s, contentType: 'serie', views: viewsCache[s.id] || 0 })),
-                ...canais.map(c => ({ ...c, contentType: 'canal', views: viewsCache[c.id] || 0 }))
-            ];
-            allItems.sort((a, b) => b.views - a.views);
-            top10List = allItems.slice(0, 10);
-            renderTop10Carousel();
-        }
-        
-        function incrementViewCount(mediaId) {
-            if (!mediaId) return;
-            database.ref(`visualizacoes/${mediaId}`).transaction((cv) => (cv || 0) + 1);
-            setTimeout(() => loadAllViews(), 500);
-        }
-        
-        function loadViewCount(mediaId) {
-            database.ref(`visualizacoes/${mediaId}`).once('value', (snapshot) => {
-                const views = snapshot.val() || 0;
-                const viewSpan = document.getElementById('viewCountNumber');
-                if (viewSpan) viewSpan.innerText = views.toLocaleString();
-            });
-        }
-        
-        function updateProfileUI() {
-            if (currentUser) renderInstagramProfile();
-            else {
-                const container = document.getElementById('instagramProfileContainer');
-                if (container) container.innerHTML = '<div class="text-center p-4">Faça login para acessar o perfil</div>';
-            }
-        }
-        
-        document.getElementById('navSearchBtn').onclick = () => switchSection('search');
-        document.getElementById('closeGlobalSearch').onclick = closeGlobalSearch;
-        
-        const searchInputEl = document.getElementById('searchInput');
-        const clearSearchBtn = document.getElementById('clearSearchBtn');
-        
-        if (searchInputEl) {
-            searchInputEl.addEventListener('input', performSearchInSection);
-            searchInputEl.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') performSearchInSection();
-            });
-        }
-        
-        if (clearSearchBtn) {
-            clearSearchBtn.addEventListener('click', clearSearch);
-        }
-        
-        document.querySelectorAll('.search-filter-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const filter = btn.getAttribute('data-filter');
-                setSearchFilter(filter);
-            });
-        });
-        
-        document.getElementById('navCanaisBtn').onclick = () => setNavTab('canais');
-        document.getElementById('navFilmesBtn').onclick = () => setNavTab('filmes');
-        document.getElementById('navSeriesBtn').onclick = () => setNavTab('series');
-        document.getElementById('closePlayerComments').onclick = closePlayer;
-        document.getElementById('floatingPlayerOverlay').onclick = closePlayer;
-        document.getElementById('darkModeBtn').onclick = setDarkMode;
-        document.getElementById('lightModeBtn').onclick = setLightMode;
-        document.getElementById('darkModeSettingsBtn').onclick = setDarkMode;
-        document.getElementById('lightModeSettingsBtn').onclick = setLightMode;
-        document.getElementById('favoritesBtn').onclick = openFavoritesPopup;
-        document.getElementById('closeFavoritesPopup').onclick = () => document.getElementById('favoritesPopup').classList.add('hidden');
-        document.getElementById('favoritesSearchInput').addEventListener('input', (e) => renderFavoritesList(favoritos, e.target.value));
-        document.getElementById('settingsBtn').onclick = openSettingsModal;
-        document.getElementById('saveUsernameBtn').onclick = saveUsername;
-        document.getElementById('logoutSettingsBtn').onclick = logoutUser;
-        document.getElementById('castButton').onclick = toggleCast;
-        document.getElementById('cancelReportBtn').onclick = closeReportPopup;
-        document.getElementById('submitReportBtn').onclick = submitReport;
-        document.getElementById('cancelReplyBtn').onclick = closeReplyPopup;
-        document.getElementById('sendReplyBtn').onclick = sendReplyToUser;
-        document.getElementById('closeDetailBtn').onclick = closeReportDetail;
-        document.getElementById('replyToReportBtn').onclick = openReplyToReport;
-        document.getElementById('cancelEditProfileBtn').onclick = () => document.getElementById('editProfileModal').classList.add('hidden');
-        document.getElementById('saveEditProfileBtn').onclick = saveEditProfile;
-        document.getElementById('createPostBtn').onclick = openCreatePostModal;
-        document.getElementById('cancelPostBtn').onclick = () => document.getElementById('createPostModal').classList.add('hidden');
-        document.getElementById('submitPostBtn').onclick = submitPost;
-        document.getElementById('postMediaInput').addEventListener('change', previewMedia);
-        
-        document.getElementById('avatarUploadInput').addEventListener('change', (e) => {
-            if (e.target.files && e.target.files[0]) {
-                uploadProfileAvatar(e.target.files[0]);
-            }
-        });
-        
-        document.getElementById('doLogin').onclick = () => {
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-            auth.signInWithEmailAndPassword(email, password).catch(e => showToast('Erro: ' + e.message));
-        };
-        document.getElementById('doRegister').onclick = registerUser;
-        document.getElementById('showRegister').onclick = () => {
-            document.getElementById('loginForm').classList.add('hidden');
-            document.getElementById('registerForm').classList.remove('hidden');
-        };
-        document.getElementById('showLogin').onclick = () => {
-            document.getElementById('registerForm').classList.add('hidden');
-            document.getElementById('loginForm').classList.remove('hidden');
-        };
-        
-        const modalAdmin = document.getElementById('adminModal');
-        document.getElementById('adminBtn').onclick = () => {
-            modalAdmin.classList.remove('hidden');
-            document.getElementById('adminLoginArea').classList.remove('hidden');
-            document.getElementById('adminPanel').classList.add('hidden');
-        };
-        document.getElementById('closeAdminModal').onclick = () => modalAdmin.classList.add('hidden');
-        document.getElementById('loginAdminBtn').onclick = () => {
-            if (document.getElementById('adminPassword').value === 'admin123') {
-                isAdminLogged = true;
-                document.getElementById('adminLoginArea').classList.add('hidden');
-                document.getElementById('adminPanel').classList.remove('hidden');
-                refreshAdminLists();
-                loadReportsForAdmin();
-            } else alert('Senha incorreta');
-        };
-        
-        document.getElementById('adminTabCanais').onclick = () => {
-            document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500'));
-            document.getElementById('adminTabCanais').classList.add('border-b-2', 'border-red-600', 'text-red-500');
-            currentAdminTab = 'adminTabCanais';
-            document.getElementById('adminCanaisList').classList.remove('hidden');
-            document.getElementById('adminFilmesList').classList.add('hidden');
-            document.getElementById('adminSeriesList').classList.add('hidden');
-            document.getElementById('adminDuplicadosList').classList.add('hidden');
-            document.getElementById('reportsList').classList.add('hidden');
-            document.getElementById('batchFilmesArea').classList.add('hidden');
-            document.getElementById('batchSeriesArea').classList.add('hidden');
-            document.getElementById('adminFormArea').classList.remove('hidden');
-            resetForm();
-        };
-        document.getElementById('adminTabFilmes').onclick = () => {
-            document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500'));
-            document.getElementById('adminTabFilmes').classList.add('border-b-2', 'border-red-600', 'text-red-500');
-            currentAdminTab = 'adminTabFilmes';
-            document.getElementById('adminCanaisList').classList.add('hidden');
-            document.getElementById('adminFilmesList').classList.remove('hidden');
-            document.getElementById('adminSeriesList').classList.add('hidden');
-            document.getElementById('adminDuplicadosList').classList.add('hidden');
-            document.getElementById('reportsList').classList.add('hidden');
-            document.getElementById('batchFilmesArea').classList.remove('hidden');
-            document.getElementById('batchSeriesArea').classList.add('hidden');
-            document.getElementById('adminFormArea').classList.remove('hidden');
-            resetForm();
-        };
-        document.getElementById('adminTabSeries').onclick = () => {
-            document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500'));
-            document.getElementById('adminTabSeries').classList.add('border-b-2', 'border-red-600', 'text-red-500');
-            currentAdminTab = 'adminTabSeries';
-            document.getElementById('adminCanaisList').classList.add('hidden');
-            document.getElementById('adminFilmesList').classList.add('hidden');
-            document.getElementById('adminSeriesList').classList.remove('hidden');
-            document.getElementById('adminDuplicadosList').classList.add('hidden');
-            document.getElementById('reportsList').classList.add('hidden');
-            document.getElementById('batchFilmesArea').classList.add('hidden');
-            document.getElementById('batchSeriesArea').classList.remove('hidden');
-            document.getElementById('adminFormArea').classList.remove('hidden');
-            resetForm();
-        };
-        document.getElementById('adminTabDuplicados').onclick = () => {
-            document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500'));
-            document.getElementById('adminTabDuplicados').classList.add('border-b-2', 'border-red-600', 'text-red-500');
-            currentAdminTab = 'adminTabDuplicados';
-            document.getElementById('adminCanaisList').classList.add('hidden');
-            document.getElementById('adminFilmesList').classList.add('hidden');
-            document.getElementById('adminSeriesList').classList.add('hidden');
-            document.getElementById('adminDuplicadosList').classList.remove('hidden');
-            document.getElementById('reportsList').classList.add('hidden');
-            document.getElementById('adminFormArea').classList.add('hidden');
-            document.getElementById('batchFilmesArea').classList.add('hidden');
-            document.getElementById('batchSeriesArea').classList.add('hidden');
-            renderDuplicatesList();
-        };
-        document.getElementById('adminTabReportados').onclick = () => {
-            document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500'));
-            document.getElementById('adminTabReportados').classList.add('border-b-2', 'border-red-600', 'text-red-500');
-            currentAdminTab = 'adminTabReportados';
-            document.getElementById('adminCanaisList').classList.add('hidden');
-            document.getElementById('adminFilmesList').classList.add('hidden');
-            document.getElementById('adminSeriesList').classList.add('hidden');
-            document.getElementById('adminDuplicadosList').classList.add('hidden');
-            document.getElementById('reportsList').classList.remove('hidden');
-            document.getElementById('adminFormArea').classList.add('hidden');
-            document.getElementById('batchFilmesArea').classList.add('hidden');
-            document.getElementById('batchSeriesArea').classList.add('hidden');
-            loadReportsForAdmin();
-        };
-        
-        document.getElementById('saveItemBtn').onclick = saveSingleItem;
-        document.getElementById('cancelEditBtn').onclick = resetForm;
-        document.getElementById('autoFillBtn').onclick = autoFillFromLink;
-        document.getElementById('previewBatchBtn').onclick = previewBatch;
-        document.getElementById('saveBatchBtn').onclick = saveBatch;
-        document.getElementById('saveEpisodesBtn').onclick = saveEpisodes;
-        document.getElementById('sortSelect').addEventListener('change', (e) => {
-            currentSort = e.target.value;
-            renderGrid();
-        });
-        document.getElementById('settingsModal').addEventListener('click', (e) => {
-            if (e.target === document.getElementById('settingsModal')) document.getElementById('settingsModal').classList.add('hidden');
-        });
-        document.getElementById('editProfileModal').addEventListener('click', (e) => {
-            if (e.target === document.getElementById('editProfileModal')) document.getElementById('editProfileModal').classList.add('hidden');
-        });
-        document.getElementById('createPostModal').addEventListener('click', (e) => {
-            if (e.target === document.getElementById('createPostModal')) document.getElementById('createPostModal').classList.add('hidden');
-        });
-        document.getElementById('globalSearchModal').addEventListener('click', (e) => {
-            if (e.target === document.getElementById('globalSearchModal')) closeGlobalSearch();
-        });
-        document.querySelectorAll('.bottom-nav-item').forEach(item => {
-            item.addEventListener('click', () => {
-                const section = item.getAttribute('data-section');
-                switchSection(section);
-            });
-        });
-        
-        function openSettingsModal() {
-            document.getElementById('settingsModal').classList.remove('hidden');
-            document.getElementById('usernameInput').value = currentUsername;
-        }
-        
-        function saveUsername() {
-            const newUsername = document.getElementById('usernameInput').value.trim();
-            if (newUsername) {
-                currentUsername = newUsername;
-                localStorage.setItem('noitefilmes_username', currentUsername);
-                if (currentUser) database.ref(`usuarios/${currentUser.uid}/nickname`).set(currentUsername);
-                showToast(`✅ Nome alterado para: @${currentUsername}`);
-                document.getElementById('settingsModal').classList.add('hidden');
-                updateProfileUI();
-            }
-        }
-        
-        function logoutUser() {
-            auth.signOut();
-            document.getElementById('settingsModal').classList.add('hidden');
-        }
-        
-        function setDarkMode() {
-            document.body.classList.remove('light-mode');
-            document.body.classList.add('dark-mode');
-            localStorage.setItem('noitefilmes_theme', 'dark');
-        }
-        
-        function setLightMode() {
-            document.body.classList.remove('dark-mode');
-            document.body.classList.add('light-mode');
-            localStorage.setItem('noitefilmes_theme', 'light');
-        }
-        
-        function loadTheme() {
-            const theme = localStorage.getItem('noitefilmes_theme');
-            if (theme === 'light') setLightMode();
-            else setDarkMode();
-        }
-        
-        function hideLoginModal() {
-            document.getElementById('loginModal').classList.add('hidden');
-        }
-        
-        function showLoginModal() {
-            document.getElementById('loginModal').classList.remove('hidden');
-        }
-        
-        function closeGlobalSearch() {
-            document.getElementById('globalSearchModal').classList.add('hidden');
-        }
-        
-        loadCanaisFromFirebase();
-        loadFilmesFromFirebase();
-        loadSeriesFromFirebase();
-        auth.onAuthStateChanged((user) => {
-            currentUser = user;
-            updateUserUI(user);
-        });
-        loadTheme();
-        if (typeof YT === 'undefined') {
-            window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
-        } else {
-            onYouTubeIframeAPIReady();
-        }
-        window.addEventListener('popstate', (event) => {
-            if (event.state && event.state.mediaId && event.state.type) {
-                playMediaById(event.state.mediaId, event.state.type);
-            } else {
-                closePlayer();
-            }
-        });
-        document.getElementById('batchSeriesArea').classList.add('hidden');
-        switchSection('filmes');
-        loadChatReadTimestamps();
-        
-        window.toggleLike = toggleLike;
-        window.toggleSavePost = toggleSavePost;
-        window.showCommentsModal = showCommentsModal;
-        window.repost = repost;
-        window.deleteRepost = deleteRepost;
-        window.sharePost = sharePost;
-        window.deletePost = deletePost;
-        window.showPostOptions = showPostOptions;
-        window.viewProfileFromPost = viewProfileFromPost;
-        window.addCommentToPost = addCommentToPost;
-        window.addReplyToComment = addReplyToComment;
-        window.toggleCommentLike = toggleCommentLike;
-        window.showReplyInput = showReplyInput;
-        window.hideReplyInput = hideReplyInput;
-        window.submitReply = submitReply;
-        window.playAudioMessage = playAudioMessage;
-        window.toggleAudioRecording = toggleAudioRecording;
-        window.sendLike = sendLike;
-        window.sendMessage = sendMessage;
-        window.handleChatKeyPress = handleChatKeyPress;
-        window.autoResize = autoResize;
-        window.updateChatActions = updateChatActions;
-        window.selectChat = selectChat;
-        window.backToUsersList = backToUsersList;
-        window.showUserSearchModal = showUserSearchModal;
-        window.hideUserSearchModal = hideUserSearchModal;
-        window.searchUsers = searchUsers;
-        window.confirmDeleteMessage = confirmDeleteMessage;
-        window.closeMessageConfirmModal = closeMessageConfirmModal;
-        window.viewProfile = viewProfile;
-        window.playMediaById = playMediaById;
-        window.viewPostDetail = viewPostDetail;
-        window.showFollowersList = showFollowersList;
-        window.showFollowingList = showFollowingList;
-        window.clearSearch = clearSearch;
-        window.setSearchFilter = setSearchFilter;
-        window.performSearchInSection = performSearchInSection;
-    </script>
-</body>
-</html>
+                
+                document.getElementById('doLogin').onclick = () => { const email = document.getElementById('loginEmail').value; const password = document.getElementById('loginPassword').value; auth.signInWithEmailAndPassword(email, password).catch(e => showToast('Erro: ' + e.message)); };
+                document.getElementById('doRegister').onclick = registerUser;
+                document.getElementById('showRegister').onclick = () => { document.getElementById('loginForm').classList.add('hidden'); document.getElementById('registerForm').classList.remove('hidden'); };
+                document.getElementById('showLogin').onclick = () => { document.getElementById('registerForm').classList.add('hidden'); document.getElementById('loginForm').classList.remove('hidden'); };
+                const modalAdmin = document.getElementById('adminModal');
+                document.getElementById('adminBtn').onclick = () => { modalAdmin.classList.remove('hidden'); document.getElementById('adminLoginArea').classList.remove('hidden'); document.getElementById('adminPanel').classList.add('hidden'); };
+                document.getElementById('closeAdminModal').onclick = () => modalAdmin.classList.add('hidden');
+                document.getElementById('loginAdminBtn').onclick = () => { if (document.getElementById('adminPassword').value === 'admin123') { isAdminLogged = true; document.getElementById('adminLoginArea').classList.add('hidden'); document.getElementById('adminPanel').classList.remove('hidden'); refreshAdminLists(); loadReportsForAdmin(); } else alert('Senha incorreta'); };
+                
+                document.getElementById('adminTabCanais').onclick = () => { 
+                    document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); 
+                    document.getElementById('adminTabCanais').classList.add('border-b-2', 'border-red-600', 'text-red-500'); 
+                    currentAdminTab = 'adminTabCanais';
+                    document.getElementById('adminCanaisList').classList.remove('hidden'); 
+                    document.getElementById('adminFilmesList').classList.add('hidden'); 
+                    document.getElementById('adminSeriesList').classList.add('hidden'); 
+                    document.getElementById('adminDuplicadosList').classList.add('hidden'); 
+                    document.getElementById('reportsList').classList.add('hidden'); 
+                    document.getElementById('batchFilmesArea').classList.add('hidden'); 
+                    document.getElementById('batchSeriesArea').classList.add('hidden'); 
+                    document.getElementById('adminFormArea').classList.remove('hidden'); 
+                    resetForm(); 
+                };
+                document.getElementById('adminTabFilmes').onclick = () => { 
+                    document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); 
+                    document.getElementById('adminTabFilmes').classList.add('border-b-2', 'border-red-600', 'text-red-500'); 
+                    currentAdminTab = 'adminTabFilmes';
+                    document.getElementById('adminCanaisList').classList.add('hidden'); 
+                    document.getElementById('adminFilmesList').classList.remove('hidden'); 
+                    document.getElementById('adminSeriesList').classList.add('hidden'); 
+                    document.getElementById('adminDuplicadosList').classList.add('hidden'); 
+                    document.getElementById('reportsList').classList.add('hidden'); 
+                    document.getElementById('batchFilmesArea').classList.remove('hidden'); 
+                    document.getElementById('batchSeriesArea').classList.add('hidden'); 
+                    document.getElementById('adminFormArea').classList.remove('hidden'); 
+                    resetForm(); 
+                };
+                document.getElementById('adminTabSeries').onclick = () => { 
+                    document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); 
+                    document.getElementById('adminTabSeries').classList.add('border-b-2', 'border-red-600', 'text-red-500'); 
+                    currentAdminTab = 'adminTabSeries';
+                    document.getElementById('adminCanaisList').classList.add('hidden'); 
+                    document.getElementById('adminFilmesList').classList.add('hidden'); 
+                    document.getElementById('adminSeriesList').classList.remove('hidden'); 
+                    document.getElementById('adminDuplicadosList').classList.add('hidden'); 
+                    document.getElementById('reportsList').classList.add('hidden'); 
+                    document.getElementById('batchFilmesArea').classList.add('hidden'); 
+                    document.getElementById('batchSeriesArea').classList.remove('hidden'); 
+                    document.getElementById('adminFormArea').classList.remove('hidden'); 
+                    resetForm(); 
+                };
+                document.getElementById('adminTabDuplicados').onclick = () => { 
+                    document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); 
+                    document.getElementById('adminTabDuplicados').classList.add('border-b-2', 'border-red-600', 'text-red-500'); 
+                    currentAdminTab = 'adminTabDuplicados';
+                    document.getElementById('adminCanaisList').classList.add('hidden'); 
+                    document.getElementById('adminFilmesList').classList.add('hidden'); 
+                    document.getElementById('adminSeriesList').classList.add('hidden'); 
+                    document.getElementById('adminDuplicadosList').classList.remove('hidden'); 
+                    document.getElementById('reportsList').classList.add('hidden'); 
+                    document.getElementById('adminFormArea').classList.add('hidden'); 
+                    document.getElementById('batchFilmesArea').classList.add('hidden'); 
+                    document.getElementById('batchSeriesArea').classList.add('hidden'); 
+                    renderDuplicatesList(); 
+                };
+                document.getElementById('adminTabReportados').onclick = () => { 
+                    document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500')); 
+                    document.getElementById('adminTabReportados').classList.add('border-b-2', 'border-red-600', 'text-red-500'); 
+                    currentAdminTab = 'adminTabReportados';
+                    document.getElementById('adminCanaisList').classList.add('hidden'); 
+                    document.getElementById('adminFilmesList').classList.add('hidden'); 
+                    document.getElementById('adminSeriesList').classList.add('hidden'); 
+                    document.getElementById('adminDuplicadosList').classList.add('hidden'); 
+                    document.getElementById('reportsList').classList.remove('hidden'); 
+                    document.getElementById('adminFormArea').classList.add('hidden'); 
+                    document.getElementById('batchFilmesArea').classList.add('hidden'); 
+                    document.getElementById('batchSeriesArea').classList.add('hidden'); 
+                    loadReportsForAdmin(); 
+                };
+                
+                document.getElementById('saveItemBtn').onclick = saveSingleItem;
+                document.getElementById('cancelEditBtn').onclick = resetForm;
+                document.getElementById('autoFillBtn').onclick = autoFillFromLink;
+                document.getElementById('previewBatchBtn').onclick = previewBatch;
+                document.getElementById('saveBatchBtn').onclick = saveBatch;
+                document.getElementById('saveEpisodesBtn').onclick = saveEpisodes;
+                document.getElementById('sortSelect').addEventListener('change', (e) => { currentSort = e.target.value; renderGrid(); });
+                document.getElementById('settingsModal').addEventListener('click', (e) => { if (e.target === document.getElementById('settingsModal')) document.getElementById('settingsModal').classList.add('hidden'); });
+                document.getElementById('editProfileModal').addEventListener('click', (e) => { if (e.target === document.getElementById('editProfileModal')) document.getElementById('editProfileModal').classList.add('hidden'); });
+                document.getElementById('createPostModal').addEventListener('click', (e) => { if (e.target === document.getElementById('createPostModal')) document.getElementById('createPostModal').classList.add('hidden'); });
+                document.getElementById('globalSearchModal').addEventListener('click', (e) => { if (e.target === document.getElementById('globalSearchModal')) closeGlobalSearch(); });
+                document.querySelectorAll('.bottom-nav-item').forEach(item => { item.addEventListener('click', () => { const section = item.getAttribute('data-section'); switchSection(section); }); });
+                
+                function openSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); document.getElementById('usernameInput').value = currentUsername; }
+                function saveUsername() { const newUsername = document.getElementById('usernameInput').value.trim(); if (newUsername) { currentUsername = newUsername; localStorage.setItem('noitefilmes_username', currentUsername); if (currentUser) database.ref(`usuarios/${currentUser.uid}/nickname`).set(currentUsername); showToast(`✅ Nome alterado para: @${currentUsername}`); document.getElementById('settingsModal').classList.add('hidden'); updateProfileUI(); } }
+                function logoutUser() { auth.signOut(); document.getElementById('settingsModal').classList.add('hidden'); }
+                function setDarkMode() { document.body.classList.remove('light-mode'); document.body.classList.add('dark-mode'); localStorage.setItem('noitefilmes_theme', 'dark'); }
+                function setLightMode() { document.body.classList.remove('dark-mode'); document.body.classList.add('light-mode'); localStorage.setItem('noitefilmes_theme', 'light'); }
+                function loadTheme() { const theme = localStorage.getItem('noitefilmes_theme'); if (theme === 'light') setLightMode(); else setDarkMode(); }
+                function hideLoginModal() { document.getElementById('loginModal').classList.add('hidden'); }
+                function showLoginModal() { document.getElementById('loginModal').classList.remove('hidden'); }
+                
+                loadCanaisFromFirebase();
+                loadFilmesFromFirebase();
+                loadSeriesFromFirebase();
+                auth.onAuthStateChanged((user) => { currentUser = user; updateUserUI(user); });
+                loadTheme();
+                if (typeof YT === 'undefined') { window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady; } else { onYouTubeIframeAPIReady(); }
+                window.addEventListener('popstate', (event) => { if (event.state && event.state.mediaId && event.state.type) playMediaById(event.state.mediaId, event.state.type); else closePlayer(); });
+                document.getElementById('batchSeriesArea').classList.add('hidden');
+                switchSection('filmes');
+                loadChatReadTimestamps();
+                
+                window.toggleLike = toggleLike;
+                window.toggleSavePost = toggleSavePost;
+                window.showCommentsModal = showCommentsModal;
+                window.repost = repost;
+                window.deleteRepost = deleteRepost;
+                window.sharePost = sharePost;
+                window.deletePost = deletePost;
+                window.showPostOptions = showPostOptions;
+                window.viewProfileFromPost = viewProfileFromPost;
+                window.addCommentToPost = addCommentToPost;
+                window.addReplyToComment = addReplyToComment;
+                window.toggleCommentLike = toggleCommentLike;
+                window.showReplyInput = showReplyInput;
+                window.hideReplyInput = hideReplyInput;
+                window.submitReply = submitReply;
+                window.playAudioMessage = playAudioMessage;
+                window.toggleAudioRecording = toggleAudioRecording;
+                window.sendLike = sendLike;
+                window.sendMessage = sendMessage;
+                window.handleChatKeyPress = handleChatKeyPress;
+                window.autoResize = autoResize;
+                window.updateChatActions = updateChatActions;
+                window.selectChat = selectChat;
+                window.backToUsersList = backToUsersList;
+                window.showUserSearchModal = showUserSearchModal;
+                window.hideUserSearchModal = hideUserSearchModal;
+                window.searchUsers = searchUsers;
+                window.confirmDeleteMessage = confirmDeleteMessage;
+                window.closeMessageConfirmModal = closeMessageConfirmModal;
+                window.viewProfile = viewProfile;
+                window.playMediaById = playMediaById;
+                window.viewPostDetail = viewPostDetail;
+                window.showFollowersList = showFollowersList;
+                window.showFollowingList = showFollowingList;
+                window.clearSearch = clearSearch;
+                window.setSearchFilter = setSearchFilter;
+                window.performSearchInSection = performSearchInSection;
+            </script>
+        </body>
+        </html>
