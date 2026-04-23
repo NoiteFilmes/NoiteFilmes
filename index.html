@@ -3164,21 +3164,6 @@ body.light-mode .options-menu::before {
         </div>
     </div>
 
-    <!-- Seção Busca -->
-<div id="searchSection" class="section">
-    <div class="container mx-auto px-3 mt-3">
-        <div class="glass-card p-4">
-            <div class="mb-4">
-                <input type="text" id="searchInput" placeholder="Buscar filmes, séries ou canais..." 
-                       class="w-full p-3 bg-white/10 rounded-full text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500">
-            </div>
-            <div id="searchResults" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                <!-- Resultados aparecerão aqui -->
-            </div>
-        </div>
-    </div>
-</div>
-
     <!-- LOGIN MODAL (inalterado) -->
     <div id="loginModal" class="login-modal fixed inset-0 z-[2000] flex items-center justify-center bg-black/95 backdrop-blur-lg">
         <div class="login-box bg-[#1a1a1a] rounded-2xl p-6 w-[90%] max-w-[350px] border border-[#e50914]">
@@ -3490,77 +3475,7 @@ body.light-mode .options-menu::before {
         function hideCompressionToast(toast) {
             if (toast && toast.remove) toast.remove();
         }
-// Função de busca
-function performSearch() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
-    const resultsContainer = document.getElementById('searchResults');
-    
-    if (!searchTerm) {
-        resultsContainer.innerHTML = '<div class="col-span-full text-center text-gray-500 py-8">Digite o nome do filme, série ou canal para buscar</div>';
-        return;
-    }
-    
-    // Buscar em todas as categorias
-    const allItems = [
-        ...filmes.map(f => ({ ...f, type: 'filme', typeIcon: '🎬' })),
-        ...series.map(s => ({ ...s, type: 'serie', typeIcon: '📺' })),
-        ...canais.map(c => ({ ...c, type: 'canal', typeIcon: '📡' }))
-    ];
-    
-    const results = allItems.filter(item => 
-        item.title.toLowerCase().includes(searchTerm) || 
-        (item.category && item.category.toLowerCase().includes(searchTerm))
-    );
-    
-    if (results.length === 0) {
-        resultsContainer.innerHTML = '<div class="col-span-full text-center text-gray-500 py-8">Nenhum resultado encontrado</div>';
-        return;
-    }
-    
-    resultsContainer.innerHTML = results.map(item => `
-        <div class="glass-card overflow-hidden cursor-pointer transition-all ripple-btn" data-id="${item.id}" data-type="${item.type}">
-            <img src="${item.thumb || 'https://via.placeholder.com/300x200'}" class="w-full h-40 object-cover" onerror="this.src='https://via.placeholder.com/300x200'">
-            <div class="p-2">
-                <h3 class="font-semibold text-sm truncate">${escapeHtml(item.title)}</h3>
-                <p class="text-xs opacity-70">${item.typeIcon} ${item.type === 'filme' ? 'Filme' : (item.type === 'serie' ? 'Série' : 'Canal')}</p>
-                <p class="text-xs opacity-70">${item.category || 'Geral'} ${item.year ? `• ${item.year}` : ''}</p>
-            </div>
-        </div>
-    `).join('');
-    
-    // Adicionar evento de clique aos resultados
-    document.querySelectorAll('#searchResults > div').forEach(card => {
-        card.addEventListener('click', () => {
-            const id = card.getAttribute('data-id');
-            const type = card.getAttribute('data-type');
-            let item;
-            if (type === 'filme') item = filmes.find(f => f.id === id);
-            else if (type === 'serie') item = series.find(s => s.id === id);
-            else item = canais.find(c => c.id === id);
-            if (item) playMedia(item, type);
-        });
-    });
-}
-
-// Modificar a função switchSection para incluir a busca
-const originalSwitchSection = switchSection;
-window.switchSection = function(sectionId) {
-    originalSwitchSection(sectionId);
-    if (sectionId === 'search') {
-        const searchInput = document.getElementById('searchInput');
-        if (searchInput) {
-            searchInput.value = '';
-            searchInput.focus();
-            performSearch();
-        }
-    }
-}
-
-// Adicionar evento de busca em tempo real
-document.getElementById('searchInput')?.addEventListener('input', performSearch);
-
-// Modificar o clique do botão de busca
-document.getElementById('navSearchBtn').onclick = () => switchSection('search');        
+        
         // ==================== FUNÇÃO DE BUSCA GLOBAL ====================
         function openGlobalSearch() {
             document.getElementById('globalSearchModal').classList.remove('hidden');
@@ -5777,6 +5692,78 @@ document.getElementById('navSearchBtn').onclick = () => switchSection('search');
         window.viewPostDetail = viewPostDetail;
         window.showFollowersList = showFollowersList;
         window.showFollowingList = showFollowingList;
+
+// FUNÇÃO DE BUSCA SIMPLES
+function abrirBuscaGlobal() {
+    const termo = prompt("🔍 Digite o nome do filme, série ou canal que você quer buscar:");
+    
+    if (!termo || termo.trim() === "") {
+        showToast("Digite algo para buscar");
+        return;
+    }
+    
+    // Buscar em filmes
+    const filmesEncontrados = filmes.filter(f => 
+        f.title.toLowerCase().includes(termo.toLowerCase())
+    );
+    
+    // Buscar em séries
+    const seriesEncontradas = series.filter(s => 
+        s.title.toLowerCase().includes(termo.toLowerCase())
+    );
+    
+    // Buscar em canais
+    const canaisEncontrados = canais.filter(c => 
+        c.title.toLowerCase().includes(termo.toLowerCase())
+    );
+    
+    const total = filmesEncontrados.length + seriesEncontradas.length + canaisEncontrados.length;
+    
+    if (total === 0) {
+        showToast(`❌ Nenhum resultado encontrado para "${termo}"`);
+        return;
+    }
+    
+    // Mostrar resultados em uma lista
+    let mensagem = `🔍 Resultados para "${termo}":\n\n`;
+    
+    if (filmesEncontrados.length > 0) {
+        mensagem += `🎬 FILMES (${filmesEncontrados.length}):\n`;
+        filmesEncontrados.slice(0, 5).forEach(f => {
+            mensagem += `   • ${f.title}\n`;
+        });
+        if (filmesEncontrados.length > 5) mensagem += `   ... e mais ${filmesEncontrados.length - 5}\n`;
+        mensagem += `\n`;
+    }
+    
+    if (seriesEncontradas.length > 0) {
+        mensagem += `📺 SÉRIES (${seriesEncontradas.length}):\n`;
+        seriesEncontradas.slice(0, 5).forEach(s => {
+            mensagem += `   • ${s.title}\n`;
+        });
+        if (seriesEncontradas.length > 5) mensagem += `   ... e mais ${seriesEncontradas.length - 5}\n`;
+        mensagem += `\n`;
+    }
+    
+    if (canaisEncontrados.length > 0) {
+        mensagem += `📡 CANAIS (${canaisEncontrados.length}):\n`;
+        canaisEncontrados.slice(0, 5).forEach(c => {
+            mensagem += `   • ${c.title}\n`;
+        });
+        if (canaisEncontrados.length > 5) mensagem += `   ... e mais ${canaisEncontrados.length - 5}\n`;
+    }
+    
+    alert(mensagem);
+    showToast(`✅ Encontrados ${total} resultados! Veja no console.`);
+    
+    // Opcional: Mostrar no console para debug
+    console.log("Resultados da busca:", {
+        filmes: filmesEncontrados,
+        series: seriesEncontradas,
+        canais: canaisEncontrados
+    });
+}
+        
     </script>
 </body>
 </html>
