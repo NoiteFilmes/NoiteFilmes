@@ -4338,17 +4338,22 @@ const postsList = Object.values(posts).reverse();
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active-section'));
     
     // Mostrar a seção selecionada
-    document.getElementById(`${sectionId}Section`).classList.add('active-section');
+    const sectionToShow = document.getElementById(`${sectionId}Section`);
+    if (sectionToShow) {
+        sectionToShow.classList.add('active-section');
+    }
     
     // Atualizar o bottom navigation (menu inferior)
     document.querySelectorAll('.bottom-nav-item').forEach(item => item.classList.remove('active'));
-    document.querySelector(`.bottom-nav-item[data-section="${sectionId}"]`).classList.add('active');
+    const bottomItem = document.querySelector(`.bottom-nav-item[data-section="${sectionId}"]`);
+    if (bottomItem) {
+        bottomItem.classList.add('active');
+    }
     
-    // MOSTRAR o menu superior para TODAS as seções EXCETO "feed", "perfil" e "chat"
+    // CORREÇÃO: Manter o menu superior visível para TODAS as abas do topo
     const topMenu = document.getElementById('topMenuContainer');
-    if (sectionId === 'feed' || sectionId === 'perfil' || sectionId === 'chat' || sectionId === 'search') {
-        topMenu.style.display = 'none';
-    } else {
+    if (topMenu) {
+        // SEMPRE mostrar o menu superior, independente da seção
         topMenu.style.display = 'flex';
     }
     
@@ -4360,21 +4365,31 @@ const postsList = Object.values(posts).reverse();
         renderInstagramProfile();
     }
     if (sectionId === 'chat') {
-        document.getElementById('chatSidebar').classList.remove('hidden');
-        document.getElementById('chatMain').classList.add('hidden');
+        const chatSidebar = document.getElementById('chatSidebar');
+        const chatMain = document.getElementById('chatMain');
+        if (chatSidebar) chatSidebar.classList.remove('hidden');
+        if (chatMain) chatMain.classList.add('hidden');
         loadChatList();
     }
     if (sectionId === 'search') {
-        // Resetar busca quando abrir
-        document.getElementById('searchInput').value = '';
+        const searchInput = document.getElementById('searchInput');
         const clearBtn = document.getElementById('clearSearchBtn');
+        const resultsContainer = document.getElementById('searchResults');
+        
+        if (searchInput) searchInput.value = '';
         if (clearBtn) clearBtn.style.display = 'none';
-        document.getElementById('searchResults').innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
-        document.getElementById('searchInput').focus();
+        if (resultsContainer) {
+            resultsContainer.innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
+        }
+        if (searchInput) searchInput.focus();
+        
         currentSearchFilter = 'todos';
         document.querySelectorAll('.search-filter-btn').forEach(btn => {
-            if (btn.getAttribute('data-filter') === 'todos') btn.classList.add('active');
-            else btn.classList.remove('active');
+            if (btn.getAttribute('data-filter') === 'todos') {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
         });
     }
 }
