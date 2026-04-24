@@ -6050,6 +6050,88 @@ document.querySelectorAll('.search-filter-btn').forEach(btn => {
 });
 
 console.log('✅ Sistema de busca corrigido!');
+
+
+// ========== CORREÇÃO: FECHAR ABA DE BUSCAR AO CLICAR EM CANAIS/FILMES/SÉRIES ==========
+// Esta função substitui o comportamento antigo para garantir que a aba Buscar seja fechada
+
+// Salvar a função original
+const originalSetNavTab = window.setNavTab || setNavTab;
+
+// Criar nova função que também fecha a seção de busca
+window.setNavTab = function(tab) {
+    // Verificar se estamos na seção de busca
+    const searchSection = document.getElementById('searchSection');
+    const isInSearchSection = searchSection && searchSection.classList.contains('active-section');
+    
+    // Se estiver na busca, primeiro saia da busca
+    if (isInSearchSection) {
+        console.log('🔍 Saindo da aba Buscar para mostrar:', tab);
+        
+        // Voltar para a seção de filmes (ou canais/séries dependendo do tab)
+        if (tab === 'canais') {
+            switchSection('filmes'); // Primeiro sai da busca
+            setTimeout(() => {
+                setNavTabOriginal('canais');
+            }, 50);
+        } else if (tab === 'filmes') {
+            switchSection('filmes'); // Sai da busca e vai para filmes
+            setTimeout(() => {
+                setNavTabOriginal('filmes');
+            }, 50);
+        } else if (tab === 'series') {
+            switchSection('filmes'); // Sai da busca
+            setTimeout(() => {
+                setNavTabOriginal('series');
+            }, 50);
+        }
+    } else {
+        // Se não estiver na busca, comportamento normal
+        setNavTabOriginal(tab);
+    }
+};
+
+// Referência à função original
+const setNavTabOriginal = setNavTab;
+
+// Também corrigir os botões individuais
+document.getElementById('navCanaisBtn')?.addEventListener('click', function(e) {
+    e.preventDefault();
+    // Fechar seção de busca se estiver aberta
+    const searchSection = document.getElementById('searchSection');
+    if (searchSection && searchSection.classList.contains('active-section')) {
+        switchSection('filmes');
+        setTimeout(() => setNavTab('canais'), 50);
+    } else {
+        setNavTab('canais');
+    }
+});
+
+document.getElementById('navFilmesBtn')?.addEventListener('click', function(e) {
+    e.preventDefault();
+    const searchSection = document.getElementById('searchSection');
+    if (searchSection && searchSection.classList.contains('active-section')) {
+        switchSection('filmes');
+        setTimeout(() => setNavTab('filmes'), 50);
+    } else {
+        setNavTab('filmes');
+    }
+});
+
+document.getElementById('navSeriesBtn')?.addEventListener('click', function(e) {
+    e.preventDefault();
+    const searchSection = document.getElementById('searchSection');
+    if (searchSection && searchSection.classList.contains('active-section')) {
+        switchSection('filmes');
+        setTimeout(() => setNavTab('series'), 50);
+    } else {
+        setNavTab('series');
+    }
+});
+
+console.log('✅ Correção aplicada: agora ao clicar em Canais/Filmes/Séries na aba Buscar, a busca será fechada automaticamente!');
+
+                
             </script>
         </body>
         </html>
