@@ -6085,19 +6085,61 @@ document.querySelectorAll('.search-filter-btn').forEach(btn => {
 
 console.log('✅ Sistema de busca corrigido!');
 
-                // FORÇAR os botões do menu superior a funcionarem manualmente
+          // FORÇAR os botões do menu superior a funcionarem manualmente
 document.getElementById('navCanaisBtn')?.addEventListener('click', function() {
-    setNavTab('canais');
+    currentNavTab = 'canais';
+    currentGenreFilter = 'todos';
+    
+    // Atualizar visual dos botões do menu
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    document.getElementById('navCanaisBtn').classList.add('active');
+    
+    // Atualizar os filtros de gênero
+    updateGenreFilters();
+    
+    // Mostrar o grid com os canais
+    renderGrid();
+    
+    // Mudar a seção ativa
     switchSection('canais');
 });
+
 document.getElementById('navFilmesBtn')?.addEventListener('click', function() {
-    setNavTab('filmes');
+    currentNavTab = 'filmes';
+    currentGenreFilter = 'todos';
+    
+    // Atualizar visual dos botões do menu
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    document.getElementById('navFilmesBtn').classList.add('active');
+    
+    // Atualizar os filtros de gênero
+    updateGenreFilters();
+    
+    // Mostrar o grid com os filmes
+    renderGrid();
+    
+    // Mudar a seção ativa
     switchSection('filmes');
 });
+
 document.getElementById('navSeriesBtn')?.addEventListener('click', function() {
-    setNavTab('series');
+    currentNavTab = 'series';
+    currentGenreFilter = 'todos';
+    
+    // Atualizar visual dos botões do menu
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    document.getElementById('navSeriesBtn').classList.add('active');
+    
+    // Atualizar os filtros de gênero
+    updateGenreFilters();
+    
+    // Mostrar o grid com as séries
+    renderGrid();
+    
+    // Mudar a seção ativa
     switchSection('series');
 });
+
 document.getElementById('navSearchBtn')?.addEventListener('click', function() {
     switchSection('search');
 });
