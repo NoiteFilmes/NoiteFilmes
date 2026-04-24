@@ -5540,67 +5540,116 @@
                 function generateSafeId() { return Date.now() + '-' + Math.random().toString(36).substring(2, 15); }
                 
                 async function saveSingleItem() { 
-                    const title = document.getElementById('itemTitle').value.trim(); 
-                    let link = document.getElementById('itemLink').value.trim(); 
-                    const thumb = document.getElementById('itemThumb').value.trim(); 
-                    const category = document.getElementById('itemCategory').value.trim(); 
-                    const year = document.getElementById('itemYear').value.trim(); 
-                    const description = document.getElementById('itemDescription').value.trim(); 
-                    const mediaType = document.querySelector('input[name="mediaType"]:checked').value; 
-                    if (!title || !link) { showToast('❌ Preencha título e link'); return; } 
-                    if (mediaType === 'youtube') { if (!extractYoutubeId(link)) { showToast('❌ Link do YouTube inválido.'); return; } } 
-                    else if (mediaType === 'iptv') { if (!isIptvLink(link)) { showToast('❌ Link IPTV/MP4 inválido. Use .mp4, .m3u8 ou .m3u'); return; } } 
-                    
-                    let finalThumb = thumb; 
-                    if (mediaType === 'youtube' && !finalThumb) { const videoId = extractYoutubeId(link); if (videoId) finalThumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`; } 
-                    if (!finalThumb) finalThumb = 'https://via.placeholder.com/300x200'; 
-                    
-                    const itemData = { 
-                        title, link, thumb: finalThumb, 
-                        category: category || (mediaType === 'iptv' ? 'Vídeo' : 'Geral'), 
-                        year: year || new Date().getFullYear(), 
-                        description: description || title, 
-                        mediaType, createdAt: Date.now() 
-                    };
-                    
-                    if (!editingItem) {
-                        let existingItems = [];
-                        if (currentAdminTab === 'adminTabCanais') existingItems = canais;
-                        else if (currentAdminTab === 'adminTabFilmes') existingItems = filmes;
-                        else if (currentAdminTab === 'adminTabSeries') existingItems = series;
-                        const isDuplicate = existingItems.some(item => item.title.toLowerCase() === title.toLowerCase() || item.link === link);
-                        if (isDuplicate) { showToast('⚠️ Conteúdo duplicado! Título ou URL já existe.'); return; }
-                    }
-                    
-                    try { 
-                        if (editingItem) { 
-                            const refPath = editingItem.type === 'canais' ? `canais/${editingItem.id}` : (editingItem.type === 'filmes' ? `filmes/${editingItem.id}` : `series/${editingItem.id}`); 
-                            await database.ref(refPath).update(itemData); 
-                            showToast('✅ Item atualizado!'); 
-                            resetForm(); 
-                            if (editingItem.type === 'canais') loadCanaisFromFirebase(); 
-                            else if (editingItem.type === 'filmes') loadFilmesFromFirebase(); 
-                            else if (editingItem.type === 'series') loadSeriesFromFirebase(); 
-                        } else { 
-                            const safeId = generateSafeId(); 
-                            const newItem = { id: safeId, ...itemData }; 
-                            if (currentAdminTab === 'adminTabCanais') { 
-                                await database.ref(`canais/${safeId}`).set(newItem); 
-                                showToast('✅ Canal salvo!'); 
-                                loadCanaisFromFirebase(); 
-                            } else if (currentAdminTab === 'adminTabFilmes') { 
-                                await database.ref(`filmes/${safeId}`).set(newItem); 
-                                showToast('✅ Filme salvo!'); 
-                                loadFilmesFromFirebase(); 
-                            } else if (currentAdminTab === 'adminTabSeries') { 
-                                await database.ref(`series/${safeId}`).set(newItem); 
-                                showToast('✅ Episódio salvo!'); 
-                                loadSeriesFromFirebase(); 
-                            } 
-                            resetForm(); 
-                        } 
-                    } catch (error) { console.error(error); showToast('❌ Erro ao salvar: ' + error.message); } 
-                }
+    const title = document.getElementById('itemTitle').value.trim(); 
+    let link = document.getElementById('itemLink').value.trim(); 
+    const thumb = document.getElementById('itemThumb').value.trim(); 
+    const category = document.getElementById('itemCategory').value.trim(); 
+    const year = document.getElementById('itemYear').value.trim(); 
+    const description = document.getElementById('itemDescription').value.trim(); 
+    const mediaType = document.querySelector('input[name="mediaType"]:checked').value; 
+    
+    if (!title || !link) { showToast('❌ Preencha título e link'); return; } 
+    if (mediaType === 'youtube') { 
+        if (!extractYoutubeId(link)) { showToast('❌ Link do YouTube inválido.'); return; } 
+    } else if (mediaType === 'iptv') { 
+        if (!isIptvLink(link)) { showToast('❌ Link IPTV/MP4 inválido. Use .mp4, .m3u8 ou .m3u'); return; } 
+    } 
+    
+    let finalThumb = thumb; 
+    if (mediaType === 'youtube' && !finalThumb) { 
+        const videoId = extractYoutubeId(link); 
+        if (videoId) finalThumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`; 
+    } 
+    if (!finalThumb) finalThumb = 'https://via.placeholder.com/300x200'; 
+    
+    const itemData = { 
+        title, link, thumb: finalThumb, 
+        category: category || (mediaType === 'iptv' ? 'Vídeo' : 'Geral'), 
+        year: year || new Date().getFullYear(), 
+        description: description || title, 
+        mediaType, createdAt: Date.now() 
+    };
+    
+    // MODO EDIÇÃO - verificar se está editando
+    if (editingItem) { 
+        const refPath = editingItem.type === 'canais' ? `canais/${editingItem.id}` : (editingItem.type === 'filmes' ? `filmes/${editingItem.id}` : `series/${editingItem.id}`); 
+        await database.ref(refPath).update(itemData); 
+        showToast('✅ Item atualizado!'); 
+        resetForm(); 
+        if (editingItem.type === 'canais') loadCanaisFromFirebase(); 
+        else if (editingItem.type === 'filmes') loadFilmesFromFirebase(); 
+        else if (editingItem.type === 'series') loadSeriesFromFirebase(); 
+        editingItem = null; // Limpar após salvar
+        return;
+    }
+    
+    // MODO ADIÇÃO - verificar qual aba está ativa BASEADO NA ABA VISÍVEL, não na variável
+    // CORREÇÃO: Verificar qual lista está visível no momento
+    let targetType = '';
+    let existingItems = [];
+    
+    // Verificar qual aba está ativa pelo elemento visível
+    const adminCanaisList = document.getElementById('adminCanaisList');
+    const adminFilmesList = document.getElementById('adminFilmesList');
+    const adminSeriesList = document.getElementById('adminSeriesList');
+    
+    if (adminCanaisList && !adminCanaisList.classList.contains('hidden')) {
+        targetType = 'canais';
+        existingItems = canais;
+    } else if (adminFilmesList && !adminFilmesList.classList.contains('hidden')) {
+        targetType = 'filmes';
+        existingItems = filmes;
+    } else if (adminSeriesList && !adminSeriesList.classList.contains('hidden')) {
+        targetType = 'series';
+        existingItems = series;
+    } else {
+        // Fallback para currentAdminTab
+        if (currentAdminTab === 'adminTabCanais') {
+            targetType = 'canais';
+            existingItems = canais;
+        } else if (currentAdminTab === 'adminTabFilmes') {
+            targetType = 'filmes';
+            existingItems = filmes;
+        } else if (currentAdminTab === 'adminTabSeries') {
+            targetType = 'series';
+            existingItems = series;
+        }
+    }
+    
+    // Verificar duplicados
+    const isDuplicate = existingItems.some(item => item && item.title && (item.title.toLowerCase() === title.toLowerCase() || item.link === link));
+    if (isDuplicate) { 
+        showToast('⚠️ Conteúdo duplicado! Título ou URL já existe.'); 
+        return; 
+    }
+    
+    // Salvar novo item
+    try { 
+        const safeId = generateSafeId(); 
+        const newItem = { id: safeId, ...itemData }; 
+        
+        if (targetType === 'canais') { 
+            await database.ref(`canais/${safeId}`).set(newItem); 
+            showToast('✅ Canal salvo!'); 
+            loadCanaisFromFirebase(); 
+        } else if (targetType === 'filmes') { 
+            await database.ref(`filmes/${safeId}`).set(newItem); 
+            showToast('✅ Filme salvo!'); 
+            loadFilmesFromFirebase(); 
+        } else if (targetType === 'series') { 
+            await database.ref(`series/${safeId}`).set(newItem); 
+            showToast('✅ Episódio salvo!'); 
+            loadSeriesFromFirebase(); 
+        } else {
+            showToast('❌ Erro: Não foi possível determinar o tipo de conteúdo');
+            return;
+        }
+        resetForm(); 
+    } catch (error) { 
+        console.error(error); 
+        showToast('❌ Erro ao salvar: ' + error.message); 
+    } 
+}
                 
                 async function previewBatch() { const linksText = document.getElementById('batchLinksInput').value; const links = linksText.split('\n').filter(l => l.trim() && (extractYoutubeId(l.trim()) || isIptvLink(l.trim()))); const previewDiv = document.getElementById('batchPreview'); if (links.length === 0) { previewDiv.innerHTML = '<div class="text-yellow-500 text-[10px]">⚠️ Nenhum link válido (YouTube, .mp4, .m3u8 ou .m3u)</div>'; return; } previewDiv.innerHTML = '<div class="text-yellow-500 text-[10px]">🔄 Buscando...</div>'; const items = []; for (let i = 0; i < links.length; i++) { const link = links[i].trim(); let metadata; if (extractYoutubeId(link)) metadata = await fetchVideoDataFromLink(link, 'youtube'); else if (isIptvLink(link)) metadata = await fetchVideoDataFromLink(link, 'iptv'); if (metadata) items.push(metadata); } batchPreviewItems = items; if (items.length === 0) { previewDiv.innerHTML = '<div class="text-red-500 text-[10px]">❌ Nenhum vídeo encontrado</div>'; return; } const existingTitles = filmes.map(f => f.title); const previewHtml = items.map((item) => { const isDuplicate = existingTitles.includes(item.title); return `<div class="p-0.5 border-b border-white/10 text-[10px] ${isDuplicate ? 'duplicate-item' : ''}"><div class="flex justify-between"><span><strong>${item.title.substring(0, 25)}</strong></span>${isDuplicate ? '<span class="text-red-500">⚠️</span>' : '<span class="text-green-500">✅</span>'}</div></div>`; }).join(''); previewDiv.innerHTML = `<div class="mb-0.5 text-[10px]">📊 ${items.length} filmes | ${items.filter(i => existingTitles.includes(i.title)).length} duplicados</div>${previewHtml}`; showToast(`✅ ${items.length} filmes carregados`); }
                 let batchPreviewItems = [];
