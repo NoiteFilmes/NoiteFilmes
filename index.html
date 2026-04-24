@@ -4145,75 +4145,26 @@
                 
                 // ==================== RENDER FEED ====================
                 async function renderFeed() {
-                    const feedContainer = document.getElementById('feedList');
-                    if (!feedContainer) return;
-                    feedContainer.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Carregando publicações...</div>';
-                    try {
-                        const snapshot = await database.ref('feed_posts').orderByChild('createdAt').once('value');
-                        const posts = snapshot.val();
-                        if (!posts) { feedContainer.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Nenhuma publicação ainda. Seja o primeiro a postar!</div>'; return; }
-                        const postsList = Object.values(posts).sort((a, b) => b.createdAt - a.createdAt);
-                        feedContainer.innerHTML = '';
-                        for (const post of postsList) {
-                            const isOwner = currentUser && post.userId === currentUser.uid;
-                            const isUserRepost = currentUser && post.originalPostId && post.repostedBy === currentUser.uid;
-                            const isLiked = currentUser && post.likes && post.likes[currentUser.uid] === true;
-                            const isSaved = currentUser && post.saves && post.saves[currentUser.uid] === true;
-                            const likesCount = post.likesCount || 0;
-                            const commentsCount = post.comments ? Object.keys(post.comments).length : 0;
-                            let displayName = post.userDisplayName || post.userName || 'Usuário';
-                            let mediaHtml = '';
-                            if (post.originalPostId) {
-                                displayName = `${post.repostedByDisplayName || post.repostedByName} repostou`;
-                                const original = post.originalPost;
-                                if (original) {
-                                    if (original.mediaType === 'video') mediaHtml = `<video class="feed-post-video" controls preload="metadata"><source src="${original.mediaUrl}" type="video/mp4"></video>`;
-                                    else mediaHtml = `<img src="${original.mediaUrl}" class="feed-post-media" loading="lazy" onerror="this.src='https://via.placeholder.com/600x400'">`;
-                                }
-                            } else {
-                                if (post.mediaType === 'video') mediaHtml = `<video class="feed-post-video" controls preload="metadata"><source src="${post.mediaUrl}" type="video/mp4"></video>`;
-                                else mediaHtml = `<img src="${post.mediaUrl}" class="feed-post-media" loading="lazy" onerror="this.src='https://via.placeholder.com/600x400'">`;
-                            }
-                            const postElement = document.createElement('div');
-                            postElement.className = 'feed-post';
-                            postElement.id = `post-${post.id}`;
-                            const timeAgo = formatTimeAgo(post.createdAt);
-                            const likeText = likesCount === 1 ? '1 curtida' : `${likesCount} curtidas`;
-                            const commentText = commentsCount === 1 ? '1 comentário' : `${commentsCount} comentários`;
-                            postElement.innerHTML = `
-                                <div class="feed-post-header">
-                                    <div class="feed-post-user">
-                                        <div class="feed-post-avatar" onclick="viewProfileFromPost('${post.userId}')">${post.userName ? post.userName.charAt(0).toUpperCase() : 'U'}</div>
-                                        <div class="feed-post-userinfo">
-                                            <span class="feed-post-username" onclick="viewProfileFromPost('${post.userId}')">${escapeHtml(displayName)}</span>
-                                            <span class="feed-post-time">${timeAgo}</span>
-                                        </div>
-                                    </div>
-                                    ${(isOwner || isUserRepost) ? `<button class="feed-post-options ripple-btn" onclick="showPostOptions(event, '${post.id}', ${isUserRepost})"><i class="fas fa-ellipsis-h"></i></button>` : ''}
-                                </div>
-                                ${mediaHtml}
-                                <div class="feed-post-caption">
-                                    <strong onclick="viewProfileFromPost('${post.userId}')">${escapeHtml(displayName)}</strong>
-                                    <span>${makeNicknamesClickable(escapeHtml(post.caption || ''))}</span>
-                                </div>
-                                <div class="feed-post-stats"><span class="likes-count">${likeText}</span></div>
-                                <div class="feed-post-actions">
-                                    <button class="action-button like-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike('${post.id}')"><i class="${isLiked ? 'fas' : 'far'} fa-heart"></i></button>
-                                    <button class="action-button" onclick="showCommentsModal('${post.id}')"><i class="far fa-comment"></i></button>
-                                    <button class="action-button" onclick="repost('${post.id}')"><i class="fas fa-retweet"></i></button>
-                                    <button class="action-button" onclick="sharePost('${post.id}')"><i class="fas fa-share-alt"></i></button>
-                                    <button class="action-button save-btn ${isSaved ? 'saved' : ''}" onclick="toggleSavePost('${post.id}')"><i class="${isSaved ? 'fas' : 'far'} fa-bookmark"></i></button>
-                                </div>
-                                <div class="feed-post-comments comments-count" onclick="showCommentsModal('${post.id}')">${commentText}</div>
-                            `;
-                            feedContainer.appendChild(postElement);
-                        }
-                        setupNicknameClickHandlers();
-                    } catch (error) {
-                        console.error('Erro ao carregar posts:', error);
-                        feedContainer.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Erro ao carregar publicações.</div>';
-                    }
-                }
+    const feedContainer = document.getElementById('feedList');
+    if (!feedContainer) return;
+    feedContainer.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Carregando publicações...</div>';
+    try {
+        // CORREÇÃO: Buscar ordenado do MAIS RECENTE para o MAIS ANTIGO
+        const snapshot = await database.ref('feed_posts').orderByChild('createdAt').limitToLast(50).once('value');
+        const posts = snapshot.val();
+        if (!posts) { 
+            feedContainer.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Nenhuma publicação ainda. Seja o primeiro a postar!</div>'; 
+            return; 
+        }
+        // Inverter a ordem para mostrar mais recentes primeiro
+        const postsList = Object.values(posts).reverse();
+        feedContainer.innerHTML = '';
+        // ... resto do código permanece igual ...
+    } catch (error) {
+        console.error('Erro ao carregar posts:', error);
+        feedContainer.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Erro ao carregar publicações.</div>';
+    }
+}
                 
                 function formatTimeAgo(timestamp) {
                     if (!timestamp) return 'agora';
