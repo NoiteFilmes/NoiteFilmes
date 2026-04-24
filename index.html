@@ -3620,72 +3620,91 @@
                 
                 // ==================== FUNÇÃO DE BUSCA NA SEÇÃO DE BUSCA (CORRIGIDA COM X E BUSCA EM TEMPO REAL) ====================
                 function performSearchInSection() {
-                    const term = document.getElementById('searchInput').value.trim().toLowerCase();
-                    const resultsContainer = document.getElementById('searchResults');
-                    const clearBtn = document.getElementById('clearSearchBtn');
-                    
-                    // Mostrar ou esconder o botão X
-                    if (term.length > 0) {
-                        clearBtn.style.display = 'flex';
-                    } else {
-                        clearBtn.style.display = 'none';
-                    }
-                    
-                    if (term.length === 0) {
-                        resultsContainer.innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
-                        return;
-                    }
-                    
-                    let allItems = [];
-                    
-                    if (currentSearchFilter === 'filmes') {
-                        allItems = filmes.map(f => ({ ...f, type: 'filme', typeIcon: '🎬', typeName: 'Filme' }));
-                    } else if (currentSearchFilter === 'series') {
-                        allItems = series.map(s => ({ ...s, type: 'serie', typeIcon: '📺', typeName: 'Série' }));
-                    } else if (currentSearchFilter === 'canais') {
-                        allItems = canais.map(c => ({ ...c, type: 'canal', typeIcon: '📡', typeName: 'Canal' }));
-                    } else {
-                        allItems = [
-                            ...filmes.map(f => ({ ...f, type: 'filme', typeIcon: '🎬', typeName: 'Filme' })),
-                            ...series.map(s => ({ ...s, type: 'serie', typeIcon: '📺', typeName: 'Série' })),
-                            ...canais.map(c => ({ ...c, type: 'canal', typeIcon: '📡', typeName: 'Canal' }))
-                        ];
-                    }
-                    
-                    // Busca por eliminação: filtra itens que contêm o termo no título ou categoria
-                    const matches = allItems.filter(item => 
-                        item.title.toLowerCase().includes(term) || 
-                        (item.category && item.category.toLowerCase().includes(term))
-                    );
-                    
-                    if (matches.length === 0) {
-                        resultsContainer.innerHTML = '<div class="no-results">❌ Nenhum resultado encontrado para "' + escapeHtml(term) + '"</div>';
-                        return;
-                    }
-                    
-                    resultsContainer.innerHTML = matches.map(item => `
-                        <div class="search-result-card glass-card p-2 ripple-btn" data-id="${item.id}" data-type="${item.type}">
-                            <img src="${item.thumb || 'https://via.placeholder.com/300x450'}" class="search-result-image" onerror="this.src='https://via.placeholder.com/300x450'">
-                            <div class="search-result-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title.substring(0, 30))}${item.title.length > 30 ? '...' : ''}</div>
-                            <div class="search-result-type">${item.typeIcon} ${item.typeName} ${item.year ? `• ${item.year}` : ''}</div>
-                        </div>
-                    `).join('');
-                    
-                    // Adicionar evento de clique para cada resultado
-                    document.querySelectorAll('#searchResults .search-result-card').forEach(el => {
-                        el.addEventListener('click', () => {
-                            const id = el.getAttribute('data-id');
-                            const type = el.getAttribute('data-type');
-                            let item;
-                            if (type === 'filme') item = filmes.find(f => f.id === id);
-                            else if (type === 'serie') item = series.find(s => s.id === id);
-                            else item = canais.find(c => c.id === id);
-                            if (item) {
-                                playMedia(item, type);
-                            }
-                        });
-                    });
-                }
+    const term = document.getElementById('searchInput').value.trim().toLowerCase();
+    const resultsContainer = document.getElementById('searchResults');
+    const clearBtn = document.getElementById('clearSearchBtn');
+    
+    // Mostrar ou esconder o botão X
+    if (clearBtn) {
+        clearBtn.style.display = term.length > 0 ? 'flex' : 'none';
+    }
+    
+    if (term.length === 0) {
+        resultsContainer.innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
+        return;
+    }
+    
+    let allItems = [];
+    
+    // VERIFICAÇÃO DE SEGURANÇA: Garantir que os arrays existem e têm itens válidos
+    if (currentSearchFilter === 'filmes') {
+        if (filmes && filmes.length > 0) {
+            allItems = filmes.filter(f => f && f.title).map(f => ({ ...f, type: 'filme', typeIcon: '🎬', typeName: 'Filme' }));
+        }
+    } else if (currentSearchFilter === 'series') {
+        if (series && series.length > 0) {
+            allItems = series.filter(s => s && s.title).map(s => ({ ...s, type: 'serie', typeIcon: '📺', typeName: 'Série' }));
+        }
+    } else if (currentSearchFilter === 'canais') {
+        if (canais && canais.length > 0) {
+            allItems = canais.filter(c => c && c.title).map(c => ({ ...c, type: 'canal', typeIcon: '📡', typeName: 'Canal' }));
+        }
+    } else {
+        // Busca em todos
+        allItems = [];
+        if (filmes && filmes.length > 0) {
+            allItems.push(...filmes.filter(f => f && f.title).map(f => ({ ...f, type: 'filme', typeIcon: '🎬', typeName: 'Filme' })));
+        }
+        if (series && series.length > 0) {
+            allItems.push(...series.filter(s => s && s.title).map(s => ({ ...s, type: 'serie', typeIcon: '📺', typeName: 'Série' })));
+        }
+        if (canais && canais.length > 0) {
+            allItems.push(...canais.filter(c => c && c.title).map(c => ({ ...c, type: 'canal', typeIcon: '📡', typeName: 'Canal' })));
+        }
+    }
+    
+    // Verificar se há itens para buscar
+    if (allItems.length === 0) {
+        resultsContainer.innerHTML = '<div class="no-results">📀 Nenhum conteúdo cadastrado ainda</div>';
+        return;
+    }
+    
+    // Busca com verificação de segurança
+    const matches = allItems.filter(item => {
+        if (!item || !item.title) return false;
+        const titleMatch = item.title.toLowerCase().includes(term);
+        const categoryMatch = item.category ? item.category.toLowerCase().includes(term) : false;
+        return titleMatch || categoryMatch;
+    });
+    
+    if (matches.length === 0) {
+        resultsContainer.innerHTML = '<div class="no-results">❌ Nenhum resultado encontrado para "' + escapeHtml(term) + '"</div>';
+        return;
+    }
+    
+    resultsContainer.innerHTML = matches.map(item => `
+        <div class="search-result-card glass-card p-2 ripple-btn" data-id="${item.id}" data-type="${item.type}">
+            <img src="${item.thumb || 'https://via.placeholder.com/300x450'}" class="search-result-image" onerror="this.src='https://via.placeholder.com/300x450'">
+            <div class="search-result-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title.substring(0, 30))}${item.title.length > 30 ? '...' : ''}</div>
+            <div class="search-result-type">${item.typeIcon} ${item.typeName} ${item.year ? `• ${item.year}` : ''}</div>
+        </div>
+    `).join('');
+    
+    // Adicionar evento de clique para cada resultado
+    document.querySelectorAll('#searchResults .search-result-card').forEach(el => {
+        el.addEventListener('click', () => {
+            const id = el.getAttribute('data-id');
+            const type = el.getAttribute('data-type');
+            let item;
+            if (type === 'filme') item = filmes.find(f => f && f.id === id);
+            else if (type === 'serie') item = series.find(s => s && s.id === id);
+            else item = canais.find(c => c && c.id === id);
+            if (item) {
+                playMedia(item, type);
+            }
+        });
+    });
+}
                 
                 // Função para limpar o campo de busca
                 function clearSearch() {
