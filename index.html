@@ -4334,31 +4334,50 @@ const postsList = Object.values(posts).reverse();
                 
                 // ==================== FUNÇÕES DE NAVEGAÇÃO ====================
                 function switchSection(sectionId) {
-                    document.querySelectorAll('.section').forEach(s => s.classList.remove('active-section'));
-                    document.getElementById(`${sectionId}Section`).classList.add('active-section');
-                    document.querySelectorAll('.bottom-nav-item').forEach(item => item.classList.remove('active'));
-                    document.querySelector(`.bottom-nav-item[data-section="${sectionId}"]`).classList.add('active');
-                    const topMenu = document.getElementById('topMenuContainer');
-                    if (sectionId === 'filmes') {
-                        topMenu.style.display = 'flex';
-                    } else {
-                        topMenu.style.display = 'none';
-                    }
-                    if (sectionId === 'feed') renderFeed();
-                    if (sectionId === 'perfil') renderInstagramProfile();
-                    if (sectionId === 'chat') { document.getElementById('chatSidebar').classList.remove('hidden'); document.getElementById('chatMain').classList.add('hidden'); loadChatList(); }
-                    if (sectionId === 'search') {
-                        document.getElementById('searchInput').value = '';
-                        document.getElementById('clearSearchBtn').style.display = 'none';
-                        document.getElementById('searchResults').innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
-                        document.getElementById('searchInput').focus();
-                        currentSearchFilter = 'todos';
-                        document.querySelectorAll('.search-filter-btn').forEach(btn => {
-                            if (btn.getAttribute('data-filter') === 'todos') btn.classList.add('active');
-                            else btn.classList.remove('active');
-                        });
-                    }
-                }
+    // Esconder todas as seções
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active-section'));
+    
+    // Mostrar a seção selecionada
+    document.getElementById(`${sectionId}Section`).classList.add('active-section');
+    
+    // Atualizar o bottom navigation (menu inferior)
+    document.querySelectorAll('.bottom-nav-item').forEach(item => item.classList.remove('active'));
+    document.querySelector(`.bottom-nav-item[data-section="${sectionId}"]`).classList.add('active');
+    
+    // MOSTRAR o menu superior para TODAS as seções EXCETO "feed", "perfil" e "chat"
+    const topMenu = document.getElementById('topMenuContainer');
+    if (sectionId === 'feed' || sectionId === 'perfil' || sectionId === 'chat' || sectionId === 'search') {
+        topMenu.style.display = 'none';
+    } else {
+        topMenu.style.display = 'flex';
+    }
+    
+    // Carregar conteúdo específico de cada seção
+    if (sectionId === 'feed') {
+        renderFeed();
+    }
+    if (sectionId === 'perfil') {
+        renderInstagramProfile();
+    }
+    if (sectionId === 'chat') {
+        document.getElementById('chatSidebar').classList.remove('hidden');
+        document.getElementById('chatMain').classList.add('hidden');
+        loadChatList();
+    }
+    if (sectionId === 'search') {
+        // Resetar busca quando abrir
+        document.getElementById('searchInput').value = '';
+        const clearBtn = document.getElementById('clearSearchBtn');
+        if (clearBtn) clearBtn.style.display = 'none';
+        document.getElementById('searchResults').innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
+        document.getElementById('searchInput').focus();
+        currentSearchFilter = 'todos';
+        document.querySelectorAll('.search-filter-btn').forEach(btn => {
+            if (btn.getAttribute('data-filter') === 'todos') btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+    }
+}
                 
                 function updateContentCounters() {
                     document.getElementById('filmesCount').innerText = filmes.length;
