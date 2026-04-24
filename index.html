@@ -3143,33 +3143,33 @@
     </div>
 
     <!-- Seção Busca (CORRIGIDA COM X PARA LIMPAR E BUSCA EM TEMPO REAL) -->
-    <div id="searchSection" class="section">
-        <div class="search-section-container">
-            <div class="glass-card p-4">
-                <div class="search-header">
-                    <div class="search-input-wrapper">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="searchInput" class="search-input" placeholder="Digite o nome do filme, série ou canal..." autocomplete="off">
-                        <button id="clearSearchBtn" class="search-input-clear" style="display: none;">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
+   <!-- Seção Busca CORRIGIDA -->
+<div id="searchSection" class="section">
+    <div class="search-section-container">
+        <div class="glass-card p-4">
+            <div class="search-header">
+                <div class="search-input-wrapper">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" class="search-input" placeholder="Digite o nome do filme, série ou canal..." autocomplete="off">
+                    <button id="clearSearchBtn" class="search-input-clear" style="display: none;">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
-                
-                <div class="search-filters">
-                    <button class="search-filter-btn active" data-filter="todos">🎯 Todos</button>
-                    <button class="search-filter-btn" data-filter="filmes">🎬 Filmes</button>
-                    <button class="search-filter-btn" data-filter="series">📺 Séries</button>
-                    <button class="search-filter-btn" data-filter="canais">📡 Canais</button>
-                </div>
-                
-                <div id="searchResults" class="search-results-grid">
-                    <div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>
-                </div>
+            </div>
+            
+            <div class="search-filters">
+                <button class="search-filter-btn active" data-filter="todos">🎯 Todos</button>
+                <button class="search-filter-btn" data-filter="filmes">🎬 Filmes</button>
+                <button class="search-filter-btn" data-filter="series">📺 Séries</button>
+                <button class="search-filter-btn" data-filter="canais">📡 Canais</button>
+            </div>
+            
+            <div id="searchResults" class="search-results-grid">
+                <div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>
             </div>
         </div>
     </div>
-
+</div>
     <!-- Seção Feed -->
     <div id="feedSection" class="section">
         <div class="instagram-feed-container" id="instagramFeedContainer">
@@ -3619,94 +3619,78 @@
                 }
                 
                 // ==================== FUNÇÃO DE BUSCA NA SEÇÃO DE BUSCA (CORRIGIDA COM X E BUSCA EM TEMPO REAL) ====================
-                function performSearchInSection() {
-                    const term = document.getElementById('searchInput').value.trim().toLowerCase();
-                    const resultsContainer = document.getElementById('searchResults');
-                    const clearBtn = document.getElementById('clearSearchBtn');
-                    
-                    // Mostrar ou esconder o botão X
-                    if (term.length > 0) {
-                        clearBtn.style.display = 'flex';
-                    } else {
-                        clearBtn.style.display = 'none';
-                    }
-                    
-                    if (term.length === 0) {
-                        resultsContainer.innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
-                        return;
-                    }
-                    
-                    let allItems = [];
-                    
-                    if (currentSearchFilter === 'filmes') {
-                        allItems = filmes.map(f => ({ ...f, type: 'filme', typeIcon: '🎬', typeName: 'Filme' }));
-                    } else if (currentSearchFilter === 'series') {
-                        allItems = series.map(s => ({ ...s, type: 'serie', typeIcon: '📺', typeName: 'Série' }));
-                    } else if (currentSearchFilter === 'canais') {
-                        allItems = canais.map(c => ({ ...c, type: 'canal', typeIcon: '📡', typeName: 'Canal' }));
-                    } else {
-                        allItems = [
-                            ...filmes.map(f => ({ ...f, type: 'filme', typeIcon: '🎬', typeName: 'Filme' })),
-                            ...series.map(s => ({ ...s, type: 'serie', typeIcon: '📺', typeName: 'Série' })),
-                            ...canais.map(c => ({ ...c, type: 'canal', typeIcon: '📡', typeName: 'Canal' }))
-                        ];
-                    }
-                    
-                    // Busca por eliminação: filtra itens que contêm o termo no título ou categoria
-                    const matches = allItems.filter(item => 
-                        item.title.toLowerCase().includes(term) || 
-                        (item.category && item.category.toLowerCase().includes(term))
-                    );
-                    
-                    if (matches.length === 0) {
-                        resultsContainer.innerHTML = '<div class="no-results">❌ Nenhum resultado encontrado para "' + escapeHtml(term) + '"</div>';
-                        return;
-                    }
-                    
-                    resultsContainer.innerHTML = matches.map(item => `
-                        <div class="search-result-card glass-card p-2 ripple-btn" data-id="${item.id}" data-type="${item.type}">
-                            <img src="${item.thumb || 'https://via.placeholder.com/300x450'}" class="search-result-image" onerror="this.src='https://via.placeholder.com/300x450'">
-                            <div class="search-result-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title.substring(0, 30))}${item.title.length > 30 ? '...' : ''}</div>
-                            <div class="search-result-type">${item.typeIcon} ${item.typeName} ${item.year ? `• ${item.year}` : ''}</div>
-                        </div>
-                    `).join('');
-                    
-                    // Adicionar evento de clique para cada resultado
-                    document.querySelectorAll('#searchResults .search-result-card').forEach(el => {
-                        el.addEventListener('click', () => {
-                            const id = el.getAttribute('data-id');
-                            const type = el.getAttribute('data-type');
-                            let item;
-                            if (type === 'filme') item = filmes.find(f => f.id === id);
-                            else if (type === 'serie') item = series.find(s => s.id === id);
-                            else item = canais.find(c => c.id === id);
-                            if (item) {
-                                playMedia(item, type);
-                            }
-                        });
-                    });
-                }
-                
-                // Função para limpar o campo de busca
-                function clearSearch() {
-                    document.getElementById('searchInput').value = '';
-                    document.getElementById('clearSearchBtn').style.display = 'none';
-                    document.getElementById('searchResults').innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
-                    document.getElementById('searchInput').focus();
-                }
-                
-                // Alternar filtro de busca
-                function setSearchFilter(filter) {
-                    currentSearchFilter = filter;
-                    document.querySelectorAll('.search-filter-btn').forEach(btn => {
-                        if (btn.getAttribute('data-filter') === filter) {
-                            btn.classList.add('active');
-                        } else {
-                            btn.classList.remove('active');
-                        }
-                    });
-                    performSearchInSection();
-                }
+                // Função de busca CORRIGIDA
+function performSearchInSection() {
+    const term = document.getElementById('searchInput').value.trim().toLowerCase();
+    const resultsContainer = document.getElementById('searchResults');
+    const clearBtn = document.getElementById('clearSearchBtn');
+    
+    // Mostrar ou esconder o botão X
+    if (term.length > 0) {
+        clearBtn.style.display = 'flex';
+    } else {
+        clearBtn.style.display = 'none';
+    }
+    
+    if (term.length === 0) {
+        resultsContainer.innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
+        return;
+    }
+    
+    // Array para armazenar resultados
+    let allItems = [];
+    
+    // Filtrar pelo tipo selecionado
+    if (currentSearchFilter === 'filmes') {
+        allItems = filmes.map(f => ({ ...f, type: 'filme', typeIcon: '🎬', typeName: 'Filme' }));
+    } else if (currentSearchFilter === 'series') {
+        allItems = series.map(s => ({ ...s, type: 'serie', typeIcon: '📺', typeName: 'Série' }));
+    } else if (currentSearchFilter === 'canais') {
+        allItems = canais.map(c => ({ ...c, type: 'canal', typeIcon: '📡', typeName: 'Canal' }));
+    } else {
+        // Buscar em todos
+        allItems = [
+            ...filmes.map(f => ({ ...f, type: 'filme', typeIcon: '🎬', typeName: 'Filme' })),
+            ...series.map(s => ({ ...s, type: 'serie', typeIcon: '📺', typeName: 'Série' })),
+            ...canais.map(c => ({ ...c, type: 'canal', typeIcon: '📡', typeName: 'Canal' }))
+        ];
+    }
+    
+    // Filtrar resultados pelo termo digitado
+    const matches = allItems.filter(item => 
+        item.title.toLowerCase().includes(term) || 
+        (item.category && item.category.toLowerCase().includes(term))
+    );
+    
+    if (matches.length === 0) {
+        resultsContainer.innerHTML = '<div class="no-results">❌ Nenhum resultado encontrado para "' + escapeHtml(term) + '"</div>';
+        return;
+    }
+    
+    // Exibir resultados
+    resultsContainer.innerHTML = matches.map(item => `
+        <div class="search-result-card glass-card p-2 ripple-btn" data-id="${item.id}" data-type="${item.type}">
+            <img src="${item.thumb || 'https://via.placeholder.com/300x450'}" class="search-result-image" onerror="this.src='https://via.placeholder.com/300x450'">
+            <div class="search-result-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title.substring(0, 30))}${item.title.length > 30 ? '...' : ''}</div>
+            <div class="search-result-type">${item.typeIcon} ${item.typeName} ${item.year ? `• ${item.year}` : ''}</div>
+        </div>
+    `).join('');
+    
+    // Adicionar evento de clique em cada resultado
+    document.querySelectorAll('#searchResults .search-result-card').forEach(el => {
+        el.addEventListener('click', () => {
+            const id = el.getAttribute('data-id');
+            const type = el.getAttribute('data-type');
+            let item;
+            if (type === 'filme') item = filmes.find(f => f.id === id);
+            else if (type === 'serie') item = series.find(s => s.id === id);
+            else item = canais.find(c => c.id === id);
+            if (item) {
+                playMedia(item, type);
+            }
+        });
+    });
+}
                 
                 // ==================== FUNÇÕES DE POSTAGEM ====================
                 function openCreatePostModal() {
@@ -5893,6 +5877,43 @@ const postsList = Object.values(posts).reverse();
                 document.getElementById('batchSeriesArea').classList.add('hidden');
                 switchSection('filmes');
                 loadChatReadTimestamps();
+
+                // Configurar eventos da busca
+const searchInput = document.getElementById('searchInput');
+const clearSearchBtn = document.getElementById('clearSearchBtn');
+
+if (searchInput) {
+    searchInput.addEventListener('input', performSearchInSection);
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            performSearchInSection();
+        }
+    });
+}
+
+if (clearSearchBtn) {
+    clearSearchBtn.addEventListener('click', function() {
+        document.getElementById('searchInput').value = '';
+        this.style.display = 'none';
+        document.getElementById('searchResults').innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
+        document.getElementById('searchInput').focus();
+    });
+}
+
+// Configurar botões de filtro
+document.querySelectorAll('.search-filter-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const filter = this.getAttribute('data-filter');
+        currentSearchFilter = filter;
+        
+        // Atualizar classe ativa
+        document.querySelectorAll('.search-filter-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        
+        // Executar busca novamente
+        performSearchInSection();
+    });
+});
                 
                 window.toggleLike = toggleLike;
                 window.toggleSavePost = toggleSavePost;
