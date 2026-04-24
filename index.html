@@ -5878,43 +5878,7 @@ const postsList = Object.values(posts).reverse();
                 switchSection('filmes');
                 loadChatReadTimestamps();
 
-                // Configurar eventos da busca
-const searchInput = document.getElementById('searchInput');
-const clearSearchBtn = document.getElementById('clearSearchBtn');
-
-if (searchInput) {
-    searchInput.addEventListener('input', performSearchInSection);
-    searchInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            performSearchInSection();
-        }
-    });
-}
-
-if (clearSearchBtn) {
-    clearSearchBtn.addEventListener('click', function() {
-        document.getElementById('searchInput').value = '';
-        this.style.display = 'none';
-        document.getElementById('searchResults').innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
-        document.getElementById('searchInput').focus();
-    });
-}
-
-// Configurar botões de filtro
-document.querySelectorAll('.search-filter-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const filter = this.getAttribute('data-filter');
-        currentSearchFilter = filter;
-        
-        // Atualizar classe ativa
-        document.querySelectorAll('.search-filter-btn').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        
-        // Executar busca novamente
-        performSearchInSection();
-    });
-});
-                
+                           
                 window.toggleLike = toggleLike;
                 window.toggleSavePost = toggleSavePost;
                 window.showCommentsModal = showCommentsModal;
