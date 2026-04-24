@@ -6084,6 +6084,23 @@ document.querySelectorAll('.search-filter-btn').forEach(btn => {
 });
 
 console.log('✅ Sistema de busca corrigido!');
+
+                // FORÇAR os botões do menu superior a funcionarem manualmente
+document.getElementById('navCanaisBtn')?.addEventListener('click', function() {
+    setNavTab('canais');
+    switchSection('canais');
+});
+document.getElementById('navFilmesBtn')?.addEventListener('click', function() {
+    setNavTab('filmes');
+    switchSection('filmes');
+});
+document.getElementById('navSeriesBtn')?.addEventListener('click', function() {
+    setNavTab('series');
+    switchSection('series');
+});
+document.getElementById('navSearchBtn')?.addEventListener('click', function() {
+    switchSection('search');
+});
             </script>
         </body>
         </html>
