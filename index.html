@@ -2644,248 +2644,21 @@
             font-size: 10px;
             opacity: 0.5;
         }
-
-        .options-menu {
-            position: fixed;
-            background: rgba(18, 22, 35, 0.85);
-            backdrop-filter: blur(20px) saturate(180%);
-            border-radius: 24px;
-            padding: 12px 8px;
-            min-width: 220px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4),
-                        0 0 0 1px rgba(255, 255, 255, 0.15) inset,
-                        0 0 20px rgba(229, 9, 20, 0.2);
-            animation: liquidGlassIn 0.35s cubic-bezier(0.34, 1.2, 0.64, 1);
-            transform-origin: center;
-            z-index: 10000;
-        }
-
-        @keyframes liquidGlassIn {
-            0% {
-                opacity: 0;
-                transform: scale(0.85) translateY(20px);
-                backdrop-filter: blur(0px);
-                filter: blur(5px);
-            }
-            50% {
-                transform: scale(1.02) translateY(-2px);
-            }
-            100% {
-                opacity: 1;
-                transform: scale(1) translateY(0);
-                backdrop-filter: blur(20px) saturate(180%);
-                filter: blur(0);
-            }
-        }
-
-        .options-menu.exit {
-            animation: liquidGlassOut 0.25s ease forwards;
-        }
-
-        @keyframes liquidGlassOut {
-            0% {
-                opacity: 1;
-                transform: scale(1) translateY(0);
-                backdrop-filter: blur(20px);
-            }
-            100% {
-                opacity: 0;
-                transform: scale(0.9) translateY(15px);
-                backdrop-filter: blur(0px);
-                visibility: hidden;
-            }
-        }
-
-        .options-menu-item {
-            padding: 14px 20px;
-            margin: 4px 8px;
-            cursor: pointer;
-            transition: all 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1);
-            font-size: 15px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            border-radius: 16px;
-            color: rgba(255, 255, 255, 0.9);
-            letter-spacing: -0.2px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .options-menu-item::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.2), transparent 80%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            pointer-events: none;
-        }
-
-        .options-menu-item:hover::before {
-            opacity: 1;
-        }
-
-        .options-menu-item:hover {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05));
-            transform: translateX(4px);
-            padding-left: 24px;
-        }
-
-        .options-menu-item i {
-            width: 22px;
-            font-size: 18px;
-            transition: transform 0.2s ease;
-        }
-
-        .options-menu-item:hover i {
-            transform: scale(1.1);
-        }
-
-        .options-menu-item.danger {
-            color: #ff4757;
-            text-shadow: 0 0 8px rgba(255, 71, 87, 0.3);
-        }
-
-        .options-menu-item.danger:hover {
-            background: linear-gradient(135deg, rgba(255, 71, 87, 0.2), rgba(255, 71, 87, 0.05));
-            color: #ff6b7c;
-            box-shadow: 0 0 15px rgba(255, 71, 87, 0.2);
-        }
-
-        .options-menu-item.danger i {
-            color: #ff4757;
-        }
-
-        .options-menu-divider {
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            margin: 8px 12px;
-        }
-
-        .options-menu::before {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            background: linear-gradient(135deg, 
-                rgba(229, 9, 20, 0.4) 0%, 
-                rgba(229, 9, 20, 0.1) 25%,
-                rgba(255, 255, 255, 0.1) 50%,
-                rgba(229, 9, 20, 0.1) 75%,
-                rgba(229, 9, 20, 0.4) 100%);
-            border-radius: 26px;
-            z-index: -1;
-            opacity: 0.5;
-            filter: blur(8px);
-            animation: liquidGlow 3s ease infinite;
-        }
-
-        @keyframes liquidGlow {
-            0%, 100% {
-                opacity: 0.3;
-                filter: blur(8px);
-            }
-            50% {
-                opacity: 0.6;
-                filter: blur(12px);
-            }
-        }
-
-        @media (max-width: 768px) {
-            .options-menu {
-                min-width: 260px;
-                padding: 10px 6px;
-                border-radius: 28px;
-            }
-            
-            .options-menu-item {
-                padding: 16px 20px;
-                font-size: 16px;
-            }
-            
-            .options-menu-item:active {
-                transform: scale(0.97);
-                background: rgba(255, 255, 255, 0.1);
-                transition: transform 0.05s;
-            }
-            
-            .options-menu-item:hover {
-                transform: translateX(0);
-                padding-left: 20px;
-            }
-        }
-
-        body.light-mode .options-menu {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(20px) saturate(180%);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1),
-                        0 0 0 1px rgba(0, 0, 0, 0.08) inset;
-        }
-
-        body.light-mode .options-menu-item {
-            color: rgba(0, 0, 0, 0.85);
-        }
-
-        body.light-mode .options-menu-item:hover {
-            background: linear-gradient(135deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.03));
-        }
-
-        body.light-mode .options-menu-item.danger {
-            color: #e50914;
-        }
-
-        body.light-mode .options-menu::before {
-            background: linear-gradient(135deg, 
-                rgba(229, 9, 20, 0.3) 0%, 
-                rgba(229, 9, 20, 0.05) 50%,
-                rgba(229, 9, 20, 0.3) 100%);
-        }
-
-        /* Estilos da seção de busca */
-        .search-results-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 16px;
-            padding: 16px;
-        }
-        
-        .search-result-card {
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        .search-result-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 25px rgba(229, 9, 20, 0.3);
-        }
-        
-        .search-result-image {
-            width: 100%;
-            aspect-ratio: 2/3;
-            object-fit: cover;
-            border-radius: 12px;
-        }
-        
-        .search-result-title {
-            font-size: 14px;
-            font-weight: 600;
-            margin-top: 8px;
-            text-align: center;
-        }
-        
-        .search-result-type {
-            font-size: 11px;
-            text-align: center;
-            opacity: 0.7;
-        }
     </style>
+    <script>
+        (function blockPinchZoom() {
+            document.addEventListener('touchmove', function(event) {
+                if (event.scale && event.scale !== 1) event.preventDefault();
+            }, { passive: false });
+            document.addEventListener('gesturestart', function(event) { event.preventDefault(); });
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', function(event) {
+                const now = Date.now();
+                if (now - lastTouchEnd <= 300) event.preventDefault();
+                lastTouchEnd = now;
+            }, false);
+        })();
+    </script>
     
     <link rel="apple-touch-icon" href="https://i.ibb.co/prnRsYbD/fd0f7999-e91b-44ce-ba4d-cdccb1ff6473.jpg">
     <link rel="icon" sizes="192x192" href="https://i.ibb.co/prnRsYbD/fd0f7999-e91b-44ce-ba4d-cdccb1ff6473.jpg">
@@ -3044,30 +2817,6 @@
         </div>
     </div>
 
-    <!-- Seção Busca (CORRIGIDA) -->
-    <div id="searchSection" class="section">
-        <div class="container mx-auto px-3 mt-3">
-            <div class="glass-card p-4">
-                <div class="mb-4">
-                    <div class="relative">
-                        <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                        <input type="text" id="searchInput" placeholder="Buscar filmes, séries ou canais..." 
-                               class="w-full pl-10 pr-4 py-3 bg-white/10 rounded-full text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500">
-                    </div>
-                    <div class="flex gap-2 mt-3 justify-center">
-                        <button id="searchFilmesBtn" class="px-4 py-1 rounded-full bg-red-600/30 text-xs hover:bg-red-600 transition">🎬 Filmes</button>
-                        <button id="searchSeriesBtn" class="px-4 py-1 rounded-full bg-red-600/30 text-xs hover:bg-red-600 transition">📺 Séries</button>
-                        <button id="searchCanaisBtn" class="px-4 py-1 rounded-full bg-red-600/30 text-xs hover:bg-red-600 transition">📡 Canais</button>
-                        <button id="searchTodosBtn" class="px-4 py-1 rounded-full bg-red-600 text-xs hover:bg-red-700 transition">🎯 Todos</button>
-                    </div>
-                </div>
-                <div id="searchResults" class="search-results-grid">
-                    <div class="col-span-full text-center text-gray-500 py-8">🔍 Digite o nome do filme, série ou canal para buscar</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Seção Feed -->
     <div id="feedSection" class="section">
         <div class="instagram-feed-container" id="instagramFeedContainer">
@@ -3199,7 +2948,7 @@
         </div>
     </div>
 
-    <!-- LOGIN MODAL -->
+    <!-- LOGIN MODAL (inalterado) -->
     <div id="loginModal" class="login-modal fixed inset-0 z-[2000] flex items-center justify-center bg-black/95 backdrop-blur-lg">
         <div class="login-box bg-[#1a1a1a] rounded-2xl p-6 w-[90%] max-w-[350px] border border-[#e50914]">
             <h2 class="text-xl font-bold mb-4 text-center text-white">🎬 NoiteFilmes</h2>
@@ -3241,7 +2990,7 @@
                 <button id="closeAdminModal" class="text-2xl text-gray-400 hover:text-white transition">&times;</button>
             </div>
             <div class="p-4">
-                <div id="adminLoginArea" class="mb-3"><label class="block mb-1 text-xs text-gray-300">Senha Admin:</label><div class="flex gap-2"><input type="password" id="adminPassword" placeholder="Senha" class="bg-gray-800 border border-gray-600 rounded-full px-3 py-1.5 flex-1 text-white text-sm"><button id="loginAdminBtn" class="bg-red-700 hover:bg-red-800 px-4 py-1.5 rounded-full text-sm text-white transition ripple-btn">Entrar</button></div><p class="text-[10px] text-gray-400 mt-1">Senha: <strong class="text-red-500">admin123</strong></p></div>
+                <div id="adminLoginArea" class="mb-3"><label class="block mb-1 text-xs text-gray-300">Senha Admin:</label><div class="flex gap-2"><input type="password" id="adminPassword" placeholder="Senha" class="bg-gray-800 border border-gray-600 rounded-full px-3 py-1.5 flex-1 text-white text-sm"><button id="loginAdminBtn" class="bg-red-700 hover:bg-red-800 px-4 py-1.5 rounded-full text-sm text-white transition ripple-btn">Entrar</button></div><p class="text-[10px] text-gray-400 mt-1">Senha: <strong class="text-red-500">******</strong></p></div>
                 <div id="adminPanel" class="hidden">
                     <div class="flex space-x-2 border-b border-gray-700 mb-3">
                         <button id="adminTabCanais" class="admin-tab-btn py-1 px-2 text-gray-400 text-xs">Canais</button>
@@ -3410,9 +3159,6 @@
             avatarUrl: ''
         };
         
-        // Variáveis de busca
-        let currentSearchFilter = 'todos';
-        
         // ==================== VARIÁVEIS DO CHAT ====================
         let currentChat = 'geral';
         let currentChatUser = null;
@@ -3573,65 +3319,6 @@
                     if (item) {
                         playMedia(item, type);
                         closeGlobalSearch();
-                    }
-                });
-            });
-        }
-        
-        // ==================== FUNÇÃO DE BUSCA NA SEÇÃO DE BUSCA ====================
-        function performSearchInSection() {
-            const term = document.getElementById('searchInput').value.trim().toLowerCase();
-            const resultsContainer = document.getElementById('searchResults');
-            
-            if (term.length === 0) {
-                resultsContainer.innerHTML = '<div class="col-span-full text-center text-gray-500 py-8">🔍 Digite o nome do filme, série ou canal para buscar</div>';
-                return;
-            }
-            
-            let allItems = [];
-            
-            if (currentSearchFilter === 'filmes') {
-                allItems = filmes.map(f => ({ ...f, type: 'filme', typeIcon: '🎬', typeName: 'Filme' }));
-            } else if (currentSearchFilter === 'series') {
-                allItems = series.map(s => ({ ...s, type: 'serie', typeIcon: '📺', typeName: 'Série' }));
-            } else if (currentSearchFilter === 'canais') {
-                allItems = canais.map(c => ({ ...c, type: 'canal', typeIcon: '📡', typeName: 'Canal' }));
-            } else {
-                allItems = [
-                    ...filmes.map(f => ({ ...f, type: 'filme', typeIcon: '🎬', typeName: 'Filme' })),
-                    ...series.map(s => ({ ...s, type: 'serie', typeIcon: '📺', typeName: 'Série' })),
-                    ...canais.map(c => ({ ...c, type: 'canal', typeIcon: '📡', typeName: 'Canal' }))
-                ];
-            }
-            
-            const matches = allItems.filter(item => 
-                item.title.toLowerCase().includes(term) || 
-                (item.category && item.category.toLowerCase().includes(term))
-            );
-            
-            if (matches.length === 0) {
-                resultsContainer.innerHTML = '<div class="col-span-full text-center text-gray-500 py-8">❌ Nenhum resultado encontrado</div>';
-                return;
-            }
-            
-            resultsContainer.innerHTML = matches.map(item => `
-                <div class="search-result-card glass-card p-2 ripple-btn" data-id="${item.id}" data-type="${item.type}">
-                    <img src="${item.thumb || 'https://via.placeholder.com/300x450'}" class="search-result-image" onerror="this.src='https://via.placeholder.com/300x450'">
-                    <div class="search-result-title">${escapeHtml(item.title.substring(0, 30))}</div>
-                    <div class="search-result-type">${item.typeIcon} ${item.typeName} ${item.year ? `• ${item.year}` : ''}</div>
-                </div>
-            `).join('');
-            
-            document.querySelectorAll('#searchResults .search-result-card').forEach(el => {
-                el.addEventListener('click', () => {
-                    const id = el.getAttribute('data-id');
-                    const type = el.getAttribute('data-type');
-                    let item;
-                    if (type === 'filme') item = filmes.find(f => f.id === id);
-                    else if (type === 'serie') item = series.find(s => s.id === id);
-                    else item = canais.find(c => c.id === id);
-                    if (item) {
-                        playMedia(item, type);
                     }
                 });
             });
@@ -3808,7 +3495,7 @@
             }
         }
         
-        async function toggleSavePost(postId) {
+        async function toggleSave(postId) {
             if (!currentUser) { showToast('Faça login para salvar'); return; }
             const postRef = database.ref(`feed_posts/${postId}`);
             const postSnapshot = await postRef.once('value');
@@ -3899,7 +3586,7 @@
         }
         
         // ==================== FUNÇÕES DE COMENTÁRIOS ====================
-        async function addCommentToPost(postId, commentText) {
+        async function addComment(postId, commentText) {
             if (!currentUser) { showToast('Faça login para comentar'); return; }
             if (!commentText.trim()) return;
             const commentId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 6);
@@ -3925,7 +3612,7 @@
             renderFeed();
         }
         
-        async function addReplyToComment(postId, commentId, replyText) {
+        async function addReply(postId, commentId, replyText) {
             if (!currentUser) { showToast('Faça login para responder'); return; }
             if (!replyText.trim()) return;
             const replyId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 6);
@@ -4055,7 +3742,7 @@
             modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
             const submitBtn = modal.querySelector('#submitCommentModalBtn');
             const input = modal.querySelector('#newCommentModalInput');
-            submitBtn.onclick = async () => { const text = input.value.trim(); if (text) { await addCommentToPost(postId, text); await renderCommentsModal(postId); renderFeed(); } };
+            submitBtn.onclick = async () => { const text = input.value.trim(); if (text) { await addComment(postId, text); await renderCommentsModal(postId); renderFeed(); } };
             input.onkeypress = (e) => { if (e.key === 'Enter') submitBtn.click(); };
         }
         
@@ -4069,7 +3756,7 @@
         }
         async function submitReply(postId, commentId) {
             const replyText = document.getElementById(`reply-text-${commentId}`).value.trim();
-            if (replyText) { await addReplyToComment(postId, commentId, replyText); document.getElementById(`reply-text-${commentId}`).value = ''; hideReplyInput(commentId); renderFeed(); }
+            if (replyText) { await addReply(postId, commentId, replyText); document.getElementById(`reply-text-${commentId}`).value = ''; hideReplyInput(commentId); renderFeed(); }
         }
         
         // ==================== RENDER FEED ====================
@@ -4131,7 +3818,7 @@
                             <button class="action-button" onclick="showCommentsModal('${post.id}')"><i class="far fa-comment"></i></button>
                             <button class="action-button" onclick="repost('${post.id}')"><i class="fas fa-retweet"></i></button>
                             <button class="action-button" onclick="sharePost('${post.id}')"><i class="fas fa-share-alt"></i></button>
-                            <button class="action-button save-btn ${isSaved ? 'saved' : ''}" onclick="toggleSavePost('${post.id}')"><i class="${isSaved ? 'fas' : 'far'} fa-bookmark"></i></button>
+                            <button class="action-button save-btn ${isSaved ? 'saved' : ''}" onclick="toggleSave('${post.id}')"><i class="${isSaved ? 'fas' : 'far'} fa-bookmark"></i></button>
                         </div>
                         <div class="feed-post-comments comments-count" onclick="showCommentsModal('${post.id}')">${commentText}</div>
                     `;
@@ -4160,55 +3847,22 @@
         
         function showPostOptions(event, postId, isRepost = false) {
             event.stopPropagation();
-            
             const existingMenu = document.querySelector('.options-menu');
-            if (existingMenu) {
-                existingMenu.classList.add('exit');
-                setTimeout(() => existingMenu.remove(), 250);
-            }
-            
+            if (existingMenu) existingMenu.remove();
             const button = event.currentTarget;
             const rect = button.getBoundingClientRect();
             const menu = document.createElement('div');
             menu.className = 'options-menu';
-            
-            menu.style.position = 'fixed';
-            menu.style.top = '50%';
-            menu.style.left = '50%';
-            menu.style.transform = 'translate(-50%, -50%)';
-            
+            menu.style.top = rect.bottom + 5 + 'px';
+            menu.style.right = (window.innerWidth - rect.right) + 'px';
             if (isRepost) {
-                menu.innerHTML = `
-                    <div class="options-menu-item danger" onclick="deleteRepost('${postId}')">
-                        <i class="fas fa-trash-alt"></i>
-                        <span>Excluir repost</span>
-                    </div>
-                `;
+                menu.innerHTML = `<div class="options-menu-item danger" onclick="deleteRepost('${postId}')"><i class="fas fa-trash-alt"></i><span>Excluir repost</span></div>`;
             } else {
-                menu.innerHTML = `
-                    <div class="options-menu-item danger" onclick="deletePost('${postId}')">
-                        <i class="fas fa-trash-alt"></i>
-                        <span>Excluir publicação</span>
-                    </div>
-                `;
+                menu.innerHTML = `<div class="options-menu-item danger" onclick="deletePost('${postId}')"><i class="fas fa-trash-alt"></i><span>Excluir publicação</span></div>`;
             }
-            
             document.body.appendChild(menu);
-            
-            const closeMenu = (e) => {
-                if (!menu.contains(e.target)) {
-                    menu.classList.add('exit');
-                    setTimeout(() => {
-                        menu.remove();
-                        document.removeEventListener('click', closeMenu);
-                        document.removeEventListener('touchstart', closeMenu);
-                    }, 250);
-                }
-            };
-            
             setTimeout(() => {
-                document.addEventListener('click', closeMenu);
-                document.addEventListener('touchstart', closeMenu);
+                document.addEventListener('click', function closeMenu(e) { if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('click', closeMenu); } });
             }, 100);
         }
         
@@ -4256,12 +3910,6 @@
             if (sectionId === 'feed') renderFeed();
             if (sectionId === 'perfil') renderInstagramProfile();
             if (sectionId === 'chat') { document.getElementById('chatSidebar').classList.remove('hidden'); document.getElementById('chatMain').classList.add('hidden'); loadChatList(); }
-            if (sectionId === 'search') {
-                document.getElementById('searchInput').value = '';
-                document.getElementById('searchInput').focus();
-                currentSearchFilter = 'todos';
-                document.getElementById('searchResults').innerHTML = '<div class="col-span-full text-center text-gray-500 py-8">🔍 Digite o nome do filme, série ou canal para buscar</div>';
-            }
         }
         
         function updateContentCounters() {
@@ -5059,7 +4707,7 @@
                 }
             });
         }
-        function addCommentToVideo(mediaId, text) { if (!currentUser) { showToast('Faça login para comentar'); return; } if (!text.trim()) return; database.ref(`comentarios/${mediaId}`).push({ user: currentUsername, text: text, time: new Date().toLocaleString(), userId: currentUser.uid }).then(() => { showToast('Comentário adicionado!'); loadComments(mediaId); document.getElementById('newCommentInput').value = ''; }); }
+        function addComment(mediaId, text) { if (!currentUser) { showToast('Faça login para comentar'); return; } if (!text.trim()) return; database.ref(`comentarios/${mediaId}`).push({ user: currentUsername, text: text, time: new Date().toLocaleString(), userId: currentUser.uid }).then(() => { showToast('Comentário adicionado!'); loadComments(mediaId); document.getElementById('newCommentInput').value = ''; }); }
         function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
         function showToast(msg) { const toast = document.createElement('div'); toast.className = 'toast'; toast.innerText = msg; document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
         
@@ -5116,8 +4764,8 @@
             loadLikeCount(item.id);
             const submitComment = document.getElementById('submitCommentBtn');
             const newCommentInput = document.getElementById('newCommentInput');
-            submitComment.onclick = () => addCommentToVideo(item.id, newCommentInput.value);
-            newCommentInput.onkeypress = (e) => { if (e.key === 'Enter') addCommentToVideo(item.id, newCommentInput.value); };
+            submitComment.onclick = () => addComment(item.id, newCommentInput.value);
+            newCommentInput.onkeypress = (e) => { if (e.key === 'Enter') addComment(item.id, newCommentInput.value); };
             const youtubeDiv = document.getElementById('youtubePlayerDiv');
             const hlsVideo = document.getElementById('hlsPlayer');
             const noContent = document.getElementById('noContent');
@@ -5363,6 +5011,7 @@
         function refreshAdminLists() { 
             if (!isAdminLogged) return; 
             
+            // Renderizar canais - com verificação de segurança
             const canaisHtml = (canais && canais.length > 0) ? canais.map(c => {
                 const title = c && c.title ? c.title : 'Sem título';
                 const id = c && c.id ? c.id : '';
@@ -5380,6 +5029,7 @@
             const canaisListEl = document.getElementById('canaisAdminList');
             if (canaisListEl) canaisListEl.innerHTML = canaisHtml;
             
+            // Renderizar filmes - com verificação de segurança
             const filmesHtml = (filmes && filmes.length > 0) ? filmes.map(f => {
                 const title = f && f.title ? f.title : 'Sem título';
                 const id = f && f.id ? f.id : '';
@@ -5397,6 +5047,7 @@
             const filmesListEl = document.getElementById('filmesAdminList');
             if (filmesListEl) filmesListEl.innerHTML = filmesHtml;
             
+            // Renderizar séries - com verificação de segurança
             const seriesHtml = (series && series.length > 0) ? series.map(s => {
                 const title = s && s.title ? s.title : 'Sem título';
                 const id = s && s.id ? s.id : '';
@@ -5414,11 +5065,13 @@
             const seriesListEl = document.getElementById('seriesAdminList');
             if (seriesListEl) seriesListEl.innerHTML = seriesHtml;
             
+            // Vincular eventos de edição para TODOS os botões
             document.querySelectorAll('.edit-item-btn').forEach(btn => {
                 btn.removeEventListener('click', handleEditClick);
                 btn.addEventListener('click', handleEditClick);
             });
             
+            // Vincular eventos de exclusão para TODOS os botões
             document.querySelectorAll('.delete-item-btn').forEach(btn => {
                 btn.removeEventListener('click', handleDeleteClick);
                 btn.addEventListener('click', handleDeleteClick);
@@ -5593,10 +5246,9 @@
             else { const container = document.getElementById('instagramProfileContainer'); if(container) container.innerHTML = '<div class="text-center p-4">Faça login para acessar o perfil</div>'; }
         }
         
-        // Eventos da busca
-        document.getElementById('navSearchBtn').onclick = () => switchSection('search');
+        // Eventos da busca global - botão Buscar no menu
+        document.getElementById('navSearchBtn').onclick = openGlobalSearch;
         document.getElementById('closeGlobalSearch').onclick = closeGlobalSearch;
-        
         const globalSearchInput = document.getElementById('globalSearchInputModal');
         if (globalSearchInput) {
             globalSearchInput.addEventListener('input', performGlobalSearch);
@@ -5604,32 +5256,6 @@
                 if (e.key === 'Enter') performGlobalSearch();
             });
         }
-        
-        // Eventos dos filtros de busca
-        const searchInput = document.getElementById('searchInput');
-        if (searchInput) {
-            searchInput.addEventListener('input', performSearchInSection);
-            searchInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') performSearchInSection();
-            });
-        }
-        
-        document.getElementById('searchFilmesBtn')?.addEventListener('click', () => {
-            currentSearchFilter = 'filmes';
-            performSearchInSection();
-        });
-        document.getElementById('searchSeriesBtn')?.addEventListener('click', () => {
-            currentSearchFilter = 'series';
-            performSearchInSection();
-        });
-        document.getElementById('searchCanaisBtn')?.addEventListener('click', () => {
-            currentSearchFilter = 'canais';
-            performSearchInSection();
-        });
-        document.getElementById('searchTodosBtn')?.addEventListener('click', () => {
-            currentSearchFilter = 'todos';
-            performSearchInSection();
-        });
         
         document.getElementById('navCanaisBtn').onclick = () => setNavTab('canais');
         document.getElementById('navFilmesBtn').onclick = () => setNavTab('filmes');
@@ -5670,9 +5296,9 @@
         document.getElementById('doRegister').onclick = registerUser;
         document.getElementById('showRegister').onclick = () => { document.getElementById('loginForm').classList.add('hidden'); document.getElementById('registerForm').classList.remove('hidden'); };
         document.getElementById('showLogin').onclick = () => { document.getElementById('registerForm').classList.add('hidden'); document.getElementById('loginForm').classList.remove('hidden'); };
-        const modalAdmin = document.getElementById('adminModal');
-        document.getElementById('adminBtn').onclick = () => { modalAdmin.classList.remove('hidden'); document.getElementById('adminLoginArea').classList.remove('hidden'); document.getElementById('adminPanel').classList.add('hidden'); };
-        document.getElementById('closeAdminModal').onclick = () => modalAdmin.classList.add('hidden');
+        const modal = document.getElementById('adminModal');
+        document.getElementById('adminBtn').onclick = () => { modal.classList.remove('hidden'); document.getElementById('adminLoginArea').classList.remove('hidden'); document.getElementById('adminPanel').classList.add('hidden'); };
+        document.getElementById('closeAdminModal').onclick = () => modal.classList.add('hidden');
         document.getElementById('loginAdminBtn').onclick = () => { if (document.getElementById('adminPassword').value === 'admin123') { isAdminLogged = true; document.getElementById('adminLoginArea').classList.add('hidden'); document.getElementById('adminPanel').classList.remove('hidden'); refreshAdminLists(); loadReportsForAdmin(); } else alert('Senha incorreta'); };
         
         document.getElementById('adminTabCanais').onclick = () => { 
@@ -5780,7 +5406,7 @@
         loadChatReadTimestamps();
         
         window.toggleLike = toggleLike;
-        window.toggleSavePost = toggleSavePost;
+        window.toggleSave = toggleSave;
         window.showCommentsModal = showCommentsModal;
         window.repost = repost;
         window.deleteRepost = deleteRepost;
@@ -5788,8 +5414,8 @@
         window.deletePost = deletePost;
         window.showPostOptions = showPostOptions;
         window.viewProfileFromPost = viewProfileFromPost;
-        window.addCommentToPost = addCommentToPost;
-        window.addReplyToComment = addReplyToComment;
+        window.addComment = addComment;
+        window.addReply = addReply;
         window.toggleCommentLike = toggleCommentLike;
         window.showReplyInput = showReplyInput;
         window.hideReplyInput = hideReplyInput;
