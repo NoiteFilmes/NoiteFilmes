@@ -6053,83 +6053,92 @@ console.log('✅ Sistema de busca corrigido!');
 
 
 // ========== CORREÇÃO: FECHAR ABA DE BUSCAR AO CLICAR EM CANAIS/FILMES/SÉRIES ==========
-// Esta função substitui o comportamento antigo para garantir que a aba Buscar seja fechada
+// Versão corrigida - mantém o funcionamento normal das abas
 
-// Salvar a função original
+// Salvar a função original ANTES de qualquer modificação
 const originalSetNavTab = window.setNavTab || setNavTab;
 
-// Criar nova função que também fecha a seção de busca
+// Sobrescrever a função setNavTab para adicionar a lógica de fechar a busca
 window.setNavTab = function(tab) {
     // Verificar se estamos na seção de busca
     const searchSection = document.getElementById('searchSection');
     const isInSearchSection = searchSection && searchSection.classList.contains('active-section');
     
-    // Se estiver na busca, primeiro saia da busca
-    if (isInSearchSection) {
+    // Se estiver na busca e NÃO for a aba de busca que está sendo clicada
+    if (isInSearchSection && tab !== 'buscar') {
         console.log('🔍 Saindo da aba Buscar para mostrar:', tab);
         
-        // Voltar para a seção de filmes (ou canais/séries dependendo do tab)
+        // Mudar para a seção correta primeiro (sair da busca)
         if (tab === 'canais') {
-            switchSection('filmes'); // Primeiro sai da busca
-            setTimeout(() => {
-                setNavTabOriginal('canais');
-            }, 50);
-        } else if (tab === 'filmes') {
-            switchSection('filmes'); // Sai da busca e vai para filmes
-            setTimeout(() => {
-                setNavTabOriginal('filmes');
-            }, 50);
-        } else if (tab === 'series') {
             switchSection('filmes'); // Sai da busca
             setTimeout(() => {
-                setNavTabOriginal('series');
+                originalSetNavTab('canais'); // Agora sim, mostra os canais
             }, 50);
+        } else if (tab === 'filmes') {
+            switchSection('filmes');
+            setTimeout(() => {
+                originalSetNavTab('filmes');
+            }, 50);
+        } else if (tab === 'series') {
+            switchSection('filmes');
+            setTimeout(() => {
+                originalSetNavTab('series');
+            }, 50);
+        } else {
+            // Para outros casos, apenas chama a função original
+            originalSetNavTab(tab);
         }
     } else {
         // Se não estiver na busca, comportamento normal
-        setNavTabOriginal(tab);
+        originalSetNavTab(tab);
     }
 };
 
-// Referência à função original
-const setNavTabOriginal = setNavTab;
+// Garantir que os botões de navegação superior funcionem corretamente
+// Remover event listeners antigos e adicionar novos
+const navCanaisBtn = document.getElementById('navCanaisBtn');
+const navFilmesBtn = document.getElementById('navFilmesBtn');
+const navSeriesBtn = document.getElementById('navSeriesBtn');
+const navSearchBtn = document.getElementById('navSearchBtn');
 
-// Também corrigir os botões individuais
-document.getElementById('navCanaisBtn')?.addEventListener('click', function(e) {
-    e.preventDefault();
-    // Fechar seção de busca se estiver aberta
-    const searchSection = document.getElementById('searchSection');
-    if (searchSection && searchSection.classList.contains('active-section')) {
-        switchSection('filmes');
-        setTimeout(() => setNavTab('canais'), 50);
-    } else {
-        setNavTab('canais');
-    }
-});
+// Clonar e substituir os botões para remover event listeners antigos
+if (navCanaisBtn) {
+    const newBtn = navCanaisBtn.cloneNode(true);
+    navCanaisBtn.parentNode.replaceChild(newBtn, navCanaisBtn);
+    newBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        window.setNavTab('canais');
+    });
+}
 
-document.getElementById('navFilmesBtn')?.addEventListener('click', function(e) {
-    e.preventDefault();
-    const searchSection = document.getElementById('searchSection');
-    if (searchSection && searchSection.classList.contains('active-section')) {
-        switchSection('filmes');
-        setTimeout(() => setNavTab('filmes'), 50);
-    } else {
-        setNavTab('filmes');
-    }
-});
+if (navFilmesBtn) {
+    const newBtn = navFilmesBtn.cloneNode(true);
+    navFilmesBtn.parentNode.replaceChild(newBtn, navFilmesBtn);
+    newBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        window.setNavTab('filmes');
+    });
+}
 
-document.getElementById('navSeriesBtn')?.addEventListener('click', function(e) {
-    e.preventDefault();
-    const searchSection = document.getElementById('searchSection');
-    if (searchSection && searchSection.classList.contains('active-section')) {
-        switchSection('filmes');
-        setTimeout(() => setNavTab('series'), 50);
-    } else {
-        setNavTab('series');
-    }
-});
+if (navSeriesBtn) {
+    const newBtn = navSeriesBtn.cloneNode(true);
+    navSeriesBtn.parentNode.replaceChild(newBtn, navSeriesBtn);
+    newBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        window.setNavTab('series');
+    });
+}
 
-console.log('✅ Correção aplicada: agora ao clicar em Canais/Filmes/Séries na aba Buscar, a busca será fechada automaticamente!');
+if (navSearchBtn) {
+    const newBtn = navSearchBtn.cloneNode(true);
+    navSearchBtn.parentNode.replaceChild(newBtn, navSearchBtn);
+    newBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        switchSection('search');
+    });
+}
+
+console.log('✅ Correção aplicada: agora ao clicar em Canais/Filmes/Séries na aba Buscar, a busca fecha e o conteúdo aparece normalmente!');
 
                 
             </script>
