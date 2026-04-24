@@ -4152,7 +4152,8 @@
                         const snapshot = await database.ref('feed_posts').orderByChild('createdAt').once('value');
                         const posts = snapshot.val();
                         if (!posts) { feedContainer.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Nenhuma publicação ainda. Seja o primeiro a postar!</div>'; return; }
-                        const postsList = Object.values(posts).sort((a, b) => b.createdAt - a.createdAt);
+                        // Já está ordenado do mais antigo para o mais novo, então invertemos
+const postsList = Object.values(posts).reverse();
                         feedContainer.innerHTML = '';
                         for (const post of postsList) {
                             const isOwner = currentUser && post.userId === currentUser.uid;
