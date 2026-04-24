@@ -4149,12 +4149,10 @@
                     if (!feedContainer) return;
                     feedContainer.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Carregando publicações...</div>';
                     try {
-                        // Buscar ordenado do mais recente para o mais antigo
-const snapshot = await database.ref('feed_posts').orderByChild('createdAt').limitToLast(50).once('value');
-const posts = snapshot.val();
-if (!posts) { ... }
-// Os dados já vêm ordenados, mas precisamos inverter a ordem
-const postsList = Object.values(posts).reverse();
+                        const snapshot = await database.ref('feed_posts').orderByChild('createdAt').once('value');
+                        const posts = snapshot.val();
+                        if (!posts) { feedContainer.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Nenhuma publicação ainda. Seja o primeiro a postar!</div>'; return; }
+                        const postsList = Object.values(posts).sort((a, b) => b.createdAt - a.createdAt);
                         feedContainer.innerHTML = '';
                         for (const post of postsList) {
                             const isOwner = currentUser && post.userId === currentUser.uid;
