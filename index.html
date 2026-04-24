@@ -5931,6 +5931,106 @@ const postsList = Object.values(posts).reverse();
                 window.clearSearch = clearSearch;
                 window.setSearchFilter = setSearchFilter;
                 window.performSearchInSection = performSearchInSection;
+
+                // ========== CORREÇÃO DA BUSCA ==========
+// Configurar busca em tempo real
+const searchInputCorrigido = document.getElementById('searchInput');
+const clearBtnCorrigido = document.getElementById('clearSearchBtn');
+
+if (searchInputCorrigido) {
+    searchInputCorrigido.addEventListener('input', function() {
+        const termo = this.value.trim();
+        const botaoLimpar = document.getElementById('clearSearchBtn');
+        
+        if (botaoLimpar) {
+            botaoLimpar.style.display = termo.length > 0 ? 'flex' : 'none';
+        }
+        
+        if (termo.length === 0) {
+            document.getElementById('searchResults').innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
+            return;
+        }
+        
+        buscarConteudo(termo);
+    });
+}
+
+if (clearBtnCorrigido) {
+    clearBtnCorrigido.addEventListener('click', function() {
+        document.getElementById('searchInput').value = '';
+        this.style.display = 'none';
+        document.getElementById('searchResults').innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
+        document.getElementById('searchInput').focus();
+    });
+}
+
+// Função de busca
+function buscarConteudo(termo) {
+    const filtro = document.querySelector('.search-filter-btn.active')?.getAttribute('data-filter') || 'todos';
+    const resultadosDiv = document.getElementById('searchResults');
+    
+    let itens = [];
+    
+    if (filtro === 'filmes') {
+        itens = filmes.map(f => ({ ...f, tipo: 'filme', icone: '🎬', nomeTipo: 'Filme' }));
+    } else if (filtro === 'series') {
+        itens = series.map(s => ({ ...s, tipo: 'serie', icone: '📺', nomeTipo: 'Série' }));
+    } else if (filtro === 'canais') {
+        itens = canais.map(c => ({ ...c, tipo: 'canal', icone: '📡', nomeTipo: 'Canal' }));
+    } else {
+        itens = [
+            ...filmes.map(f => ({ ...f, tipo: 'filme', icone: '🎬', nomeTipo: 'Filme' })),
+            ...series.map(s => ({ ...s, tipo: 'serie', icone: '📺', nomeTipo: 'Série' })),
+            ...canais.map(c => ({ ...c, tipo: 'canal', icone: '📡', nomeTipo: 'Canal' }))
+        ];
+    }
+    
+    const termoLower = termo.toLowerCase();
+    const resultados = itens.filter(item => 
+        item.title.toLowerCase().includes(termoLower) || 
+        (item.category && item.category.toLowerCase().includes(termoLower))
+    );
+    
+    if (resultados.length === 0) {
+        resultadosDiv.innerHTML = `<div class="no-results">❌ Nenhum resultado encontrado para "${termo}"</div>`;
+        return;
+    }
+    
+    resultadosDiv.innerHTML = resultados.map(item => `
+        <div class="search-result-card glass-card p-2 ripple-btn" data-id="${item.id}" data-tipo="${item.tipo}">
+            <img src="${item.thumb || 'https://via.placeholder.com/300x450'}" class="search-result-image" onerror="this.src='https://via.placeholder.com/300x450'">
+            <div class="search-result-title" title="${item.title}">${item.title.substring(0, 30)}${item.title.length > 30 ? '...' : ''}</div>
+            <div class="search-result-type">${item.icone} ${item.nomeTipo} ${item.year ? `• ${item.year}` : ''}</div>
+        </div>
+    `).join('');
+    
+    // Adicionar clique nos resultados
+    document.querySelectorAll('#searchResults .search-result-card').forEach(el => {
+        el.addEventListener('click', () => {
+            const id = el.getAttribute('data-id');
+            const tipo = el.getAttribute('data-tipo');
+            let item;
+            if (tipo === 'filme') item = filmes.find(f => f.id === id);
+            else if (tipo === 'serie') item = series.find(s => s.id === id);
+            else item = canais.find(c => c.id === id);
+            if (item) playMedia(item, tipo);
+        });
+    });
+}
+
+// Configurar botões de filtro da busca
+document.querySelectorAll('.search-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.search-filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const termoAtual = document.getElementById('searchInput').value.trim();
+        if (termoAtual) {
+            buscarConteudo(termoAtual);
+        }
+    });
+});
+
+console.log('✅ Sistema de busca corrigido!');
             </script>
         </body>
         </html>
