@@ -4334,65 +4334,31 @@ const postsList = Object.values(posts).reverse();
                 
                 // ==================== FUNÇÕES DE NAVEGAÇÃO ====================
                 function switchSection(sectionId) {
-    // Esconder todas as seções
-    document.querySelectorAll('.section').forEach(s => s.classList.remove('active-section'));
-    
-    // Mostrar a seção selecionada
-    const sectionToShow = document.getElementById(`${sectionId}Section`);
-    if (sectionToShow) {
-        sectionToShow.classList.add('active-section');
-    }
-    
-    // Atualizar o bottom navigation (menu inferior)
-    document.querySelectorAll('.bottom-nav-item').forEach(item => item.classList.remove('active'));
-    const bottomItem = document.querySelector(`.bottom-nav-item[data-section="${sectionId}"]`);
-    if (bottomItem) {
-        bottomItem.classList.add('active');
-    }
-    
-    // CORREÇÃO: Manter o menu superior visível para TODAS as abas do topo
-    const topMenu = document.getElementById('topMenuContainer');
-    if (topMenu) {
-        // SEMPRE mostrar o menu superior, independente da seção
-        topMenu.style.display = 'flex';
-    }
-    
-    // Carregar conteúdo específico de cada seção
-    if (sectionId === 'feed') {
-        renderFeed();
-    }
-    if (sectionId === 'perfil') {
-        renderInstagramProfile();
-    }
-    if (sectionId === 'chat') {
-        const chatSidebar = document.getElementById('chatSidebar');
-        const chatMain = document.getElementById('chatMain');
-        if (chatSidebar) chatSidebar.classList.remove('hidden');
-        if (chatMain) chatMain.classList.add('hidden');
-        loadChatList();
-    }
-    if (sectionId === 'search') {
-        const searchInput = document.getElementById('searchInput');
-        const clearBtn = document.getElementById('clearSearchBtn');
-        const resultsContainer = document.getElementById('searchResults');
-        
-        if (searchInput) searchInput.value = '';
-        if (clearBtn) clearBtn.style.display = 'none';
-        if (resultsContainer) {
-            resultsContainer.innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
-        }
-        if (searchInput) searchInput.focus();
-        
-        currentSearchFilter = 'todos';
-        document.querySelectorAll('.search-filter-btn').forEach(btn => {
-            if (btn.getAttribute('data-filter') === 'todos') {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        });
-    }
-}
+                    document.querySelectorAll('.section').forEach(s => s.classList.remove('active-section'));
+                    document.getElementById(`${sectionId}Section`).classList.add('active-section');
+                    document.querySelectorAll('.bottom-nav-item').forEach(item => item.classList.remove('active'));
+                    document.querySelector(`.bottom-nav-item[data-section="${sectionId}"]`).classList.add('active');
+                    const topMenu = document.getElementById('topMenuContainer');
+                    if (sectionId === 'filmes') {
+                        topMenu.style.display = 'flex';
+                    } else {
+                        topMenu.style.display = 'none';
+                    }
+                    if (sectionId === 'feed') renderFeed();
+                    if (sectionId === 'perfil') renderInstagramProfile();
+                    if (sectionId === 'chat') { document.getElementById('chatSidebar').classList.remove('hidden'); document.getElementById('chatMain').classList.add('hidden'); loadChatList(); }
+                    if (sectionId === 'search') {
+                        document.getElementById('searchInput').value = '';
+                        document.getElementById('clearSearchBtn').style.display = 'none';
+                        document.getElementById('searchResults').innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
+                        document.getElementById('searchInput').focus();
+                        currentSearchFilter = 'todos';
+                        document.querySelectorAll('.search-filter-btn').forEach(btn => {
+                            if (btn.getAttribute('data-filter') === 'todos') btn.classList.add('active');
+                            else btn.classList.remove('active');
+                        });
+                    }
+                }
                 
                 function updateContentCounters() {
                     document.getElementById('filmesCount').innerText = filmes.length;
@@ -6084,65 +6050,6 @@ document.querySelectorAll('.search-filter-btn').forEach(btn => {
 });
 
 console.log('✅ Sistema de busca corrigido!');
-
-          // FORÇAR os botões do menu superior a funcionarem manualmente
-document.getElementById('navCanaisBtn')?.addEventListener('click', function() {
-    currentNavTab = 'canais';
-    currentGenreFilter = 'todos';
-    
-    // Atualizar visual dos botões do menu
-    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    document.getElementById('navCanaisBtn').classList.add('active');
-    
-    // Atualizar os filtros de gênero
-    updateGenreFilters();
-    
-    // Mostrar o grid com os canais
-    renderGrid();
-    
-    // Mudar a seção ativa
-    switchSection('canais');
-});
-
-document.getElementById('navFilmesBtn')?.addEventListener('click', function() {
-    currentNavTab = 'filmes';
-    currentGenreFilter = 'todos';
-    
-    // Atualizar visual dos botões do menu
-    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    document.getElementById('navFilmesBtn').classList.add('active');
-    
-    // Atualizar os filtros de gênero
-    updateGenreFilters();
-    
-    // Mostrar o grid com os filmes
-    renderGrid();
-    
-    // Mudar a seção ativa
-    switchSection('filmes');
-});
-
-document.getElementById('navSeriesBtn')?.addEventListener('click', function() {
-    currentNavTab = 'series';
-    currentGenreFilter = 'todos';
-    
-    // Atualizar visual dos botões do menu
-    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    document.getElementById('navSeriesBtn').classList.add('active');
-    
-    // Atualizar os filtros de gênero
-    updateGenreFilters();
-    
-    // Mostrar o grid com as séries
-    renderGrid();
-    
-    // Mudar a seção ativa
-    switchSection('series');
-});
-
-document.getElementById('navSearchBtn')?.addEventListener('click', function() {
-    switchSection('search');
-});
             </script>
         </body>
         </html>
