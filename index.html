@@ -4494,46 +4494,214 @@ const postsList = Object.values(posts).reverse();
                     });
                 }
                 
-                function renderInstagramProfile(showOtherUserId = null) {
-                    const container = document.getElementById('instagramProfileContainer');
-                    if (!container) return;
-                    if (!currentUser) { container.innerHTML = `<div class="text-center p-4">Faça login para acessar o perfil</div>`; return; }
-                    let targetUserId = currentUser.uid;
-                    let targetNickname = currentUsername;
-                    let isOwnProfile = true;
-                    currentViewingUserId = null;
-                    
-                    if (showOtherUserId && showOtherUserId !== currentUser.uid) {
-                        targetUserId = showOtherUserId;
-                        isOwnProfile = false;
-                        currentViewingUserId = targetUserId;
-                        database.ref(`usuarios/${targetUserId}`).once('value').then(snap => {
-                            const data = snap.val();
-                            if (data) {
-                                if (data.nickname) targetNickname = data.nickname;
-                                if (data.displayName) userProfileData.displayName = data.displayName;
-                                if (data.bio) userProfileData.bio = data.bio;
-                                if (data.externalLink) userProfileData.externalLink = data.externalLink;
-                                if (data.phone) userProfileData.phone = data.phone;
-                                if (data.whatsapp) userProfileData.whatsapp = data.whatsapp;
-                                if (data.avatarUrl) userProfileData.avatarUrl = data.avatarUrl;
-                            }
-                            renderProfileHtml(targetUserId, targetNickname, isOwnProfile);
-                        }).catch(() => renderProfileHtml(targetUserId, targetNickname, isOwnProfile));
-                    } else {
-                        database.ref(`usuarios/${currentUser.uid}`).once('value').then(snap => {
-                            const data = snap.val();
-                            if (data) {
-                                if (data.displayName) userProfileData.displayName = data.displayName;
-                                if (data.bio) userProfileData.bio = data.bio;
-                                if (data.externalLink) userProfileData.externalLink = data.externalLink;
-                                if (data.phone) userProfileData.phone = data.phone;
-                                if (data.whatsapp) userProfileData.whatsapp = data.whatsapp;
-                                if (data.avatarUrl) userProfileData.avatarUrl = data.avatarUrl;
-                            }
-                        });
-                        renderProfileHtml(targetUserId, targetNickname, isOwnProfile);
-                    }
+                // ========== FUNÇÃO RENDER PERFIL CORRIGIDA (SEM ERRO DE AVATAR) ==========
+async function renderInstagramProfile(showOtherUserId = null) {
+    const container = document.getElementById('instagramProfileContainer');
+    if (!container) return;
+    
+    if (!currentUser) { 
+        container.innerHTML = `<div class="text-center p-4">Faça login para acessar o perfil</div>`; 
+        return; 
+    }
+    
+    // DECLARAR VARIÁVEIS LOCAIS para não misturar com os dados do usuário logado
+    let targetUserId = currentUser.uid;
+    let targetUserData = {
+        nickname: currentUsername,
+        displayName: userProfileData.displayName || '',
+        bio: userProfileData.bio || '',
+        externalLink: userProfileData.externalLink || '',
+        phone: userProfileData.phone || '',
+        whatsapp: userProfileData.whatsapp || '',
+        avatarUrl: userProfileData.avatarUrl || ''
+    };
+    let isOwnProfile = true;
+    currentViewingUserId = null;
+    
+    // Se for para ver outro perfil
+    if (showOtherUserId && showOtherUserId !== currentUser.uid) {
+        targetUserId = showOtherUserId;
+        isOwnProfile = false;
+        currentViewingUserId = targetUserId;
+        
+        // Buscar os dados do outro usuário no Firebase
+        const snapshot = await database.ref(`usuarios/${targetUserId}`).once('value');
+        const otherUserData = snapshot.val();
+        
+        if (otherUserData) {
+            // CARREGAR OS DADOS DO OUTRO USUÁRIO (não os seus!)
+            targetUserData = {
+                nickname: otherUserData.nickname || 'usuário',
+                displayName: otherUserData.displayName || otherUserData.nickname || 'Usuário',
+                bio: otherUserData.bio || "🎬 Apaixonado por cinema e séries. NoiteFilmes é minha segunda casa! 🍿✨",
+                externalLink: otherUserData.externalLink || "https://instagram.com/noitefilmes",
+                phone: otherUserData.phone || '',
+                whatsapp: otherUserData.whatsapp || '',
+                avatarUrl: otherUserData.avatarUrl || null
+            };
+        }
+    }
+    
+    // Buscar posts, seguidores e seguindo
+    const postsSnap = await database.ref(`feed_posts`).orderByChild('userId').equalTo(targetUserId).once('value');
+    const posts = postsSnap.val();
+    const postsList = posts ? Object.values(posts) : [];
+    const sortedPostsList = postsList.sort((a, b) => b.createdAt - a.createdAt);
+    const totalPosts = sortedPostsList.length;
+    
+    const followersSnap = await database.ref(`followers/${targetUserId}`).once('value');
+    const followingSnap = await database.ref(`following/${targetUserId}`).once('value');
+    const followersCount = followersSnap.val() ? Object.keys(followersSnap.val()).length : 0;
+    const followingCount = followingSnap.val() ? Object.keys(followingSnap.val()).length : 0;
+    
+    const displayNameText = targetUserData.displayName;
+    const bioText = targetUserData.bio;
+    const truncatedBio = bioText.length > 300 ? bioText.substring(0, 300) : bioText;
+    const showExpand = bioText.length > 120;
+    const externalLink = targetUserData.externalLink;
+    
+    // Verificar se o usuário logado segue este perfil
+    let isFollowing = false;
+    if (!isOwnProfile && currentUser) {
+        const followCheck = await database.ref(`followers/${targetUserId}/${currentUser.uid}`).once('value');
+        isFollowing = followCheck.val() === true;
+        followingRelations[targetUserId] = isFollowing;
+    }
+    
+    // Botão de seguir (aparece só quando não é o próprio perfil)
+    let actionButtonHtml = '';
+    if (!isOwnProfile) {
+        actionButtonHtml = `<button class="follow-button ${isFollowing ? 'following' : ''}" id="followActionBtn">${isFollowing ? 'Seguindo' : 'Seguir'}</button>`;
+    }
+    
+    // Avatar: USAR O AVATAR DO PERFIL QUE ESTÁ SENDO VISUALIZADO, não o seu!
+    let avatarHtml = '';
+    if (targetUserData.avatarUrl) {
+        avatarHtml = `<img src="${targetUserData.avatarUrl}" alt="Avatar">`;
+    } else {
+        avatarHtml = `<i class="fas fa-user fa-2x"></i>`;
+    }
+    
+    // Botão de mudar avatar (só aparece no seu próprio perfil)
+    let avatarUploadHtml = '';
+    if (isOwnProfile) {
+        avatarUploadHtml = `<div class="avatar-upload-overlay" id="changeAvatarBtn"><i class="fas fa-camera"></i></div>`;
+    }
+    
+    // Montar o HTML do perfil
+    container.innerHTML = `
+        <div class="profile-header-instagram">
+            <div class="top-bar">
+                <div class="profile-username-top">${escapeHtml(targetUserData.nickname)}</div>
+                <div class="profile-options-icon" id="profileOptionsIcon"><i class="fas fa-ellipsis-h"></i></div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-picture avatar-upload-container" id="profilePictureContainer">
+                    ${avatarHtml}
+                    ${avatarUploadHtml}
+                    <div id="avatarUploadProgress" class="avatar-upload-progress hidden">
+                        <i class="fas fa-spinner fa-pulse"></i>
+                        <div class="progress-bar"><div class="progress-fill" id="avatarProgressFill"></div></div>
+                    </div>
+                </div>
+                <div class="profile-stats-grid">
+                    <div><span class="stat-number" id="statPosts">${totalPosts}</span><span class="stat-label"> posts</span></div>
+                    <div><span class="stat-number" id="statFollowersValue" onclick="showFollowersList('${targetUserId}')">${followersCount}</span><span class="stat-label" onclick="showFollowersList('${targetUserId}')"> seguidores</span></div>
+                    <div><span class="stat-number" id="statFollowingValue" onclick="showFollowingList('${targetUserId}')">${followingCount}</span><span class="stat-label" onclick="showFollowingList('${targetUserId}')"> seguindo</span></div>
+                </div>
+            </div>
+            <div class="profile-bio">
+                <div class="profile-bio-text" id="profileBioText">${makeNicknamesClickable(escapeHtml(truncatedBio))}</div>
+                ${showExpand ? `<button class="bio-expand-btn" id="bioExpandBtn">...ver mais</button>` : ''}
+            </div>
+            <a href="${externalLink}" target="_blank" class="profile-external-link"><i class="fas fa-link"></i> ${externalLink}</a>
+            ${actionButtonHtml}
+            <div class="profile-tabs-container">
+                <div class="profile-tabs">
+                    <div class="profile-tab ${currentProfileTab === 'posts' ? 'active' : ''}" data-tab="posts"><i class="fas fa-th"></i> POSTS</div>
+                    <div class="profile-tab ${currentProfileTab === 'favoritos' ? 'active' : ''}" data-tab="favoritos"><i class="fas fa-heart"></i> FAVORITOS</div>
+                    <div class="profile-tab ${currentProfileTab === 'salvos' ? 'active' : ''}" data-tab="salvos"><i class="fas fa-bookmark"></i> SALVOS</div>
+                    <div class="profile-tab ${currentProfileTab === 'marcacoes' ? 'active' : ''}" data-tab="marcacoes"><i class="fas fa-at"></i> MARCAÇÕES</div>
+                    <div class="profile-tab ${currentProfileTab === 'assistidos' ? 'active' : ''}" data-tab="assistidos"><i class="fas fa-history"></i> ASSISTIDOS</div>
+                </div>
+            </div>
+            <div id="profileTabContent" class="profile-tab-content"></div>
+        </div>
+    `;
+    
+    setupNicknameClickHandlers();
+    
+    // Expandir bio
+    const bioDiv = document.getElementById('profileBioText');
+    const expandBtn = document.getElementById('bioExpandBtn');
+    if (expandBtn && bioDiv) {
+        let expanded = false;
+        expandBtn.addEventListener('click', () => {
+            if (!expanded) { 
+                bioDiv.style.maxHeight = '200px'; 
+                bioDiv.classList.add('expanded'); 
+                expandBtn.innerText = 'ver menos'; 
+            } else { 
+                bioDiv.style.maxHeight = '4.2em'; 
+                bioDiv.classList.remove('expanded'); 
+                expandBtn.innerText = '...ver mais'; 
+            }
+            expanded = !expanded;
+        });
+    }
+    
+    // Botão seguir
+    if (!isOwnProfile) {
+        const followBtn = document.getElementById('followActionBtn');
+        if (followBtn) {
+            followBtn.addEventListener('click', async () => {
+                if (!currentUser) { showToast('Faça login para seguir'); return; }
+                const newStatus = !isFollowing;
+                if (newStatus) {
+                    await database.ref(`followers/${targetUserId}/${currentUser.uid}`).set(true);
+                    await database.ref(`following/${currentUser.uid}/${targetUserId}`).set(true);
+                    followingRelations[targetUserId] = true;
+                    showToast(`Você agora segue @${targetUserData.nickname}`);
+                } else {
+                    await database.ref(`followers/${targetUserId}/${currentUser.uid}`).remove();
+                    await database.ref(`following/${currentUser.uid}/${targetUserId}`).remove();
+                    followingRelations[targetUserId] = false;
+                    showToast(`Você deixou de seguir @${targetUserData.nickname}`);
+                }
+                renderInstagramProfile(targetUserId);
+            });
+        }
+    }
+    
+    // Botão de opções (editar perfil, só no seu)
+    const optionsIcon = document.getElementById('profileOptionsIcon');
+    if (optionsIcon && isOwnProfile) {
+        optionsIcon.addEventListener('click', () => openEditProfileModal());
+    } else if (optionsIcon && !isOwnProfile) {
+        optionsIcon.style.display = 'none';
+    }
+    
+    // Botão trocar avatar (só no seu)
+    if (isOwnProfile) {
+        const changeAvatarBtn = document.getElementById('changeAvatarBtn');
+        if (changeAvatarBtn) {
+            changeAvatarBtn.addEventListener('click', () => {
+                document.getElementById('avatarUploadInput').click();
+            });
+        }
+    }
+    
+    // Abas do perfil
+    document.querySelectorAll('.profile-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            const tabName = tab.getAttribute('data-tab');
+            currentProfileTab = tabName;
+            renderInstagramProfile(isOwnProfile ? null : targetUserId);
+        });
+    });
+    
+    await loadProfileTabContent(targetUserId, targetUserData.nickname, currentProfileTab);
+}
                     
                     async function renderProfileHtml(uid, nickname, isSelf) {
                         const postsSnap = await database.ref(`feed_posts`).orderByChild('userId').equalTo(uid).once('value');
