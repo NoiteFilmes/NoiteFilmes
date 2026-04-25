@@ -6150,6 +6150,152 @@
                 window.uploadProfileAvatar = uploadProfileAvatar;
                 window.getAvatarUrl = getAvatarUrl;
                 window.DEFAULT_AVATAR_URL = DEFAULT_AVATAR_URL;
+
+
+<script>
+// CORREÇÃO DEFINITIVA DO CHAT - MENSAGENS NA ORDEM CORRETA
+(function fixChatOrder() {
+    // Aguardar o carregamento da página
+    setTimeout(function() {
+        // Salvar a função original do chat
+        if (typeof window.displayMessage === 'undefined') return;
+        
+        // Forçar que as mensagens sejam exibidas na ordem correta
+        const originalDisplayMessage = window.displayMessage;
+        
+        // Substituir a função que exibe mensagens
+        window.displayMessage = function(message, messageId) {
+            if (!message) return;
+            
+            let senderName = message.senderName || 'Usuário';
+            let senderId = message.senderId;
+            const isOwner = auth.currentUser && senderId === auth.currentUser.uid;
+            let content = '';
+            let userAvatarUrl = DEFAULT_AVATAR_URL;
+            
+            // Buscar avatar (simplificado para não travar)
+            if (senderId && senderId !== 'geral') {
+                database.ref(`usuarios/${senderId}/avatarUrl`).once('value').then(snap => {
+                    if (snap.val()) userAvatarUrl = snap.val();
+                    // Atualizar avatar depois
+                    const avatarImg = document.querySelector(`#message-${messageId} .message-avatar img`);
+                    if (avatarImg) avatarImg.src = getAvatarUrl(userAvatarUrl);
+                }).catch(() => {});
+            }
+            
+            if (message.isAudio && message.audioUrl) {
+                content = `<div class="message-audio"><button class="audio-play-btn" onclick="playAudioMessage('${message.audioUrl}', this)"><i class="fas fa-play"></i></button><div class="audio-wave"><div class="audio-wave-progress" id="audio-progress-${messageId}"></div></div><span class="audio-duration">${message.audioDuration || 0}s</span></div>`;
+            } else {
+                const messageText = makeNicknamesClickable(escapeHtml(message.text || ''));
+                content = `<p>${messageText}</p>`;
+            }
+            
+            const messageElement = document.createElement('div');
+            messageElement.className = isOwner ? 'message sent' : 'message';
+            messageElement.id = `message-${messageId}`;
+            
+            let statusHtml = '';
+            if (isOwner && message.status) {
+                if (message.status === 'sent') statusHtml = '<span class="message-status status-sent"><i class="fas fa-check"></i></span>';
+                else if (message.status === 'delivered') statusHtml = '<span class="message-status status-delivered"><i class="fas fa-check-double"></i></span>';
+                else if (message.status === 'read') statusHtml = '<span class="message-status status-read"><i class="fas fa-check-double"></i></span>';
+            }
+            
+            messageElement.innerHTML = `<div class="message-avatar" onclick="viewProfile('${senderId}')"><img src="${getAvatarUrl(userAvatarUrl)}" onerror="this.src='${DEFAULT_AVATAR_URL}'" style="width:100%; height:100%; object-fit:cover;"></div><div class="message-content">${content}<span class="message-time">${formatTime(message.timestamp)}${statusHtml}</span></div>`;
+            
+            if (isOwner) setupSwipeDelete(messageElement, messageId, isOwner);
+            
+            // IMPORTANTE: Adicionar no FINAL (appendChild) e não no início
+            const chatBox = document.getElementById('chatBox');
+            if (chatBox) {
+                chatBox.appendChild(messageElement);
+                // Rolar para mostrar a última mensagem
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+            
+            setupNicknameClickHandlers();
+            
+            if (!isOwner && message.status !== 'read') {
+                if (currentChat === 'geral') {
+                    database.ref(`chat_messages/${messageId}`).update({ status: 'read', readAt: Date.now() });
+                } else if (currentChatUser) {
+                    const chatIdKey = `private_${[auth.currentUser.uid, currentChatUser].sort().join('_')}`;
+                    database.ref(`private_messages/${chatIdKey}/${messageId}`).update({ status: 'read', readAt: Date.now() });
+                }
+            }
+        };
+        
+        // Corrigir a função loadChat para manter a ordem correta
+        const originalLoadChat = window.loadChat;
+        if (originalLoadChat) {
+            window.loadChat = function(chatId, otherUserId = null) {
+                if (unsubscribeChat) unsubscribeChat();
+                const chatBox = document.getElementById('chatBox');
+                chatBox.innerHTML = '<div style="text-align: center; padding: 40px;">Carregando...</div>';
+                const user = auth.currentUser;
+                
+                if (chatId === 'geral') {
+                    const messagesRef = database.ref('chat_messages');
+                    const onMessages = (snapshot) => {
+                        const messages = snapshot.val();
+                        chatBox.innerHTML = '';
+                        if (!messages) {
+                            chatBox.innerHTML = '<div style="text-align: center; padding: 40px;">Nenhuma mensagem ainda.</div>';
+                            return;
+                        }
+                        // Ordenar CORRETAMENTE: do mais antigo para o mais novo
+                        const messagesList = Object.entries(messages).map(([id, msg]) => ({ id, ...msg })).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+                        for (const msg of messagesList) {
+                            window.displayMessage(msg, msg.id);
+                        }
+                        chatBox.scrollTop = chatBox.scrollHeight;
+                    };
+                    messagesRef.on('value', onMessages);
+                    unsubscribeChat = () => messagesRef.off('value', onMessages);
+                } else if (otherUserId) {
+                    const chatIdKey = `private_${[user.uid, otherUserId].sort().join('_')}`;
+                    const messagesRef = database.ref(`private_messages/${chatIdKey}`);
+                    const onMessages = (snapshot) => {
+                        const messages = snapshot.val();
+                        chatBox.innerHTML = '';
+                        if (!messages) {
+                            chatBox.innerHTML = '<div style="text-align: center; padding: 40px;">Nenhuma mensagem ainda.</div>';
+                            return;
+                        }
+                        // Ordenar CORRETAMENTE: do mais antigo para o mais novo
+                        const messagesList = Object.entries(messages).map(([id, msg]) => ({ id, ...msg })).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+                        for (const msg of messagesList) {
+                            window.displayMessage(msg, msg.id);
+                        }
+                        chatBox.scrollTop = chatBox.scrollHeight;
+                        if (otherUserId) {
+                            const unread = unreadMessages.get(otherUserId) || 0;
+                            if (unread > 0) markAsRead(otherUserId);
+                        }
+                    };
+                    messagesRef.on('value', onMessages);
+                    unsubscribeChat = () => messagesRef.off('value', onMessages);
+                }
+            };
+        }
+        
+        // Forçar recarregar o chat atual
+        if (currentChat) {
+            setTimeout(function() {
+                if (currentChat === 'geral') {
+                    window.loadChat('geral', null);
+                } else if (currentChatUser) {
+                    window.loadChat(currentChat, currentChatUser);
+                }
+            }, 500);
+        }
+        
+        console.log('✅ Chat corrigido! Mensagens agora estão na ordem correta.');
+    }, 1000);
+})();
+
+
+                
             </script>
         </body>
         </html>
