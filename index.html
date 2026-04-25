@@ -6428,6 +6428,130 @@ if (originalViewProfileFromPost) {
 
 console.log('✅ Correção de avatares aplicada mantendo todas as funções originais!');
 </script>
+
+
+// =====================================================
+// CORREÇÃO DEFINITIVA DOS AVATARES (SEM QUEBRAR NADA)
+// =====================================================
+
+const DEFAULT_AVATAR_URL = "https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png";
+
+// Função que atualiza UM avatar
+function fixAvatarImage(imgElement, userId) {
+    if (!imgElement || !userId || userId === 'geral') return;
+    database.ref(`usuarios/${userId}/avatarUrl`).once('value').then(snap => {
+        const url = snap.val();
+        if (url && url.trim()) {
+            imgElement.src = url;
+        } else {
+            imgElement.src = DEFAULT_AVATAR_URL;
+        }
+    }).catch(() => {
+        imgElement.src = DEFAULT_AVATAR_URL;
+    });
+}
+
+// Função que vasculha a página e corrige TODOS os avatares
+function fixAllAvatars() {
+    // 1. Avatar do perfil (página atual)
+    const profileImg = document.querySelector('.profile-picture img');
+    if (profileImg) {
+        // Descobre se é perfil próprio ou de outro
+        let userId = null;
+        const container = document.querySelector('#instagramProfileContainer');
+        if (container) {
+            const followBtn = container.querySelector('.follow-button');
+            if (followBtn && !followBtn.classList.contains('following')) {
+                // Se tem botão seguir, é perfil de outro
+                const onclickAttr = followBtn.getAttribute('onclick');
+                const match = onclickAttr?.match(/toggleFollow\('([^']+)'/);
+                if (match) userId = match[1];
+            }
+        }
+        if (!userId && currentUser) userId = currentUser.uid;
+        if (userId) fixAvatarImage(profileImg, userId);
+    }
+
+    // 2. Avatares do feed
+    document.querySelectorAll('.feed-post-avatar img').forEach(img => {
+        const postDiv = img.closest('.feed-post');
+        if (postDiv) {
+            const usernameSpan = postDiv.querySelector('.feed-post-username');
+            if (usernameSpan && usernameSpan.getAttribute('onclick')) {
+                const match = usernameSpan.getAttribute('onclick').match(/viewProfileFromPost\('([^']+)'\)/);
+                if (match && match[1]) fixAvatarImage(img, match[1]);
+            }
+        }
+    });
+
+    // 3. Avatares de comentários e respostas
+    document.querySelectorAll('.comment-avatar-modal img, .reply-avatar img').forEach(img => {
+        const parent = img.closest('[onclick*="viewProfileFromPost"]');
+        if (parent) {
+            const match = parent.getAttribute('onclick').match(/viewProfileFromPost\('([^']+)'\)/);
+            if (match && match[1]) fixAvatarImage(img, match[1]);
+        }
+    });
+
+    // 4. Avatares do chat (lista, cabeçalho, mensagens)
+    document.querySelectorAll('.chat-user-avatar img, .chat-header-avatar img, .message-avatar img, .user-search-avatar img').forEach(img => {
+        let userId = null;
+        const parent = img.closest('[data-user-id]');
+        if (parent) userId = parent.getAttribute('data-user-id');
+        if (!userId) {
+            const parentOnClick = img.closest('[onclick*="viewProfile"]');
+            if (parentOnClick) {
+                const match = parentOnClick.getAttribute('onclick').match(/viewProfile\('([^']+)'\)/);
+                if (match) userId = match[1];
+            }
+        }
+        if (userId && userId !== 'geral') fixAvatarImage(img, userId);
+    });
+
+    // 5. Avatares de seguidores/seguindo
+    document.querySelectorAll('.follow-list-avatar img').forEach(img => {
+        const item = img.closest('.follow-list-item');
+        if (item) {
+            const match = item.getAttribute('onclick')?.match(/viewProfileFromPost\('([^']+)'\)/);
+            if (match && match[1]) fixAvatarImage(img, match[1]);
+        }
+    });
+}
+
+// Observar mudanças na página (quando novos elementos são adicionados)
+const avatarObserver = new MutationObserver(() => {
+    fixAllAvatars();
+});
+avatarObserver.observe(document.body, { childList: true, subtree: true });
+
+// Corrigir sempre que o perfil for atualizado (já que a função original é chamada)
+const originalRenderProfile = window.renderInstagramProfile;
+if (originalRenderProfile) {
+    window.renderInstagramProfile = function(...args) {
+        originalRenderProfile.apply(this, args);
+        setTimeout(fixAllAvatars, 200);
+    };
+}
+
+// Corrigir também quando entrar no perfil via viewProfileFromPost
+const originalViewProfile = window.viewProfileFromPost;
+if (originalViewProfile) {
+    window.viewProfileFromPost = function(...args) {
+        originalViewProfile.apply(this, args);
+        setTimeout(fixAllAvatars, 300);
+    };
+}
+
+// Executar a cada 2 segundos para garantir (leve e não atrapalha)
+setInterval(() => {
+    if (document.visibilityState === 'visible') {
+        fixAllAvatars();
+    }
+}, 2000);
+
+// Executar uma vez ao carregar a página
+document.addEventListener('DOMContentLoaded', fixAllAvatars);
+console.log('✅ Sistema de avatares ativado (não interfere em outras funções)');
                 
             </script>
         </body>
