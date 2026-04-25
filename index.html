@@ -6512,7 +6512,19 @@ setInterval(() => {
 }, 5000);
 
 console.log('✅ Sistema de avatares corrigido! Avatares agora carregam automaticamente.');
-                
+
+
+                // Botão secreto para recarregar avatares (clique 3 vezes no logo)
+let cliqueCount = 0;
+document.querySelector('.logo-line')?.addEventListener('click', () => {
+    cliqueCount++;
+    if (cliqueCount === 3) {
+        atualizarTodosAvataresNaPagina();
+        showToast('🔄 Avatares recarregados!');
+        cliqueCount = 0;
+    }
+    setTimeout(() => cliqueCount = 0, 1000);
+});
                 
             </script>
         </body>
