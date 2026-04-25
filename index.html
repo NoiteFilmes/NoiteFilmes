@@ -6295,263 +6295,75 @@
 })();
 
 
-                // ============================================
-// CORREÇÃO DE AVATARES - MANTENDO TODAS AS FUNÇÕES ORIGINAIS
-// ============================================
 
+// CORREÇÃO DEFINITIVA DE AVATARES (VERSÃO ÚNICA E LIMPA)
 const AVATAR_PADRAO = "https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png";
 
-// Função auxiliar para carregar avatar em qualquer elemento
-function carregarAvatarElemento(elemento, userId) {
-    if (!userId || userId === 'geral' || !elemento) return;
-    
-    // Se for uma imagem
-    if (elemento.tagName === 'IMG') {
-        database.ref(`usuarios/${userId}/avatarUrl`).once('value').then(snap => {
-            const url = snap.val();
-            elemento.src = (url && url.trim()) ? url : AVATAR_PADRAO;
-        }).catch(() => { elemento.src = AVATAR_PADRAO; });
-    } 
-    // Se for um div com background
-    else if (elemento.style) {
-        database.ref(`usuarios/${userId}/avatarUrl`).once('value').then(snap => {
-            const url = snap.val();
-            elemento.style.backgroundImage = `url(${(url && url.trim()) ? url : AVATAR_PADRAO})`;
-            elemento.style.backgroundSize = 'cover';
-            elemento.style.backgroundPosition = 'center';
-        }).catch(() => {
-            elemento.style.backgroundImage = `url(${AVATAR_PADRAO})`;
-        });
-    }
-}
-
-// Sobrescrever a função original para adicionar a correção de avatar,
-// mas mantendo TODO o resto do código original
-const funcaoOriginalRenderProfile = window.renderInstagramProfile;
-if (funcaoOriginalRenderProfile) {
-    window.renderInstagramProfile = function(showOtherUserId = null) {
-        // Chama a função original primeiro
-        funcaoOriginalRenderProfile(showOtherUserId);
-        
-        // Depois que ela terminar, corrige os avatares
-        setTimeout(() => {
-            // Avatar do perfil principal
-            const profileImg = document.querySelector('.profile-picture img');
-            if (profileImg) {
-                let userId = currentUser?.uid;
-                if (showOtherUserId && showOtherUserId !== currentUser?.uid) {
-                    userId = showOtherUserId;
-                }
-                if (userId) carregarAvatarElemento(profileImg, userId);
-            }
-            
-            // Avatares do feed
-            document.querySelectorAll('.feed-post-avatar img').forEach(img => {
-                const post = img.closest('.feed-post');
-                if (post) {
-                    const usernameEl = post.querySelector('.feed-post-username');
-                    if (usernameEl && usernameEl.getAttribute('onclick')) {
-                        const match = usernameEl.getAttribute('onclick').match(/viewProfileFromPost\('([^']+)'\)/);
-                        if (match && match[1]) carregarAvatarElemento(img, match[1]);
-                    }
-                }
-            });
-            
-            // Avatares dos comentários
-            document.querySelectorAll('.comment-avatar-modal img, .reply-avatar img').forEach(img => {
-                const parent = img.closest('[onclick*="viewProfileFromPost"]');
-                if (parent) {
-                    const match = parent.getAttribute('onclick')?.match(/viewProfileFromPost\('([^']+)'\)/);
-                    if (match && match[1]) carregarAvatarElemento(img, match[1]);
-                }
-            });
-            
-            // Avatares do chat
-            document.querySelectorAll('.chat-user-avatar img, .user-search-avatar img, .chat-header-avatar img, .message-avatar img').forEach(img => {
-                const container = img.closest('[data-user-id]') || img.closest('[onclick*="viewProfile"]');
-                if (container) {
-                    let userId = container.getAttribute('data-user-id');
-                    if (!userId) {
-                        const onclick = container.getAttribute('onclick');
-                        const match = onclick?.match(/viewProfile\('([^']+)'\)/);
-                        if (match) userId = match[1];
-                    }
-                    if (userId && userId !== 'geral') carregarAvatarElemento(img, userId);
-                }
-            });
-            
-            // Avatares de seguidores/seguindo
-            document.querySelectorAll('.follow-list-avatar img').forEach(img => {
-                const item = img.closest('.follow-list-item');
-                if (item) {
-                    const onclick = item.getAttribute('onclick');
-                    const match = onclick?.match(/viewProfileFromPost\('([^']+)'\)/);
-                    if (match && match[1]) carregarAvatarElemento(img, match[1]);
-                }
-            });
-        }, 150);
-    };
-}
-
-// Também corrigir a exibição de mensagens no chat para carregar avatares
-const funcaoOriginalDisplayMessage = window.displayMessage;
-if (funcaoOriginalDisplayMessage) {
-    window.displayMessage = function(message, messageId) {
-        funcaoOriginalDisplayMessage(message, messageId);
-        if (message && message.senderId) {
-            setTimeout(() => {
-                const msgDiv = document.getElementById(`message-${messageId}`);
-                if (msgDiv) {
-                    const avatarImg = msgDiv.querySelector('.message-avatar img');
-                    if (avatarImg) {
-                        carregarAvatarElemento(avatarImg, message.senderId);
-                    }
-                }
-            }, 50);
-        }
-    };
-}
-
-// Forçar atualização ao entrar no perfil de outro usuário
-const originalViewProfileFromPost = window.viewProfileFromPost;
-if (originalViewProfileFromPost) {
-    window.viewProfileFromPost = function(userId) {
-        originalViewProfileFromPost(userId);
-        setTimeout(() => {
-            if (userId && userId !== currentUser?.uid) {
-                const profileImg = document.querySelector('.profile-picture img');
-                if (profileImg) carregarAvatarElemento(profileImg, userId);
-            }
-        }, 200);
-    };
-}
-
-console.log('✅ Correção de avatares aplicada mantendo todas as funções originais!');
-
- 
-
-// =====================================================
-// CORREÇÃO DEFINITIVA DOS AVATARES (SEM QUEBRAR NADA)
-// =====================================================
-
-const DEFAULT_AVATAR_URL = "https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png";
-
-// Função que atualiza UM avatar
-function fixAvatarImage(imgElement, userId) {
-    if (!imgElement || !userId || userId === 'geral') return;
+function atualizarAvatar(elemento, userId) {
+    if (!elemento || !userId || userId === 'geral') return;
+    if (elemento.tagName !== 'IMG') return;
     database.ref(`usuarios/${userId}/avatarUrl`).once('value').then(snap => {
         const url = snap.val();
-        if (url && url.trim()) {
-            imgElement.src = url;
-        } else {
-            imgElement.src = DEFAULT_AVATAR_URL;
-        }
-    }).catch(() => {
-        imgElement.src = DEFAULT_AVATAR_URL;
-    });
+        elemento.src = (url && url.trim()) ? url : AVATAR_PADRAO;
+    }).catch(() => { elemento.src = AVATAR_PADRAO; });
 }
 
-// Função que vasculha a página e corrige TODOS os avatares
-function fixAllAvatars() {
-    // 1. Avatar do perfil (página atual)
+function corrigirTodosAvatares() {
+    // Perfil principal
     const profileImg = document.querySelector('.profile-picture img');
-    if (profileImg) {
-        // Descobre se é perfil próprio ou de outro
-        let userId = null;
+    if (profileImg && currentUser) {
+        let uid = currentUser.uid;
         const container = document.querySelector('#instagramProfileContainer');
-        if (container) {
-            const followBtn = container.querySelector('.follow-button');
-            if (followBtn && !followBtn.classList.contains('following')) {
-                // Se tem botão seguir, é perfil de outro
-                const onclickAttr = followBtn.getAttribute('onclick');
-                const match = onclickAttr?.match(/toggleFollow\('([^']+)'/);
-                if (match) userId = match[1];
-            }
+        const followBtn = container?.querySelector('.follow-button');
+        if (followBtn && followBtn.getAttribute('onclick')?.includes("followUser")) {
+            const match = followBtn.getAttribute('onclick').match(/followUser\('([^']+)'\)/);
+            if (match) uid = match[1];
         }
-        if (!userId && currentUser) userId = currentUser.uid;
-        if (userId) fixAvatarImage(profileImg, userId);
+        atualizarAvatar(profileImg, uid);
     }
-
-    // 2. Avatares do feed
+    // Feed
     document.querySelectorAll('.feed-post-avatar img').forEach(img => {
-        const postDiv = img.closest('.feed-post');
-        if (postDiv) {
-            const usernameSpan = postDiv.querySelector('.feed-post-username');
-            if (usernameSpan && usernameSpan.getAttribute('onclick')) {
-                const match = usernameSpan.getAttribute('onclick').match(/viewProfileFromPost\('([^']+)'\)/);
-                if (match && match[1]) fixAvatarImage(img, match[1]);
-            }
-        }
+        const post = img.closest('.feed-post');
+        const usernameSpan = post?.querySelector('.feed-post-username');
+        const onclick = usernameSpan?.getAttribute('onclick');
+        const match = onclick?.match(/viewProfileFromPost\('([^']+)'\)/);
+        if (match) atualizarAvatar(img, match[1]);
     });
-
-    // 3. Avatares de comentários e respostas
+    // Comentários
     document.querySelectorAll('.comment-avatar-modal img, .reply-avatar img').forEach(img => {
         const parent = img.closest('[onclick*="viewProfileFromPost"]');
-        if (parent) {
-            const match = parent.getAttribute('onclick').match(/viewProfileFromPost\('([^']+)'\)/);
-            if (match && match[1]) fixAvatarImage(img, match[1]);
-        }
+        const match = parent?.getAttribute('onclick')?.match(/viewProfileFromPost\('([^']+)'\)/);
+        if (match) atualizarAvatar(img, match[1]);
     });
-
-    // 4. Avatares do chat (lista, cabeçalho, mensagens)
-    document.querySelectorAll('.chat-user-avatar img, .chat-header-avatar img, .message-avatar img, .user-search-avatar img').forEach(img => {
-        let userId = null;
-        const parent = img.closest('[data-user-id]');
-        if (parent) userId = parent.getAttribute('data-user-id');
-        if (!userId) {
-            const parentOnClick = img.closest('[onclick*="viewProfile"]');
-            if (parentOnClick) {
-                const match = parentOnClick.getAttribute('onclick').match(/viewProfile\('([^']+)'\)/);
-                if (match) userId = match[1];
-            }
+    // Chat
+    document.querySelectorAll('.chat-user-avatar img, .chat-header-avatar img, .message-avatar img').forEach(img => {
+        const parent = img.closest('[data-user-id]') || img.closest('[onclick*="viewProfile"]');
+        let uid = parent?.getAttribute('data-user-id');
+        if (!uid && parent) {
+            const match = parent.getAttribute('onclick')?.match(/viewProfile\('([^']+)'\)/);
+            if (match) uid = match[1];
         }
-        if (userId && userId !== 'geral') fixAvatarImage(img, userId);
-    });
-
-    // 5. Avatares de seguidores/seguindo
-    document.querySelectorAll('.follow-list-avatar img').forEach(img => {
-        const item = img.closest('.follow-list-item');
-        if (item) {
-            const match = item.getAttribute('onclick')?.match(/viewProfileFromPost\('([^']+)'\)/);
-            if (match && match[1]) fixAvatarImage(img, match[1]);
-        }
+        if (uid && uid !== 'geral') atualizarAvatar(img, uid);
     });
 }
 
-// Observar mudanças na página (quando novos elementos são adicionados)
-const avatarObserver = new MutationObserver(() => {
-    fixAllAvatars();
-});
-avatarObserver.observe(document.body, { childList: true, subtree: true });
+// Observa mudanças no DOM
+new MutationObserver(corrigirTodosAvatares).observe(document.body, { childList: true, subtree: true });
 
-// Corrigir sempre que o perfil for atualizado (já que a função original é chamada)
-const originalRenderProfile = window.renderInstagramProfile;
-if (originalRenderProfile) {
+// Integra com a função original do perfil (se existir)
+const originalRender = window.renderInstagramProfile;
+if (originalRender) {
     window.renderInstagramProfile = function(...args) {
-        originalRenderProfile.apply(this, args);
-        setTimeout(fixAllAvatars, 200);
+        originalRender(...args);
+        setTimeout(corrigirTodosAvatares, 150);
     };
 }
 
-// Corrigir também quando entrar no perfil via viewProfileFromPost
-const originalViewProfile = window.viewProfileFromPost;
-if (originalViewProfile) {
-    window.viewProfileFromPost = function(...args) {
-        originalViewProfile.apply(this, args);
-        setTimeout(fixAllAvatars, 300);
-    };
-}
+// Executa periodicamente (leve)
+setInterval(() => { if (document.visibilityState === 'visible') corrigirTodosAvatares(); }, 3000);
+corrigirTodosAvatares();
+console.log('✅ Correção de avatares ativa (versão única)');
 
-// Executar a cada 2 segundos para garantir (leve e não atrapalha)
-setInterval(() => {
-    if (document.visibilityState === 'visible') {
-        fixAllAvatars();
-    }
-}, 2000);
-
-// Executar uma vez ao carregar a página
-document.addEventListener('DOMContentLoaded', fixAllAvatars);
-console.log('✅ Sistema de avatares ativado (não interfere em outras funções)');
                 
          </script>  
         </body>
