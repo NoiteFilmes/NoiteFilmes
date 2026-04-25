@@ -6296,265 +6296,138 @@
 
 
                 // ============================================
-// CORREÇÃO SIMPLES E DEFINITIVA DOS AVATARES
+// CORREÇÃO DE AVATARES - MANTENDO TODAS AS FUNÇÕES ORIGINAIS
 // ============================================
 
 const AVATAR_PADRAO = "https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png";
 
-// Função principal que busca e atualiza qualquer avatar
-function atualizarAvatar(elemento, userId) {
-    if (!userId || userId === 'geral') return;
+// Função auxiliar para carregar avatar em qualquer elemento
+function carregarAvatarElemento(elemento, userId) {
+    if (!userId || userId === 'geral' || !elemento) return;
     
-    // Se for um elemento <img>, atualizar o src
+    // Se for uma imagem
     if (elemento.tagName === 'IMG') {
-        database.ref(`usuarios/${userId}/avatarUrl`).once('value').then((snap) => {
+        database.ref(`usuarios/${userId}/avatarUrl`).once('value').then(snap => {
             const url = snap.val();
-            if (url && url.trim()) {
-                elemento.src = url;
-            } else {
-                elemento.src = AVATAR_PADRAO;
-            }
-        }).catch(() => {
-            elemento.src = AVATAR_PADRAO;
-        });
+            elemento.src = (url && url.trim()) ? url : AVATAR_PADRAO;
+        }).catch(() => { elemento.src = AVATAR_PADRAO; });
     } 
     // Se for um div com background
     else if (elemento.style) {
-        database.ref(`usuarios/${userId}/avatarUrl`).once('value').then((snap) => {
+        database.ref(`usuarios/${userId}/avatarUrl`).once('value').then(snap => {
             const url = snap.val();
-            if (url && url.trim()) {
-                elemento.style.backgroundImage = `url(${url})`;
-                elemento.style.backgroundSize = 'cover';
-                elemento.style.backgroundPosition = 'center';
-            } else {
-                elemento.style.backgroundImage = `url(${AVATAR_PADRAO})`;
-            }
+            elemento.style.backgroundImage = `url(${(url && url.trim()) ? url : AVATAR_PADRAO})`;
+            elemento.style.backgroundSize = 'cover';
+            elemento.style.backgroundPosition = 'center';
         }).catch(() => {
             elemento.style.backgroundImage = `url(${AVATAR_PADRAO})`;
         });
     }
 }
 
-// Corrigir a função renderInstagramProfile
-window.renderInstagramProfile = function(showOtherUserId = null) {
-    const container = document.getElementById('instagramProfileContainer');
-    if (!container || !currentUser) return;
-    
-    let targetUserId = currentUser.uid;
-    let isOwnProfile = true;
-    
-    if (showOtherUserId && showOtherUserId !== currentUser.uid) {
-        targetUserId = showOtherUserId;
-        isOwnProfile = false;
-    }
-    
-    // Buscar dados do usuário
-    database.ref(`usuarios/${targetUserId}`).once('value').then(async (snap) => {
-        const userData = snap.val() || {};
-        const nickname = userData.nickname || (isOwnProfile ? currentUsername : 'usuário');
-        const displayName = userData.displayName || nickname;
-        const bio = userData.bio || "🎬 Apaixonado por cinema e séries. NoiteFilmes é minha segunda casa! 🍿✨";
-        const externalLink = userData.externalLink || "https://instagram.com/noitefilmes";
+// Sobrescrever a função original para adicionar a correção de avatar,
+// mas mantendo TODO o resto do código original
+const funcaoOriginalRenderProfile = window.renderInstagramProfile;
+if (funcaoOriginalRenderProfile) {
+    window.renderInstagramProfile = function(showOtherUserId = null) {
+        // Chama a função original primeiro
+        funcaoOriginalRenderProfile(showOtherUserId);
         
-        // Buscar posts
-        const postsSnap = await database.ref('feed_posts').orderByChild('userId').equalTo(targetUserId).once('value');
-        const posts = postsSnap.val();
-        const postsList = posts ? Object.values(posts).filter(p => !p.originalPostId) : [];
-        const totalPosts = postsList.length;
-        
-        // Buscar seguidores e seguindo
-        const followersSnap = await database.ref(`followers/${targetUserId}`).once('value');
-        const followingSnap = await database.ref(`following/${targetUserId}`).once('value');
-        const followersCount = followersSnap.val() ? Object.keys(followersSnap.val()).length : 0;
-        const followingCount = followingSnap.val() ? Object.keys(followingSnap.val()).length : 0;
-        
-        // Verificar se segue
-        let isFollowing = false;
-        if (!isOwnProfile && currentUser) {
-            const followCheck = await database.ref(`followers/${targetUserId}/${currentUser.uid}`).once('value');
-            isFollowing = followCheck.val() === true;
-        }
-        
-        // Buscar avatar do usuário
-        let avatarUrl = AVATAR_PADRAO;
-        if (userData.avatarUrl) {
-            avatarUrl = userData.avatarUrl;
-        }
-        
-        // Montar HTML
-        let actionButtonHtml = '';
-        if (!isOwnProfile) {
-            actionButtonHtml = `<button class="follow-button ${isFollowing ? 'following' : ''}" id="followActionBtn" onclick="toggleFollow('${targetUserId}', this)">${isFollowing ? 'Seguindo' : 'Seguir'}</button>`;
-        }
-        
-        let avatarUploadHtml = '';
-        if (isOwnProfile) {
-            avatarUploadHtml = `<div class="avatar-upload-overlay" onclick="document.getElementById('avatarUploadInput').click()"><i class="fas fa-camera"></i></div>`;
-        }
-        
-        container.innerHTML = `
-            <div class="profile-header-instagram">
-                <div class="top-bar">
-                    <div class="profile-username-top">${escapeHtml(nickname)}</div>
-                    ${isOwnProfile ? `<div class="profile-options-icon" onclick="openEditProfileModal()"><i class="fas fa-ellipsis-h"></i></div>` : ''}
-                </div>
-                <div class="profile-info-row">
-                    <div class="profile-picture avatar-upload-container" id="profilePictureContainer">
-                        <img src="${avatarUrl}" id="profileAvatarImg" onerror="this.src='${AVATAR_PADRAO}'" style="width:100%; height:100%; object-fit:cover;">
-                        ${avatarUploadHtml}
-                    </div>
-                    <div class="profile-stats-grid">
-                        <div><span class="stat-number" id="statPosts">${totalPosts}</span><span class="stat-label"> posts</span></div>
-                        <div><span class="stat-number" onclick="showFollowersList('${targetUserId}')">${followersCount}</span><span class="stat-label" onclick="showFollowersList('${targetUserId}')"> seguidores</span></div>
-                        <div><span class="stat-number" onclick="showFollowingList('${targetUserId}')">${followingCount}</span><span class="stat-label" onclick="showFollowingList('${targetUserId}')"> seguindo</span></div>
-                    </div>
-                </div>
-                <div class="profile-bio">
-                    <div class="profile-bio-text">${makeNicknamesClickable(escapeHtml(bio))}</div>
-                </div>
-                <a href="${externalLink}" target="_blank" class="profile-external-link"><i class="fas fa-link"></i> ${externalLink}</a>
-                ${actionButtonHtml}
-                <div class="profile-tabs-container">
-                    <div class="profile-tabs">
-                        <div class="profile-tab ${currentProfileTab === 'posts' ? 'active' : ''}" onclick="window.currentProfileTab='posts'; renderInstagramProfile('${isOwnProfile ? null : targetUserId}')"><i class="fas fa-th"></i> POSTS</div>
-                        <div class="profile-tab ${currentProfileTab === 'favoritos' ? 'active' : ''}" onclick="window.currentProfileTab='favoritos'; renderInstagramProfile('${isOwnProfile ? null : targetUserId}')"><i class="fas fa-heart"></i> FAVORITOS</div>
-                    </div>
-                </div>
-                <div id="profileTabContent"></div>
-            </div>
-        `;
-        
-        // Carregar conteúdo da aba
-        await carregarAbaPerfil(targetUserId, currentProfileTab);
-        
-        // Garantir que o avatar está correto (buscar novamente)
-        const avatarImg = document.getElementById('profileAvatarImg');
-        if (avatarImg) {
-            database.ref(`usuarios/${targetUserId}/avatarUrl`).once('value').then((snap) => {
-                if (snap.val()) {
-                    avatarImg.src = snap.val();
-                }
-            });
-        }
-        
-        setupNicknameClickHandlers();
-    });
-};
-
-// Função para carregar aba do perfil
-async function carregarAbaPerfil(userId, tab) {
-    const container = document.getElementById('profileTabContent');
-    if (!container) return;
-    
-    if (tab === 'posts') {
-        const postsSnap = await database.ref('feed_posts').orderByChild('userId').equalTo(userId).once('value');
-        const posts = postsSnap.val();
-        const postsList = posts ? Object.values(posts).filter(p => !p.originalPostId).sort((a, b) => b.createdAt - a.createdAt) : [];
-        
-        if (postsList.length === 0) {
-            container.innerHTML = '<div class="text-center text-gray-500 py-8">Nenhuma publicação ainda</div>';
-            return;
-        }
-        
-        container.innerHTML = '<div class="post-grid" id="profilePostGrid"></div>';
-        const grid = document.getElementById('profilePostGrid');
-        for (const post of postsList) {
-            const div = document.createElement('div');
-            div.className = 'post-grid-item';
-            div.onclick = () => viewPostDetail(post.id);
-            if (post.mediaType === 'video') {
-                div.innerHTML = `<video src="${post.mediaUrl}" style="width:100%; height:100%; object-fit:cover;"></video>`;
-            } else {
-                div.innerHTML = `<img src="${post.mediaUrl}" onerror="this.src='https://via.placeholder.com/300x300'">`;
-            }
-            grid.appendChild(div);
-        }
-    } else if (tab === 'favoritos') {
-        const favSnap = await database.ref(`favoritos/${userId}`).once('value');
-        const favs = favSnap.val();
-        if (!favs || Object.keys(favs).length === 0) {
-            container.innerHTML = '<div class="text-center text-gray-500 py-8">Nenhum favorito ainda</div>';
-            return;
-        }
-        const favList = Object.values(favs);
-        container.innerHTML = '<div class="post-grid" id="profileFavGrid"></div>';
-        const grid = document.getElementById('profileFavGrid');
-        for (const fav of favList) {
-            const div = document.createElement('div');
-            div.className = 'post-grid-item';
-            div.onclick = () => playMediaById(fav.id, fav.type || 'filme');
-            div.innerHTML = `<img src="${fav.thumb || AVATAR_PADRAO}" onerror="this.src='${AVATAR_PADRAO}'">`;
-            grid.appendChild(div);
-        }
-    }
-}
-
-// Função para seguir/deixar de seguir
-window.toggleFollow = async function(userId, button) {
-    if (!currentUser) { showToast('Faça login para seguir'); return; }
-    const isFollowing = button.classList.contains('following');
-    
-    if (isFollowing) {
-        await database.ref(`followers/${userId}/${currentUser.uid}`).remove();
-        await database.ref(`following/${currentUser.uid}/${userId}`).remove();
-        button.classList.remove('following');
-        button.innerText = 'Seguir';
-        showToast('Deixou de seguir');
-    } else {
-        await database.ref(`followers/${userId}/${currentUser.uid}`).set(true);
-        await database.ref(`following/${currentUser.uid}/${userId}`).set(true);
-        button.classList.add('following');
-        button.innerText = 'Seguindo';
-        showToast('Agora você segue');
-    }
-    
-    // Atualizar contadores
-    setTimeout(() => renderInstagramProfile(userId), 500);
-};
-
-// Corrigir feed para mostrar avatares
-const renderFeedOriginal = window.renderFeed;
-if (renderFeedOriginal) {
-    window.renderFeed = async function() {
-        await renderFeedOriginal();
+        // Depois que ela terminar, corrige os avatares
         setTimeout(() => {
+            // Avatar do perfil principal
+            const profileImg = document.querySelector('.profile-picture img');
+            if (profileImg) {
+                let userId = currentUser?.uid;
+                if (showOtherUserId && showOtherUserId !== currentUser?.uid) {
+                    userId = showOtherUserId;
+                }
+                if (userId) carregarAvatarElemento(profileImg, userId);
+            }
+            
+            // Avatares do feed
             document.querySelectorAll('.feed-post-avatar img').forEach(img => {
                 const post = img.closest('.feed-post');
                 if (post) {
-                    const userNameEl = post.querySelector('.feed-post-username');
-                    if (userNameEl && userNameEl.getAttribute('onclick')) {
-                        const match = userNameEl.getAttribute('onclick').match(/viewProfileFromPost\('([^']+)'\)/);
-                        if (match && match[1]) {
-                            database.ref(`usuarios/${match[1]}/avatarUrl`).once('value').then(snap => {
-                                if (snap.val()) img.src = snap.val();
-                            });
-                        }
+                    const usernameEl = post.querySelector('.feed-post-username');
+                    if (usernameEl && usernameEl.getAttribute('onclick')) {
+                        const match = usernameEl.getAttribute('onclick').match(/viewProfileFromPost\('([^']+)'\)/);
+                        if (match && match[1]) carregarAvatarElemento(img, match[1]);
                     }
                 }
             });
-        }, 100);
-    };
-}
-
-// Garantir que o avatar do cabeçalho do chat carregue
-const selectChatOriginal = window.selectChat;
-if (selectChatOriginal) {
-    window.selectChat = function(chatId, userName, userAvatar, userId = null) {
-        selectChatOriginal(chatId, userName, userAvatar, userId);
-        setTimeout(() => {
-            if (userId && userId !== 'geral') {
-                const headerAvatar = document.querySelector('.chat-header-avatar img');
-                if (headerAvatar) {
-                    database.ref(`usuarios/${userId}/avatarUrl`).once('value').then(snap => {
-                        if (snap.val()) headerAvatar.src = snap.val();
-                    });
+            
+            // Avatares dos comentários
+            document.querySelectorAll('.comment-avatar-modal img, .reply-avatar img').forEach(img => {
+                const parent = img.closest('[onclick*="viewProfileFromPost"]');
+                if (parent) {
+                    const match = parent.getAttribute('onclick')?.match(/viewProfileFromPost\('([^']+)'\)/);
+                    if (match && match[1]) carregarAvatarElemento(img, match[1]);
                 }
-            }
-        }, 100);
+            });
+            
+            // Avatares do chat
+            document.querySelectorAll('.chat-user-avatar img, .user-search-avatar img, .chat-header-avatar img, .message-avatar img').forEach(img => {
+                const container = img.closest('[data-user-id]') || img.closest('[onclick*="viewProfile"]');
+                if (container) {
+                    let userId = container.getAttribute('data-user-id');
+                    if (!userId) {
+                        const onclick = container.getAttribute('onclick');
+                        const match = onclick?.match(/viewProfile\('([^']+)'\)/);
+                        if (match) userId = match[1];
+                    }
+                    if (userId && userId !== 'geral') carregarAvatarElemento(img, userId);
+                }
+            });
+            
+            // Avatares de seguidores/seguindo
+            document.querySelectorAll('.follow-list-avatar img').forEach(img => {
+                const item = img.closest('.follow-list-item');
+                if (item) {
+                    const onclick = item.getAttribute('onclick');
+                    const match = onclick?.match(/viewProfileFromPost\('([^']+)'\)/);
+                    if (match && match[1]) carregarAvatarElemento(img, match[1]);
+                }
+            });
+        }, 150);
     };
 }
 
-console.log('✅ Sistema de avatares corrigido com sucesso!');
+// Também corrigir a exibição de mensagens no chat para carregar avatares
+const funcaoOriginalDisplayMessage = window.displayMessage;
+if (funcaoOriginalDisplayMessage) {
+    window.displayMessage = function(message, messageId) {
+        funcaoOriginalDisplayMessage(message, messageId);
+        if (message && message.senderId) {
+            setTimeout(() => {
+                const msgDiv = document.getElementById(`message-${messageId}`);
+                if (msgDiv) {
+                    const avatarImg = msgDiv.querySelector('.message-avatar img');
+                    if (avatarImg) {
+                        carregarAvatarElemento(avatarImg, message.senderId);
+                    }
+                }
+            }, 50);
+        }
+    };
+}
+
+// Forçar atualização ao entrar no perfil de outro usuário
+const originalViewProfileFromPost = window.viewProfileFromPost;
+if (originalViewProfileFromPost) {
+    window.viewProfileFromPost = function(userId) {
+        originalViewProfileFromPost(userId);
+        setTimeout(() => {
+            if (userId && userId !== currentUser?.uid) {
+                const profileImg = document.querySelector('.profile-picture img');
+                if (profileImg) carregarAvatarElemento(profileImg, userId);
+            }
+        }, 200);
+    };
+}
+
+console.log('✅ Correção de avatares aplicada mantendo todas as funções originais!');
+</script>
                 
             </script>
         </body>
