@@ -1236,6 +1236,13 @@
             font-size: 14px;
             flex-shrink: 0;
             cursor: pointer;
+            overflow: hidden;
+        }
+        
+        .comment-avatar-modal img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
         
         .comment-content-modal {
@@ -1325,6 +1332,13 @@
             font-size: 12px;
             flex-shrink: 0;
             cursor: pointer;
+            overflow: hidden;
+        }
+        
+        .reply-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
         
         .reply-content {
@@ -3470,6 +3484,9 @@
                 const CLOUDINARY_CLOUD_NAME = "dama2etyy";
                 const CLOUDINARY_UPLOAD_PRESET = "noitefilmes_unsigned";
                 
+                // ==================== IMAGEM PADRÃO ====================
+                const DEFAULT_AVATAR_URL = "https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png";
+                
                 let currentUser = null;
                 let filmes = [];
                 let series = [];
@@ -3505,13 +3522,14 @@
                 let currentProfileViewMode = 'self';
                 let otherProfileUserId = null;
                 
+                // ===== ATUALIZAÇÃO: Dados do perfil com avatar padrão =====
                 let userProfileData = {
                     displayName: '',
                     bio: '',
                     externalLink: '',
                     phone: '',
                     whatsapp: '',
-                    avatarUrl: ''
+                    avatarUrl: DEFAULT_AVATAR_URL
                 };
                 
                 // Variáveis de busca
@@ -3620,93 +3638,88 @@
                 
                 // ==================== FUNÇÃO DE BUSCA NA SEÇÃO DE BUSCA (CORRIGIDA COM X E BUSCA EM TEMPO REAL) ====================
                 function performSearchInSection() {
-    const term = document.getElementById('searchInput').value.trim().toLowerCase();
-    const resultsContainer = document.getElementById('searchResults');
-    const clearBtn = document.getElementById('clearSearchBtn');
-    
-    // Mostrar ou esconder o botão X
-    if (clearBtn) {
-        clearBtn.style.display = term.length > 0 ? 'flex' : 'none';
-    }
-    
-    if (term.length === 0) {
-        resultsContainer.innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
-        return;
-    }
-    
-    let allItems = [];
-    
-    // VERIFICAÇÃO DE SEGURANÇA: Garantir que os arrays existem e têm itens válidos
-    if (currentSearchFilter === 'filmes') {
-        if (filmes && filmes.length > 0) {
-            allItems = filmes.filter(f => f && f.title).map(f => ({ ...f, type: 'filme', typeIcon: '🎬', typeName: 'Filme' }));
-        }
-    } else if (currentSearchFilter === 'series') {
-        if (series && series.length > 0) {
-            allItems = series.filter(s => s && s.title).map(s => ({ ...s, type: 'serie', typeIcon: '📺', typeName: 'Série' }));
-        }
-    } else if (currentSearchFilter === 'canais') {
-        if (canais && canais.length > 0) {
-            allItems = canais.filter(c => c && c.title).map(c => ({ ...c, type: 'canal', typeIcon: '📡', typeName: 'Canal' }));
-        }
-    } else {
-        // Busca em todos
-        allItems = [];
-        if (filmes && filmes.length > 0) {
-            allItems.push(...filmes.filter(f => f && f.title).map(f => ({ ...f, type: 'filme', typeIcon: '🎬', typeName: 'Filme' })));
-        }
-        if (series && series.length > 0) {
-            allItems.push(...series.filter(s => s && s.title).map(s => ({ ...s, type: 'serie', typeIcon: '📺', typeName: 'Série' })));
-        }
-        if (canais && canais.length > 0) {
-            allItems.push(...canais.filter(c => c && c.title).map(c => ({ ...c, type: 'canal', typeIcon: '📡', typeName: 'Canal' })));
-        }
-    }
-    
-    // Verificar se há itens para buscar
-    if (allItems.length === 0) {
-        resultsContainer.innerHTML = '<div class="no-results">📀 Nenhum conteúdo cadastrado ainda</div>';
-        return;
-    }
-    
-    // Busca com verificação de segurança
-    const matches = allItems.filter(item => {
-        if (!item || !item.title) return false;
-        const titleMatch = item.title.toLowerCase().includes(term);
-        const categoryMatch = item.category ? item.category.toLowerCase().includes(term) : false;
-        return titleMatch || categoryMatch;
-    });
-    
-    if (matches.length === 0) {
-        resultsContainer.innerHTML = '<div class="no-results">❌ Nenhum resultado encontrado para "' + escapeHtml(term) + '"</div>';
-        return;
-    }
-    
-    resultsContainer.innerHTML = matches.map(item => `
-        <div class="search-result-card glass-card p-2 ripple-btn" data-id="${item.id}" data-type="${item.type}">
-            <img src="${item.thumb || 'https://via.placeholder.com/300x450'}" class="search-result-image" onerror="this.src='https://via.placeholder.com/300x450'">
-            <div class="search-result-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title.substring(0, 30))}${item.title.length > 30 ? '...' : ''}</div>
-            <div class="search-result-type">${item.typeIcon} ${item.typeName} ${item.year ? `• ${item.year}` : ''}</div>
-        </div>
-    `).join('');
-    
-    // Adicionar evento de clique para cada resultado
-    document.querySelectorAll('#searchResults .search-result-card').forEach(el => {
-        el.addEventListener('click', () => {
-            const id = el.getAttribute('data-id');
-            const type = el.getAttribute('data-type');
-            let item;
-            if (type === 'filme') item = filmes.find(f => f && f.id === id);
-            else if (type === 'serie') item = series.find(s => s && s.id === id);
-            else item = canais.find(c => c && c.id === id);
-            if (item) {
-                playMedia(item, type);
-            }
-        });
-    });
-}
+                    const term = document.getElementById('searchInput').value.trim().toLowerCase();
+                    const resultsContainer = document.getElementById('searchResults');
+                    const clearBtn = document.getElementById('clearSearchBtn');
+                    
+                    // Mostrar ou esconder o botão X
+                    if (clearBtn) {
+                        clearBtn.style.display = term.length > 0 ? 'flex' : 'none';
+                    }
+                    
+                    if (term.length === 0) {
+                        resultsContainer.innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
+                        return;
+                    }
+                    
+                    let allItems = [];
+                    
+                    if (currentSearchFilter === 'filmes') {
+                        if (filmes && filmes.length > 0) {
+                            allItems = filmes.filter(f => f && f.title).map(f => ({ ...f, type: 'filme', typeIcon: '🎬', typeName: 'Filme' }));
+                        }
+                    } else if (currentSearchFilter === 'series') {
+                        if (series && series.length > 0) {
+                            allItems = series.filter(s => s && s.title).map(s => ({ ...s, type: 'serie', typeIcon: '📺', typeName: 'Série' }));
+                        }
+                    } else if (currentSearchFilter === 'canais') {
+                        if (canais && canais.length > 0) {
+                            allItems = canais.filter(c => c && c.title).map(c => ({ ...c, type: 'canal', typeIcon: '📡', typeName: 'Canal' }));
+                        }
+                    } else {
+                        // Busca em todos
+                        allItems = [];
+                        if (filmes && filmes.length > 0) {
+                            allItems.push(...filmes.filter(f => f && f.title).map(f => ({ ...f, type: 'filme', typeIcon: '🎬', typeName: 'Filme' })));
+                        }
+                        if (series && series.length > 0) {
+                            allItems.push(...series.filter(s => s && s.title).map(s => ({ ...s, type: 'serie', typeIcon: '📺', typeName: 'Série' })));
+                        }
+                        if (canais && canais.length > 0) {
+                            allItems.push(...canais.filter(c => c && c.title).map(c => ({ ...c, type: 'canal', typeIcon: '📡', typeName: 'Canal' })));
+                        }
+                    }
+                    
+                    if (allItems.length === 0) {
+                        resultsContainer.innerHTML = '<div class="no-results">📀 Nenhum conteúdo cadastrado ainda</div>';
+                        return;
+                    }
+                    
+                    const matches = allItems.filter(item => {
+                        if (!item || !item.title) return false;
+                        const titleMatch = item.title.toLowerCase().includes(term);
+                        const categoryMatch = item.category ? item.category.toLowerCase().includes(term) : false;
+                        return titleMatch || categoryMatch;
+                    });
+                    
+                    if (matches.length === 0) {
+                        resultsContainer.innerHTML = '<div class="no-results">❌ Nenhum resultado encontrado para "' + escapeHtml(term) + '"</div>';
+                        return;
+                    }
+                    
+                    resultsContainer.innerHTML = matches.map(item => `
+                        <div class="search-result-card glass-card p-2 ripple-btn" data-id="${item.id}" data-type="${item.type}">
+                            <img src="${item.thumb || 'https://via.placeholder.com/300x450'}" class="search-result-image" onerror="this.src='https://via.placeholder.com/300x450'">
+                            <div class="search-result-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title.substring(0, 30))}${item.title.length > 30 ? '...' : ''}</div>
+                            <div class="search-result-type">${item.typeIcon} ${item.typeName} ${item.year ? `• ${item.year}` : ''}</div>
+                        </div>
+                    `).join('');
+                    
+                    document.querySelectorAll('#searchResults .search-result-card').forEach(el => {
+                        el.addEventListener('click', () => {
+                            const id = el.getAttribute('data-id');
+                            const type = el.getAttribute('data-type');
+                            let item;
+                            if (type === 'filme') item = filmes.find(f => f && f.id === id);
+                            else if (type === 'serie') item = series.find(s => s && s.id === id);
+                            else item = canais.find(c => c && c.id === id);
+                            if (item) {
+                                playMedia(item, type);
+                            }
+                        });
+                    });
+                }
                 
-                // Função para limpar o campo de busca
                 function clearSearch() {
                     document.getElementById('searchInput').value = '';
                     document.getElementById('clearSearchBtn').style.display = 'none';
@@ -3714,7 +3727,6 @@
                     document.getElementById('searchInput').focus();
                 }
                 
-                // Alternar filtro de busca
                 function setSearchFilter(filter) {
                     currentSearchFilter = filter;
                     document.querySelectorAll('.search-filter-btn').forEach(btn => {
@@ -4074,7 +4086,7 @@
                             <div class="comment-item-modal" data-comment-id="${comment.id}">
                                 <div class="comment-main">
                                     <div class="comment-avatar-modal" onclick="viewProfileFromPost('${comment.userId}')">
-                                        ${comment.userName ? comment.userName.charAt(0).toUpperCase() : 'U'}
+                                        <img src="${DEFAULT_AVATAR_URL}" style="width:100%; height:100%; object-fit:cover;">
                                     </div>
                                     <div class="comment-content-modal">
                                         <div class="comment-username-modal" onclick="viewProfileFromPost('${comment.userId}')">${escapeHtml(comment.userDisplayName || comment.userName)}</div>
@@ -4105,7 +4117,7 @@
                                 <div class="reply-item">
                                     <div class="reply-main">
                                         <div class="reply-avatar" onclick="viewProfileFromPost('${reply.userId}')">
-                                            ${reply.userName ? reply.userName.charAt(0).toUpperCase() : 'U'}
+                                            <img src="${DEFAULT_AVATAR_URL}" style="width:100%; height:100%; object-fit:cover;">
                                         </div>
                                         <div class="reply-content">
                                             <div class="reply-username" onclick="viewProfileFromPost('${reply.userId}')">${escapeHtml(reply.userDisplayName || reply.userName)}</div>
@@ -4171,8 +4183,7 @@
                         const snapshot = await database.ref('feed_posts').orderByChild('createdAt').once('value');
                         const posts = snapshot.val();
                         if (!posts) { feedContainer.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Nenhuma publicação ainda. Seja o primeiro a postar!</div>'; return; }
-                        // Já está ordenado do mais antigo para o mais novo, então invertemos
-const postsList = Object.values(posts).reverse();
+                        const postsList = Object.values(posts).reverse();
                         feedContainer.innerHTML = '';
                         for (const post of postsList) {
                             const isOwner = currentUser && post.userId === currentUser.uid;
@@ -4203,7 +4214,7 @@ const postsList = Object.values(posts).reverse();
                             postElement.innerHTML = `
                                 <div class="feed-post-header">
                                     <div class="feed-post-user">
-                                        <div class="feed-post-avatar" onclick="viewProfileFromPost('${post.userId}')">${post.userName ? post.userName.charAt(0).toUpperCase() : 'U'}</div>
+                                        <div class="feed-post-avatar" onclick="viewProfileFromPost('${post.userId}')"><img src="${DEFAULT_AVATAR_URL}" style="width:100%; height:100%; object-fit:cover;"></div>
                                         <div class="feed-post-userinfo">
                                             <span class="feed-post-username" onclick="viewProfileFromPost('${post.userId}')">${escapeHtml(displayName)}</span>
                                             <span class="feed-post-time">${timeAgo}</span>
@@ -4423,7 +4434,7 @@ const postsList = Object.values(posts).reverse();
                                 uid: followerIds[i],
                                 nickname: userData.nickname || 'usuário',
                                 displayName: userData.displayName || userData.nickname || 'Usuário',
-                                avatarUrl: userData.avatarUrl || null
+                                avatarUrl: userData.avatarUrl || DEFAULT_AVATAR_URL
                             });
                         }
                     }
@@ -4454,7 +4465,7 @@ const postsList = Object.values(posts).reverse();
                                 uid: followingIds[i],
                                 nickname: userData.nickname || 'usuário',
                                 displayName: userData.displayName || userData.nickname || 'Usuário',
-                                avatarUrl: userData.avatarUrl || null
+                                avatarUrl: userData.avatarUrl || DEFAULT_AVATAR_URL
                             });
                         }
                     }
@@ -4477,7 +4488,7 @@ const postsList = Object.values(posts).reverse();
                                 ${users.map(user => `
                                     <div class="follow-list-item" onclick="viewProfileFromPost('${user.uid}'); document.querySelector('.follow-list-modal')?.remove()">
                                         <div class="follow-list-avatar">
-                                            ${user.avatarUrl ? `<img src="${user.avatarUrl}" alt="Avatar">` : `<i class="fas fa-user"></i>`}
+                                            <img src="${user.avatarUrl || DEFAULT_AVATAR_URL}" style="width:100%; height:100%; object-fit:cover;">
                                         </div>
                                         <div class="follow-list-info">
                                             <div class="follow-list-name">${escapeHtml(user.displayName)}</div>
@@ -4498,6 +4509,7 @@ const postsList = Object.values(posts).reverse();
                     const container = document.getElementById('instagramProfileContainer');
                     if (!container) return;
                     if (!currentUser) { container.innerHTML = `<div class="text-center p-4">Faça login para acessar o perfil</div>`; return; }
+                    
                     let targetUserId = currentUser.uid;
                     let targetNickname = currentUsername;
                     let isOwnProfile = true;
@@ -4507,6 +4519,7 @@ const postsList = Object.values(posts).reverse();
                         targetUserId = showOtherUserId;
                         isOwnProfile = false;
                         currentViewingUserId = targetUserId;
+                        
                         database.ref(`usuarios/${targetUserId}`).once('value').then(snap => {
                             const data = snap.val();
                             if (data) {
@@ -4517,6 +4530,7 @@ const postsList = Object.values(posts).reverse();
                                 if (data.phone) userProfileData.phone = data.phone;
                                 if (data.whatsapp) userProfileData.whatsapp = data.whatsapp;
                                 if (data.avatarUrl) userProfileData.avatarUrl = data.avatarUrl;
+                                else userProfileData.avatarUrl = DEFAULT_AVATAR_URL;
                             }
                             renderProfileHtml(targetUserId, targetNickname, isOwnProfile);
                         }).catch(() => renderProfileHtml(targetUserId, targetNickname, isOwnProfile));
@@ -4530,9 +4544,10 @@ const postsList = Object.values(posts).reverse();
                                 if (data.phone) userProfileData.phone = data.phone;
                                 if (data.whatsapp) userProfileData.whatsapp = data.whatsapp;
                                 if (data.avatarUrl) userProfileData.avatarUrl = data.avatarUrl;
+                                else userProfileData.avatarUrl = DEFAULT_AVATAR_URL;
                             }
+                            renderProfileHtml(targetUserId, targetNickname, isOwnProfile);
                         });
-                        renderProfileHtml(targetUserId, targetNickname, isOwnProfile);
                     }
                     
                     async function renderProfileHtml(uid, nickname, isSelf) {
@@ -4565,12 +4580,8 @@ const postsList = Object.values(posts).reverse();
                             actionButtonHtml = `<button class="follow-button ${isFollowing ? 'following' : ''}" id="followActionBtn">${isFollowing ? 'Seguindo' : 'Seguir'}</button>`;
                         }
                         
-                        let avatarHtml = '';
-                        if (userProfileData.avatarUrl) {
-                            avatarHtml = `<img src="${userProfileData.avatarUrl}" alt="Avatar">`;
-                        } else {
-                            avatarHtml = `<i class="fas fa-user fa-2x"></i>`;
-                        }
+                        // ===== ATUALIZAÇÃO: Avatar sempre usa DEFAULT_AVATAR_URL ou a URL do usuário =====
+                        let avatarHtml = `<img src="${userProfileData.avatarUrl || DEFAULT_AVATAR_URL}" style="width:100%; height:100%; object-fit:cover;" onerror="this.onerror=null; this.src='${DEFAULT_AVATAR_URL}';">`;
                         
                         let avatarUploadHtml = '';
                         if (isSelf) {
@@ -4682,98 +4693,85 @@ const postsList = Object.values(posts).reverse();
                 async function loadProfileTabContent(uid, nickname, tab) {
                     const container = document.getElementById('profileTabContent');
                     if (!container) return;
+                    
                     if (tab === 'posts') {
-                        const postsSnap = await database.ref(`feed_posts`).orderByChild('userId').equalTo(uid).once('value');
-                        const posts = postsSnap.val();
-                        const postsList = posts ? Object.values(posts) : [];
-                        const sortedPostsList = postsList.sort((a, b) => b.createdAt - a.createdAt);
-                        if (sortedPostsList.length === 0) { container.innerHTML = '<div class="text-center text-gray-500 py-4 text-xs">Nenhuma postagem ainda</div>'; return; }
-                        const gridHtml = `<div class="post-grid">${sortedPostsList.map(post => `
-                            <div class="post-grid-item ripple-btn" data-post-id="${post.id}" onclick="viewPostDetail('${post.id}')">
-                                ${post.mediaType === 'video' ? `<video src="${post.mediaUrl}" style="width:100%;height:100%;object-fit:cover;"></video>` : `<img src="${post.mediaUrl}" onerror="this.src='https://via.placeholder.com/150x150'">`}
-                            </div>
-                        `).join('')}</div>`;
-                        container.innerHTML = gridHtml;
+                        const snap = await database.ref('feed_posts').orderByChild('userId').equalTo(uid).once('value');
+                        const posts = snap.val();
+                        const list = posts ? Object.values(posts).sort((a, b) => b.createdAt - a.createdAt) : [];
+                        if (list.length === 0) {
+                            container.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm">Nenhuma publicação ainda</div>';
+                            return;
+                        }
+                        container.innerHTML = `<div class="post-grid">${list.map(p => `<div class="post-grid-item" onclick="viewPostDetail('${p.id}')">${p.mediaType === 'video' ? `<video src="${p.mediaUrl}" style="width:100%;height:100%;object-fit:cover;"></video>` : `<img src="${p.mediaUrl}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x300'">`}</div>`).join('')}</div>`;
                     } else if (tab === 'favoritos') {
                         const favSnap = await database.ref(`favoritos/${uid}`).once('value');
                         const favs = favSnap.val();
-                        const favList = favs ? Object.values(favs).filter(f => f.saved === true) : [];
-                        if (favList.length === 0) { container.innerHTML = '<div class="text-center text-gray-500 py-4 text-xs">Nenhum filme favorito adicionado</div>'; return; }
-                        const favHtml = `<div class="grid grid-cols-2 gap-2 mt-2">${favList.map(fav => `
-                            <div class="glass-card p-2 rounded-xl cursor-pointer ripple-btn" onclick="playMediaById('${fav.id}', '${fav.type || 'filme'}')">
-                                <img src="${fav.thumb || 'https://via.placeholder.com/100x120'}" class="w-full h-24 object-cover rounded-lg">
-                                <div class="font-semibold text-xs mt-1 truncate">${escapeHtml(fav.title)}</div>
-                            </div>
-                        `).join('')}</div>`;
-                        container.innerHTML = favHtml;
-                    } else if (tab === 'salvos') {
-                        const postsSnap = await database.ref('feed_posts').once('value');
-                        const allPosts = postsSnap.val();
-                        if (!allPosts) { container.innerHTML = '<div class="text-center text-gray-500 py-4 text-xs">Nenhuma postagem salva</div>'; return; }
-                        const savedPosts = Object.values(allPosts).filter(p => p.saves && p.saves[uid] === true);
-                        if (savedPosts.length === 0) { container.innerHTML = '<div class="text-center text-gray-500 py-4 text-xs">Nenhuma postagem salva</div>'; return; }
-                        const savedHtml = `<div class="post-grid">${savedPosts.map(post => `
-                            <div class="post-grid-item ripple-btn" onclick="viewPostDetail('${post.id}')">
-                                ${post.mediaType === 'video' ? `<video src="${post.mediaUrl}" style="width:100%;height:100%;object-fit:cover;"></video>` : `<img src="${post.mediaUrl}" onerror="this.src='https://via.placeholder.com/150x150'">`}
-                            </div>
-                        `).join('')}</div>`;
-                        container.innerHTML = savedHtml;
-                    } else if (tab === 'marcacoes') {
-                        const postsSnap = await database.ref('feed_posts').once('value');
-                        const allPosts = postsSnap.val();
-                        if (!allPosts) { container.innerHTML = '<div class="text-center text-gray-500 py-4 text-xs">Nenhuma marcação encontrada</div>'; return; }
-                        let mentions = [];
-                        for (const [postId, post] of Object.entries(allPosts)) {
-                            if (post.comments) {
-                                for (const [commentId, comment] of Object.entries(post.comments)) {
-                                    if (comment.text && comment.text.includes(`@${nickname}`)) {
-                                        mentions.push({ postId, type: 'comment', user: comment.userDisplayName || comment.userName, text: comment.text, createdAt: comment.createdAt });
-                                    }
-                                    if (comment.replies) {
-                                        for (const [replyId, reply] of Object.entries(comment.replies)) {
-                                            if (reply.text && reply.text.includes(`@${nickname}`)) {
-                                                mentions.push({ postId, type: 'reply', user: reply.userDisplayName || reply.userName, text: reply.text, createdAt: reply.createdAt });
-                                            }
-                                        }
-                                    }
-                                }
+                        const list = favs ? Object.values(favs) : [];
+                        if (list.length === 0) {
+                            container.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm">Nenhum favorito ainda</div>';
+                            return;
+                        }
+                        let itemsHtml = '';
+                        for (const f of list) {
+                            let media;
+                            if (f.type === 'filme') media = filmes.find(m => m.id === f.id);
+                            else if (f.type === 'serie') media = series.find(m => m.id === f.id);
+                            else media = canais.find(m => m.id === f.id);
+                            if (media) {
+                                itemsHtml += `<div class="post-grid-item" onclick="playMediaById('${f.id}','${f.type || 'filme'}')"><img src="${media.thumb || 'https://via.placeholder.com/300x300'}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x300'"></div>`;
                             }
                         }
-                        if (mentions.length === 0) { container.innerHTML = '<div class="text-center text-gray-500 py-4 text-xs">Nenhuma marcação encontrada</div>'; return; }
-                        mentions.sort((a,b) => b.createdAt - a.createdAt);
-                        const mentionsHtml = `<div class="space-y-2 mt-2">${mentions.map(m => `
-                            <div class="glass-card p-2 rounded-xl cursor-pointer ripple-btn" onclick="viewPostDetail('${m.postId}')">
-                                <div class="text-xs font-bold">${escapeHtml(m.user)} mencionou você:</div>
-                                <div class="text-xs text-gray-300 mt-1">${escapeHtml(m.text.substring(0, 100))}</div>
-                                <div class="text-[9px] text-gray-500 mt-1">${formatTimeAgo(m.createdAt)}</div>
-                            </div>
-                        `).join('')}</div>`;
-                        container.innerHTML = mentionsHtml;
+                        container.innerHTML = `<div class="post-grid">${itemsHtml}</div>`;
+                    } else if (tab === 'salvos') {
+                        const snap = await database.ref('feed_posts').once('value');
+                        const allPosts = snap.val();
+                        if (!allPosts) {
+                            container.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm">Nenhum conteúdo salvo</div>';
+                            return;
+                        }
+                        const saved = Object.values(allPosts).filter(p => p.saves && p.saves[uid] === true);
+                        if (saved.length === 0) {
+                            container.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm">Nenhum conteúdo salvo</div>';
+                            return;
+                        }
+                        container.innerHTML = `<div class="post-grid">${saved.map(p => `<div class="post-grid-item" onclick="viewPostDetail('${p.id}')">${p.mediaType === 'video' ? `<video src="${p.mediaUrl}" style="width:100%;height:100%;object-fit:cover;"></video>` : `<img src="${p.mediaUrl}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x300'">`}</div>`).join('')}</div>`;
                     } else if (tab === 'assistidos') {
-                        const historySnap = await database.ref(`watched_history/${uid}`).once('value');
-                        const history = historySnap.val();
-                        if (!history) { container.innerHTML = '<div class="text-center text-gray-500 py-4 text-xs">Nenhum filme assistido ainda</div>'; return; }
-                        const historyList = Object.values(history).sort((a,b) => b.watchedAt - a.watchedAt);
-                        const historyHtml = `<div class="space-y-2 mt-2">${historyList.map(h => `
-                            <div class="glass-card p-2 rounded-xl cursor-pointer ripple-btn" onclick="playMediaById('${h.mediaId}', '${h.mediaType || 'filme'}')">
-                                <div class="flex gap-2">
-                                    <img src="${h.thumb || 'https://via.placeholder.com/50x70'}" class="w-12 h-16 object-cover rounded-lg">
-                                    <div class="flex-1">
-                                        <div class="font-semibold text-xs">${escapeHtml(h.mediaTitle)}</div>
-                                        <div class="text-[9px] text-gray-400">Assistido em ${new Date(h.watchedAt).toLocaleDateString()}</div>
-                                        ${h.progress ? `<div class="text-[9px] text-yellow-400">Progresso: ${Math.round(h.progress)}%</div>` : ''}
-                                    </div>
-                                </div>
-                            </div>
-                        `).join('')}</div>`;
-                        container.innerHTML = historyHtml;
+                        const snap = await database.ref(`watched_history/${uid}`).once('value');
+                        const history = snap.val();
+                        if (!history) {
+                            container.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm">Nenhum conteúdo assistido</div>';
+                            return;
+                        }
+                        const list = Object.values(history).sort((a, b) => b.watchedAt - a.watchedAt);
+                        if (list.length === 0) {
+                            container.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm">Nenhum conteúdo assistido</div>';
+                            return;
+                        }
+                        let itemsHtml = '';
+                        for (const h of list) {
+                            let media;
+                            if (h.mediaType === 'filme') media = filmes.find(m => m.id === h.mediaId);
+                            else if (h.mediaType === 'serie') media = series.find(m => m.id === h.mediaId);
+                            else media = canais.find(m => m.id === h.mediaId);
+                            if (media) {
+                                itemsHtml += `<div class="post-grid-item" onclick="playMediaById('${h.mediaId}','${h.mediaType || 'filme'}')"><img src="${media.thumb || 'https://via.placeholder.com/300x300'}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x300'"></div>`;
+                            }
+                        }
+                        container.innerHTML = `<div class="post-grid">${itemsHtml}</div>`;
+                    } else if (tab === 'marcacoes') {
+                        const snap = await database.ref('feed_posts').once('value');
+                        const allPosts = snap.val();
+                        if (!allPosts) {
+                            container.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm">Nenhuma marcação</div>';
+                            return;
+                        }
+                        const marked = Object.values(allPosts).filter(p => p.caption && p.caption.includes(`@${nickname}`));
+                        if (marked.length === 0) {
+                            container.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm">Nenhuma marcação</div>';
+                            return;
+                        }
+                        container.innerHTML = `<div class="post-grid">${marked.map(p => `<div class="post-grid-item" onclick="viewPostDetail('${p.id}')">${p.mediaType === 'video' ? `<video src="${p.mediaUrl}" style="width:100%;height:100%;object-fit:cover;"></video>` : `<img src="${p.mediaUrl}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x300'">`}</div>`).join('')}</div>`;
                     }
-                    document.querySelectorAll('.post-grid-item').forEach(el => {
-                        el.addEventListener('click', () => {
-                            const postId = el.getAttribute('data-post-id');
-                            if (postId) viewPostDetail(postId);
-                        });
-                    });
                 }
                 
                 function viewPostDetail(postId) {
@@ -5227,7 +5225,7 @@ const postsList = Object.values(posts).reverse();
                             loadProgress(item.id, (savedTime) => { if (savedTime > 5) { ytPlayer.seekTo(savedTime, true); showToast(`⏯️ Continuando de onde parou`); } startProgressTracking(item.id, ytPlayer, true); });
                             ytPlayer.playVideo();
                         } else {
-                            ytPlayer = new YT.Player('youtubePlayerDiv', { height: '100%', width: '100%', videoId: videoId, playerVars: { 'autoplay': 1, 'controls': 1, 'modestbranding': 1, 'rel': 0, 'showinfo': 0, 'fs': 1, 'playsinline': 1 }, events: { 'onReady': (event) => { loadProgress(item.id, (savedTime) => { if (savedTime > 5) { event.target.seekTo(savedTime, true); showToast(`⏯️ Continuando de onde parou`); } startProgressTracking(item.id, event.target, true); }); event.target.playVideo(); noContent.style.display = 'none'; }, 'onStateChange': (event) => { if (event.data === YT.PlayerState.ENDED) { database.ref(`progresso/${currentUser?.uid}/${item.id}`).remove(); stopProgressTracking(ytPlayer, true); } } } });
+                            ytPlayer = new YT.Player('youtubePlayerDiv', { height: '100%', width: '100%', videoId: videoId, playerVars: { 'autoplay': 1, 'controls': 1, 'modestbranding': 1, 'rel': 0, 'showinfo': 0, 'fs': 1, 'playsinline': 1 }, events: { 'onReady': (event) => { loadProgress(item.id, (savedTime) => { if (savedTime > 5) { event.target.seekTo(savedTime, true); showToast(`⏯️ Continuando de onde parou`); } startProgressTracking(item.id, event.target, true); }); event.target.playVideo(); noContent.style.display = 'none'; }, 'onStateChange': (event) => { if (event.data === YT.PlayerState.ENDED) { database.ref(`progresso/${currentUser?.uid}/${item.id}`).remove(); stopProgressTracking(ytPlayer, true); } } });
                         }
                         noContent.style.display = 'none';
                     } else if (isHls) {
@@ -5400,13 +5398,17 @@ const postsList = Object.values(posts).reverse();
                 function setupMessageStatusListener(chatId, otherUserId) { if (messageStatusListeners.has(chatId)) return; const messagesRef = chatId === 'geral' ? database.ref('chat_messages') : database.ref(`private_messages/${chatId}`); const onStatusChange = (snapshot) => { const messages = snapshot.val(); if (!messages) return; Object.entries(messages).forEach(([msgId, msg]) => { if (msg.senderId !== currentUser?.uid && msg.status !== 'read') markMessageAsRead(msgId, chatId, msg.senderId); if (msg.senderId === currentUser?.uid && msg.status) updateMessageStatus(msgId, msg.status); }); }; messagesRef.on('value', onStatusChange); messageStatusListeners.set(chatId, onStatusChange); }
                 
                 // ========== FUNÇÕES DO CHAT ==========
-                function loadChatList() { const user = auth.currentUser; if (!user) { document.getElementById('chatUsersList').innerHTML = '<li class="chat-user" style="justify-content:center;">Faça login para ver suas conversas</li>'; return; } const usersList = document.getElementById('chatUsersList'); usersList.innerHTML = ''; const geralItem = document.createElement('li'); geralItem.className = 'chat-user'; geralItem.setAttribute('data-chat-id', 'geral'); geralItem.setAttribute('data-user-id', 'geral'); geralItem.setAttribute('data-user-name', 'Geral'); geralItem.setAttribute('data-user-avatar', 'G'); geralItem.onclick = () => selectChat('geral', 'Geral', 'G', null); geralItem.innerHTML = `<div class="chat-user-avatar">G</div><div class="chat-user-info"><strong>Geral</strong><span>Conversa com todos</span></div>`; usersList.appendChild(geralItem); database.ref('usuarios').once('value', (snapshot) => { const users = snapshot.val(); if (!users) return; const chatUsers = []; for (let uid in users) { if (uid !== user.uid) { const userData = users[uid]; chatUsers.push({ uid: uid, nickname: userData.nickname || uid.substring(0, 6), lastSeen: userData.lastSeen || null, displayName: userData.displayName || userData.nickname || 'Usuário' }); } } chatUsers.forEach((userData) => { const unreadCount = unreadMessages.get(userData.uid) || 0; const displayName = userData.displayName || userData.nickname || 'Usuário'; const chatItem = document.createElement('li'); chatItem.className = `chat-user ${unreadCount > 0 ? 'unread' : ''}`; chatItem.setAttribute('data-chat-id', `private_${userData.uid}`); chatItem.setAttribute('data-user-id', userData.uid); chatItem.setAttribute('data-user-name', displayName); chatItem.setAttribute('data-user-avatar', displayName.charAt(0).toUpperCase()); chatItem.onclick = () => selectChat(`private_${userData.uid}`, displayName, displayName.charAt(0).toUpperCase(), userData.uid); const isOnline = userData.lastSeen && (Date.now() - userData.lastSeen < 60000); const onlineClass = isOnline ? 'online' : ''; const lastSeenText = formatLastSeen(userData.lastSeen); chatItem.innerHTML = `<div class="chat-user-avatar ${onlineClass}">${displayName.charAt(0).toUpperCase()}${unreadCount > 0 ? '<span class="unread-badge">' + unreadCount + '</span>' : ''}</div><div class="chat-user-info"><strong>${displayName}</strong><span>${lastSeenText}</span></div>`; usersList.appendChild(chatItem); if (userData.lastSeen) { const interval = setInterval(() => { const now = Date.now(); const isOnlineNow = (now - userData.lastSeen) < 60000; const avatarDiv = chatItem.querySelector('.chat-user-avatar'); const infoSpan = chatItem.querySelector('.chat-user-info span'); if (avatarDiv) { if (isOnlineNow) avatarDiv.classList.add('online'); else avatarDiv.classList.remove('online'); } if (infoSpan) infoSpan.innerText = formatLastSeen(userData.lastSeen); }, 30000); userStatusListeners.set(userData.uid, interval); } }); }); }
+                function loadChatList() { const user = auth.currentUser; if (!user) { document.getElementById('chatUsersList').innerHTML = '<li class="chat-user" style="justify-content:center;">Faça login para ver suas conversas</li>'; return; } const usersList = document.getElementById('chatUsersList'); usersList.innerHTML = ''; const geralItem = document.createElement('li'); geralItem.className = 'chat-user'; geralItem.setAttribute('data-chat-id', 'geral'); geralItem.setAttribute('data-user-id', 'geral'); geralItem.setAttribute('data-user-name', 'Geral'); geralItem.setAttribute('data-user-avatar', 'G'); geralItem.onclick = () => selectChat('geral', 'Geral', 'G', null); // ===== ATUALIZAÇÃO: Avatar padrão no chat geral =====
+                geralItem.innerHTML = `<div class="chat-user-avatar"><img src="${DEFAULT_AVATAR_URL}" style="width:100%; height:100%; object-fit:cover;"></div><div class="chat-user-info"><strong>Geral</strong><span>Conversa com todos</span></div>`; usersList.appendChild(geralItem); database.ref('usuarios').once('value', (snapshot) => { const users = snapshot.val(); if (!users) return; const chatUsers = []; for (let uid in users) { if (uid !== user.uid) { const userData = users[uid]; chatUsers.push({ uid: uid, nickname: userData.nickname || uid.substring(0, 6), lastSeen: userData.lastSeen || null, displayName: userData.displayName || userData.nickname || 'Usuário', avatarUrl: userData.avatarUrl || DEFAULT_AVATAR_URL }); } } chatUsers.forEach((userData) => { const unreadCount = unreadMessages.get(userData.uid) || 0; const displayName = userData.displayName || userData.nickname || 'Usuário'; const chatItem = document.createElement('li'); chatItem.className = `chat-user ${unreadCount > 0 ? 'unread' : ''}`; chatItem.setAttribute('data-chat-id', `private_${userData.uid}`); chatItem.setAttribute('data-user-id', userData.uid); chatItem.setAttribute('data-user-name', displayName); chatItem.setAttribute('data-user-avatar', displayName.charAt(0).toUpperCase()); chatItem.onclick = () => selectChat(`private_${userData.uid}`, displayName, displayName.charAt(0).toUpperCase(), userData.uid); const isOnline = userData.lastSeen && (Date.now() - userData.lastSeen < 60000); const onlineClass = isOnline ? 'online' : ''; const lastSeenText = formatLastSeen(userData.lastSeen); // ===== ATUALIZAÇÃO: Avatar padrão na lista de chats =====
+                chatItem.innerHTML = `<div class="chat-user-avatar ${onlineClass}"><img src="${userData.avatarUrl}" style="width:100%; height:100%; object-fit:cover;" onerror="this.onerror=null; this.src='${DEFAULT_AVATAR_URL}';">${unreadCount > 0 ? '<span class="unread-badge">' + unreadCount + '</span>' : ''}</div><div class="chat-user-info"><strong>${displayName}</strong><span>${lastSeenText}</span></div>`; usersList.appendChild(chatItem); if (userData.lastSeen) { const interval = setInterval(() => { const now = Date.now(); const isOnlineNow = (now - userData.lastSeen) < 60000; const avatarDiv = chatItem.querySelector('.chat-user-avatar'); const infoSpan = chatItem.querySelector('.chat-user-info span'); if (avatarDiv) { if (isOnlineNow) avatarDiv.classList.add('online'); else avatarDiv.classList.remove('online'); } if (infoSpan) infoSpan.innerText = formatLastSeen(userData.lastSeen); }, 30000); userStatusListeners.set(userData.uid, interval); } }); }); }
                 
-                function selectChat(chatId, userName, userAvatar, userId = null) { if (unsubscribeChat) unsubscribeChat(); currentChat = chatId; currentChatUser = userId; currentChatUserName = userName; currentChatUserAvatar = userAvatar; currentChatId = chatId; if (userId) markAsRead(userId); document.getElementById('chatHeaderName').innerText = userName; document.getElementById('chatHeaderAvatar').innerHTML = userAvatar; document.getElementById('chatHeaderAvatar').classList.remove('online'); if (userId) { database.ref(`usuarios/${userId}/lastSeen`).once('value', (snap) => { const lastSeen = snap.val(); const statusEl = document.getElementById('chatHeaderStatus'); const isOnline = lastSeen && (Date.now() - lastSeen < 60000); if (statusEl) { if (isOnline) { statusEl.innerText = 'Online'; document.getElementById('chatHeaderAvatar').classList.add('online'); } else statusEl.innerText = formatLastSeen(lastSeen); } }); document.getElementById('chatHeaderName').onclick = () => viewProfile(userId); document.getElementById('chatHeaderAvatar').onclick = () => viewProfile(userId); } else { document.getElementById('chatHeaderStatus').innerText = 'Online'; document.getElementById('chatHeaderName').onclick = null; document.getElementById('chatHeaderAvatar').onclick = null; } document.getElementById('chatSidebar').classList.add('hidden'); document.getElementById('chatMain').classList.remove('hidden'); document.querySelectorAll('.chat-user').forEach(item => { item.classList.remove('active'); if (chatId === 'geral' && item.getAttribute('data-chat-id') === 'geral') item.classList.add('active'); else if (item.getAttribute('data-user-id') === userId) { item.classList.add('active'); item.classList.remove('unread'); const badge = item.querySelector('.unread-badge'); if (badge) badge.remove(); } }); loadChat(chatId, userId); const chatActions = document.getElementById('chatActions'); chatActions.innerHTML = `<button class="message-bar-button" onclick="sendLike()" id="chatLikeBtn"><i class="fas fa-heart"></i></button><button class="message-bar-button primary" onclick="sendMessage()" id="chatSendBtn"><i class="fas fa-paper-plane"></i></button>`; document.getElementById('chatInput').value = ''; document.getElementById('chatInput').style.height = 'auto'; if (userId) { const chatIdKey = `private_${[auth.currentUser.uid, userId].sort().join('_')}`; setupMessageStatusListener(chatIdKey, userId); } else setupMessageStatusListener('geral', null); }
+                function selectChat(chatId, userName, userAvatar, userId = null) { if (unsubscribeChat) unsubscribeChat(); currentChat = chatId; currentChatUser = userId; currentChatUserName = userName; currentChatUserAvatar = userAvatar; currentChatId = chatId; if (userId) markAsRead(userId); document.getElementById('chatHeaderName').innerText = userName; // ===== ATUALIZAÇÃO: Avatar padrão no cabeçalho do chat =====
+                document.getElementById('chatHeaderAvatar').innerHTML = `<img src="${DEFAULT_AVATAR_URL}" style="width:100%; height:100%; object-fit:cover;" onerror="this.onerror=null; this.src='${DEFAULT_AVATAR_URL}';">`; document.getElementById('chatHeaderAvatar').classList.remove('online'); if (userId) { database.ref(`usuarios/${userId}`).once('value', (snap) => { const data = snap.val(); if(data && data.avatarUrl) { document.getElementById('chatHeaderAvatar').innerHTML = `<img src="${data.avatarUrl}" style="width:100%; height:100%; object-fit:cover;" onerror="this.onerror=null; this.src='${DEFAULT_AVATAR_URL}';">`; } }); database.ref(`usuarios/${userId}/lastSeen`).once('value', (snap) => { const lastSeen = snap.val(); const statusEl = document.getElementById('chatHeaderStatus'); const isOnline = lastSeen && (Date.now() - lastSeen < 60000); if (statusEl) { if (isOnline) { statusEl.innerText = 'Online'; document.getElementById('chatHeaderAvatar').classList.add('online'); } else statusEl.innerText = formatLastSeen(lastSeen); } }); document.getElementById('chatHeaderName').onclick = () => viewProfile(userId); document.getElementById('chatHeaderAvatar').onclick = () => viewProfile(userId); } else { document.getElementById('chatHeaderStatus').innerText = 'Online'; document.querySelectorAll('.chat-user-avatar').forEach(avatar => { if(avatar.closest('.chat-user')?.getAttribute('data-chat-id') === 'geral') { avatar.classList.add('online'); } }); document.getElementById('chatHeaderName').onclick = null; document.getElementById('chatHeaderAvatar').onclick = null; } document.getElementById('chatSidebar').classList.add('hidden'); document.getElementById('chatMain').classList.remove('hidden'); document.querySelectorAll('.chat-user').forEach(item => { item.classList.remove('active'); if (chatId === 'geral' && item.getAttribute('data-chat-id') === 'geral') item.classList.add('active'); else if (item.getAttribute('data-user-id') === userId) { item.classList.add('active'); item.classList.remove('unread'); const badge = item.querySelector('.unread-badge'); if (badge) badge.remove(); } }); loadChat(chatId, userId); const chatActions = document.getElementById('chatActions'); chatActions.innerHTML = `<button class="message-bar-button" onclick="sendLike()" id="chatLikeBtn"><i class="fas fa-heart"></i></button><button class="message-bar-button primary" onclick="sendMessage()" id="chatSendBtn"><i class="fas fa-paper-plane"></i></button>`; document.getElementById('chatInput').value = ''; document.getElementById('chatInput').style.height = 'auto'; if (userId) { const chatIdKey = `private_${[auth.currentUser.uid, userId].sort().join('_')}`; setupMessageStatusListener(chatIdKey, userId); } else setupMessageStatusListener('geral', null); }
                 
                 function loadChat(chatId, otherUserId = null) { if (unsubscribeChat) unsubscribeChat(); const chatBox = document.getElementById('chatBox'); chatBox.innerHTML = '<div style="text-align: center; padding: 40px;">Carregando...</div>'; const user = auth.currentUser; if (chatId === 'geral') { const messagesRef = database.ref('chat_messages'); const onMessages = (snapshot) => { const messages = snapshot.val(); chatBox.innerHTML = ''; if (!messages) { chatBox.innerHTML = '<div style="text-align: center; padding: 40px;">Nenhuma mensagem ainda.</div>'; return; } const messagesList = Object.entries(messages).map(([id, msg]) => ({ id, ...msg })).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0)); messagesList.forEach(msg => displayMessage(msg, msg.id)); chatBox.scrollTop = chatBox.scrollHeight; }; messagesRef.on('value', onMessages); unsubscribeChat = () => messagesRef.off('value', onMessages); } else if (otherUserId) { const chatIdKey = `private_${[user.uid, otherUserId].sort().join('_')}`; const messagesRef = database.ref(`private_messages/${chatIdKey}`); const onMessages = (snapshot) => { const messages = snapshot.val(); chatBox.innerHTML = ''; if (!messages) { chatBox.innerHTML = '<div style="text-align: center; padding: 40px;">Nenhuma mensagem ainda.</div>'; return; } const messagesList = Object.entries(messages).map(([id, msg]) => ({ id, ...msg })).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0)); messagesList.forEach(msg => displayMessage(msg, msg.id)); chatBox.scrollTop = chatBox.scrollHeight; if (otherUserId) { const unread = unreadMessages.get(otherUserId) || 0; if (unread > 0) markAsRead(otherUserId); } }; messagesRef.on('value', onMessages); unsubscribeChat = () => messagesRef.off('value', onMessages); } }
                 
-                async function displayMessage(message, messageId) { if (!message) return; let senderName = message.senderName || 'Usuário'; let senderId = message.senderId; const isOwner = auth.currentUser && senderId === auth.currentUser.uid; let content = ''; if (message.isAudio && message.audioUrl) { content = `<div class="message-audio"><button class="audio-play-btn" onclick="playAudioMessage('${message.audioUrl}', this)"><i class="fas fa-play"></i></button><div class="audio-wave"><div class="audio-wave-progress" id="audio-progress-${messageId}"></div></div><span class="audio-duration">${message.audioDuration || 0}s</span></div>`; } else { const messageText = makeNicknamesClickable(escapeHtml(message.text || '')); content = `<p>${messageText}</p>`; } const messageElement = document.createElement('div'); messageElement.className = isOwner ? 'message sent' : 'message'; messageElement.id = `message-${messageId}`; const displayChar = senderName.charAt(0).toUpperCase(); let statusHtml = ''; if (isOwner && message.status) { if (message.status === 'sent') statusHtml = '<span class="message-status status-sent"><i class="fas fa-check"></i></span>'; else if (message.status === 'delivered') statusHtml = '<span class="message-status status-delivered"><i class="fas fa-check-double"></i></span>'; else if (message.status === 'read') statusHtml = '<span class="message-status status-read"><i class="fas fa-check-double"></i></span>'; } messageElement.innerHTML = `<div class="message-avatar" onclick="viewProfile('${senderId}')">${displayChar}</div><div class="message-content">${content}<span class="message-time">${formatTime(message.timestamp)}${statusHtml}</span></div>`; if (isOwner) setupSwipeDelete(messageElement, messageId, isOwner); document.getElementById('chatBox').appendChild(messageElement); setupNicknameClickHandlers(); if (!isOwner && message.status !== 'read') { if (currentChat === 'geral') database.ref(`chat_messages/${messageId}`).update({ status: 'read', readAt: Date.now() }); else if (currentChatUser) { const chatIdKey = `private_${[auth.currentUser.uid, currentChatUser].sort().join('_')}`; database.ref(`private_messages/${chatIdKey}/${messageId}`).update({ status: 'read', readAt: Date.now() }); } } }
+                async function displayMessage(message, messageId) { if (!message) return; let senderName = message.senderName || 'Usuário'; let senderId = message.senderId; const isOwner = auth.currentUser && senderId === auth.currentUser.uid; let content = ''; if (message.isAudio && message.audioUrl) { content = `<div class="message-audio"><button class="audio-play-btn" onclick="playAudioMessage('${message.audioUrl}', this)"><i class="fas fa-play"></i></button><div class="audio-wave"><div class="audio-wave-progress" id="audio-progress-${messageId}"></div></div><span class="audio-duration">${message.audioDuration || 0}s</span></div>`; } else { const messageText = makeNicknamesClickable(escapeHtml(message.text || '')); content = `<p>${messageText}</p>`; } const messageElement = document.createElement('div'); messageElement.className = isOwner ? 'message sent' : 'message'; messageElement.id = `message-${messageId}`; // ===== ATUALIZAÇÃO: Avatar padrão nas mensagens do chat =====
+                let avatarUrl = DEFAULT_AVATAR_URL; if(senderId && senderId !== 'geral') { const userSnap = await database.ref(`usuarios/${senderId}`).once('value'); if(userSnap.val() && userSnap.val().avatarUrl) avatarUrl = userSnap.val().avatarUrl; } let statusHtml = ''; if (isOwner && message.status) { if (message.status === 'sent') statusHtml = '<span class="message-status status-sent"><i class="fas fa-check"></i></span>'; else if (message.status === 'delivered') statusHtml = '<span class="message-status status-delivered"><i class="fas fa-check-double"></i></span>'; else if (message.status === 'read') statusHtml = '<span class="message-status status-read"><i class="fas fa-check-double"></i></span>'; } messageElement.innerHTML = `<div class="message-avatar"><img src="${avatarUrl}" style="width:100%; height:100%; object-fit:cover;" onerror="this.onerror=null; this.src='${DEFAULT_AVATAR_URL}';"></div><div class="message-content">${content}<span class="message-time">${formatTime(message.timestamp)}${statusHtml}</span></div>`; if (isOwner) setupSwipeDelete(messageElement, messageId, isOwner); document.getElementById('chatBox').appendChild(messageElement); setupNicknameClickHandlers(); if (!isOwner && message.status !== 'read') { if (currentChat === 'geral') database.ref(`chat_messages/${messageId}`).update({ status: 'read', readAt: Date.now() }); else if (currentChatUser) { const chatIdKey = `private_${[auth.currentUser.uid, currentChatUser].sort().join('_')}`; database.ref(`private_messages/${chatIdKey}/${messageId}`).update({ status: 'read', readAt: Date.now() }); } } }
                 
                 function sendMessage() { const chatInput = document.getElementById('chatInput'); const messageText = chatInput.value.trim(); if (!messageText) return; const user = auth.currentUser; if (!user) { showToast('Faça login para enviar mensagem'); return; } const messageData = { text: messageText, senderId: user.uid, senderName: currentUsername, timestamp: Date.now(), status: 'sent' }; if (currentChat === 'geral') { database.ref('chat_messages').push(messageData).then((ref) => { chatInput.value = ''; chatInput.style.height = 'auto'; updateChatActions(); setTimeout(() => database.ref(`chat_messages/${ref.key}`).update({ status: 'delivered' }), 1000); }).catch(error => showToast('Erro: ' + error.message)); } else if (currentChatUser) { const chatIdKey = `private_${[user.uid, currentChatUser].sort().join('_')}`; database.ref(`private_messages/${chatIdKey}`).push(messageData).then((ref) => { chatInput.value = ''; chatInput.style.height = 'auto'; updateChatActions(); setTimeout(() => database.ref(`private_messages/${chatIdKey}/${ref.key}`).update({ status: 'delivered' }), 1000); }).catch(error => showToast('Erro: ' + error.message)); } }
                 
@@ -5420,7 +5422,8 @@ const postsList = Object.values(posts).reverse();
                 function backToUsersList() { document.getElementById('chatSidebar').classList.remove('hidden'); document.getElementById('chatMain').classList.add('hidden'); loadChatList(); }
                 function showUserSearchModal() { if (!auth.currentUser) { showToast('Faça login para iniciar conversas'); return; } document.getElementById('userSearchModal').classList.remove('hidden'); document.getElementById('userSearchInput').value = ''; document.getElementById('userSearchInput').focus(); searchUsers(); }
                 function hideUserSearchModal() { document.getElementById('userSearchModal').classList.add('hidden'); }
-                function searchUsers() { const searchTerm = document.getElementById('userSearchInput').value.toLowerCase(); const searchList = document.getElementById('userSearchList'); if (!auth.currentUser) { searchList.innerHTML = '<li class="no-users-found">Faça login para ver usuários</li>'; return; } database.ref('usuarios').once('value', (snapshot) => { const users = snapshot.val(); if (!users) { searchList.innerHTML = '<li class="no-users-found">Nenhum usuário encontrado</li>'; return; } const filteredUsers = []; for (let uid in users) { if (uid !== auth.currentUser.uid) { const nickname = users[uid].nickname || ''; const displayName = users[uid].displayName || nickname; if (nickname.toLowerCase().includes(searchTerm) || (displayName && displayName.toLowerCase().includes(searchTerm))) filteredUsers.push({ uid, nickname, displayName: displayName || nickname }); } } if (filteredUsers.length === 0) { searchList.innerHTML = '<li class="no-users-found">Nenhum usuário encontrado</li>'; return; } searchList.innerHTML = ''; filteredUsers.forEach(user => { const displayName = user.displayName || user.nickname || 'Usuário'; const li = document.createElement('li'); li.className = 'user-search-item'; li.onclick = () => { hideUserSearchModal(); selectChat(`private_${user.uid}`, displayName, displayName.charAt(0).toUpperCase(), user.uid); }; li.innerHTML = `<div class="user-search-avatar" onclick="event.stopPropagation(); viewProfile('${user.uid}')">${displayName.charAt(0).toUpperCase()}</div><div class="user-search-info"><strong onclick="event.stopPropagation(); viewProfile('${user.uid}')">${displayName}</strong><span>${user.nickname ? '@' + user.nickname : ''}</span></div>`; searchList.appendChild(li); }); }); }
+                function searchUsers() { const searchTerm = document.getElementById('userSearchInput').value.toLowerCase(); const searchList = document.getElementById('userSearchList'); if (!auth.currentUser) { searchList.innerHTML = '<li class="no-users-found">Faça login para ver usuários</li>'; return; } database.ref('usuarios').once('value', (snapshot) => { const users = snapshot.val(); if (!users) { searchList.innerHTML = '<li class="no-users-found">Nenhum usuário encontrado</li>'; return; } const filteredUsers = []; for (let uid in users) { if (uid !== auth.currentUser.uid) { const nickname = users[uid].nickname || ''; const displayName = users[uid].displayName || nickname; const avatarUrl = users[uid].avatarUrl || DEFAULT_AVATAR_URL; if (nickname.toLowerCase().includes(searchTerm) || (displayName && displayName.toLowerCase().includes(searchTerm))) filteredUsers.push({ uid, nickname, displayName: displayName || nickname, avatarUrl: avatarUrl }); } } if (filteredUsers.length === 0) { searchList.innerHTML = '<li class="no-users-found">Nenhum usuário encontrado</li>'; return; } searchList.innerHTML = ''; filteredUsers.forEach(user => { const displayName = user.displayName || user.nickname || 'Usuário'; const li = document.createElement('li'); li.className = 'user-search-item'; li.onclick = () => { hideUserSearchModal(); selectChat(`private_${user.uid}`, displayName, displayName.charAt(0).toUpperCase(), user.uid); }; // ===== ATUALIZAÇÃO: Avatar padrão na busca de usuários =====
+                li.innerHTML = `<div class="user-search-avatar" onclick="event.stopPropagation(); viewProfile('${user.uid}')"><img src="${user.avatarUrl}" style="width:100%; height:100%; object-fit:cover;" onerror="this.onerror=null; this.src='${DEFAULT_AVATAR_URL}';"></div><div class="user-search-info"><strong onclick="event.stopPropagation(); viewProfile('${user.uid}')">${displayName}</strong><span>${user.nickname ? '@' + user.nickname : ''}</span></div>`; searchList.appendChild(li); }); }); }
                 function showMessageContextMenu(messageId, element) { selectedMessageId = messageId; selectedMessageElement = element; const rect = element.getBoundingClientRect(); const menu = document.createElement('div'); menu.className = 'context-menu'; menu.style.top = rect.top - 100 + 'px'; menu.style.left = rect.left + 'px'; menu.id = 'messageContextMenu'; menu.innerHTML = `<div class="context-menu-item danger" onclick="deleteMessage()"><i class="fas fa-trash-alt"></i><span>Desfazer envio</span></div>`; document.body.appendChild(menu); setTimeout(() => { document.addEventListener('click', closeMessageContextMenu); }, 100); }
                 function closeMessageContextMenu(event) { const menu = document.getElementById('messageContextMenu'); if (menu && (!event || !menu.contains(event.target))) { menu.remove(); document.removeEventListener('click', closeMessageContextMenu); } }
                 function deleteMessage() { closeMessageContextMenu(); document.getElementById('confirmDeleteMessageModal').classList.remove('hidden'); }
@@ -5560,116 +5563,115 @@ const postsList = Object.values(posts).reverse();
                 function generateSafeId() { return Date.now() + '-' + Math.random().toString(36).substring(2, 15); }
                 
                 async function saveSingleItem() { 
-    const title = document.getElementById('itemTitle').value.trim(); 
-    let link = document.getElementById('itemLink').value.trim(); 
-    const thumb = document.getElementById('itemThumb').value.trim(); 
-    const category = document.getElementById('itemCategory').value.trim(); 
-    const year = document.getElementById('itemYear').value.trim(); 
-    const description = document.getElementById('itemDescription').value.trim(); 
-    const mediaType = document.querySelector('input[name="mediaType"]:checked').value; 
-    
-    if (!title || !link) { showToast('❌ Preencha título e link'); return; } 
-    if (mediaType === 'youtube') { 
-        if (!extractYoutubeId(link)) { showToast('❌ Link do YouTube inválido.'); return; } 
-    } else if (mediaType === 'iptv') { 
-        if (!isIptvLink(link)) { showToast('❌ Link IPTV/MP4 inválido. Use .mp4, .m3u8 ou .m3u'); return; } 
-    } 
-    
-    let finalThumb = thumb; 
-    if (mediaType === 'youtube' && !finalThumb) { 
-        const videoId = extractYoutubeId(link); 
-        if (videoId) finalThumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`; 
-    } 
-    if (!finalThumb) finalThumb = 'https://via.placeholder.com/300x200'; 
-    
-    const itemData = { 
-        title, link, thumb: finalThumb, 
-        category: category || (mediaType === 'iptv' ? 'Vídeo' : 'Geral'), 
-        year: year || new Date().getFullYear(), 
-        description: description || title, 
-        mediaType, createdAt: Date.now() 
-    };
-    
-    // MODO EDIÇÃO - verificar se está editando
-    if (editingItem) { 
-        const refPath = editingItem.type === 'canais' ? `canais/${editingItem.id}` : (editingItem.type === 'filmes' ? `filmes/${editingItem.id}` : `series/${editingItem.id}`); 
-        await database.ref(refPath).update(itemData); 
-        showToast('✅ Item atualizado!'); 
-        resetForm(); 
-        if (editingItem.type === 'canais') loadCanaisFromFirebase(); 
-        else if (editingItem.type === 'filmes') loadFilmesFromFirebase(); 
-        else if (editingItem.type === 'series') loadSeriesFromFirebase(); 
-        editingItem = null; // Limpar após salvar
-        return;
-    }
-    
-    // MODO ADIÇÃO - verificar qual aba está ativa BASEADO NA ABA VISÍVEL, não na variável
-    // CORREÇÃO: Verificar qual lista está visível no momento
-    let targetType = '';
-    let existingItems = [];
-    
-    // Verificar qual aba está ativa pelo elemento visível
-    const adminCanaisList = document.getElementById('adminCanaisList');
-    const adminFilmesList = document.getElementById('adminFilmesList');
-    const adminSeriesList = document.getElementById('adminSeriesList');
-    
-    if (adminCanaisList && !adminCanaisList.classList.contains('hidden')) {
-        targetType = 'canais';
-        existingItems = canais;
-    } else if (adminFilmesList && !adminFilmesList.classList.contains('hidden')) {
-        targetType = 'filmes';
-        existingItems = filmes;
-    } else if (adminSeriesList && !adminSeriesList.classList.contains('hidden')) {
-        targetType = 'series';
-        existingItems = series;
-    } else {
-        // Fallback para currentAdminTab
-        if (currentAdminTab === 'adminTabCanais') {
-            targetType = 'canais';
-            existingItems = canais;
-        } else if (currentAdminTab === 'adminTabFilmes') {
-            targetType = 'filmes';
-            existingItems = filmes;
-        } else if (currentAdminTab === 'adminTabSeries') {
-            targetType = 'series';
-            existingItems = series;
-        }
-    }
-    
-    // Verificar duplicados
-    const isDuplicate = existingItems.some(item => item && item.title && (item.title.toLowerCase() === title.toLowerCase() || item.link === link));
-    if (isDuplicate) { 
-        showToast('⚠️ Conteúdo duplicado! Título ou URL já existe.'); 
-        return; 
-    }
-    
-    // Salvar novo item
-    try { 
-        const safeId = generateSafeId(); 
-        const newItem = { id: safeId, ...itemData }; 
-        
-        if (targetType === 'canais') { 
-            await database.ref(`canais/${safeId}`).set(newItem); 
-            showToast('✅ Canal salvo!'); 
-            loadCanaisFromFirebase(); 
-        } else if (targetType === 'filmes') { 
-            await database.ref(`filmes/${safeId}`).set(newItem); 
-            showToast('✅ Filme salvo!'); 
-            loadFilmesFromFirebase(); 
-        } else if (targetType === 'series') { 
-            await database.ref(`series/${safeId}`).set(newItem); 
-            showToast('✅ Episódio salvo!'); 
-            loadSeriesFromFirebase(); 
-        } else {
-            showToast('❌ Erro: Não foi possível determinar o tipo de conteúdo');
-            return;
-        }
-        resetForm(); 
-    } catch (error) { 
-        console.error(error); 
-        showToast('❌ Erro ao salvar: ' + error.message); 
-    } 
-}
+                    const title = document.getElementById('itemTitle').value.trim(); 
+                    let link = document.getElementById('itemLink').value.trim(); 
+                    const thumb = document.getElementById('itemThumb').value.trim(); 
+                    const category = document.getElementById('itemCategory').value.trim(); 
+                    const year = document.getElementById('itemYear').value.trim(); 
+                    const description = document.getElementById('itemDescription').value.trim(); 
+                    const mediaType = document.querySelector('input[name="mediaType"]:checked').value; 
+                    
+                    if (!title || !link) { showToast('❌ Preencha título e link'); return; } 
+                    if (mediaType === 'youtube') { 
+                        if (!extractYoutubeId(link)) { showToast('❌ Link do YouTube inválido.'); return; } 
+                    } else if (mediaType === 'iptv') { 
+                        if (!isIptvLink(link)) { showToast('❌ Link IPTV/MP4 inválido. Use .mp4, .m3u8 ou .m3u'); return; } 
+                    } 
+                    
+                    let finalThumb = thumb; 
+                    if (mediaType === 'youtube' && !finalThumb) { 
+                        const videoId = extractYoutubeId(link); 
+                        if (videoId) finalThumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`; 
+                    } 
+                    if (!finalThumb) finalThumb = 'https://via.placeholder.com/300x200'; 
+                    
+                    const itemData = { 
+                        title, link, thumb: finalThumb, 
+                        category: category || (mediaType === 'iptv' ? 'Vídeo' : 'Geral'), 
+                        year: year || new Date().getFullYear(), 
+                        description: description || title, 
+                        mediaType, createdAt: Date.now() 
+                    };
+                    
+                    // MODO EDIÇÃO - verificar se está editando
+                    if (editingItem) { 
+                        const refPath = editingItem.type === 'canais' ? `canais/${editingItem.id}` : (editingItem.type === 'filmes' ? `filmes/${editingItem.id}` : `series/${editingItem.id}`); 
+                        await database.ref(refPath).update(itemData); 
+                        showToast('✅ Item atualizado!'); 
+                        resetForm(); 
+                        if (editingItem.type === 'canais') loadCanaisFromFirebase(); 
+                        else if (editingItem.type === 'filmes') loadFilmesFromFirebase(); 
+                        else if (editingItem.type === 'series') loadSeriesFromFirebase(); 
+                        editingItem = null; // Limpar após salvar
+                        return;
+                    }
+                    
+                    // MODO ADIÇÃO - verificar qual aba está ativa BASEADO NA ABA VISÍVEL, não na variável
+                    let targetType = '';
+                    let existingItems = [];
+                    
+                    // Verificar qual aba está ativa pelo elemento visível
+                    const adminCanaisList = document.getElementById('adminCanaisList');
+                    const adminFilmesList = document.getElementById('adminFilmesList');
+                    const adminSeriesList = document.getElementById('adminSeriesList');
+                    
+                    if (adminCanaisList && !adminCanaisList.classList.contains('hidden')) {
+                        targetType = 'canais';
+                        existingItems = canais;
+                    } else if (adminFilmesList && !adminFilmesList.classList.contains('hidden')) {
+                        targetType = 'filmes';
+                        existingItems = filmes;
+                    } else if (adminSeriesList && !adminSeriesList.classList.contains('hidden')) {
+                        targetType = 'series';
+                        existingItems = series;
+                    } else {
+                        // Fallback para currentAdminTab
+                        if (currentAdminTab === 'adminTabCanais') {
+                            targetType = 'canais';
+                            existingItems = canais;
+                        } else if (currentAdminTab === 'adminTabFilmes') {
+                            targetType = 'filmes';
+                            existingItems = filmes;
+                        } else if (currentAdminTab === 'adminTabSeries') {
+                            targetType = 'series';
+                            existingItems = series;
+                        }
+                    }
+                    
+                    // Verificar duplicados
+                    const isDuplicate = existingItems.some(item => item && item.title && (item.title.toLowerCase() === title.toLowerCase() || item.link === link));
+                    if (isDuplicate) { 
+                        showToast('⚠️ Conteúdo duplicado! Título ou URL já existe.'); 
+                        return; 
+                    }
+                    
+                    // Salvar novo item
+                    try { 
+                        const safeId = generateSafeId(); 
+                        const newItem = { id: safeId, ...itemData }; 
+                        
+                        if (targetType === 'canais') { 
+                            await database.ref(`canais/${safeId}`).set(newItem); 
+                            showToast('✅ Canal salvo!'); 
+                            loadCanaisFromFirebase(); 
+                        } else if (targetType === 'filmes') { 
+                            await database.ref(`filmes/${safeId}`).set(newItem); 
+                            showToast('✅ Filme salvo!'); 
+                            loadFilmesFromFirebase(); 
+                        } else if (targetType === 'series') { 
+                            await database.ref(`series/${safeId}`).set(newItem); 
+                            showToast('✅ Episódio salvo!'); 
+                            loadSeriesFromFirebase(); 
+                        } else {
+                            showToast('❌ Erro: Não foi possível determinar o tipo de conteúdo');
+                            return;
+                        }
+                        resetForm(); 
+                    } catch (error) { 
+                        console.error(error); 
+                        showToast('❌ Erro ao salvar: ' + error.message); 
+                    } 
+                }
                 
                 async function previewBatch() { const linksText = document.getElementById('batchLinksInput').value; const links = linksText.split('\n').filter(l => l.trim() && (extractYoutubeId(l.trim()) || isIptvLink(l.trim()))); const previewDiv = document.getElementById('batchPreview'); if (links.length === 0) { previewDiv.innerHTML = '<div class="text-yellow-500 text-[10px]">⚠️ Nenhum link válido (YouTube, .mp4, .m3u8 ou .m3u)</div>'; return; } previewDiv.innerHTML = '<div class="text-yellow-500 text-[10px]">🔄 Buscando...</div>'; const items = []; for (let i = 0; i < links.length; i++) { const link = links[i].trim(); let metadata; if (extractYoutubeId(link)) metadata = await fetchVideoDataFromLink(link, 'youtube'); else if (isIptvLink(link)) metadata = await fetchVideoDataFromLink(link, 'iptv'); if (metadata) items.push(metadata); } batchPreviewItems = items; if (items.length === 0) { previewDiv.innerHTML = '<div class="text-red-500 text-[10px]">❌ Nenhum vídeo encontrado</div>'; return; } const existingTitles = filmes.map(f => f.title); const previewHtml = items.map((item) => { const isDuplicate = existingTitles.includes(item.title); return `<div class="p-0.5 border-b border-white/10 text-[10px] ${isDuplicate ? 'duplicate-item' : ''}"><div class="flex justify-between"><span><strong>${item.title.substring(0, 25)}</strong></span>${isDuplicate ? '<span class="text-red-500">⚠️</span>' : '<span class="text-green-500">✅</span>'}</div></div>`; }).join(''); previewDiv.innerHTML = `<div class="mb-0.5 text-[10px]">📊 ${items.length} filmes | ${items.filter(i => existingTitles.includes(i.title)).length} duplicados</div>${previewHtml}`; showToast(`✅ ${items.length} filmes carregados`); }
                 let batchPreviewItems = [];
@@ -5738,11 +5740,10 @@ const postsList = Object.values(posts).reverse();
                     else { const container = document.getElementById('instagramProfileContainer'); if(container) container.innerHTML = '<div class="text-center p-4">Faça login para acessar o perfil</div>'; }
                 }
                 
-                // Eventos da busca - versão corrigida
+                // Eventos da busca
                 document.getElementById('navSearchBtn').onclick = () => switchSection('search');
                 document.getElementById('closeGlobalSearch').onclick = closeGlobalSearch;
                 
-                // Configurar evento de busca em tempo real
                 const searchInputEl = document.getElementById('searchInput');
                 const clearSearchBtn = document.getElementById('clearSearchBtn');
                 
@@ -5757,7 +5758,6 @@ const postsList = Object.values(posts).reverse();
                     clearSearchBtn.addEventListener('click', clearSearch);
                 }
                 
-                // Configurar filtros de busca
                 document.querySelectorAll('.search-filter-btn').forEach(btn => {
                     btn.addEventListener('click', () => {
                         const filter = btn.getAttribute('data-filter');
@@ -5950,196 +5950,48 @@ const postsList = Object.values(posts).reverse();
                 window.clearSearch = clearSearch;
                 window.setSearchFilter = setSearchFilter;
                 window.performSearchInSection = performSearchInSection;
-
-                // ========== CORREÇÃO DA BUSCA ==========
-// Configurar busca em tempo real
-const searchInputCorrigido = document.getElementById('searchInput');
-const clearBtnCorrigido = document.getElementById('clearSearchBtn');
-
-if (searchInputCorrigido) {
-    searchInputCorrigido.addEventListener('input', function() {
-        const termo = this.value.trim();
-        const botaoLimpar = document.getElementById('clearSearchBtn');
-        
-        if (botaoLimpar) {
-            botaoLimpar.style.display = termo.length > 0 ? 'flex' : 'none';
-        }
-        
-        if (termo.length === 0) {
-            document.getElementById('searchResults').innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
-            return;
-        }
-        
-        buscarConteudo(termo);
-    });
-}
-
-if (clearBtnCorrigido) {
-    clearBtnCorrigido.addEventListener('click', function() {
-        document.getElementById('searchInput').value = '';
-        this.style.display = 'none';
-        document.getElementById('searchResults').innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
-        document.getElementById('searchInput').focus();
-    });
-}
-
-// Função de busca
-function buscarConteudo(termo) {
-    const filtro = document.querySelector('.search-filter-btn.active')?.getAttribute('data-filter') || 'todos';
-    const resultadosDiv = document.getElementById('searchResults');
-    
-    let itens = [];
-    
-    if (filtro === 'filmes') {
-        itens = filmes.map(f => ({ ...f, tipo: 'filme', icone: '🎬', nomeTipo: 'Filme' }));
-    } else if (filtro === 'series') {
-        itens = series.map(s => ({ ...s, tipo: 'serie', icone: '📺', nomeTipo: 'Série' }));
-    } else if (filtro === 'canais') {
-        itens = canais.map(c => ({ ...c, tipo: 'canal', icone: '📡', nomeTipo: 'Canal' }));
-    } else {
-        itens = [
-            ...filmes.map(f => ({ ...f, tipo: 'filme', icone: '🎬', nomeTipo: 'Filme' })),
-            ...series.map(s => ({ ...s, tipo: 'serie', icone: '📺', nomeTipo: 'Série' })),
-            ...canais.map(c => ({ ...c, tipo: 'canal', icone: '📡', nomeTipo: 'Canal' }))
-        ];
-    }
-    
-    const termoLower = termo.toLowerCase();
-    const resultados = itens.filter(item => 
-        item.title.toLowerCase().includes(termoLower) || 
-        (item.category && item.category.toLowerCase().includes(termoLower))
-    );
-    
-    if (resultados.length === 0) {
-        resultadosDiv.innerHTML = `<div class="no-results">❌ Nenhum resultado encontrado para "${termo}"</div>`;
-        return;
-    }
-    
-    resultadosDiv.innerHTML = resultados.map(item => `
-        <div class="search-result-card glass-card p-2 ripple-btn" data-id="${item.id}" data-tipo="${item.tipo}">
-            <img src="${item.thumb || 'https://via.placeholder.com/300x450'}" class="search-result-image" onerror="this.src='https://via.placeholder.com/300x450'">
-            <div class="search-result-title" title="${item.title}">${item.title.substring(0, 30)}${item.title.length > 30 ? '...' : ''}</div>
-            <div class="search-result-type">${item.icone} ${item.nomeTipo} ${item.year ? `• ${item.year}` : ''}</div>
-        </div>
-    `).join('');
-    
-    // Adicionar clique nos resultados
-    document.querySelectorAll('#searchResults .search-result-card').forEach(el => {
-        el.addEventListener('click', () => {
-            const id = el.getAttribute('data-id');
-            const tipo = el.getAttribute('data-tipo');
-            let item;
-            if (tipo === 'filme') item = filmes.find(f => f.id === id);
-            else if (tipo === 'serie') item = series.find(s => s.id === id);
-            else item = canais.find(c => c.id === id);
-            if (item) playMedia(item, tipo);
-        });
-    });
-}
-
-// Configurar botões de filtro da busca
-document.querySelectorAll('.search-filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('.search-filter-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        const termoAtual = document.getElementById('searchInput').value.trim();
-        if (termoAtual) {
-            buscarConteudo(termoAtual);
-        }
-    });
-});
-
-console.log('✅ Sistema de busca corrigido!');
-
-
-// ========== CORREÇÃO: FECHAR ABA DE BUSCAR AO CLICAR EM CANAIS/FILMES/SÉRIES ==========
-// Versão corrigida - mantém o funcionamento normal das abas
-
-// Salvar a função original ANTES de qualquer modificação
-const originalSetNavTab = window.setNavTab || setNavTab;
-
-// Sobrescrever a função setNavTab para adicionar a lógica de fechar a busca
-window.setNavTab = function(tab) {
-    // Verificar se estamos na seção de busca
-    const searchSection = document.getElementById('searchSection');
-    const isInSearchSection = searchSection && searchSection.classList.contains('active-section');
-    
-    // Se estiver na busca e NÃO for a aba de busca que está sendo clicada
-    if (isInSearchSection && tab !== 'buscar') {
-        console.log('🔍 Saindo da aba Buscar para mostrar:', tab);
-        
-        // Mudar para a seção correta primeiro (sair da busca)
-        if (tab === 'canais') {
-            switchSection('filmes'); // Sai da busca
-            setTimeout(() => {
-                originalSetNavTab('canais'); // Agora sim, mostra os canais
-            }, 50);
-        } else if (tab === 'filmes') {
-            switchSection('filmes');
-            setTimeout(() => {
-                originalSetNavTab('filmes');
-            }, 50);
-        } else if (tab === 'series') {
-            switchSection('filmes');
-            setTimeout(() => {
-                originalSetNavTab('series');
-            }, 50);
-        } else {
-            // Para outros casos, apenas chama a função original
-            originalSetNavTab(tab);
-        }
-    } else {
-        // Se não estiver na busca, comportamento normal
-        originalSetNavTab(tab);
-    }
-};
-
-// Garantir que os botões de navegação superior funcionem corretamente
-// Remover event listeners antigos e adicionar novos
-const navCanaisBtn = document.getElementById('navCanaisBtn');
-const navFilmesBtn = document.getElementById('navFilmesBtn');
-const navSeriesBtn = document.getElementById('navSeriesBtn');
-const navSearchBtn = document.getElementById('navSearchBtn');
-
-// Clonar e substituir os botões para remover event listeners antigos
-if (navCanaisBtn) {
-    const newBtn = navCanaisBtn.cloneNode(true);
-    navCanaisBtn.parentNode.replaceChild(newBtn, navCanaisBtn);
-    newBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        window.setNavTab('canais');
-    });
-}
-
-if (navFilmesBtn) {
-    const newBtn = navFilmesBtn.cloneNode(true);
-    navFilmesBtn.parentNode.replaceChild(newBtn, navFilmesBtn);
-    newBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        window.setNavTab('filmes');
-    });
-}
-
-if (navSeriesBtn) {
-    const newBtn = navSeriesBtn.cloneNode(true);
-    navSeriesBtn.parentNode.replaceChild(newBtn, navSeriesBtn);
-    newBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        window.setNavTab('series');
-    });
-}
-
-if (navSearchBtn) {
-    const newBtn = navSearchBtn.cloneNode(true);
-    navSearchBtn.parentNode.replaceChild(newBtn, navSearchBtn);
-    newBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        switchSection('search');
-    });
-}
-
-console.log('✅ Correção aplicada: agora ao clicar em Canais/Filmes/Séries na aba Buscar, a busca fecha e o conteúdo aparece normalmente!');
-
+                
+                const searchInputCorrigido = document.getElementById('searchInput');
+                const clearBtnCorrigido = document.getElementById('clearSearchBtn');
+                if (searchInputCorrigido) {
+                    searchInputCorrigido.addEventListener('input', function() {
+                        const termo = this.value.trim();
+                        const botaoLimpar = document.getElementById('clearSearchBtn');
+                        if (botaoLimpar) botaoLimpar.style.display = termo.length > 0 ? 'flex' : 'none';
+                        if (termo.length === 0) { document.getElementById('searchResults').innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>'; return; }
+                        buscarConteudo(termo);
+                    });
+                }
+                if (clearBtnCorrigido) {
+                    clearBtnCorrigido.addEventListener('click', function() {
+                        document.getElementById('searchInput').value = '';
+                        this.style.display = 'none';
+                        document.getElementById('searchResults').innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
+                        document.getElementById('searchInput').focus();
+                    });
+                }
+                function buscarConteudo(termo) {
+                    const filtro = document.querySelector('.search-filter-btn.active')?.getAttribute('data-filter') || 'todos';
+                    const resultadosDiv = document.getElementById('searchResults');
+                    let itens = [];
+                    if (filtro === 'filmes') itens = filmes.map(f => ({ ...f, tipo: 'filme', icone: '🎬', nomeTipo: 'Filme' }));
+                    else if (filtro === 'series') itens = series.map(s => ({ ...s, tipo: 'serie', icone: '📺', nomeTipo: 'Série' }));
+                    else if (filtro === 'canais') itens = canais.map(c => ({ ...c, tipo: 'canal', icone: '📡', nomeTipo: 'Canal' }));
+                    else itens = [...filmes.map(f => ({ ...f, tipo: 'filme', icone: '🎬', nomeTipo: 'Filme' })), ...series.map(s => ({ ...s, tipo: 'serie', icone: '📺', nomeTipo: 'Série' })), ...canais.map(c => ({ ...c, tipo: 'canal', icone: '📡', nomeTipo: 'Canal' }))];
+                    const termoLower = termo.toLowerCase();
+                    const resultados = itens.filter(item => item.title.toLowerCase().includes(termoLower) || (item.category && item.category.toLowerCase().includes(termoLower)));
+                    if (resultados.length === 0) { resultadosDiv.innerHTML = `<div class="no-results">❌ Nenhum resultado encontrado para "${termo}"</div>`; return; }
+                    resultadosDiv.innerHTML = resultados.map(item => `<div class="search-result-card glass-card p-2 ripple-btn" data-id="${item.id}" data-tipo="${item.tipo}"><img src="${item.thumb || 'https://via.placeholder.com/300x450'}" class="search-result-image" onerror="this.src='https://via.placeholder.com/300x450'"><div class="search-result-title" title="${item.title}">${item.title.substring(0, 30)}${item.title.length > 30 ? '...' : ''}</div><div class="search-result-type">${item.icone} ${item.nomeTipo} ${item.year ? `• ${item.year}` : ''}</div></div>`).join('');
+                    document.querySelectorAll('#searchResults .search-result-card').forEach(el => { el.addEventListener('click', () => { const id = el.getAttribute('data-id'), tipo = el.getAttribute('data-tipo'); let item; if (tipo === 'filme') item = filmes.find(f => f.id === id); else if (tipo === 'serie') item = series.find(s => s.id === id); else item = canais.find(c => c.id === id); if (item) playMedia(item, tipo); }); });
+                }
+                document.querySelectorAll('.search-filter-btn').forEach(btn => { btn.addEventListener('click', () => { document.querySelectorAll('.search-filter-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); const termoAtual = document.getElementById('searchInput').value.trim(); if (termoAtual) buscarConteudo(termoAtual); }); });
+                const originalSetNavTab = window.setNavTab || setNavTab;
+                window.setNavTab = function(tab) { const searchSection = document.getElementById('searchSection'); const isInSearchSection = searchSection && searchSection.classList.contains('active-section'); if (isInSearchSection && tab !== 'buscar') { if (tab === 'canais') { switchSection('filmes'); setTimeout(() => originalSetNavTab('canais'), 50); } else if (tab === 'filmes') { switchSection('filmes'); setTimeout(() => originalSetNavTab('filmes'), 50); } else if (tab === 'series') { switchSection('filmes'); setTimeout(() => originalSetNavTab('series'), 50); } else originalSetNavTab(tab); } else originalSetNavTab(tab); };
+                const navCanaisBtn = document.getElementById('navCanaisBtn'); const navFilmesBtn = document.getElementById('navFilmesBtn'); const navSeriesBtn = document.getElementById('navSeriesBtn'); const navSearchBtn = document.getElementById('navSearchBtn');
+                if (navCanaisBtn) { const newBtn = navCanaisBtn.cloneNode(true); navCanaisBtn.parentNode.replaceChild(newBtn, navCanaisBtn); newBtn.addEventListener('click', function(e) { e.preventDefault(); window.setNavTab('canais'); }); }
+                if (navFilmesBtn) { const newBtn = navFilmesBtn.cloneNode(true); navFilmesBtn.parentNode.replaceChild(newBtn, navFilmesBtn); newBtn.addEventListener('click', function(e) { e.preventDefault(); window.setNavTab('filmes'); }); }
+                if (navSeriesBtn) { const newBtn = navSeriesBtn.cloneNode(true); navSeriesBtn.parentNode.replaceChild(newBtn, navSeriesBtn); newBtn.addEventListener('click', function(e) { e.preventDefault(); window.setNavTab('series'); }); }
+                if (navSearchBtn) { const newBtn = navSearchBtn.cloneNode(true); navSearchBtn.parentNode.replaceChild(newBtn, navSearchBtn); newBtn.addEventListener('click', function(e) { e.preventDefault(); switchSection('search'); }); }
                 
             </script>
         </body>
