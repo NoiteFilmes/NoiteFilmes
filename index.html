@@ -6295,6 +6295,235 @@
 })();
 
 
+                // ==================================================
+// SISTEMA DE ATUALIZAÇÃO AUTOMÁTICA DE AVATARES
+// Atualiza todas as fotos de perfil a cada 1 segundo
+// ==================================================
+
+(function autoAvatarUpdater() {
+    console.log('🖼️ Iniciando sistema de atualização automática de avatares...');
+    
+    // Cache para armazenar as URLs dos avatares
+    const avatarCache = new Map();
+    
+    // Função para buscar avatar atualizado de um usuário
+    async function fetchUserAvatar(userId) {
+        if (!userId || userId === 'geral') return DEFAULT_AVATAR_URL;
+        
+        // Verificar cache (mas sempre buscar novo a cada 1 segundo)
+        try {
+            const snapshot = await database.ref(`usuarios/${userId}/avatarUrl`).once('value');
+            const avatarUrl = snapshot.val();
+            const finalUrl = getAvatarUrl(avatarUrl);
+            
+            // Atualizar cache
+            avatarCache.set(userId, finalUrl);
+            return finalUrl;
+        } catch (error) {
+            console.error('Erro ao buscar avatar:', error);
+            return avatarCache.get(userId) || DEFAULT_AVATAR_URL;
+        }
+    }
+    
+    // Função para atualizar TODOS os avatares na página
+    async function updateAllAvatars() {
+        // Coletar todos os IDs de usuário únicos na página
+        const userIds = new Set();
+        
+        // 1. Avatares do FEED
+        document.querySelectorAll('.feed-post-avatar, .comment-avatar-modal, .reply-avatar').forEach(el => {
+            const onclickAttr = el.getAttribute('onclick');
+            if (onclickAttr) {
+                const match = onclickAttr.match(/viewProfileFromPost\('([^']+)'\)/);
+                if (match && match[1]) userIds.add(match[1]);
+            }
+        });
+        
+        // 2. Avatares do CHAT (sidebar)
+        document.querySelectorAll('.chat-user-avatar').forEach(el => {
+            const parentLi = el.closest('.chat-user');
+            if (parentLi) {
+                const userId = parentLi.getAttribute('data-user-id');
+                if (userId && userId !== 'geral') userIds.add(userId);
+            }
+        });
+        
+        // 3. Avatar do cabeçalho do chat
+        const chatHeaderAvatar = document.getElementById('chatHeaderAvatar');
+        if (chatHeaderAvatar && currentChatUser && currentChatUser !== 'geral') {
+            userIds.add(currentChatUser);
+        }
+        
+        // 4. Avatares das mensagens do chat
+        document.querySelectorAll('.message-avatar').forEach(el => {
+            const onclickAttr = el.getAttribute('onclick');
+            if (onclickAttr) {
+                const match = onclickAttr.match(/viewProfile\('([^']+)'\)/);
+                if (match && match[1]) userIds.add(match[1]);
+            }
+        });
+        
+        // 5. Perfil atual (se estiver visualizando outro perfil)
+        if (currentViewingUserId) {
+            userIds.add(currentViewingUserId);
+        }
+        
+        // 6. Próprio usuário logado
+        if (currentUser && currentUser.uid) {
+            userIds.add(currentUser.uid);
+        }
+        
+        // Atualizar cada avatar individualmente
+        for (const userId of userIds) {
+            const newAvatarUrl = await fetchUserAvatar(userId);
+            
+            // Atualizar avatar no FEED
+            document.querySelectorAll(`.feed-post-avatar[onclick*="viewProfileFromPost('${userId}')"]`).forEach(el => {
+                if (el.tagName === 'DIV') {
+                    // Verificar se já tem img
+                    let img = el.querySelector('img');
+                    if (!img) {
+                        img = document.createElement('img');
+                        el.innerHTML = '';
+                        el.appendChild(img);
+                    }
+                    img.src = newAvatarUrl;
+                    img.onerror = function() { this.src = DEFAULT_AVATAR_URL; };
+                    img.style.cssText = 'width:100%; height:100%; object-fit:cover;';
+                }
+            });
+            
+            // Atualizar avatar nos comentários
+            document.querySelectorAll(`.comment-avatar-modal[onclick*="viewProfileFromPost('${userId}')"]`).forEach(el => {
+                let img = el.querySelector('img');
+                if (!img) {
+                    img = document.createElement('img');
+                    el.innerHTML = '';
+                    el.appendChild(img);
+                }
+                img.src = newAvatarUrl;
+                img.onerror = function() { this.src = DEFAULT_AVATAR_URL; };
+                img.style.cssText = 'width:100%; height:100%; object-fit:cover;';
+            });
+            
+            // Atualizar avatar nas respostas
+            document.querySelectorAll(`.reply-avatar[onclick*="viewProfileFromPost('${userId}')"]`).forEach(el => {
+                let img = el.querySelector('img');
+                if (!img) {
+                    img = document.createElement('img');
+                    el.innerHTML = '';
+                    el.appendChild(img);
+                }
+                img.src = newAvatarUrl;
+                img.onerror = function() { this.src = DEFAULT_AVATAR_URL; };
+                img.style.cssText = 'width:100%; height:100%; object-fit:cover;';
+            });
+            
+            // Atualizar avatar na sidebar do chat
+            document.querySelectorAll(`.chat-user[data-user-id="${userId}"] .chat-user-avatar`).forEach(el => {
+                let img = el.querySelector('img');
+                if (!img) {
+                    img = document.createElement('img');
+                    // Manter o badge se existir
+                    const badge = el.querySelector('.unread-badge');
+                    el.innerHTML = '';
+                    el.appendChild(img);
+                    if (badge) el.appendChild(badge);
+                }
+                img.src = newAvatarUrl;
+                img.onerror = function() { this.src = DEFAULT_AVATAR_URL; };
+                img.style.cssText = 'width:100%; height:100%; object-fit:cover;';
+                
+                // Manter classe online se tiver
+                if (el.classList.contains('online')) {
+                    el.classList.add('online');
+                }
+            });
+            
+            // Atualizar avatar no cabeçalho do chat
+            if (currentChatUser === userId) {
+                const headerAvatar = document.getElementById('chatHeaderAvatar');
+                if (headerAvatar) {
+                    let img = headerAvatar.querySelector('img');
+                    if (!img) {
+                        img = document.createElement('img');
+                        headerAvatar.innerHTML = '';
+                        headerAvatar.appendChild(img);
+                    }
+                    img.src = newAvatarUrl;
+                    img.onerror = function() { this.src = DEFAULT_AVATAR_URL; };
+                    img.style.cssText = 'width:100%; height:100%; object-fit:cover;';
+                }
+            }
+            
+            // Atualizar avatar nas mensagens do chat
+            document.querySelectorAll(`.message-avatar[onclick*="viewProfile('${userId}')"]`).forEach(el => {
+                let img = el.querySelector('img');
+                if (!img) {
+                    img = document.createElement('img');
+                    el.innerHTML = '';
+                    el.appendChild(img);
+                }
+                img.src = newAvatarUrl;
+                img.onerror = function() { this.src = DEFAULT_AVATAR_URL; };
+                img.style.cssText = 'width:100%; height:100%; object-fit:cover;';
+            });
+            
+            // Atualizar foto no perfil (se for o perfil sendo visualizado)
+            if (currentViewingUserId === userId || (currentUser && currentUser.uid === userId)) {
+                const profilePicture = document.querySelector('.profile-picture img');
+                if (profilePicture) {
+                    profilePicture.src = newAvatarUrl;
+                    profilePicture.onerror = function() { this.src = DEFAULT_AVATAR_URL; };
+                }
+            }
+        }
+    }
+    
+    // Executar atualização a cada 1 segundo
+    let updateInterval = null;
+    
+    function startAutoUpdate() {
+        if (updateInterval) clearInterval(updateInterval);
+        updateInterval = setInterval(() => {
+            // Só atualizar se o usuário estiver logado
+            if (currentUser) {
+                updateAllAvatars();
+            }
+        }, 1000); // 1 segundo
+        console.log('✅ Atualização automática de avatares ativada (a cada 1 segundo)');
+    }
+    
+    function stopAutoUpdate() {
+        if (updateInterval) {
+            clearInterval(updateInterval);
+            updateInterval = null;
+            console.log('🛑 Atualização automática de avatares desativada');
+        }
+    }
+    
+    // Iniciar quando o usuário logar
+    if (currentUser) {
+        startAutoUpdate();
+    }
+    
+    // Observar login/logout
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            startAutoUpdate();
+        } else {
+            stopAutoUpdate();
+        }
+    });
+    
+    // Exportar funções para debug (opcional)
+    window.startAvatarAutoUpdate = startAutoUpdate;
+    window.stopAvatarAutoUpdate = stopAutoUpdate;
+    window.forceUpdateAvatars = updateAllAvatars;
+    
+    console.log('🖼️ Sistema de atualização de avatares carregado!');
+})();
+                
                 
             </script>
         </body>
