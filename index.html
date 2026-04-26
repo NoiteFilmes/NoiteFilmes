@@ -6720,7 +6720,78 @@ window.viewProfileFromPost = function(userId) {
 
 
 
+// ========== SISTEMA DE ROTAS SPA ==========
+const routes = {
+    '/': () => switchSection('filmes'),
+    '/filmes': () => switchSection('filmes'),
+    '/canais': () => setNavTab('canais'),
+    '/series': () => setNavTab('series'),
+    '/buscar': () => switchSection('search'),
+    '/chat': () => switchSection('chat'),
+    '/perfil': () => {
+        switchSection('perfil');
+        if (currentUser) renderInstagramProfile();
+        else showToast('Faça login para ver o perfil');
+    },
+    '/feed': () => {
+        switchSection('feed');
+        renderFeed();
+    },
+    '/ajustes': () => openSettingsModal(),
+    '/admin': () => {
+        if (isAdminLogged) modalAdmin.classList.remove('hidden');
+        else showToast('Acesso restrito');
+    }
+};
 
+function navigateTo(path) {
+    window.history.pushState({}, '', path);
+    handleRoute(path);
+}
+
+function handleRoute(path) {
+    const route = routes[path];
+    if (route) route();
+    else {
+        // rota não encontrada → 404
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active-section'));
+        document.body.innerHTML += `<div class="fixed inset-0 bg-black flex items-center justify-center z-50"><div class="glass-card p-6 text-center"><i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-2"></i><h2 class="text-xl">Página não encontrada</h2><button onclick="navigateTo('/')" class="mt-4 bg-red-600 px-4 py-2 rounded-full">Voltar para início</button></div></div>`;
+    }
+}
+
+// Intercepta cliques nos links internos
+document.querySelectorAll('.nav-item, .bottom-nav-item, [data-link]').forEach(el => {
+    el.addEventListener('click', (e) => {
+        const href = el.getAttribute('data-link') || 
+                     (el.id === 'navFilmesBtn' ? '/filmes' :
+                      el.id === 'navCanaisBtn' ? '/canais' :
+                      el.id === 'navSeriesBtn' ? '/series' :
+                      el.id === 'navSearchBtn' ? '/buscar' :
+                      el.id === 'chatSection' ? '/chat' :
+                      el.id === 'perfilSection' ? '/perfil' : null);
+        if (href) {
+            e.preventDefault();
+            navigateTo(href);
+        }
+    });
+});
+
+// Navegação pelos botões inferiores
+document.querySelectorAll('.bottom-nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+        const section = item.getAttribute('data-section');
+        if (section === 'filmes') navigateTo('/filmes');
+        else if (section === 'feed') navigateTo('/feed');
+        else if (section === 'chat') navigateTo('/chat');
+        else if (section === 'perfil') navigateTo('/perfil');
+    });
+});
+
+// Captura evento de voltar/avançar do navegador
+window.addEventListener('popstate', () => handleRoute(window.location.pathname));
+
+// Inicializa rota atual
+handleRoute(window.location.pathname);
 
 
 
