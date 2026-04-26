@@ -6720,7 +6720,132 @@ window.viewProfileFromPost = function(userId) {
 
 
 
+// ============================================
+// VERSÃO CORRIGIDA - GERA LINK PARA COMPARTILHAR
+// (NÃO TRAVA O LOGIN)
+// ============================================
 
+// Função para gerar o link único
+function gerarLinkCompartilhamento(item, tipo) {
+    const urlBase = window.location.href.split('?')[0];
+    return `${urlBase}?mediaId=${item.id}&type=${tipo}`;
+}
+
+// Corrige o botão "Compartilhar" dentro do player (sem quebrar o original)
+if (typeof shareNative === 'function') {
+    const shareNativeOriginal = shareNative;
+    window.shareNative = function() {
+        if (!currentMedia) {
+            showToast('Nenhum conteúdo selecionado');
+            return;
+        }
+        const link = gerarLinkCompartilhamento(currentMedia, currentMediaType);
+        if (navigator.share) {
+            navigator.share({
+                title: currentMedia.title,
+                text: `🎬 Assista "${currentMedia.title}" no NoiteFilmes!`,
+                url: link
+            }).catch(() => showToast('Compartilhamento cancelado'));
+        } else {
+            navigator.clipboard.writeText(link).then(() => {
+                showToast('✅ Link copiado! Compartilhe onde quiser.');
+            }).catch(() => showToast('❌ Erro ao copiar link'));
+        }
+    };
+}
+
+// Adiciona botões "Link" nos cards da grade SEM substituir a função original
+function adicionarBotoesLinkNosCards() {
+    const cards = document.querySelectorAll('#contentGrid .glass-card');
+    cards.forEach(card => {
+        if (card.querySelector('.share-card-btn')) return;
+        
+        const id = card.getAttribute('data-id');
+        const tipo = card.getAttribute('data-type');
+        if (!id || !tipo) return;
+        
+        let item = null;
+        if (tipo === 'canais') item = canais?.find(c => c.id === id);
+        else if (tipo === 'filmes') item = filmes?.find(f => f.id === id);
+        else if (tipo === 'series') item = series?.find(s => s.id === id);
+        
+        if (item) {
+            const link = gerarLinkCompartilhamento(item, tipo);
+            const btn = document.createElement('button');
+            btn.className = 'share-card-btn action-btn ripple-btn';
+            btn.innerHTML = '<i class="fas fa-share-alt"></i> Link';
+            btn.style.fontSize = '9px';
+            btn.style.padding = '2px 6px';
+            btn.style.marginTop = '4px';
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                navigator.clipboard.writeText(link).then(() => {
+                    showToast('🔗 Link copiado! Compartilhe com amigos.');
+                }).catch(() => showToast('Erro ao copiar'));
+            };
+            const infoDiv = card.querySelector('.p-1');
+            if (infoDiv && !infoDiv.querySelector('.share-card-btn')) {
+                infoDiv.appendChild(btn);
+            }
+        }
+    });
+}
+
+// Adiciona botão de compartilhar nos posts do feed
+function adicionarBotaoLinkNosPosts() {
+    const posts = document.querySelectorAll('.feed-post');
+    posts.forEach(post => {
+        if (post.querySelector('.share-feed-btn')) return;
+        const postId = post.id.replace('post-', '');
+        if (!postId) return;
+        const link = `${window.location.href.split('?')[0]}?postId=${postId}`;
+        const actionsDiv = post.querySelector('.feed-post-actions');
+        if (actionsDiv) {
+            const btn = document.createElement('button');
+            btn.className = 'action-button share-feed-btn';
+            btn.innerHTML = '<i class="fas fa-share-alt"></i>';
+            btn.title = 'Copiar link da publicação';
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                navigator.clipboard.writeText(link).then(() => {
+                    showToast('📎 Link da publicação copiado!');
+                }).catch(() => showToast('Erro ao copiar'));
+            };
+            actionsDiv.appendChild(btn);
+        }
+    });
+}
+
+// Observa mudanças na grade (quando novos conteúdos são carregados)
+function observarGrade() {
+    const grade = document.getElementById('contentGrid');
+    if (!grade) return;
+    const observer = new MutationObserver(() => {
+        adicionarBotoesLinkNosCards();
+    });
+    observer.observe(grade, { childList: true, subtree: true });
+}
+
+// Observa mudanças no feed
+function observarFeed() {
+    const feedContainer = document.getElementById('feedList');
+    if (!feedContainer) return;
+    const observer = new MutationObserver(() => {
+        adicionarBotaoLinkNosPosts();
+    });
+    observer.observe(feedContainer, { childList: true, subtree: true });
+}
+
+// Aguarda o DOM carregar e também tenta a cada 2 segundos (caso os dados venham depois)
+document.addEventListener('DOMContentLoaded', () => {
+    observarGrade();
+    observarFeed();
+    // Tenta novamente após alguns segundos (para garantir)
+    setInterval(() => {
+        adicionarBotoesLinkNosCards();
+        adicionarBotaoLinkNosPosts();
+    }, 2000);
+});
 
 
                 
