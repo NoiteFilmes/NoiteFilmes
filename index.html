@@ -2997,6 +2997,191 @@
             color: #999;
             grid-column: 1 / -1;
         }
+        
+        
+        
+        
+        
+        
+            /* Estilos para os cards de sugestão de amizade */
+    .suggestions-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        background: rgba(20, 25, 45, 0.6);
+        backdrop-filter: blur(14px);
+        border-radius: 16px;
+        margin-bottom: 16px;
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .suggestions-header h3 {
+        font-size: 14px;
+        font-weight: 600;
+    }
+    
+    .hide-suggestions-btn {
+        background: none;
+        border: none;
+        color: rgba(255,255,255,0.6);
+        font-size: 12px;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 20px;
+        transition: all 0.2s;
+    }
+    
+    .hide-suggestions-btn:hover {
+        background: rgba(255,255,255,0.1);
+        color: white;
+    }
+    
+    .suggestion-card {
+        background: rgba(20, 25, 45, 0.6);
+        backdrop-filter: blur(14px);
+        border-radius: 16px;
+        margin-bottom: 12px;
+        border: 1px solid rgba(255,255,255,0.1);
+        overflow: hidden;
+        transition: all 0.2s ease;
+    }
+    
+    .suggestion-card .suggestion-content {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
+        gap: 12px;
+    }
+    
+    .suggestion-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #e50914, #b20710);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 18px;
+        color: white;
+        overflow: hidden;
+        flex-shrink: 0;
+        cursor: pointer;
+    }
+    
+    .suggestion-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .suggestion-info {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .suggestion-name {
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .suggestion-name:hover {
+        text-decoration: underline;
+    }
+    
+    .suggestion-nickname {
+        font-size: 11px;
+        opacity: 0.7;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .suggestion-bio {
+        font-size: 11px;
+        opacity: 0.6;
+        margin-top: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .suggestion-actions {
+        display: flex;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+    
+    .suggestion-follow-btn {
+        background: #0095f6;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 14px;
+        font-weight: 600;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+    
+    .suggestion-follow-btn.following {
+        background: #363636;
+    }
+    
+    .suggestion-follow-btn:hover {
+        opacity: 0.9;
+        transform: scale(0.98);
+    }
+    
+    .suggestion-close-btn {
+        background: rgba(255,255,255,0.1);
+        border: none;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: rgba(255,255,255,0.7);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .suggestion-close-btn:hover {
+        background: rgba(255,255,255,0.2);
+        color: #e50914;
+        transform: scale(1.05);
+    }
+    
+    body.light-mode .suggestion-card,
+    body.light-mode .suggestions-header {
+        background: rgba(255, 255, 255, 0.8);
+        border-color: rgba(0,0,0,0.1);
+    }
+    
+    body.light-mode .suggestion-close-btn {
+        background: rgba(0,0,0,0.1);
+        color: rgba(0,0,0,0.6);
+    }
+    
+    body.light-mode .suggestion-close-btn:hover {
+        background: rgba(0,0,0,0.2);
+        color: #e50914;
+    }
+    
+    .suggestions-container {
+        margin-bottom: 16px;
+    }
+    
+    .suggestions-container.hidden {
+        display: none;
+    }
     </style>
     
     <link rel="apple-touch-icon" href="https://i.ibb.co/prnRsYbD/fd0f7999-e91b-44ce-ba4d-cdccb1ff6473.jpg">
@@ -6721,7 +6906,455 @@ window.viewProfileFromPost = function(userId) {
 
 
 
-
+(function() {
+    // ============================================
+    // SUGESTÕES DE AMIZADES - SCRIPT
+    // ============================================
+    
+    // Configurações
+    const MAX_SUGGESTIONS = 3;          // Máximo de sugestões por vez
+    const SUGGESTIONS_POSITIONS = [2, 5, 8]; // Posições (índices) onde inserir os cards (após o 2º, 5º, 8º post)
+    const SUGGESTIONS_REFRESH_INTERVAL = 300000; // 5 minutos para recarregar sugestões (opcional)
+    
+    // Estado local
+    let suggestionsHidden = false;       // Se toda a seção de sugestões está oculta
+    let currentSuggestions = [];         // Array de usuários sugeridos atualmente no feed
+    let suggestionCardsMap = new Map();    // Mapeia userId -> elemento do card
+    
+    // ========== FUNÇÕES DE ARMAZENAMENTO DOS BLOQUEADOS ==========
+    
+    // Obtém a lista de usuários que o usuário atual rejeitou (não quer ver sugestões)
+    async function getSuggestionBlocklist() {
+        if (!currentUser) return [];
+        try {
+            const snapshot = await database.ref(`suggestion_blocklist/${currentUser.uid}`).once('value');
+            const data = snapshot.val();
+            return data ? Object.keys(data) : [];
+        } catch (error) {
+            console.error('Erro ao carregar blocklist de sugestões:', error);
+            return [];
+        }
+    }
+    
+    // Adiciona um usuário à blocklist de sugestões
+    async function addToSuggestionBlocklist(userId) {
+        if (!currentUser || !userId) return;
+        try {
+            await database.ref(`suggestion_blocklist/${currentUser.uid}/${userId}`).set(true);
+        } catch (error) {
+            console.error('Erro ao adicionar à blocklist:', error);
+        }
+    }
+    
+    // ========== FUNÇÃO PARA OBTER USUÁRIOS SUGERIDOS ==========
+    
+    async function getSuggestedUsers() {
+        if (!currentUser) return [];
+        
+        try {
+            // Buscar todos os usuários cadastrados
+            const usersSnapshot = await database.ref('usuarios').once('value');
+            const allUsers = usersSnapshot.val();
+            if (!allUsers) return [];
+            
+            // Buscar lista de usuários que o currentUser já segue
+            const followingSnapshot = await database.ref(`following/${currentUser.uid}`).once('value');
+            const following = followingSnapshot.val() || {};
+            
+            // Buscar blocklist de sugestões
+            const blocklist = await getSuggestionBlocklist();
+            
+            const currentUserId = currentUser.uid;
+            const suggestedUsers = [];
+            
+            // Percorrer todos os usuários
+            for (const [uid, userData] of Object.entries(allUsers)) {
+                // Não sugerir a si mesmo
+                if (uid === currentUserId) continue;
+                
+                // Não sugerir quem já é seguido
+                if (following[uid]) continue;
+                
+                // Não sugerir quem está na blocklist
+                if (blocklist.includes(uid)) continue;
+                
+                // Coletar dados do usuário
+                const nickname = userData.nickname || uid.substring(0, 6);
+                const displayName = userData.displayName || nickname;
+                const bio = userData.bio || "🎬 Apaixonado por filmes e séries!";
+                const avatarUrl = getAvatarUrl(userData.avatarUrl);
+                
+                suggestedUsers.push({
+                    uid: uid,
+                    nickname: nickname,
+                    displayName: displayName,
+                    bio: bio,
+                    avatarUrl: avatarUrl
+                });
+            }
+            
+            // Embaralhar e limitar
+            for (let i = suggestedUsers.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [suggestedUsers[i], suggestedUsers[j]] = [suggestedUsers[j], suggestedUsers[i]];
+            }
+            
+            return suggestedUsers.slice(0, MAX_SUGGESTIONS);
+            
+        } catch (error) {
+            console.error('Erro ao buscar sugestões:', error);
+            return [];
+        }
+    }
+    
+    // ========== CRIAR CARD DE SUGESTÃO ==========
+    
+    function createSuggestionCard(user) {
+        const card = document.createElement('div');
+        card.className = 'suggestion-card';
+        card.setAttribute('data-suggestion-user', user.uid);
+        
+        const displayName = user.displayName || user.nickname;
+        const shortBio = user.bio.length > 35 ? user.bio.substring(0, 35) + '...' : user.bio;
+        
+        card.innerHTML = `
+            <div class="suggestion-content">
+                <div class="suggestion-avatar" data-user-id="${user.uid}">
+                    <img src="${user.avatarUrl}" onerror="this.src='${DEFAULT_AVATAR_URL}'" style="width:100%; height:100%; object-fit:cover;">
+                </div>
+                <div class="suggestion-info">
+                    <div class="suggestion-name" data-user-id="${user.uid}">${escapeHtml(displayName)}</div>
+                    <div class="suggestion-nickname">@${escapeHtml(user.nickname)}</div>
+                    <div class="suggestion-bio">${escapeHtml(shortBio)}</div>
+                </div>
+                <div class="suggestion-actions">
+                    <button class="suggestion-follow-btn" data-user-id="${user.uid}">Seguir</button>
+                    <button class="suggestion-close-btn" data-user-id="${user.uid}" title="Não sugerir mais este usuário">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // Evento de clique no avatar/nome para ir ao perfil
+        const avatarDiv = card.querySelector('.suggestion-avatar');
+        const nameDiv = card.querySelector('.suggestion-name');
+        
+        const goToProfile = () => {
+            if (user.uid !== currentUser?.uid) {
+                renderInstagramProfile(user.uid);
+                switchSection('perfil');
+            }
+        };
+        
+        avatarDiv.addEventListener('click', goToProfile);
+        nameDiv.addEventListener('click', goToProfile);
+        
+        // Botão seguir
+        const followBtn = card.querySelector('.suggestion-follow-btn');
+        followBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            await followUserFromSuggestion(user.uid, followBtn, card);
+        });
+        
+        // Botão fechar (rejeitar)
+        const closeBtn = card.querySelector('.suggestion-close-btn');
+        closeBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            await rejectSuggestion(user.uid, card);
+        });
+        
+        return card;
+    }
+    
+    // Função para seguir usuário a partir da sugestão
+    async function followUserFromSuggestion(userId, buttonElement, cardElement) {
+        if (!currentUser) {
+            showToast('Faça login para seguir');
+            return;
+        }
+        
+        const isFollowing = buttonElement.classList.contains('following');
+        
+        if (!isFollowing) {
+            // Seguir
+            try {
+                await database.ref(`followers/${userId}/${currentUser.uid}`).set(true);
+                await database.ref(`following/${currentUser.uid}/${userId}`).set(true);
+                buttonElement.classList.add('following');
+                buttonElement.textContent = 'Seguindo';
+                showToast(`Você começou a seguir @${cardElement.querySelector('.suggestion-nickname')?.textContent?.replace('@', '') || 'usuário'}`);
+                
+                // Remover o card após seguir (opcional, mas melhora experiência)
+                setTimeout(() => {
+                    if (cardElement && cardElement.parentNode) {
+                        cardElement.remove();
+                        // Atualizar contagem de sugestões visíveis
+                        updateSuggestionsVisibility();
+                    }
+                }, 1000);
+            } catch (error) {
+                console.error('Erro ao seguir:', error);
+                showToast('Erro ao seguir. Tente novamente.');
+            }
+        } else {
+            // Já está seguindo - não faz nada (ou pode deixar seguir mesmo)
+            showToast('Você já segue este usuário');
+        }
+    }
+    
+    // Função para rejeitar sugestão (fechar e não mostrar novamente)
+    async function rejectSuggestion(userId, cardElement) {
+        if (!currentUser) return;
+        
+        // Adicionar à blocklist para não sugerir novamente
+        await addToSuggestionBlocklist(userId);
+        
+        // Remover o card do DOM
+        if (cardElement && cardElement.parentNode) {
+            cardElement.remove();
+        }
+        
+        // Remover da lista de sugestões atuais
+        currentSuggestions = currentSuggestions.filter(u => u.uid !== userId);
+        suggestionCardsMap.delete(userId);
+        
+        showToast('Sugestão removida');
+        
+        // Verificar se ainda há cards de sugestão
+        updateSuggestionsVisibility();
+    }
+    
+    // Atualizar visibilidade da seção de sugestões (se não houver mais cards, esconder cabeçalho)
+    function updateSuggestionsVisibility() {
+        const container = document.querySelector('.suggestions-container');
+        if (!container) return;
+        
+        const visibleCards = container.querySelectorAll('.suggestion-card:not(.hidden)');
+        if (visibleCards.length === 0) {
+            container.classList.add('hidden');
+        } else {
+            container.classList.remove('hidden');
+        }
+    }
+    
+    // Função para ocultar todas as sugestões (botão "Fechar toda função")
+    function hideAllSuggestions() {
+        suggestionsHidden = true;
+        const container = document.querySelector('.suggestions-container');
+        if (container) {
+            container.classList.add('hidden');
+        }
+        // Persistir no localStorage que o usuário ocultou as sugestões (opcional)
+        if (currentUser) {
+            localStorage.setItem(`suggestions_hidden_${currentUser.uid}`, 'true');
+        }
+        showToast('Sugestões ocultadas. Recarregue a página para reativar.');
+    }
+    
+    // Reativar sugestões (se o usuário recarregar a página, pode reativar)
+    function resetSuggestionsHidden() {
+        if (currentUser) {
+            const hidden = localStorage.getItem(`suggestions_hidden_${currentUser.uid}`);
+            if (hidden === 'true') {
+                suggestionsHidden = true;
+            } else {
+                suggestionsHidden = false;
+            }
+        } else {
+            suggestionsHidden = false;
+        }
+    }
+    
+    // ========== FUNÇÃO PRINCIPAL PARA INSERIR SUGESTÕES NO FEED ==========
+    
+    async function injectSuggestionCardsIntoFeed() {
+        // Verificar se o feed existe e se o usuário está logado
+        const feedContainer = document.getElementById('feedList');
+        if (!feedContainer || !currentUser) return;
+        
+        // Se o usuário ocultou as sugestões, não mostrar
+        if (suggestionsHidden) return;
+        
+        // Buscar sugestões (apenas se não tiver sugestões atuais)
+        if (currentSuggestions.length === 0) {
+            currentSuggestions = await getSuggestedUsers();
+            if (currentSuggestions.length === 0) return;
+        }
+        
+        // Verificar se já existe um container de sugestões no feed
+        let suggestionsContainer = document.querySelector('.suggestions-container');
+        if (!suggestionsContainer) {
+            // Criar o container de sugestões com cabeçalho
+            suggestionsContainer = document.createElement('div');
+            suggestionsContainer.className = 'suggestions-container';
+            
+            // Cabeçalho com botão para fechar todas
+            const header = document.createElement('div');
+            header.className = 'suggestions-header';
+            header.innerHTML = `
+                <h3><i class="fas fa-user-plus"></i> Sugestões para você</h3>
+                <button class="hide-suggestions-btn" id="hideAllSuggestionsBtn"><i class="fas fa-times-circle"></i> Ocultar todas</button>
+            `;
+            suggestionsContainer.appendChild(header);
+            
+            // Adicionar o container após o elemento de carregamento ou no início do feed
+            const firstChild = feedContainer.firstChild;
+            feedContainer.insertBefore(suggestionsContainer, firstChild);
+            
+            // Evento do botão ocultar todas
+            const hideAllBtn = document.getElementById('hideAllSuggestionsBtn');
+            if (hideAllBtn) {
+                hideAllBtn.addEventListener('click', hideAllSuggestions);
+            }
+        }
+        
+        // Remover cards antigos (se houver)
+        const existingCards = suggestionsContainer.querySelectorAll('.suggestion-card');
+        existingCards.forEach(card => card.remove());
+        suggestionCardsMap.clear();
+        
+        // Criar e adicionar os novos cards de sugestão
+        for (const user of currentSuggestions) {
+            const card = createSuggestionCard(user);
+            suggestionsContainer.appendChild(card);
+            suggestionCardsMap.set(user.uid, card);
+        }
+        
+        // Mostrar o container
+        suggestionsContainer.classList.remove('hidden');
+        
+        // ** INTERCALAR CARDS ENTRE OS POSTS **
+        // Pegar todos os posts do feed (elementos .feed-post)
+        const feedPosts = feedContainer.querySelectorAll('.feed-post');
+        
+        // Se houver posts suficientes, reposicionar os cards de sugestão em posições estratégicas
+        // Para não ficar tudo no topo, vamos mover os cards para depois de certos posts
+        
+        if (feedPosts.length > 0 && currentSuggestions.length > 0) {
+            // Remover o container do topo e reinserir no lugar correto
+            suggestionsContainer.remove();
+            
+            // Determinar posições de inserção com base nos índices
+            const positions = SUGGESTIONS_POSITIONS.filter(pos => pos < feedPosts.length);
+            
+            if (positions.length === 0) {
+                // Se não houver posições suficientes, coloca no final
+                feedContainer.appendChild(suggestionsContainer);
+            } else {
+                // Inserir o container após o último post da primeira posição válida
+                // Simplificando: inserir após o post indicado pelo primeiro índice da lista
+                const targetIndex = positions[0];
+                const targetPost = feedPosts[targetIndex];
+                if (targetPost && targetPost.nextSibling) {
+                    feedContainer.insertBefore(suggestionsContainer, targetPost.nextSibling);
+                } else if (targetPost) {
+                    feedContainer.appendChild(suggestionsContainer);
+                } else {
+                    feedContainer.appendChild(suggestionsContainer);
+                }
+            }
+        }
+    }
+    
+    // ========== SOBRESCREVER O RENDERFEED PARA INJETAR SUGESTÕES ==========
+    
+    // Salvar a função original
+    const originalRenderFeed = window.renderFeed;
+    
+    // Nova função que chama a original e depois injeta as sugestões
+    window.renderFeed = async function() {
+        if (originalRenderFeed) {
+            await originalRenderFeed();
+        }
+        // Aguardar um pouco para garantir que o DOM foi atualizado
+        setTimeout(async () => {
+            await injectSuggestionCardsIntoFeed();
+        }, 300);
+    };
+    
+    // ========== OBSERVAR MUDANÇAS NO FEED (QUANDO NOVOS POSTS SÃO CARREGADOS) ==========
+    
+    // Configurar um MutationObserver para detectar quando novos posts são adicionados dinamicamente
+    function setupFeedObserver() {
+        const feedContainer = document.getElementById('feedList');
+        if (!feedContainer) return;
+        
+        const observer = new MutationObserver(async (mutations) => {
+            for (const mutation of mutations) {
+                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                    // Verificar se algum nó adicionado é um post
+                    let hasNewPost = false;
+                    mutation.addedNodes.forEach(node => {
+                        if (node.nodeType === 1 && node.classList && node.classList.contains('feed-post')) {
+                            hasNewPost = true;
+                        }
+                    });
+                    if (hasNewPost) {
+                        // Pequeno delay para evitar muitas inserções
+                        setTimeout(async () => {
+                            await injectSuggestionCardsIntoFeed();
+                        }, 200);
+                    }
+                }
+            }
+        });
+        
+        observer.observe(feedContainer, { childList: true, subtree: false });
+    }
+    
+    // ========== INICIALIZAR SUGESTÕES ==========
+    
+    async function initSuggestions() {
+        if (!currentUser) return;
+        
+        // Resetar estado
+        resetSuggestionsHidden();
+        
+        // Carregar sugestões iniciais (após o feed já ter sido renderizado)
+        setTimeout(async () => {
+            await injectSuggestionCardsIntoFeed();
+        }, 800);
+        
+        // Configurar observador do feed
+        setupFeedObserver();
+        
+        // Opcional: recarregar sugestões periodicamente
+        setInterval(async () => {
+            if (!suggestionsHidden && currentUser && document.getElementById('feedList') && document.getElementById('feedList').offsetParent !== null) {
+                // Recarregar sugestões se o feed estiver visível
+                currentSuggestions = await getSuggestedUsers();
+                await injectSuggestionCardsIntoFeed();
+            }
+        }, SUGGESTIONS_REFRESH_INTERVAL);
+    }
+    
+    // Executar quando o usuário fizer login
+    const originalUpdateUserUI = window.updateUserUI;
+    if (originalUpdateUserUI) {
+        window.updateUserUI = function(user) {
+            if (originalUpdateUserUI) originalUpdateUserUI(user);
+            if (user) {
+                setTimeout(() => initSuggestions(), 500);
+            }
+        };
+    } else {
+        // Fallback: observar auth state
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                setTimeout(() => initSuggestions(), 500);
+            }
+        });
+    }
+    
+    // Expor funções globalmente para debug (opcional)
+    window.refreshSuggestions = async () => {
+        currentSuggestions = await getSuggestedUsers();
+        await injectSuggestionCardsIntoFeed();
+    };
+    
+    console.log('✅ Sistema de sugestões de amizades carregado!');
+})();
 
 
 
