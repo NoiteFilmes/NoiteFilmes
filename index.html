@@ -6672,31 +6672,109 @@ window.viewProfileFromPost = function(userId) {
 };
 
 
-(function() {
-  const isInApp = /Instagram|FBAN|FBAV|Twitter|TikTok|Snapchat/i.test(navigator.userAgent);
-  if (isInApp && !firebase.auth().currentUser) {
-    // Esconde o modal de login para não confundir
+
+(function () {
+  // Verifica se está dentro de um navegador interno de rede social
+  function isInAppBrowser() {
+    const ua = navigator.userAgent || navigator.vendor || window.opera;
+    return /Instagram|FBAN|FBAV|Twitter|TikTok|Snapchat|Line|WhatsApp/i.test(ua);
+  }
+
+  // Detecta o sistema operacional
+  function getOS() {
+    const platform = navigator.platform || '';
+    const userAgent = navigator.userAgent;
+    if (/iPad|iPhone|iPod/.test(userAgent) || (platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+      return 'ios';
+    }
+    if (/Android/.test(userAgent)) return 'android';
+    return 'other';
+  }
+
+  if (isInAppBrowser() && !firebase.auth().currentUser) {
+    const os = getOS();
     const loginModal = document.getElementById('loginModal');
     if (loginModal) loginModal.style.display = 'none';
-    
-    // Mostra mensagem amigável
-    const msg = document.createElement('div');
-    msg.innerHTML = `
-      <div style="position: fixed; top: 30%; left: 5%; right: 5%; background: #111; border: 1px solid #e50914; border-radius: 20px; padding: 24px; text-align: center; z-index: 10000; backdrop-filter: blur(10px);">
-        <i class="fas fa-external-link-alt" style="font-size: 40px; color: #e50914;"></i>
-        <h3 style="margin: 16px 0; font-size: 18px;">Para fazer login</h3>
-        <p style="margin-bottom: 20px;">Toque no botão abaixo e escolha <strong>Abrir no navegador</strong>.</p>
-        <button id="forceOpenBrowser" style="background: #e50914; border: none; padding: 12px 24px; border-radius: 40px; color: white; font-weight: bold; width: 100%;">
-          Abrir no navegador
-        </button>
+
+    // Remove qualquer mensagem duplicada
+    const oldMsg = document.getElementById('forceBrowserMsg');
+    if (oldMsg) oldMsg.remove();
+
+    const msgDiv = document.createElement('div');
+    msgDiv.id = 'forceBrowserMsg';
+    msgDiv.innerHTML = `
+      <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(20px); z-index: 100000; display: flex; align-items: center; justify-content: center; padding: 24px;">
+        <div style="background: #1a1a1a; border-radius: 32px; max-width: 350px; width: 90%; padding: 28px; text-align: center; border: 1px solid #e50914;">
+          <i class="fas fa-external-link-alt" style="font-size: 48px; color: #e50914; margin-bottom: 16px; display: block;"></i>
+          <h3 style="font-size: 20px; margin-bottom: 12px;">Redirecionar para navegador</h3>
+          <p style="margin-bottom: 24px; color: #aaa; font-size: 14px;">
+            Para fazer login no NoiteFilmes, precisamos abrir o navegador padrão do seu celular.
+          </p>
+          <button id="openBrowserBtn" style="background: #e50914; border: none; padding: 14px; border-radius: 60px; width: 100%; font-weight: bold; font-size: 16px; cursor: pointer; margin-bottom: 12px;">
+            🌐 Abrir no navegador
+          </button>
+          <button id="copyLinkBtn" style="background: #333; border: none; padding: 12px; border-radius: 60px; width: 100%; font-size: 14px; cursor: pointer;">
+            📋 Copiar link
+          </button>
+        </div>
       </div>
     `;
-    document.body.appendChild(msg);
-    document.getElementById('forceOpenBrowser')?.addEventListener('click', () => {
-      window.location.href = "https://noitefilmes.com.br";
+    document.body.appendChild(msgDiv);
+
+    const openBtn = document.getElementById('openBrowserBtn');
+    const copyBtn = document.getElementById('copyLinkBtn');
+    const siteUrl = 'https://noitefilmes.com.br';
+
+    // Função para abrir no navegador padrão
+    function openInNativeBrowser() {
+      if (os === 'ios') {
+        // iOS: usa link com target="_blank" (funciona no WKWebView do Instagram)
+        const a = document.createElement('a');
+        a.href = siteUrl;
+        a.target = '_blank';
+        a.rel = 'noreferrer';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        // fallback após 1s
+        setTimeout(() => {
+          window.location.href = siteUrl;
+        }, 1000);
+      } 
+      else if (os === 'android') {
+        // Android: Intent URI que força o sistema a escolher um navegador
+        // OBS: Para testes, use intent://...; se falhar, tenta window.location
+        const intentUrl = `intent://noitefilmes.com.br#Intent;scheme=https;end;`;
+        window.location.href = intentUrl;
+        // fallback após 500ms (caso a intent não funcione)
+        setTimeout(() => {
+          window.location.href = siteUrl;
+        }, 500);
+      }
+      else {
+        // Outros sistemas (desktop, etc)
+        window.open(siteUrl, '_blank');
+      }
+    }
+
+    openBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      openInNativeBrowser();
+    });
+
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(siteUrl);
+        alert('Link copiado! Cole no navegador de sua preferência.');
+      } catch (err) {
+        alert('Não foi possível copiar automaticamente. Copie manualmente: ' + siteUrl);
+      }
     });
   }
 })();
+
+
+
 
                 
          </script>  
