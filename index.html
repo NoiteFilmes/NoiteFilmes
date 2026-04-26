@@ -6720,134 +6720,97 @@ window.viewProfileFromPost = function(userId) {
 
 
 
+
+
 // ============================================
-// VERSÃO CORRIGIDA - GERA LINK PARA COMPARTILHAR
-// (NÃO TRAVA O LOGIN)
+// CORREÇÃO: ABRIR POSTAGEM PELO LINK + REMOVER BOTÃO DUPLICADO
 // ============================================
 
-// Função para gerar o link único
-function gerarLinkCompartilhamento(item, tipo) {
-    const urlBase = window.location.href.split('?')[0];
-    return `${urlBase}?mediaId=${item.id}&type=${tipo}`;
+// 1. Função para abrir uma postagem específica (rolar até ela e abrir comentários)
+function abrirPostagemPorId(postId) {
+    // Primeiro, garante que estamos na seção de feed
+    switchSection('feed');
+    
+    // Aguarda o feed carregar e tenta encontrar o post
+    let tentativas = 0;
+    const intervalo = setInterval(() => {
+        const postElement = document.getElementById(`post-${postId}`);
+        if (postElement) {
+            clearInterval(intervalo);
+            // Rola até o post
+            postElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Destaca o post
+            postElement.style.transition = 'background 0.3s';
+            postElement.style.background = 'rgba(229,9,20,0.2)';
+            setTimeout(() => postElement.style.background = '', 1500);
+            // Abre o modal de comentários automaticamente
+            if (typeof showCommentsModal === 'function') {
+                setTimeout(() => showCommentsModal(postId), 500);
+            }
+            showToast(`📌 Postagem aberta`);
+        }
+        tentativas++;
+        if (tentativas > 20) {
+            clearInterval(intervalo);
+            showToast('❌ Postagem não encontrada');
+        }
+    }, 300);
 }
 
-// Corrige o botão "Compartilhar" dentro do player (sem quebrar o original)
-if (typeof shareNative === 'function') {
-    const shareNativeOriginal = shareNative;
-    window.shareNative = function() {
-        if (!currentMedia) {
-            showToast('Nenhum conteúdo selecionado');
-            return;
-        }
-        const link = gerarLinkCompartilhamento(currentMedia, currentMediaType);
+// 2. Verificar parâmetros da URL ao carregar a página (além do mediaId)
+function verificarUrlAoCriar() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const mediaId = urlParams.get('mediaId');
+    const type = urlParams.get('type');
+    const postId = urlParams.get('postId');
+    
+    if (postId) {
+        abrirPostagemPorId(postId);
+    } else if (mediaId && type) {
+        // Já existe essa lógica no código original, mas vamos garantir
+        setTimeout(() => playMediaById(mediaId, type), 500);
+    }
+}
+
+// 3. Remover os botões extras de "copiar link" que foram adicionados no feed
+function removerBotoesExtrasDoFeed() {
+    document.querySelectorAll('.share-feed-btn').forEach(btn => btn.remove());
+}
+
+// 4. Sobrescrever a função sharePost (já existe, mas garantir que gere o link correto)
+if (typeof sharePost === 'function') {
+    const sharePostOriginal = sharePost;
+    window.sharePost = async function(postId) {
+        const postUrl = `${window.location.origin}${window.location.pathname}?postId=${postId}`;
         if (navigator.share) {
-            navigator.share({
-                title: currentMedia.title,
-                text: `🎬 Assista "${currentMedia.title}" no NoiteFilmes!`,
-                url: link
-            }).catch(() => showToast('Compartilhamento cancelado'));
+            try {
+                await navigator.share({
+                    title: 'NoiteFilmes',
+                    text: 'Confira esta publicação!',
+                    url: postUrl
+                });
+            } catch (err) {
+                console.log('Compartilhamento cancelado');
+            }
         } else {
-            navigator.clipboard.writeText(link).then(() => {
-                showToast('✅ Link copiado! Compartilhe onde quiser.');
-            }).catch(() => showToast('❌ Erro ao copiar link'));
+            await navigator.clipboard.writeText(postUrl);
+            showToast('📎 Link da publicação copiado!');
         }
     };
 }
 
-// Adiciona botões "Link" nos cards da grade SEM substituir a função original
-function adicionarBotoesLinkNosCards() {
-    const cards = document.querySelectorAll('#contentGrid .glass-card');
-    cards.forEach(card => {
-        if (card.querySelector('.share-card-btn')) return;
-        
-        const id = card.getAttribute('data-id');
-        const tipo = card.getAttribute('data-type');
-        if (!id || !tipo) return;
-        
-        let item = null;
-        if (tipo === 'canais') item = canais?.find(c => c.id === id);
-        else if (tipo === 'filmes') item = filmes?.find(f => f.id === id);
-        else if (tipo === 'series') item = series?.find(s => s.id === id);
-        
-        if (item) {
-            const link = gerarLinkCompartilhamento(item, tipo);
-            const btn = document.createElement('button');
-            btn.className = 'share-card-btn action-btn ripple-btn';
-            btn.innerHTML = '<i class="fas fa-share-alt"></i> Link';
-            btn.style.fontSize = '9px';
-            btn.style.padding = '2px 6px';
-            btn.style.marginTop = '4px';
-            btn.onclick = (e) => {
-                e.stopPropagation();
-                navigator.clipboard.writeText(link).then(() => {
-                    showToast('🔗 Link copiado! Compartilhe com amigos.');
-                }).catch(() => showToast('Erro ao copiar'));
-            };
-            const infoDiv = card.querySelector('.p-1');
-            if (infoDiv && !infoDiv.querySelector('.share-card-btn')) {
-                infoDiv.appendChild(btn);
-            }
-        }
-    });
-}
-
-// Adiciona botão de compartilhar nos posts do feed
-function adicionarBotaoLinkNosPosts() {
-    const posts = document.querySelectorAll('.feed-post');
-    posts.forEach(post => {
-        if (post.querySelector('.share-feed-btn')) return;
-        const postId = post.id.replace('post-', '');
-        if (!postId) return;
-        const link = `${window.location.href.split('?')[0]}?postId=${postId}`;
-        const actionsDiv = post.querySelector('.feed-post-actions');
-        if (actionsDiv) {
-            const btn = document.createElement('button');
-            btn.className = 'action-button share-feed-btn';
-            btn.innerHTML = '<i class="fas fa-share-alt"></i>';
-            btn.title = 'Copiar link da publicação';
-            btn.onclick = (e) => {
-                e.stopPropagation();
-                navigator.clipboard.writeText(link).then(() => {
-                    showToast('📎 Link da publicação copiado!');
-                }).catch(() => showToast('Erro ao copiar'));
-            };
-            actionsDiv.appendChild(btn);
-        }
-    });
-}
-
-// Observa mudanças na grade (quando novos conteúdos são carregados)
-function observarGrade() {
-    const grade = document.getElementById('contentGrid');
-    if (!grade) return;
-    const observer = new MutationObserver(() => {
-        adicionarBotoesLinkNosCards();
-    });
-    observer.observe(grade, { childList: true, subtree: true });
-}
-
-// Observa mudanças no feed
-function observarFeed() {
-    const feedContainer = document.getElementById('feedList');
-    if (!feedContainer) return;
-    const observer = new MutationObserver(() => {
-        adicionarBotaoLinkNosPosts();
-    });
-    observer.observe(feedContainer, { childList: true, subtree: true });
-}
-
-// Aguarda o DOM carregar e também tenta a cada 2 segundos (caso os dados venham depois)
+// 5. Executar as correções após o DOM carregar
 document.addEventListener('DOMContentLoaded', () => {
-    observarGrade();
-    observarFeed();
-    // Tenta novamente após alguns segundos (para garantir)
-    setInterval(() => {
-        adicionarBotoesLinkNosCards();
-        adicionarBotaoLinkNosPosts();
-    }, 2000);
+    removerBotoesExtrasDoFeed();
+    verificarUrlAoCriar();
 });
 
-
+// 6. Além disso, observar quando o feed for renderizado para remover botões duplicados
+const observerFeed = new MutationObserver(() => {
+    removerBotoesExtrasDoFeed();
+});
+const feedContainer = document.getElementById('feedList');
+if (feedContainer) observerFeed.observe(feedContainer, { childList: true, subtree: true });
                 
          </script>  
         </body>
