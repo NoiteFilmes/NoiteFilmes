@@ -4041,15 +4041,15 @@
                 }
                 
                 async function sharePost(postId) {
-    const link = window.location.origin + window.location.pathname + '?postId=' + postId;
-    if (navigator.share) {
-        try { await navigator.share({ title: 'NoiteFilmes', text: 'Confira esta publicação!', url: link }); }
-        catch (err) { console.log('cancelado'); }
-    } else {
-        await navigator.clipboard.writeText(link);
-        showToast('📎 Link da publicação copiado!');
-    }
-}
+                    const postUrl = `${window.location.origin}?postId=${postId}`;
+                    if (navigator.share) {
+                        try { await navigator.share({ title: 'NoiteFilmes', text: 'Confira esta publicação no NoiteFilmes!', url: postUrl }); }
+                        catch (err) { console.log('Compartilhamento cancelado'); }
+                    } else {
+                        await navigator.clipboard.writeText(postUrl);
+                        showToast('Link copiado para a área de transferência!');
+                    }
+                }
                 
                 // ==================== FUNÇÕES DE COMENTÁRIOS ====================
                 async function addCommentToPost(postId, commentText) {
@@ -5003,15 +5003,11 @@
                 }
                 
                 function shareNative() {
-    if (!currentMedia) { showToast('Nenhum vídeo selecionado'); return; }
-    const link = window.location.origin + window.location.pathname + '?mediaId=' + currentMedia.id + '&type=' + currentMediaType;
-    if (navigator.share) {
-        navigator.share({ title: currentMedia.title, text: `🎬 Assista "${currentMedia.title}" no NoiteFilmes!`, url: link })
-            .catch(() => showToast('Compartilhamento cancelado'));
-    } else {
-        navigator.clipboard.writeText(link).then(() => showToast('✅ Link copiado!'));
-    }
-}
+                    if (!currentMedia) { showToast('Nenhum vídeo selecionado'); return; }
+                    const shareData = { title: currentMedia.title, text: `🎬 Assista "${currentMedia.title}" no NoiteFilmes!`, url: window.location.href };
+                    if (navigator.share) navigator.share(shareData).catch(() => showToast('Compartilhamento cancelado'));
+                    else navigator.clipboard.writeText(window.location.href).then(() => showToast('Link copiado!'));
+                }
                 
                 function openReportPopup() { if (!currentMedia) { showToast('Nenhum vídeo selecionado'); return; } if (!currentUser) { showToast('Faça login para reportar um problema'); return; } document.getElementById('reportPopup').classList.remove('hidden'); }
                 function closeReportPopup() { document.getElementById('reportPopup').classList.add('hidden'); document.getElementById('reportReason').value = 'video_indisponivel'; document.getElementById('reportComment').value = ''; }
@@ -6724,32 +6720,7 @@ window.viewProfileFromPost = function(userId) {
 
 
 
-// Processar link de compartilhamento na URL ao carregar a página
-window.addEventListener('load', function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const mediaId = urlParams.get('mediaId');
-    const type = urlParams.get('type');
-    const postId = urlParams.get('postId');
-    
-    if (mediaId && type) {
-        setTimeout(() => playMediaById(mediaId, type), 500);
-    } else if (postId) {
-        setTimeout(() => {
-            switchSection('feed');
-            setTimeout(() => {
-                const post = document.getElementById('post-' + postId);
-                if (post) {
-                    post.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    post.style.background = 'rgba(229,9,20,0.2)';
-                    setTimeout(() => post.style.background = '', 1000);
-                    showCommentsModal(postId);
-                } else {
-                    showToast('Postagem não encontrada');
-                }
-            }, 500);
-        }, 500);
-    }
-});
+
 
 
                 
