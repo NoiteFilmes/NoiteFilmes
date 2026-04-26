@@ -6720,7 +6720,284 @@ window.viewProfileFromPost = function(userId) {
 
 
 
-
+// ============================================================
+// SUGESTÕES DE AMIZADE (ESTILO INSTAGRAM)
+// ============================================================
+(function() {
+    // Configurações
+    let suggestionsEnabled = true;
+    let rejectedUserIds = [];
+    const STORAGE_KEY = 'noitefilmes_suggestions';
+    
+    // Carregar preferências do localStorage
+    function loadSuggestionsPrefs() {
+        try {
+            const data = localStorage.getItem(STORAGE_KEY);
+            if (data) {
+                const parsed = JSON.parse(data);
+                suggestionsEnabled = parsed.enabled !== undefined ? parsed.enabled : true;
+                rejectedUserIds = parsed.rejected || [];
+            }
+        } catch(e) { console.warn(e); }
+    }
+    
+    function saveSuggestionsPrefs() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            enabled: suggestionsEnabled,
+            rejected: rejectedUserIds
+        }));
+    }
+    
+    loadSuggestionsPrefs();
+    
+    // Buscar usuários sugeridos (não seguidos, não rejeitados, diferente do atual)
+    async function fetchSuggestedUsers(limit = 10) {
+        if (!window.currentUser) return [];
+        const currentUid = window.currentUser.uid;
+        
+        try {
+            // 1. Obter IDs que o usuário já segue
+            const followingSnap = await window.database.ref(`following/${currentUid}`).once('value');
+            const following = followingSnap.val() || {};
+            const followingIds = Object.keys(following);
+            
+            // 2. Obter todos os usuários do sistema
+            const usersSnap = await window.database.ref('usuarios').once('value');
+            const users = usersSnap.val() || {};
+            
+            const suggestions = [];
+            for (const [uid, userData] of Object.entries(users)) {
+                if (uid === currentUid) continue;                     // não sugerir a si mesmo
+                if (followingIds.includes(uid)) continue;             // já segue
+                if (rejectedUserIds.includes(uid)) continue;          // já fechou o card
+                
+                suggestions.push({
+                    uid: uid,
+                    nickname: userData.nickname || 'usuário',
+                    displayName: userData.displayName || userData.nickname || 'Usuário',
+                    bio: userData.bio || '🎬 Amante de cinema e séries',
+                    avatarUrl: userData.avatarUrl || null,
+                    createdAt: userData.createdAt || 0
+                });
+            }
+            // Ordenar por data de criação (mais recentes primeiro)
+            suggestions.sort((a,b) => b.createdAt - a.createdAt);
+            return suggestions.slice(0, limit);
+        } catch(err) {
+            console.error('Erro ao buscar sugestões:', err);
+            return [];
+        }
+    }
+    
+    // Criar card de sugestão
+    function createSuggestionCard(user, onCloseCallback) {
+        const card = document.createElement('div');
+        card.className = 'suggestion-card';
+        card.setAttribute('data-suggestion-uid', user.uid);
+        
+        const avatarUrl = user.avatarUrl || 'https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png';
+        const displayName = escapeHtml(user.displayName || user.nickname);
+        const bioShort = user.bio && user.bio.length > 60 ? user.bio.substring(0,60)+'…' : (user.bio || '🎬 Cinéfilo de plantão');
+        
+        card.innerHTML = `
+            <div class="suggestion-user">
+                <div class="suggestion-avatar" onclick="window.viewProfileFromPost && window.viewProfileFromPost('${user.uid}')">
+                    <img src="${avatarUrl}" onerror="this.src='https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png'">
+                </div>
+                <div class="suggestion-info">
+                    <div class="suggestion-name" onclick="window.viewProfileFromPost && window.viewProfileFromPost('${user.uid}')">${displayName}</div>
+                    <div class="suggestion-nickname">@${escapeHtml(user.nickname)}</div>
+                    <div class="suggestion-bio">${escapeHtml(bioShort)}</div>
+                </div>
+            </div>
+            <div class="suggestion-actions">
+                <button class="suggestion-follow-btn" data-uid="${user.uid}">Seguir</button>
+                <button class="suggestion-close-btn" data-uid="${user.uid}"><i class="fas fa-times"></i></button>
+            </div>
+        `;
+        
+        const followBtn = card.querySelector('.suggestion-follow-btn');
+        const closeBtn = card.querySelector('.suggestion-close-btn');
+        
+        // Atualizar estado do botão seguir (se já seguir por algum motivo)
+        async function updateFollowButton() {
+            if (!window.currentUser) return;
+            const check = await window.database.ref(`followers/${user.uid}/${window.currentUser.uid}`).once('value');
+            const isFollowing = check.val() === true;
+            if (isFollowing) {
+                followBtn.textContent = 'Seguindo';
+                followBtn.classList.add('following');
+            } else {
+                followBtn.textContent = 'Seguir';
+                followBtn.classList.remove('following');
+            }
+        }
+        updateFollowButton();
+        
+        // Ação de seguir
+        followBtn.onclick = async (e) => {
+            e.stopPropagation();
+            if (!window.currentUser) { window.showToast('Faça login para seguir'); return; }
+            const isFollowing = followBtn.classList.contains('following');
+            if (!isFollowing) {
+                await window.database.ref(`followers/${user.uid}/${window.currentUser.uid}`).set(true);
+                await window.database.ref(`following/${window.currentUser.uid}/${user.uid}`).set(true);
+                followBtn.textContent = 'Seguindo';
+                followBtn.classList.add('following');
+                window.showToast(`Você segue @${user.nickname}`);
+                // Recarregar feed para remover sugestão (já que agora segue)
+                if (window.renderFeed) window.renderFeed();
+            } else {
+                await window.database.ref(`followers/${user.uid}/${window.currentUser.uid}`).remove();
+                await window.database.ref(`following/${window.currentUser.uid}/${user.uid}`).remove();
+                followBtn.textContent = 'Seguir';
+                followBtn.classList.remove('following');
+                window.showToast(`Você deixou de seguir @${user.nickname}`);
+            }
+        };
+        
+        // Ação de fechar (descartar sugestão)
+        closeBtn.onclick = (e) => {
+            e.stopPropagation();
+            if (!rejectedUserIds.includes(user.uid)) {
+                rejectedUserIds.push(user.uid);
+                saveSuggestionsPrefs();
+            }
+            if (onCloseCallback) onCloseCallback(user.uid);
+            // Recarregar feed para remover o card
+            if (window.renderFeed) window.renderFeed();
+        };
+        
+        return card;
+    }
+    
+    // Renderizar banner de sugestões desativadas
+    function createDisabledBanner() {
+        const banner = document.createElement('div');
+        banner.className = 'suggestions-disabled-banner glass';
+        banner.innerHTML = `
+            <i class="fas fa-user-friends mr-2"></i> 
+            Sugestões de amizade desativadas
+            <button id="reenableSuggestionsBtn">Reativar</button>
+        `;
+        banner.querySelector('#reenableSuggestionsBtn').onclick = () => {
+            suggestionsEnabled = true;
+            saveSuggestionsPrefs();
+            if (window.renderFeed) window.renderFeed();
+            window.showToast('Sugestões reativadas!');
+        };
+        return banner;
+    }
+    
+    // Função principal que injeta sugestões no feed (chamada após o feed ser renderizado)
+    async function injectSuggestionsIntoFeed() {
+        const feedContainer = document.getElementById('feedList');
+        if (!feedContainer) return;
+        // Se não tiver usuário logado, não mostra sugestões
+        if (!window.currentUser) return;
+        
+        // Verificar se já existe header de sugestões para não duplicar
+        if (feedContainer.querySelector('.suggestion-header')) return;
+        
+        if (!suggestionsEnabled) {
+            // Mostrar banner de desativado caso não exista
+            if (!feedContainer.querySelector('.suggestions-disabled-banner')) {
+                const banner = createDisabledBanner();
+                feedContainer.insertBefore(banner, feedContainer.firstChild);
+            }
+            return;
+        }
+        
+        // Buscar sugestões
+        const suggestions = await fetchSuggestedUsers(6);
+        if (suggestions.length === 0) return;
+        
+        // Criar header "Sugestões para você"
+        const header = document.createElement('div');
+        header.className = 'suggestion-header';
+        header.innerHTML = `
+            <h4><i class="fas fa-user-friends"></i> Sugestões para você</h4>
+            <button class="suggestion-dismiss-all" id="dismissAllSuggestionsBtn">
+                <i class="fas fa-times-circle"></i> Desativar
+            </button>
+        `;
+        
+        // Botão desativar todas
+        header.querySelector('#dismissAllSuggestionsBtn').onclick = () => {
+            suggestionsEnabled = false;
+            saveSuggestionsPrefs();
+            if (window.renderFeed) window.renderFeed();
+            window.showToast('Sugestões de amizade desativadas');
+        };
+        
+        // Adicionar o header antes do primeiro post, se houver posts
+        const firstPost = feedContainer.querySelector('.feed-post');
+        if (firstPost) {
+            feedContainer.insertBefore(header, firstPost);
+        } else {
+            feedContainer.appendChild(header);
+        }
+        
+        // Adicionar até 3 cards de sugestão (ou quantas couberem)
+        let cardsAdded = 0;
+        for (let i = 0; i < suggestions.length && cardsAdded < 3; i++) {
+            const suggestion = suggestions[i];
+            const card = createSuggestionCard(suggestion, () => {
+                // Callback ao fechar - já recarrega o feed
+            });
+            // Inserir após o header ou após o último card
+            const lastCard = feedContainer.querySelector('.suggestion-card:last-child');
+            if (lastCard) {
+                feedContainer.insertBefore(card, lastCard.nextSibling);
+            } else {
+                feedContainer.insertBefore(card, header.nextSibling);
+            }
+            cardsAdded++;
+        }
+    }
+    
+    // ========== INTEGRAÇÃO COM O RENDER FEED EXISTENTE ==========
+    // Guarda a função original de renderFeed
+    const originalRenderFeed = window.renderFeed;
+    
+    // Substitui a função global renderFeed pela versão estendida
+    window.renderFeed = async function() {
+        if (originalRenderFeed) {
+            await originalRenderFeed();
+        }
+        // Após renderizar os posts, injeta as sugestões
+        setTimeout(() => {
+            injectSuggestionsIntoFeed();
+        }, 100);
+    };
+    
+    // Se o feed já tiver sido carregado, forçar reinjeção
+    if (document.getElementById('feedList') && window.currentUser) {
+        setTimeout(() => {
+            if (window.renderFeed) window.renderFeed();
+        }, 500);
+    }
+    
+    // Observa mudanças de rota para a aba "feed"
+    const originalSwitchSection = window.switchSection;
+    if (originalSwitchSection) {
+        window.switchSection = function(sectionId) {
+            originalSwitchSection(sectionId);
+            if (sectionId === 'feed') {
+                setTimeout(() => injectSuggestionsIntoFeed(), 200);
+            }
+        };
+    }
+    
+    // Exporta utilidades para debug (opcional)
+    window.suggestionsUtils = {
+        enable: () => { suggestionsEnabled = true; saveSuggestionsPrefs(); if(window.renderFeed) window.renderFeed(); },
+        disable: () => { suggestionsEnabled = false; saveSuggestionsPrefs(); if(window.renderFeed) window.renderFeed(); },
+        clearRejected: () => { rejectedUserIds = []; saveSuggestionsPrefs(); if(window.renderFeed) window.renderFeed(); }
+    };
+    
+    console.log('✅ Sistema de sugestões de amizade carregado!');
+})();
 
 
 
