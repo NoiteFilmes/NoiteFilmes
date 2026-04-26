@@ -6717,6 +6717,142 @@ window.viewProfileFromPost = function(userId) {
     }
 };
 
+
+
+
+
+// ============================================
+// FUNÇÃO PARA GERAR LINK ÚNICO DE CADA CONTEÚDO
+// ============================================
+
+// Gera o link completo para compartilhar um item
+function gerarLinkCompartilhamento(item, tipo) {
+    // Pega a URL atual (sem parâmetros)
+    const urlBase = window.location.href.split('?')[0];
+    // Cria os parâmetros com ID e tipo
+    return `${urlBase}?mediaId=${item.id}&type=${tipo}`;
+}
+
+// Substitui o comportamento do botão "Compartilhar" dentro do player
+if (typeof shareNative === 'function') {
+    window.shareNative = function() {
+        if (!currentMedia) {
+            showToast('Nenhum conteúdo selecionado');
+            return;
+        }
+        const link = gerarLinkCompartilhamento(currentMedia, currentMediaType);
+        if (navigator.share) {
+            navigator.share({
+                title: currentMedia.title,
+                text: `🎬 Assista "${currentMedia.title}" no NoiteFilmes!`,
+                url: link
+            }).catch(() => showToast('Compartilhamento cancelado'));
+        } else {
+            navigator.clipboard.writeText(link).then(() => {
+                showToast('✅ Link copiado! Compartilhe onde quiser.');
+            }).catch(() => showToast('❌ Erro ao copiar link'));
+        }
+    };
+}
+
+// Adiciona botão "Copiar link" em cada card da grade (filmes, séries, canais)
+function adicionarBotaoCopiarLink() {
+    // Aguarda os cards serem gerados (pode ser chamada após renderGrid)
+    setTimeout(() => {
+        const cards = document.querySelectorAll('#contentGrid .glass-card');
+        cards.forEach(card => {
+            // Evita adicionar mais de uma vez
+            if (card.querySelector('.share-card-btn')) return;
+            
+            const id = card.getAttribute('data-id');
+            const tipo = card.getAttribute('data-type');
+            let item = null;
+            if (tipo === 'canais') item = canais.find(c => c.id === id);
+            else if (tipo === 'filmes') item = filmes.find(f => f.id === id);
+            else if (tipo === 'series') item = series.find(s => s.id === id);
+            
+            if (item) {
+                const link = gerarLinkCompartilhamento(item, tipo);
+                const btn = document.createElement('button');
+                btn.className = 'share-card-btn action-btn ripple-btn mt-1';
+                btn.innerHTML = '<i class="fas fa-share-alt"></i> Link';
+                btn.style.fontSize = '9px';
+                btn.style.padding = '2px 6px';
+                btn.onclick = (e) => {
+                    e.stopPropagation(); // impede abrir o player
+                    navigator.clipboard.writeText(link).then(() => {
+                        showToast('🔗 Link copiado! Compartilhe com amigos.');
+                    }).catch(() => showToast('Erro ao copiar'));
+                };
+                // Insere o botão dentro do card (após o título, por exemplo)
+                const infoDiv = card.querySelector('.p-1');
+                if (infoDiv && !infoDiv.querySelector('.share-card-btn')) {
+                    infoDiv.appendChild(btn);
+                }
+            }
+        });
+    }, 200);
+}
+
+// Sobrescreve a função renderGrid para adicionar os botões sempre que a grade for atualizada
+const renderGridOriginal = window.renderGrid;
+if (renderGridOriginal) {
+    window.renderGrid = function() {
+        renderGridOriginal();
+        adicionarBotaoCopiarLink();
+    };
+}
+
+// Também garante que ao trocar de aba (Canais/Filmes/Séries) os botões apareçam
+const setNavTabOriginal = window.setNavTab;
+if (setNavTabOriginal) {
+    window.setNavTab = function(tab) {
+        setNavTabOriginal(tab);
+        adicionarBotaoCopiarLink();
+    };
+}
+
+// Para postagens do feed, cria um botão "Copiar link" em cada post
+function adicionarBotaoCopiarLinkFeed() {
+    setTimeout(() => {
+        const posts = document.querySelectorAll('.feed-post');
+        posts.forEach(post => {
+            if (post.querySelector('.share-feed-btn')) return;
+            const postId = post.id.replace('post-', '');
+            const link = `${window.location.href.split('?')[0]}?postId=${postId}`;
+            const actionsDiv = post.querySelector('.feed-post-actions');
+            if (actionsDiv) {
+                const btn = document.createElement('button');
+                btn.className = 'action-button share-feed-btn';
+                btn.innerHTML = '<i class="fas fa-share-alt"></i>';
+                btn.title = 'Copiar link da publicação';
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    navigator.clipboard.writeText(link).then(() => {
+                        showToast('📎 Link da publicação copiado!');
+                    }).catch(() => showToast('Erro ao copiar'));
+                };
+                actionsDiv.appendChild(btn);
+            }
+        });
+    }, 300);
+}
+
+// Sobrescreve renderFeed para adicionar os botões nos posts
+const renderFeedOriginal = window.renderFeed;
+if (renderFeedOriginal) {
+    window.renderFeed = function() {
+        renderFeedOriginal();
+        adicionarBotaoCopiarLinkFeed();
+    };
+}
+
+// Inicializa os botões assim que a página carregar
+document.addEventListener('DOMContentLoaded', () => {
+    adicionarBotaoCopiarLink();
+    if (document.getElementById('feedList')) adicionarBotaoCopiarLinkFeed();
+});
+
                 
          </script>  
         </body>
