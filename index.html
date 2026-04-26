@@ -3464,6 +3464,52 @@
             <input type="file" id="avatarUploadInput" accept="image/*" style="display: none;">
 
             <script>
+            
+            
+            (function forceExternalBrowser() {
+    // Lista de User-Agents de aplicativos que usam WebView problemática
+    const isInApp = /Instagram|FBAN|FBAV|Twitter|TikTok|Snapchat|; wv\)/i.test(navigator.userAgent);
+    
+    // Se estiver dentro de um app, redireciona para o navegador
+    if (isInApp) {
+        const currentUrl = window.location.href;
+        
+        // Previne loop infinito – se já estamos tentando redirecionar, não faz nada
+        if (sessionStorage.getItem('redirectAttempted')) return;
+        sessionStorage.setItem('redirectAttempted', 'true');
+        
+        // Android: intent:// chrome
+        if (navigator.userAgent.includes('Android')) {
+            window.location.href = 'intent://' + currentUrl.replace(/^https?:\/\//, '') + '#Intent;scheme=http;package=com.android.chrome;end';
+        } 
+        // iOS: googlechrome:// ou fallback para safari
+        else if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+            // Tenta abrir com o Google Chrome (se instalado)
+            window.location.href = 'googlechrome://' + currentUrl.replace(/^https?:\/\//, '');
+            // Fallback para Safari após 500ms
+            setTimeout(function() {
+                window.location.href = currentUrl;
+            }, 500);
+        }
+        else {
+            // Desktop ou outros: exibe instrução
+            document.body.innerHTML = `
+                <div style="text-align:center; padding:40px; font-family:system-ui;">
+                    <h2>🔓 Abra no navegador</h2>
+                    <p>O NoiteFilmes não funciona dentro do Instagram/Facebook.</p>
+                    <button onclick="location.href='${currentUrl}'" style="background:#e50914; color:white; border:none; padding:12px 24px; border-radius:40px; font-size:16px;">
+                        Clique aqui para abrir no navegador
+                    </button>
+                    <p style="margin-top:30px; font-size:12px;">Se não abrir, copie o link e cole no Chrome/Safari.</p>
+                </div>
+            `;
+        }
+    }
+})();
+            
+            
+            
+            
                 // ==================== CONSTANTES ====================
                 const DEFAULT_AVATAR_URL = "https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png";
                 
