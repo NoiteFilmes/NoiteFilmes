@@ -7546,6 +7546,57 @@ window.viewProfileFromPost = function(userId) {
     console.log('✅ Roteamento amigável ativado. URLs como /nomeusuario funcionam!');
 })();
 
+// ========== ROTEAMENTO POR NICKNAME (MANUAL) ==========
+async function carregarPerfilPorNickname(nickname) {
+    if (!currentUser) {
+        showToast('Faça login para ver perfis');
+        return false;
+    }
+    try {
+        const snapshot = await database.ref('usuarios').orderByChild('nickname').equalTo(nickname).once('value');
+        const user = snapshot.val();
+        if (user) {
+            const uid = Object.keys(user)[0];
+            if (uid === currentUser.uid) {
+                renderInstagramProfile(); // próprio perfil
+            } else {
+                renderInstagramProfile(uid); // perfil de outro
+            }
+            switchSection('perfil');
+            return true;
+        } else {
+            showToast(`Usuário @${nickname} não encontrado`);
+            return false;
+        }
+    } catch (error) {
+        console.error(error);
+        showToast('Erro ao carregar perfil');
+        return false;
+    }
+}
+
+// Lê a URL ao carregar a página
+function rotearUrlInicial() {
+    let path = window.location.pathname;
+    if (path === '/' || path === '') return;
+    let nickname = path.substring(1).split('/')[0]; // pega "tiago" de /tiago
+    if (nickname) {
+        // Aguarda o usuário estar logado
+        const checkUser = setInterval(() => {
+            if (currentUser) {
+                clearInterval(checkUser);
+                carregarPerfilPorNickname(nickname);
+            }
+        }, 200);
+    }
+}
+
+// Dispara quando o usuário fizer login
+if (auth) {
+    auth.onAuthStateChanged(user => {
+        if (user) rotearUrlInicial();
+    });
+}
                 
          </script>  
         </body>
