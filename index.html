@@ -6680,11 +6680,16 @@ window.viewProfileFromPost = function(userId) {
   }
 
   if (isInAppBrowser() && !firebase.auth().currentUser) {
+    // Esconde o modal de login original
     const loginModal = document.getElementById('loginModal');
     if (loginModal) loginModal.style.display = 'none';
 
+    // Remove mensagem antiga se existir
     const oldMsg = document.getElementById('forceBrowserMsg');
     if (oldMsg) oldMsg.remove();
+
+    const siteUrl = 'https://noitefilmes.com.br';
+    const os = /iPad|iPhone|iPod/.test(navigator.userAgent) ? 'ios' : (/Android/.test(navigator.userAgent) ? 'android' : 'other');
 
     const msgDiv = document.createElement('div');
     msgDiv.id = 'forceBrowserMsg';
@@ -6692,30 +6697,67 @@ window.viewProfileFromPost = function(userId) {
       <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(20px); z-index: 100000; display: flex; align-items: center; justify-content: center; padding: 24px;">
         <div style="background: #1a1a1a; border-radius: 32px; max-width: 350px; width: 90%; padding: 28px; text-align: center; border: 1px solid #e50914;">
           <i class="fas fa-external-link-alt" style="font-size: 48px; color: #e50914; margin-bottom: 16px; display: block;"></i>
-          <h3 style="font-size: 20px; margin-bottom: 12px;">Abrir no navegador</h3>
-          <p style="margin-bottom: 24px; color: #aaa; font-size: 14px;">
-            O Instagram bloqueia a digitação. Clique no link abaixo para abrir fora do app.
+          <h3 style="font-size: 20px; margin-bottom: 12px;">Abrir no navegador padrão</h3>
+          <p style="margin-bottom: 20px; color: #ccc; font-size: 14px;">
+            O ${/Instagram/i.test(navigator.userAgent) ? 'Instagram' : 'este aplicativo'} bloqueia a digitação. Para fazer login:
           </p>
-          <!-- 👇 LINK DIRETO - O SISTEMA ABRIRÁ NO NAVEGADOR PADRÃO -->
-          <a href="https://noitefilmes.com.br" target="_blank" rel="noopener noreferrer" 
-             style="display: block; background: #e50914; text-decoration: none; padding: 14px; border-radius: 60px; color: white; font-weight: bold; font-size: 16px; margin-bottom: 12px;">
-            🌐 Abrir no navegador
-          </a>
-          <button id="copyLinkBtn" style="background: #333; border: none; padding: 12px; border-radius: 60px; width: 100%; font-size: 14px; cursor: pointer;">
+          <ol style="text-align: left; margin-bottom: 24px; color: #aaa; font-size: 13px; padding-left: 20px;">
+            <li>Toque em <strong>“Copiar link”</strong> abaixo</li>
+            <li>Abra o navegador do seu celular (Chrome, Safari)</li>
+            <li>Cole o link na barra de endereço e acesse</li>
+          </ol>
+          <button id="copyLinkBtn" style="background: #e50914; border: none; padding: 14px; border-radius: 60px; width: 100%; font-weight: bold; font-size: 16px; cursor: pointer; margin-bottom: 12px;">
             📋 Copiar link
           </button>
+          <button id="tryAutoOpenBtn" style="background: #333; border: none; padding: 12px; border-radius: 60px; width: 100%; font-size: 14px; cursor: pointer;">
+            🔄 Tentar abrir automaticamente (pode não funcionar)
+          </button>
+          <p style="font-size: 11px; color: #666; margin-top: 16px;">
+            Após copiar, cole no navegador. O site funciona normalmente lá.
+          </p>
         </div>
       </div>
     `;
     document.body.appendChild(msgDiv);
 
+    // Botão copiar link (sempre funciona)
     document.getElementById('copyLinkBtn').addEventListener('click', async () => {
       try {
-        await navigator.clipboard.writeText('https://noitefilmes.com.br');
-        alert('✅ Link copiado! Cole no navegador de sua preferência.');
+        await navigator.clipboard.writeText(siteUrl);
+        alert('✅ Link copiado! Agora abra o navegador e cole o link.');
       } catch (err) {
-        alert('Copie manualmente: https://noitefilmes.com.br');
+        // Fallback para navegadores antigos
+        const textarea = document.createElement('textarea');
+        textarea.value = siteUrl;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        alert('✅ Link copiado! Cole no navegador.');
       }
+    });
+
+    // Botão de tentativa automática (funciona em alguns casos)
+    document.getElementById('tryAutoOpenBtn').addEventListener('click', () => {
+      if (os === 'ios') {
+        // iOS: tenta criar um link invisível e simular clique (já falhou antes, mas vamos tentar de novo)
+        const a = document.createElement('a');
+        a.href = siteUrl;
+        a.target = '_blank';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => document.body.removeChild(a), 100);
+      } else if (os === 'android') {
+        // Android: intent
+        window.location.href = `intent://noitefilmes.com.br#Intent;scheme=https;end;`;
+        setTimeout(() => {
+          window.location.href = siteUrl; // fallback
+        }, 300);
+      } else {
+        window.open(siteUrl, '_blank');
+      }
+      alert('Se nada aconteceu, use o botão "Copiar link".');
     });
   }
 })();
