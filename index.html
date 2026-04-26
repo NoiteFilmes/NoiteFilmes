@@ -6671,6 +6671,33 @@ window.viewProfileFromPost = function(userId) {
     }
 };
 
+
+(function() {
+  const isInApp = /Instagram|FBAN|FBAV|Twitter|TikTok|Snapchat/i.test(navigator.userAgent);
+  if (isInApp && !firebase.auth().currentUser) {
+    // Esconde o modal de login para não confundir
+    const loginModal = document.getElementById('loginModal');
+    if (loginModal) loginModal.style.display = 'none';
+    
+    // Mostra mensagem amigável
+    const msg = document.createElement('div');
+    msg.innerHTML = `
+      <div style="position: fixed; top: 30%; left: 5%; right: 5%; background: #111; border: 1px solid #e50914; border-radius: 20px; padding: 24px; text-align: center; z-index: 10000; backdrop-filter: blur(10px);">
+        <i class="fas fa-external-link-alt" style="font-size: 40px; color: #e50914;"></i>
+        <h3 style="margin: 16px 0; font-size: 18px;">Para fazer login</h3>
+        <p style="margin-bottom: 20px;">Toque no botão abaixo e escolha <strong>Abrir no navegador</strong>.</p>
+        <button id="forceOpenBrowser" style="background: #e50914; border: none; padding: 12px 24px; border-radius: 40px; color: white; font-weight: bold; width: 100%;">
+          Abrir no navegador
+        </button>
+      </div>
+    `;
+    document.body.appendChild(msg);
+    document.getElementById('forceOpenBrowser')?.addEventListener('click', () => {
+      window.location.href = "https://noitefilmes.com.br";
+    });
+  }
+})();
+
                 
          </script>  
         </body>
