@@ -4041,15 +4041,15 @@
                 }
                 
                 async function sharePost(postId) {
-                    const postUrl = `${window.location.origin}?postId=${postId}`;
-                    if (navigator.share) {
-                        try { await navigator.share({ title: 'NoiteFilmes', text: 'Confira esta publicação no NoiteFilmes!', url: postUrl }); }
-                        catch (err) { console.log('Compartilhamento cancelado'); }
-                    } else {
-                        await navigator.clipboard.writeText(postUrl);
-                        showToast('Link copiado para a área de transferência!');
-                    }
-                }
+    const link = window.location.origin + window.location.pathname + '?postId=' + postId;
+    if (navigator.share) {
+        try { await navigator.share({ title: 'NoiteFilmes', text: 'Confira esta publicação!', url: link }); }
+        catch (err) { console.log('cancelado'); }
+    } else {
+        await navigator.clipboard.writeText(link);
+        showToast('📎 Link da publicação copiado!');
+    }
+}
                 
                 // ==================== FUNÇÕES DE COMENTÁRIOS ====================
                 async function addCommentToPost(postId, commentText) {
@@ -5003,11 +5003,15 @@
                 }
                 
                 function shareNative() {
-                    if (!currentMedia) { showToast('Nenhum vídeo selecionado'); return; }
-                    const shareData = { title: currentMedia.title, text: `🎬 Assista "${currentMedia.title}" no NoiteFilmes!`, url: window.location.href };
-                    if (navigator.share) navigator.share(shareData).catch(() => showToast('Compartilhamento cancelado'));
-                    else navigator.clipboard.writeText(window.location.href).then(() => showToast('Link copiado!'));
-                }
+    if (!currentMedia) { showToast('Nenhum vídeo selecionado'); return; }
+    const link = window.location.origin + window.location.pathname + '?mediaId=' + currentMedia.id + '&type=' + currentMediaType;
+    if (navigator.share) {
+        navigator.share({ title: currentMedia.title, text: `🎬 Assista "${currentMedia.title}" no NoiteFilmes!`, url: link })
+            .catch(() => showToast('Compartilhamento cancelado'));
+    } else {
+        navigator.clipboard.writeText(link).then(() => showToast('✅ Link copiado!'));
+    }
+}
                 
                 function openReportPopup() { if (!currentMedia) { showToast('Nenhum vídeo selecionado'); return; } if (!currentUser) { showToast('Faça login para reportar um problema'); return; } document.getElementById('reportPopup').classList.remove('hidden'); }
                 function closeReportPopup() { document.getElementById('reportPopup').classList.add('hidden'); document.getElementById('reportReason').value = 'video_indisponivel'; document.getElementById('reportComment').value = ''; }
@@ -6720,135 +6724,34 @@ window.viewProfileFromPost = function(userId) {
 
 
 
-
-
-// =====================================================
-// LINKS ÚNICOS PARA COMPARTILHAR – VERSÃO QUE NÃO TRAVA
-// =====================================================
-
-(function() {
-    // Aguarda tudo carregar antes de executar
-    window.addEventListener('load', function() {
-        setTimeout(function() {
-            // 1. CORRIGIR O BOTÃO "COMPARTILHAR" DO PLAYER (se existir)
-            if (typeof shareNative === 'function') {
-                const originalShareNative = shareNative;
-                window.shareNative = function() {
-                    if (!currentMedia) {
-                        if (typeof showToast === 'function') showToast('Nenhum conteúdo selecionado');
-                        return;
-                    }
-                    const urlBase = window.location.href.split('?')[0];
-                    const link = `${urlBase}?mediaId=${currentMedia.id}&type=${currentMediaType}`;
-                    if (navigator.share) {
-                        navigator.share({
-                            title: currentMedia.title,
-                            text: `🎬 Assista "${currentMedia.title}" no NoiteFilmes!`,
-                            url: link
-                        }).catch(() => {});
-                    } else {
-                        navigator.clipboard.writeText(link).then(() => {
-                            if (typeof showToast === 'function') showToast('✅ Link copiado!');
-                        }).catch(() => {});
-                    }
-                };
-            }
-
-            // 2. ADICIONAR BOTÃO "📎 LINK" NOS CARDS (filmes/séries/canais)
-            function adicionarBotaoLinkCards() {
-                const cards = document.querySelectorAll('#contentGrid .glass-card');
-                cards.forEach(card => {
-                    if (card.querySelector('.meu-botao-link')) return;
-                    const id = card.getAttribute('data-id');
-                    const tipo = card.getAttribute('data-type');
-                    if (!id || !tipo) return;
-                    
-                    let item = null;
-                    if (tipo === 'canais' && typeof canais !== 'undefined') item = canais.find(c => c.id === id);
-                    else if (tipo === 'filmes' && typeof filmes !== 'undefined') item = filmes.find(f => f.id === id);
-                    else if (tipo === 'series' && typeof series !== 'undefined') item = series.find(s => s.id === id);
-                    
-                    if (item) {
-                        const urlBase = window.location.href.split('?')[0];
-                        const link = `${urlBase}?mediaId=${item.id}&type=${tipo}`;
-                        const btn = document.createElement('button');
-                        btn.className = 'meu-botao-link action-btn ripple-btn';
-                        btn.innerHTML = '<i class="fas fa-share-alt"></i> Link';
-                        btn.style.fontSize = '9px';
-                        btn.style.padding = '2px 6px';
-                        btn.style.marginTop = '4px';
-                        btn.onclick = (e) => {
-                            e.stopPropagation();
-                            navigator.clipboard.writeText(link).then(() => {
-                                if (typeof showToast === 'function') showToast('🔗 Link copiado!');
-                            }).catch(() => {});
-                        };
-                        const infoDiv = card.querySelector('.p-1');
-                        if (infoDiv && !infoDiv.querySelector('.meu-botao-link')) {
-                            infoDiv.appendChild(btn);
-                        }
-                    }
-                });
-            }
-
-            // 3. FUNÇÃO PARA ABRIR POSTAGEM PELO LINK
-            function abrirPostagemPorLink(postId) {
-                if (typeof switchSection === 'function') {
-                    switchSection('feed');
+// Processar link de compartilhamento na URL ao carregar a página
+window.addEventListener('load', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const mediaId = urlParams.get('mediaId');
+    const type = urlParams.get('type');
+    const postId = urlParams.get('postId');
+    
+    if (mediaId && type) {
+        setTimeout(() => playMediaById(mediaId, type), 500);
+    } else if (postId) {
+        setTimeout(() => {
+            switchSection('feed');
+            setTimeout(() => {
+                const post = document.getElementById('post-' + postId);
+                if (post) {
+                    post.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    post.style.background = 'rgba(229,9,20,0.2)';
+                    setTimeout(() => post.style.background = '', 1000);
+                    showCommentsModal(postId);
                 } else {
-                    // fallback: tenta clicar no botão do feed
-                    const feedBtn = document.querySelector('.bottom-nav-item[data-section="feed"]');
-                    if (feedBtn) feedBtn.click();
+                    showToast('Postagem não encontrada');
                 }
-                let tentativas = 0;
-                const interval = setInterval(function() {
-                    const postEl = document.getElementById(`post-${postId}`);
-                    if (postEl) {
-                        clearInterval(interval);
-                        postEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        postEl.style.transition = 'background 0.3s';
-                        postEl.style.background = 'rgba(229,9,20,0.2)';
-                        setTimeout(() => postEl.style.background = '', 1500);
-                        if (typeof showCommentsModal === 'function') {
-                            setTimeout(() => showCommentsModal(postId), 500);
-                        }
-                        if (typeof showToast === 'function') showToast('📌 Postagem aberta');
-                    }
-                    tentativas++;
-                    if (tentativas > 20) {
-                        clearInterval(interval);
-                    }
-                }, 300);
-            }
+            }, 500);
+        }, 500);
+    }
+});
 
-            // 4. VERIFICAR URL NA CARGA INICIAL
-            const urlParams = new URLSearchParams(window.location.search);
-            const postId = urlParams.get('postId');
-            const mediaId = urlParams.get('mediaId');
-            const type = urlParams.get('type');
-            
-            if (postId) {
-                abrirPostagemPorLink(postId);
-            } else if (mediaId && type) {
-                if (typeof playMediaById === 'function') {
-                    setTimeout(() => playMediaById(mediaId, type), 500);
-                }
-            }
 
-            // 5. OBSERVAR ALTERAÇÕES NA GRADE E NO FEED (sem atrapalhar)
-            const gradeObserver = new MutationObserver(adicionarBotaoLinkCards);
-            const grade = document.getElementById('contentGrid');
-            if (grade) gradeObserver.observe(grade, { childList: true, subtree: true });
-            
-            // Executar uma vez agora
-            adicionarBotaoLinkCards();
-            
-            // Também tentar a cada 3 segundos (caso o conteúdo demore)
-            setInterval(adicionarBotaoLinkCards, 3000);
-            
-        }, 500); // pequeno delay para garantir que o Firebase e o DOM estejam prontos
-    });
-})();
                 
          </script>  
         </body>
