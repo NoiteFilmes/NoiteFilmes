@@ -6720,283 +6720,411 @@ window.viewProfileFromPost = function(userId) {
 
 
 
-// ============================================================
-// SUGESTÕES DE AMIZADE (ESTILO INSTAGRAM)
-// ============================================================
+// =====================================================
+// SUGESTÕES DE AMIZADE - Funciona sozinho!
+// =====================================================
 (function() {
-    // Configurações
-    let suggestionsEnabled = true;
-    let rejectedUserIds = [];
-    const STORAGE_KEY = 'noitefilmes_suggestions';
-    
-    // Carregar preferências do localStorage
-    function loadSuggestionsPrefs() {
-        try {
-            const data = localStorage.getItem(STORAGE_KEY);
-            if (data) {
-                const parsed = JSON.parse(data);
-                suggestionsEnabled = parsed.enabled !== undefined ? parsed.enabled : true;
-                rejectedUserIds = parsed.rejected || [];
+    // Só executa depois que a página carregar completamente
+    window.addEventListener('load', function() {
+        setTimeout(function() {
+            console.log("🚀 Iniciando sugestões de amizade...");
+            
+            // Verificar se o Firebase já está disponível
+            if (!window.database || !window.auth) {
+                console.error("Firebase não encontrado! Aguardando...");
+                return;
             }
-        } catch(e) { console.warn(e); }
-    }
-    
-    function saveSuggestionsPrefs() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({
-            enabled: suggestionsEnabled,
-            rejected: rejectedUserIds
-        }));
-    }
-    
-    loadSuggestionsPrefs();
-    
-    // Buscar usuários sugeridos (não seguidos, não rejeitados, diferente do atual)
-    async function fetchSuggestedUsers(limit = 10) {
-        if (!window.currentUser) return [];
-        const currentUid = window.currentUser.uid;
-        
-        try {
-            // 1. Obter IDs que o usuário já segue
-            const followingSnap = await window.database.ref(`following/${currentUid}`).once('value');
-            const following = followingSnap.val() || {};
-            const followingIds = Object.keys(following);
             
-            // 2. Obter todos os usuários do sistema
-            const usersSnap = await window.database.ref('usuarios').once('value');
-            const users = usersSnap.val() || {};
+            // Estilos CSS dos cards (adiciona automaticamente)
+            if (!document.getElementById('suggestions-style')) {
+                const style = document.createElement('style');
+                style.id = 'suggestions-style';
+                style.textContent = `
+                    .suggestion-card {
+                        background: rgba(20, 25, 45, 0.8);
+                        backdrop-filter: blur(18px);
+                        border-radius: 20px;
+                        padding: 16px;
+                        margin-bottom: 20px;
+                        border: 1px solid rgba(255,255,255,0.15);
+                        transition: all 0.2s;
+                    }
+                    .suggestion-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin: 16px 0 12px 0;
+                        padding: 0 4px;
+                    }
+                    .suggestion-header h4 {
+                        font-size: 0.9rem;
+                        font-weight: 600;
+                        color: rgba(255,255,255,0.9);
+                    }
+                    .suggestion-dismiss-all {
+                        background: none;
+                        border: none;
+                        color: rgba(255,255,255,0.5);
+                        font-size: 0.7rem;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        gap: 4px;
+                    }
+                    .suggestion-dismiss-all:hover { color: #e50914; }
+                    .suggestion-user {
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                        margin-bottom: 12px;
+                    }
+                    .suggestion-avatar {
+                        width: 55px;
+                        height: 55px;
+                        border-radius: 50%;
+                        background: linear-gradient(135deg, #e50914, #b20710);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        overflow: hidden;
+                        flex-shrink: 0;
+                        cursor: pointer;
+                    }
+                    .suggestion-avatar img {
+                        width: 100%;
+                        height: 100%;
+                        object-fit: cover;
+                    }
+                    .suggestion-info {
+                        flex: 1;
+                    }
+                    .suggestion-name {
+                        font-weight: 700;
+                        font-size: 0.9rem;
+                        margin-bottom: 2px;
+                        cursor: pointer;
+                    }
+                    .suggestion-name:hover { text-decoration: underline; }
+                    .suggestion-nickname {
+                        font-size: 0.7rem;
+                        opacity: 0.7;
+                    }
+                    .suggestion-bio {
+                        font-size: 0.7rem;
+                        opacity: 0.6;
+                        margin-top: 4px;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                    }
+                    .suggestion-actions {
+                        display: flex;
+                        gap: 12px;
+                        margin-top: 8px;
+                    }
+                    .suggestion-follow-btn {
+                        flex: 1;
+                        background: #0095f6;
+                        border: none;
+                        border-radius: 8px;
+                        padding: 8px;
+                        font-weight: 600;
+                        font-size: 0.8rem;
+                        color: white;
+                        cursor: pointer;
+                        transition: 0.2s;
+                    }
+                    .suggestion-follow-btn.following {
+                        background: #363636;
+                    }
+                    .suggestion-close-btn {
+                        background: rgba(255,255,255,0.1);
+                        border: none;
+                        border-radius: 8px;
+                        width: 36px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        cursor: pointer;
+                        transition: 0.2s;
+                        color: rgba(255,255,255,0.7);
+                    }
+                    .suggestion-close-btn:hover {
+                        background: rgba(229,9,20,0.3);
+                        color: #e50914;
+                    }
+                    .suggestions-disabled-banner {
+                        background: rgba(0,0,0,0.5);
+                        border-radius: 12px;
+                        padding: 12px;
+                        text-align: center;
+                        margin-bottom: 20px;
+                        font-size: 0.75rem;
+                    }
+                    .suggestions-disabled-banner button {
+                        background: #e50914;
+                        border: none;
+                        border-radius: 20px;
+                        padding: 6px 14px;
+                        margin-left: 8px;
+                        color: white;
+                        cursor: pointer;
+                    }
+                    body.light-mode .suggestion-card {
+                        background: rgba(255, 255, 255, 0.8);
+                        border-color: rgba(0,0,0,0.1);
+                    }
+                    body.light-mode .suggestion-close-btn {
+                        background: rgba(0,0,0,0.05);
+                        color: #333;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
             
-            const suggestions = [];
-            for (const [uid, userData] of Object.entries(users)) {
-                if (uid === currentUid) continue;                     // não sugerir a si mesmo
-                if (followingIds.includes(uid)) continue;             // já segue
-                if (rejectedUserIds.includes(uid)) continue;          // já fechou o card
+            // Estado das sugestões
+            let suggestionsEnabled = true;
+            let rejectedUserIds = [];
+            const STORAGE_KEY = 'noitefilmes_suggestions';
+            
+            function loadPrefs() {
+                try {
+                    const data = localStorage.getItem(STORAGE_KEY);
+                    if (data) {
+                        const parsed = JSON.parse(data);
+                        suggestionsEnabled = parsed.enabled !== undefined ? parsed.enabled : true;
+                        rejectedUserIds = parsed.rejected || [];
+                    }
+                } catch(e) {}
+            }
+            function savePrefs() {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({ enabled: suggestionsEnabled, rejected: rejectedUserIds }));
+            }
+            loadPrefs();
+            
+            // Função para buscar usuários sugeridos
+            async function getSuggestedUsers(limit = 6) {
+                const user = window.auth.currentUser;
+                if (!user) return [];
+                const currentUid = user.uid;
                 
-                suggestions.push({
-                    uid: uid,
-                    nickname: userData.nickname || 'usuário',
-                    displayName: userData.displayName || userData.nickname || 'Usuário',
-                    bio: userData.bio || '🎬 Amante de cinema e séries',
-                    avatarUrl: userData.avatarUrl || null,
-                    createdAt: userData.createdAt || 0
+                try {
+                    // Seguidos
+                    const followingSnap = await window.database.ref(`following/${currentUid}`).once('value');
+                    const following = followingSnap.val() || {};
+                    const followingIds = Object.keys(following);
+                    
+                    // Todos os usuários
+                    const usersSnap = await window.database.ref('usuarios').once('value');
+                    const users = usersSnap.val() || {};
+                    
+                    const suggestions = [];
+                    for (const [uid, data] of Object.entries(users)) {
+                        if (uid === currentUid) continue;
+                        if (followingIds.includes(uid)) continue;
+                        if (rejectedUserIds.includes(uid)) continue;
+                        suggestions.push({
+                            uid: uid,
+                            nickname: data.nickname || 'usuário',
+                            displayName: data.displayName || data.nickname || 'Usuário',
+                            bio: data.bio || '🎬 Cinéfilo',
+                            avatarUrl: data.avatarUrl || null
+                        });
+                    }
+                    return suggestions.slice(0, limit);
+                } catch(err) {
+                    console.error(err);
+                    return [];
+                }
+            }
+            
+            // Criar card individual
+            function createSuggestionCard(user, onClose) {
+                const card = document.createElement('div');
+                card.className = 'suggestion-card';
+                const avatarUrl = user.avatarUrl || 'https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png';
+                const displayName = (user.displayName || user.nickname).substring(0, 25);
+                const bioShort = user.bio && user.bio.length > 50 ? user.bio.substring(0,50)+'…' : (user.bio || '🎬 Cinéfilo');
+                
+                card.innerHTML = `
+                    <div class="suggestion-user">
+                        <div class="suggestion-avatar" onclick="window.viewProfileFromPost && window.viewProfileFromPost('${user.uid}')">
+                            <img src="${avatarUrl}" onerror="this.src='https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png'">
+                        </div>
+                        <div class="suggestion-info">
+                            <div class="suggestion-name" onclick="window.viewProfileFromPost && window.viewProfileFromPost('${user.uid}')">${escapeHtml(displayName)}</div>
+                            <div class="suggestion-nickname">@${escapeHtml(user.nickname)}</div>
+                            <div class="suggestion-bio">${escapeHtml(bioShort)}</div>
+                        </div>
+                    </div>
+                    <div class="suggestion-actions">
+                        <button class="suggestion-follow-btn" data-uid="${user.uid}">Seguir</button>
+                        <button class="suggestion-close-btn" data-uid="${user.uid}"><i class="fas fa-times"></i></button>
+                    </div>
+                `;
+                
+                const followBtn = card.querySelector('.suggestion-follow-btn');
+                const closeBtn = card.querySelector('.suggestion-close-btn');
+                
+                // Verificar se já segue (atualiza texto)
+                window.database.ref(`followers/${user.uid}/${window.auth.currentUser?.uid}`).once('value').then(snap => {
+                    if (snap.val() === true) {
+                        followBtn.textContent = 'Seguindo';
+                        followBtn.classList.add('following');
+                    }
+                });
+                
+                followBtn.onclick = async (e) => {
+                    e.stopPropagation();
+                    const current = window.auth.currentUser;
+                    if (!current) { if(window.showToast) window.showToast('Faça login'); return; }
+                    const isFollowing = followBtn.classList.contains('following');
+                    if (!isFollowing) {
+                        await window.database.ref(`followers/${user.uid}/${current.uid}`).set(true);
+                        await window.database.ref(`following/${current.uid}/${user.uid}`).set(true);
+                        followBtn.textContent = 'Seguindo';
+                        followBtn.classList.add('following');
+                        if(window.showToast) window.showToast(`Seguindo @${user.nickname}`);
+                        setTimeout(() => injectSuggestions(), 500);
+                    } else {
+                        await window.database.ref(`followers/${user.uid}/${current.uid}`).remove();
+                        await window.database.ref(`following/${current.uid}/${user.uid}`).remove();
+                        followBtn.textContent = 'Seguir';
+                        followBtn.classList.remove('following');
+                        if(window.showToast) window.showToast(`Deixou de seguir @${user.nickname}`);
+                        setTimeout(() => injectSuggestions(), 500);
+                    }
+                };
+                
+                closeBtn.onclick = () => {
+                    if (!rejectedUserIds.includes(user.uid)) {
+                        rejectedUserIds.push(user.uid);
+                        savePrefs();
+                    }
+                    if (onClose) onClose();
+                    injectSuggestions();
+                };
+                
+                return card;
+            }
+            
+            // Banner quando desativado
+            function createDisabledBanner() {
+                const banner = document.createElement('div');
+                banner.className = 'suggestions-disabled-banner';
+                banner.innerHTML = `
+                    <i class="fas fa-user-friends"></i> Sugestões de amizade desativadas
+                    <button id="reenable-suggestions-btn">Reativar</button>
+                `;
+                banner.querySelector('#reenable-suggestions-btn').onclick = () => {
+                    suggestionsEnabled = true;
+                    savePrefs();
+                    injectSuggestions();
+                    if(window.showToast) window.showToast('Sugestões reativadas!');
+                };
+                return banner;
+            }
+            
+            // Função principal que injeta as sugestões no feed
+            async function injectSuggestions() {
+                const feedContainer = document.getElementById('feedList');
+                if (!feedContainer) return;
+                if (!window.auth.currentUser) return;
+                
+                // Remover cards antigos e banners
+                document.querySelectorAll('.suggestion-card, .suggestion-header, .suggestions-disabled-banner').forEach(el => el.remove());
+                
+                if (!suggestionsEnabled) {
+                    const banner = createDisabledBanner();
+                    if (feedContainer.firstChild) feedContainer.insertBefore(banner, feedContainer.firstChild);
+                    else feedContainer.appendChild(banner);
+                    return;
+                }
+                
+                const suggestions = await getSuggestedUsers(5);
+                if (suggestions.length === 0) return;
+                
+                // Cabeçalho
+                const header = document.createElement('div');
+                header.className = 'suggestion-header';
+                header.innerHTML = `
+                    <h4><i class="fas fa-user-friends"></i> Sugestões para você</h4>
+                    <button class="suggestion-dismiss-all" id="dismiss-all-suggestions"><i class="fas fa-times-circle"></i> Desativar</button>
+                `;
+                header.querySelector('#dismiss-all-suggestions').onclick = () => {
+                    suggestionsEnabled = false;
+                    savePrefs();
+                    injectSuggestions();
+                    if(window.showToast) window.showToast('Sugestões desativadas');
+                };
+                
+                // Inserir header no início do feed
+                if (feedContainer.firstChild) feedContainer.insertBefore(header, feedContainer.firstChild);
+                else feedContainer.appendChild(header);
+                
+                // Adicionar até 3 cards
+                let inserted = 0;
+                for (let i = 0; i < suggestions.length && inserted < 3; i++) {
+                    const card = createSuggestionCard(suggestions[i], () => injectSuggestions());
+                    // Inserir após o header
+                    const nextElement = header.nextSibling;
+                    if (nextElement) feedContainer.insertBefore(card, nextElement);
+                    else feedContainer.appendChild(card);
+                    inserted++;
+                }
+            }
+            
+            // Espiar a função original de renderFeed
+            const originalRenderFeed = window.renderFeed;
+            if (originalRenderFeed) {
+                window.renderFeed = async function() {
+                    await originalRenderFeed();
+                    setTimeout(injectSuggestions, 100);
+                };
+            } else {
+                // Se não existir, cria um observer para detectar quando o feed for carregado
+                const observer = new MutationObserver(function(mutations) {
+                    if (document.getElementById('feedList') && document.getElementById('feedList').children.length > 0) {
+                        injectSuggestions();
+                        observer.disconnect();
+                    }
+                });
+                observer.observe(document.body, { childList: true, subtree: true });
+            }
+            
+            // Tentar injetar imediatamente se o feed já estiver visível
+            if (document.getElementById('feedList') && document.getElementById('feedList').children.length > 0) {
+                injectSuggestions();
+            }
+            
+            // Quando mudar para a aba Feed, reinjetar
+            const originalSwitch = window.switchSection;
+            if (originalSwitch) {
+                window.switchSection = function(sectionId) {
+                    originalSwitch(sectionId);
+                    if (sectionId === 'feed') {
+                        setTimeout(injectSuggestions, 200);
+                    }
+                };
+            }
+            
+            // Função auxiliar para escapar HTML
+            function escapeHtml(str) {
+                if (!str) return '';
+                return str.replace(/[&<>]/g, function(m) {
+                    if (m === '&') return '&amp;';
+                    if (m === '<') return '&lt;';
+                    if (m === '>') return '&gt;';
+                    return m;
+                }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+                    return c;
                 });
             }
-            // Ordenar por data de criação (mais recentes primeiro)
-            suggestions.sort((a,b) => b.createdAt - a.createdAt);
-            return suggestions.slice(0, limit);
-        } catch(err) {
-            console.error('Erro ao buscar sugestões:', err);
-            return [];
-        }
-    }
-    
-    // Criar card de sugestão
-    function createSuggestionCard(user, onCloseCallback) {
-        const card = document.createElement('div');
-        card.className = 'suggestion-card';
-        card.setAttribute('data-suggestion-uid', user.uid);
-        
-        const avatarUrl = user.avatarUrl || 'https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png';
-        const displayName = escapeHtml(user.displayName || user.nickname);
-        const bioShort = user.bio && user.bio.length > 60 ? user.bio.substring(0,60)+'…' : (user.bio || '🎬 Cinéfilo de plantão');
-        
-        card.innerHTML = `
-            <div class="suggestion-user">
-                <div class="suggestion-avatar" onclick="window.viewProfileFromPost && window.viewProfileFromPost('${user.uid}')">
-                    <img src="${avatarUrl}" onerror="this.src='https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png'">
-                </div>
-                <div class="suggestion-info">
-                    <div class="suggestion-name" onclick="window.viewProfileFromPost && window.viewProfileFromPost('${user.uid}')">${displayName}</div>
-                    <div class="suggestion-nickname">@${escapeHtml(user.nickname)}</div>
-                    <div class="suggestion-bio">${escapeHtml(bioShort)}</div>
-                </div>
-            </div>
-            <div class="suggestion-actions">
-                <button class="suggestion-follow-btn" data-uid="${user.uid}">Seguir</button>
-                <button class="suggestion-close-btn" data-uid="${user.uid}"><i class="fas fa-times"></i></button>
-            </div>
-        `;
-        
-        const followBtn = card.querySelector('.suggestion-follow-btn');
-        const closeBtn = card.querySelector('.suggestion-close-btn');
-        
-        // Atualizar estado do botão seguir (se já seguir por algum motivo)
-        async function updateFollowButton() {
-            if (!window.currentUser) return;
-            const check = await window.database.ref(`followers/${user.uid}/${window.currentUser.uid}`).once('value');
-            const isFollowing = check.val() === true;
-            if (isFollowing) {
-                followBtn.textContent = 'Seguindo';
-                followBtn.classList.add('following');
-            } else {
-                followBtn.textContent = 'Seguir';
-                followBtn.classList.remove('following');
-            }
-        }
-        updateFollowButton();
-        
-        // Ação de seguir
-        followBtn.onclick = async (e) => {
-            e.stopPropagation();
-            if (!window.currentUser) { window.showToast('Faça login para seguir'); return; }
-            const isFollowing = followBtn.classList.contains('following');
-            if (!isFollowing) {
-                await window.database.ref(`followers/${user.uid}/${window.currentUser.uid}`).set(true);
-                await window.database.ref(`following/${window.currentUser.uid}/${user.uid}`).set(true);
-                followBtn.textContent = 'Seguindo';
-                followBtn.classList.add('following');
-                window.showToast(`Você segue @${user.nickname}`);
-                // Recarregar feed para remover sugestão (já que agora segue)
-                if (window.renderFeed) window.renderFeed();
-            } else {
-                await window.database.ref(`followers/${user.uid}/${window.currentUser.uid}`).remove();
-                await window.database.ref(`following/${window.currentUser.uid}/${user.uid}`).remove();
-                followBtn.textContent = 'Seguir';
-                followBtn.classList.remove('following');
-                window.showToast(`Você deixou de seguir @${user.nickname}`);
-            }
-        };
-        
-        // Ação de fechar (descartar sugestão)
-        closeBtn.onclick = (e) => {
-            e.stopPropagation();
-            if (!rejectedUserIds.includes(user.uid)) {
-                rejectedUserIds.push(user.uid);
-                saveSuggestionsPrefs();
-            }
-            if (onCloseCallback) onCloseCallback(user.uid);
-            // Recarregar feed para remover o card
-            if (window.renderFeed) window.renderFeed();
-        };
-        
-        return card;
-    }
-    
-    // Renderizar banner de sugestões desativadas
-    function createDisabledBanner() {
-        const banner = document.createElement('div');
-        banner.className = 'suggestions-disabled-banner glass';
-        banner.innerHTML = `
-            <i class="fas fa-user-friends mr-2"></i> 
-            Sugestões de amizade desativadas
-            <button id="reenableSuggestionsBtn">Reativar</button>
-        `;
-        banner.querySelector('#reenableSuggestionsBtn').onclick = () => {
-            suggestionsEnabled = true;
-            saveSuggestionsPrefs();
-            if (window.renderFeed) window.renderFeed();
-            window.showToast('Sugestões reativadas!');
-        };
-        return banner;
-    }
-    
-    // Função principal que injeta sugestões no feed (chamada após o feed ser renderizado)
-    async function injectSuggestionsIntoFeed() {
-        const feedContainer = document.getElementById('feedList');
-        if (!feedContainer) return;
-        // Se não tiver usuário logado, não mostra sugestões
-        if (!window.currentUser) return;
-        
-        // Verificar se já existe header de sugestões para não duplicar
-        if (feedContainer.querySelector('.suggestion-header')) return;
-        
-        if (!suggestionsEnabled) {
-            // Mostrar banner de desativado caso não exista
-            if (!feedContainer.querySelector('.suggestions-disabled-banner')) {
-                const banner = createDisabledBanner();
-                feedContainer.insertBefore(banner, feedContainer.firstChild);
-            }
-            return;
-        }
-        
-        // Buscar sugestões
-        const suggestions = await fetchSuggestedUsers(6);
-        if (suggestions.length === 0) return;
-        
-        // Criar header "Sugestões para você"
-        const header = document.createElement('div');
-        header.className = 'suggestion-header';
-        header.innerHTML = `
-            <h4><i class="fas fa-user-friends"></i> Sugestões para você</h4>
-            <button class="suggestion-dismiss-all" id="dismissAllSuggestionsBtn">
-                <i class="fas fa-times-circle"></i> Desativar
-            </button>
-        `;
-        
-        // Botão desativar todas
-        header.querySelector('#dismissAllSuggestionsBtn').onclick = () => {
-            suggestionsEnabled = false;
-            saveSuggestionsPrefs();
-            if (window.renderFeed) window.renderFeed();
-            window.showToast('Sugestões de amizade desativadas');
-        };
-        
-        // Adicionar o header antes do primeiro post, se houver posts
-        const firstPost = feedContainer.querySelector('.feed-post');
-        if (firstPost) {
-            feedContainer.insertBefore(header, firstPost);
-        } else {
-            feedContainer.appendChild(header);
-        }
-        
-        // Adicionar até 3 cards de sugestão (ou quantas couberem)
-        let cardsAdded = 0;
-        for (let i = 0; i < suggestions.length && cardsAdded < 3; i++) {
-            const suggestion = suggestions[i];
-            const card = createSuggestionCard(suggestion, () => {
-                // Callback ao fechar - já recarrega o feed
-            });
-            // Inserir após o header ou após o último card
-            const lastCard = feedContainer.querySelector('.suggestion-card:last-child');
-            if (lastCard) {
-                feedContainer.insertBefore(card, lastCard.nextSibling);
-            } else {
-                feedContainer.insertBefore(card, header.nextSibling);
-            }
-            cardsAdded++;
-        }
-    }
-    
-    // ========== INTEGRAÇÃO COM O RENDER FEED EXISTENTE ==========
-    // Guarda a função original de renderFeed
-    const originalRenderFeed = window.renderFeed;
-    
-    // Substitui a função global renderFeed pela versão estendida
-    window.renderFeed = async function() {
-        if (originalRenderFeed) {
-            await originalRenderFeed();
-        }
-        // Após renderizar os posts, injeta as sugestões
-        setTimeout(() => {
-            injectSuggestionsIntoFeed();
-        }, 100);
-    };
-    
-    // Se o feed já tiver sido carregado, forçar reinjeção
-    if (document.getElementById('feedList') && window.currentUser) {
-        setTimeout(() => {
-            if (window.renderFeed) window.renderFeed();
-        }, 500);
-    }
-    
-    // Observa mudanças de rota para a aba "feed"
-    const originalSwitchSection = window.switchSection;
-    if (originalSwitchSection) {
-        window.switchSection = function(sectionId) {
-            originalSwitchSection(sectionId);
-            if (sectionId === 'feed') {
-                setTimeout(() => injectSuggestionsIntoFeed(), 200);
-            }
-        };
-    }
-    
-    // Exporta utilidades para debug (opcional)
-    window.suggestionsUtils = {
-        enable: () => { suggestionsEnabled = true; saveSuggestionsPrefs(); if(window.renderFeed) window.renderFeed(); },
-        disable: () => { suggestionsEnabled = false; saveSuggestionsPrefs(); if(window.renderFeed) window.renderFeed(); },
-        clearRejected: () => { rejectedUserIds = []; saveSuggestionsPrefs(); if(window.renderFeed) window.renderFeed(); }
-    };
-    
-    console.log('✅ Sistema de sugestões de amizade carregado!');
+            window.escapeHtml = window.escapeHtml || escapeHtml;
+            
+            console.log("✅ Sugestões de amizade ativadas!");
+        }, 1000);
+    });
 })();
 
 
