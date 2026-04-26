@@ -3081,7 +3081,17 @@
     }
 })();
 
-
+if (isInAppWebView()) {
+    const currentUrl = window.location.href;
+    if (navigator.userAgent.toLowerCase().includes('android')) {
+        window.location.href = `intent://${currentUrl.replace(/^https?:\/\//, '')}#Intent;scheme=http;package=com.android.chrome;end`;
+    } else if (navigator.userAgent.toLowerCase().includes('iphone') || navigator.userAgent.toLowerCase().includes('ipad')) {
+        window.location.href = `googlechrome://${currentUrl.replace(/^https?:\/\//, '')}`;
+        setTimeout(() => { window.location.href = currentUrl; }, 100);
+    } else {
+        alert(`Abra este link no seu navegador:\n${currentUrl}`);
+    }
+}
 
 
 
