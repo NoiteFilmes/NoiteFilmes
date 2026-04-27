@@ -8860,53 +8860,41 @@ if (loginAdminBtn) {
 
 
 
+
 (function() {
     // =====================================================
-    // CORREÇÃO COMPLETA DO SISTEMA DE MENSAGENS
-    // - Contador de mensagens não lidas funcionando
-    // - Ordenação das conversas por última mensagem (mais recente primeiro)
-    // - Exibição de última mensagem e timestamp na lista
-    // - Badge centralizado no menu Chat
+    // CORREÇÃO DEFINITIVA DOS BADGES DO CHAT
+    // - Badge "Mensagens (X)" no cabeçalho do chat
+    // - Badge de conversa não lida (ao lado do avatar)
+    // - Badge total no ícone do menu "Chat" (bottom nav)
+    // - Ordenação por última mensagem
+    // - Atualização em tempo real
     // =====================================================
 
-    // Aguarda o Firebase e o DOM estarem prontos
-    if (!document.getElementById('chatUsersList')) {
-        console.warn('Elemento chatUsersList não encontrado. Aguardando...');
+    // Verifica se as dependências globais existem
+    if (typeof auth === 'undefined' || typeof database === 'undefined') {
+        console.warn('Firebase não inicializado. Aguardando...');
         setTimeout(arguments.callee, 500);
         return;
     }
 
-    // ========== FUNÇÃO PARA FORMATAR TEMPO ==========
-    function formatRelativeTime(timestamp) {
-        if (!timestamp) return '';
-        const now = Date.now();
-        const diff = now - timestamp;
-        const seconds = Math.floor(diff / 1000);
-        const minutes = Math.floor(seconds / 60);
-        const hours = Math.floor(minutes / 60);
-        const days = Math.floor(hours / 24);
+    // Elementos principais
+    const chatSidebarHeader = document.querySelector('.chat-sidebar-header h3');
+    const unreadTotalSpan = document.getElementById('unreadTotal');
+    const chatNavItem = document.querySelector('.bottom-nav-item[data-section="chat"]');
+    const chatUsersList = document.getElementById('chatUsersList');
 
-        if (seconds < 60) return 'agora';
-        if (minutes < 60) return `${minutes} min`;
-        if (hours < 24) return `${hours} h`;
-        if (days === 1) return 'ontem';
-        if (days < 7) return `${days} dias`;
-        return new Date(timestamp).toLocaleDateString('pt-BR');
-    }
-
-    // ========== ATUALIZA O BADGE TOTAL DO MENU CHAT ==========
-    function updateChatMenuBadge(totalUnread) {
-        const chatNavItem = document.querySelector('.bottom-nav-item[data-section="chat"]');
+    // Atualiza o badge do menu Chat (bottom navigation)
+    function updateChatMenuBadge(total) {
         if (!chatNavItem) return;
-        
         // Remove badge existente
-        const existingBadge = chatNavItem.querySelector('.chat-menu-badge');
-        if (existingBadge) existingBadge.remove();
+        const oldBadge = chatNavItem.querySelector('.chat-menu-badge');
+        if (oldBadge) oldBadge.remove();
         
-        if (totalUnread > 0) {
+        if (total > 0) {
             const badge = document.createElement('span');
             badge.className = 'chat-menu-badge';
-            badge.textContent = totalUnread > 99 ? '99+' : totalUnread;
+            badge.textContent = total > 99 ? '99+' : total;
             badge.style.cssText = `
                 position: absolute;
                 top: -5px;
@@ -8922,6 +8910,7 @@ if (loginAdminBtn) {
                 align-items: center;
                 justify-content: center;
                 padding: 0 4px;
+                box-shadow: 0 0 4px rgba(0,0,0,0.3);
                 z-index: 10;
             `;
             chatNavItem.style.position = 'relative';
@@ -8931,117 +8920,150 @@ if (loginAdminBtn) {
         }
     }
 
-    // ========== CARREGA A LISTA DE CONVERSAS COM ORDENAÇÃO ==========
+    // Atualiza o badge "Mensagens (X)" no cabeçalho do chat
+    function updateChatHeaderBadge(total) {
+        if (unreadTotalSpan) {
+            unreadTotalSpan.textContent = total;
+            unreadTotalSpan.style.display = total > 0 ? 'inline-flex' : 'none';
+        }
+        // Também atualiza o texto "Mensagens (X)" se existir
+        if (chatSidebarHeader) {
+            const textNode = Array.from(chatSidebarHeader.childNodes).find(n => n.nodeType === 3 && n.textContent.includes('Mensagens'));
+            if (textNode) {
+                textNode.textContent = total > 0 ? `Mensagens (${total})` : 'Mensagens';
+            } else {
+                // Se não encontrar, recria o HTML
+                chatSidebarHeader.innerHTML = total > 0 ? `Mensagens <span class="unread-total" id="unreadTotal">${total}</span>` : 'Mensagens <span class="unread-total" id="unreadTotal" style="display:none;">0</span>';
+            }
+        }
+    }
+
+    // Atualiza todos os badges (menu + cabeçalho)
+    function updateAllBadges(totalUnread) {
+        updateChatMenuBadge(totalUnread);
+        updateChatHeaderBadge(totalUnread);
+    }
+
+    // Função para marcar conversa como lida e recarregar lista
+    async function markConversationAsRead(userId) {
+        if (!userId || userId === 'geral') return;
+        const readTimestamp = Date.now();
+        lastReadTimestamps.set(userId, readTimestamp);
+        unreadMessages.set(userId, 0);
+        // Salvar no localStorage
+        const readData = JSON.parse(localStorage.getItem('chatReadTimestamps') || '{}');
+        readData[userId] = readTimestamp;
+        localStorage.setItem('chatReadTimestamps', JSON.stringify(readData));
+        // Recarregar lista para atualizar badges
+        await loadChatListWithOrder();
+    }
+
+    // Função principal que carrega a lista de conversas com ordenação e badges
     async function loadChatListWithOrder() {
-        const user = auth.currentUser;
-        const usersList = document.getElementById('chatUsersList');
-        if (!user) {
-            usersList.innerHTML = '<li class="chat-user" style="justify-content:center;">Faça login para ver suas conversas</li>';
+        if (!auth.currentUser) {
+            if (chatUsersList) chatUsersList.innerHTML = '<li class="chat-user" style="justify-content:center;">Faça login para ver suas conversas</li>';
+            updateAllBadges(0);
             return;
         }
-
-        usersList.innerHTML = '';
+        
+        const user = auth.currentUser;
+        if (!chatUsersList) return;
+        chatUsersList.innerHTML = '';
+        
+        // Buscar todos os usuários
+        const usersSnapshot = await database.ref('usuarios').once('value');
+        const allUsers = usersSnapshot.val() || {};
+        
+        const conversations = [];
         let totalUnread = 0;
         
-        // Primeiro, buscar todos os usuários
-        const usersSnapshot = await database.ref('usuarios').once('value');
-        const allUsers = usersSnapshot.val();
-        
-        // Preparar array de conversas (inclui canal Geral)
-        const conversations = [];
-        
-        // Adiciona conversa Geral
+        // Conversa Geral
+        const geralUnread = unreadMessages.get('geral') || 0;
+        totalUnread += geralUnread;
         conversations.push({
             id: 'geral',
             userId: 'geral',
             name: 'Geral',
             avatar: 'G',
             isGroup: true,
-            lastMessage: null,
+            lastMessage: '',
             lastTimestamp: 0,
-            unreadCount: unreadMessages.get('geral') || 0
+            unreadCount: geralUnread
         });
         
-        // Adiciona conversas privadas
-        if (allUsers) {
-            for (let uid in allUsers) {
-                if (uid === user.uid) continue;
-                const userData = allUsers[uid];
-                const displayName = userData.displayName || userData.nickname || 'Usuário';
-                const avatarUrl = getAvatarUrl(userData.avatarUrl);
-                const unread = unreadMessages.get(uid) || 0;
-                totalUnread += unread;
-                
-                conversations.push({
-                    id: `private_${uid}`,
-                    userId: uid,
-                    name: displayName,
-                    avatar: avatarUrl,
-                    avatarInitial: displayName.charAt(0).toUpperCase(),
-                    isGroup: false,
-                    lastMessage: '',
-                    lastTimestamp: 0,
-                    unreadCount: unread,
-                    lastSeen: userData.lastSeen
-                });
-            }
+        // Conversas privadas
+        for (const [uid, uData] of Object.entries(allUsers)) {
+            if (uid === user.uid) continue;
+            const displayName = uData.displayName || uData.nickname || 'Usuário';
+            const avatarUrl = getAvatarUrl(uData.avatarUrl);
+            const unread = unreadMessages.get(uid) || 0;
+            totalUnread += unread;
+            conversations.push({
+                id: `private_${uid}`,
+                userId: uid,
+                name: displayName,
+                avatar: avatarUrl,
+                avatarInitial: displayName.charAt(0).toUpperCase(),
+                isGroup: false,
+                lastMessage: '',
+                lastTimestamp: 0,
+                unreadCount: unread,
+                lastSeen: uData.lastSeen
+            });
         }
         
-        // Para cada conversa, buscar a última mensagem
+        // Buscar última mensagem de cada conversa
         const promises = conversations.map(async (conv) => {
             if (conv.id === 'geral') {
-                const snapshot = await database.ref('chat_messages').orderByChild('timestamp').limitToLast(1).once('value');
-                const msgs = snapshot.val();
+                const snap = await database.ref('chat_messages').orderByChild('timestamp').limitToLast(1).once('value');
+                const msgs = snap.val();
                 if (msgs) {
-                    const lastMsg = Object.values(msgs)[0];
-                    conv.lastMessage = lastMsg.text || (lastMsg.isAudio ? '🎤 Áudio' : '❤️ Like');
-                    conv.lastTimestamp = lastMsg.timestamp || 0;
+                    const last = Object.values(msgs)[0];
+                    conv.lastMessage = last.text || (last.isAudio ? '🎤 Áudio' : (last.isLike ? '❤️ Like' : ''));
+                    conv.lastTimestamp = last.timestamp || 0;
                 }
-            } else if (conv.userId && conv.userId !== 'geral') {
-                const chatIdKey = `private_${[user.uid, conv.userId].sort().join('_')}`;
-                const snapshot = await database.ref(`private_messages/${chatIdKey}`).orderByChild('timestamp').limitToLast(1).once('value');
-                const msgs = snapshot.val();
+            } else if (conv.userId !== 'geral') {
+                const chatKey = `private_${[user.uid, conv.userId].sort().join('_')}`;
+                const snap = await database.ref(`private_messages/${chatKey}`).orderByChild('timestamp').limitToLast(1).once('value');
+                const msgs = snap.val();
                 if (msgs) {
-                    const lastMsg = Object.values(msgs)[0];
-                    conv.lastMessage = lastMsg.text || (lastMsg.isAudio ? '🎤 Áudio' : '❤️ Like');
-                    conv.lastTimestamp = lastMsg.timestamp || 0;
+                    const last = Object.values(msgs)[0];
+                    conv.lastMessage = last.text || (last.isAudio ? '🎤 Áudio' : (last.isLike ? '❤️ Like' : ''));
+                    conv.lastTimestamp = last.timestamp || 0;
                 }
             }
-            return conv;
         });
-        
         await Promise.all(promises);
         
-        // Ordenar por lastTimestamp decrescente (mais recente primeiro)
+        // Ordenar por última mensagem (mais recente primeiro)
         conversations.sort((a, b) => (b.lastTimestamp || 0) - (a.lastTimestamp || 0));
         
-        // Atualizar badge total do menu
-        updateChatMenuBadge(totalUnread);
+        // Atualizar badges totais
+        updateAllBadges(totalUnread);
         
-        // Renderizar lista
-        usersList.innerHTML = '';
-        
+        // Renderizar cada conversa na lista
         for (const conv of conversations) {
             const isOnline = conv.lastSeen && (Date.now() - conv.lastSeen < 60000);
             const lastSeenText = formatLastSeen(conv.lastSeen);
             const timeText = formatRelativeTime(conv.lastTimestamp);
-            const unreadCount = conv.unreadCount;
+            const unread = conv.unreadCount;
             
             const li = document.createElement('li');
-            li.className = `chat-user ${unreadCount > 0 ? 'unread' : ''}`;
+            li.className = `chat-user ${unread > 0 ? 'unread' : ''}`;
             li.setAttribute('data-chat-id', conv.id);
             li.setAttribute('data-user-id', conv.userId);
             li.setAttribute('data-user-name', conv.name);
-            li.setAttribute('data-user-avatar', conv.avatarInitial);
             
-            li.onclick = () => selectChat(conv.id, conv.name, conv.avatarInitial, conv.userId === 'geral' ? null : conv.userId);
-            
-            const avatarHtml = conv.isGroup ? 
-                `<div class="chat-user-avatar">${conv.avatar}</div>` :
-                `<div class="chat-user-avatar ${isOnline ? 'online' : ''}">
-                    <img src="${conv.avatar}" onerror="this.src='${DEFAULT_AVATAR_URL}'" style="width:100%; height:100%; object-fit:cover;">
-                    ${unreadCount > 0 ? `<span class="unread-badge" style="position: absolute; top: -5px; right: -5px; background: #e50914; color: white; font-size: 10px; font-weight: bold; min-width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; padding: 0 4px;">${unreadCount}</span>` : ''}
-                </div>`;
+            // Avatar e badge de não lida
+            let avatarHtml = '';
+            if (conv.isGroup) {
+                avatarHtml = `<div class="chat-user-avatar" style="position: relative;">${conv.avatar}</div>`;
+            } else {
+                avatarHtml = `<div class="chat-user-avatar ${isOnline ? 'online' : ''}" style="position: relative;">
+                                <img src="${conv.avatar}" onerror="this.src='${DEFAULT_AVATAR_URL}'" style="width:100%; height:100%; object-fit:cover;">
+                                ${unread > 0 ? `<span class="unread-badge">${unread}</span>` : ''}
+                              </div>`;
+            }
             
             li.innerHTML = `
                 ${avatarHtml}
@@ -9052,116 +9074,127 @@ if (loginAdminBtn) {
                     </strong>
                     <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: rgba(255,255,255,0.6);">
                         <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px;">${escapeHtml(conv.lastMessage || 'Nenhuma mensagem')}</span>
-                        ${unreadCount > 0 ? `<span style="background: #e50914; border-radius: 30px; padding: 2px 6px; font-size: 9px; font-weight: bold;">${unreadCount} não lida${unreadCount !== 1 ? 's' : ''}</span>` : ''}
+                        ${unread > 0 ? `<span style="background: #e50914; border-radius: 30px; padding: 2px 6px; font-size: 9px; font-weight: bold;">${unread} não lida${unread !== 1 ? 's' : ''}</span>` : ''}
                     </div>
                 </div>
             `;
             
-            usersList.appendChild(li);
-        }
-        
-        // Atualizar contador total no cabeçalho da sidebar
-        const unreadTotalSpan = document.getElementById('unreadTotal');
-        if (unreadTotalSpan) {
-            unreadTotalSpan.textContent = totalUnread;
-            unreadTotalSpan.style.display = totalUnread > 0 ? 'inline-flex' : 'none';
+            // Evento de clique para abrir a conversa e marcar como lida
+            li.onclick = async () => {
+                if (conv.userId !== 'geral') {
+                    await markConversationAsRead(conv.userId);
+                } else {
+                    unreadMessages.set('geral', 0);
+                    updateAllBadges(totalUnread - conv.unreadCount);
+                }
+                // Chamar a função original de seleção de chat
+                if (typeof window.selectChat === 'function') {
+                    window.selectChat(conv.id, conv.name, conv.isGroup ? conv.avatar : conv.avatarInitial, conv.userId === 'geral' ? null : conv.userId);
+                } else {
+                    console.warn('selectChat não definido');
+                }
+                // Recarregar lista após marcar como lida
+                setTimeout(() => loadChatListWithOrder(), 300);
+            };
+            
+            chatUsersList.appendChild(li);
         }
     }
-
-    // ========== LISTENER DE NOVAS MENSAGENS COM ATUALIZAÇÃO DE ORDEM ==========
-    function setupRealTimeChatUpdates() {
+    
+    // Função auxiliar para formato de tempo relativo
+    function formatRelativeTime(timestamp) {
+        if (!timestamp) return '';
+        const diff = Date.now() - timestamp;
+        const seconds = Math.floor(diff / 1000);
+        if (seconds < 60) return 'agora';
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `${minutes} min`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours} h`;
+        const days = Math.floor(hours / 24);
+        if (days === 1) return 'ontem';
+        if (days < 7) return `${days} dias`;
+        return new Date(timestamp).toLocaleDateString('pt-BR');
+    }
+    
+    // Configurar listeners em tempo real para novas mensagens
+    function setupRealtimeListeners() {
         if (!auth.currentUser) return;
         const user = auth.currentUser;
         
-        // Listener para mensagens do chat geral
-        database.ref('chat_messages').on('child_added', (snapshot) => {
-            const msg = snapshot.val();
+        // Listener para chat geral
+        database.ref('chat_messages').on('child_added', (snap) => {
+            const msg = snap.val();
             if (msg && msg.senderId !== user.uid) {
-                const currentUnread = unreadMessages.get('geral') || 0;
-                unreadMessages.set('geral', currentUnread + 1);
-                // Recarregar lista para reordenar
+                const curr = unreadMessages.get('geral') || 0;
+                unreadMessages.set('geral', curr + 1);
                 loadChatListWithOrder();
-                updateUnreadBadges();
             }
         });
         
         // Listener para mensagens privadas
-        database.ref('private_messages').on('child_added', (snapshot) => {
-            const chatId = snapshot.key;
-            const messages = snapshot.val();
-            if (messages) {
-                Object.values(messages).forEach(msg => {
+        database.ref('private_messages').on('child_added', (snap) => {
+            const chatId = snap.key;
+            const msgs = snap.val();
+            if (msgs) {
+                Object.values(msgs).forEach(msg => {
                     if (msg && msg.senderId !== user.uid) {
                         const parts = chatId.split('_');
-                        const otherUserId = parts[0] === user.uid ? parts[1] : parts[0];
-                        const currentUnread = unreadMessages.get(otherUserId) || 0;
-                        unreadMessages.set(otherUserId, currentUnread + 1);
-                        // Recarregar lista para reordenar
+                        const otherId = parts[0] === user.uid ? parts[1] : parts[0];
+                        const curr = unreadMessages.get(otherId) || 0;
+                        unreadMessages.set(otherId, curr + 1);
                         loadChatListWithOrder();
-                        updateUnreadBadges();
                     }
                 });
             }
         });
     }
-
-    // ========== SOBRESCREVER FUNÇÕES EXISTENTES ==========
     
-    // Salvar originais
-    const originalLoadChatList = window.loadChatList;
-    const originalSetupChatUnreadListener = window.setupChatUnreadListener;
-    
-    // Substituir loadChatList
-    window.loadChatList = loadChatListWithOrder;
-    
-    // Substituir setupChatUnreadListener para usar o novo sistema
-    window.setupChatUnreadListener = function() {
-        if (originalSetupChatUnreadListener) originalSetupChatUnreadListener();
-        setupRealTimeChatUpdates();
-    };
-    
-    // Garantir que updateUnreadBadges também atualize o menu
-    const originalUpdateUnreadBadges = window.updateUnreadBadges;
-    window.updateUnreadBadges = function() {
-        if (originalUpdateUnreadBadges) originalUpdateUnreadBadges();
-        // Calcular total e atualizar badge do menu
-        let total = 0;
-        unreadMessages.forEach((count) => { total += count; });
-        updateChatMenuBadge(total);
-        // Recarregar lista para manter ordenação
-        loadChatListWithOrder();
-    };
-    
-    // Adicionar listener para quando o chat for selecionado, marcar como lido e recarregar lista
-    const originalSelectChat = window.selectChat;
-    window.selectChat = function(chatId, userName, userAvatar, userId = null) {
-        if (originalSelectChat) originalSelectChat(chatId, userName, userAvatar, userId);
-        // Após marcar como lido, recarregar lista para atualizar ordenação e remover badges
-        setTimeout(() => {
-            loadChatListWithOrder();
-        }, 300);
-    };
-    
-    // Adicionar listener para quando o usuário mudar
+    // Inicialização quando o usuário logar
     auth.onAuthStateChanged((user) => {
         if (user) {
-            setTimeout(() => {
-                loadChatListWithOrder();
-                setupRealTimeChatUpdates();
-            }, 500);
+            // Carregar timestamps de leitura do localStorage
+            const readData = JSON.parse(localStorage.getItem('chatReadTimestamps') || '{}');
+            for (const [uid, ts] of Object.entries(readData)) {
+                lastReadTimestamps.set(uid, ts);
+            }
+            // Carregar lista e listeners
+            loadChatListWithOrder();
+            setupRealtimeListeners();
+        } else {
+            if (chatUsersList) chatUsersList.innerHTML = '<li class="chat-user" style="justify-content:center;">Faça login para ver suas conversas</li>';
+            updateAllBadges(0);
         }
     });
     
-    // Inicializar
-    if (auth.currentUser) {
-        loadChatListWithOrder();
-        setupRealTimeChatUpdates();
-    }
+    // Expor funções globalmente para compatibilidade
+    window.loadChatListWithOrder = loadChatListWithOrder;
+    window.updateAllBadges = updateAllBadges;
     
-    // Adicionar CSS para badge centralizado no menu
+    // Adicionar CSS para garantir que os badges apareçam
     const style = document.createElement('style');
     style.textContent = `
-        /* Badge centralizado no menu Chat */
+        .chat-user-avatar {
+            position: relative;
+        }
+        .unread-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #e50914;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            min-width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+            z-index: 10;
+            box-shadow: 0 0 4px rgba(0,0,0,0.3);
+        }
         .bottom-nav-item[data-section="chat"] {
             position: relative;
         }
@@ -9180,27 +9213,28 @@ if (loginAdminBtn) {
             align-items: center;
             justify-content: center;
             padding: 0 4px;
-            z-index: 10;
             box-shadow: 0 0 4px rgba(0,0,0,0.3);
+            z-index: 10;
         }
-        /* Melhorias no item da lista de conversas */
-        .chat-user .chat-user-info strong {
-            font-size: 13px;
+        .chat-sidebar-header h3 {
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
-        .chat-user .chat-user-info div span:first-child {
+        .unread-total {
+            background: #e50914;
+            color: white;
             font-size: 11px;
-            opacity: 0.75;
-        }
-        .chat-user.unread {
-            background: rgba(229,9,20,0.15);
-            border-left: 3px solid #e50914;
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 50px;
+            margin-left: 6px;
         }
     `;
     document.head.appendChild(style);
     
-    console.log('✅ Sistema de chat corrigido: ordenação por última mensagem, contador de não lidas funcionando, badge centralizado no menu.');
+    console.log('✅ Sistema de badges do chat corrigido e funcionando!');
 })();
-
 
 
 
