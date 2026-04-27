@@ -8151,587 +8151,707 @@ if (loginAdminBtn) {
 
 
 
-                // =====================================================
-// SCRIPT COMPLETO PARA ADMIN:
-// 1. Campo de busca em cada lista (Canais, Filmes, Séries)
-// 2. Menu de abas FIXO no topo (não some ao rolar)
-// 3. Melhorias visuais e responsividade para mobile
+// =====================================================
+// SCRIPT DE MELHORIA DO ADMIN: ESPAÇO, BUSCA E ROLAGEM
 // =====================================================
 
 (function() {
-    // ============================================
-    // PARTE 1: CORREÇÃO DO MENU FIXO NO ADMIN
-    // ============================================
-    
-    function fixAdminMenuSticky() {
-        // Adicionar estilos CSS para o menu fixo
-        if (!document.getElementById('admin-sticky-styles')) {
-            const style = document.createElement('style');
-            style.id = 'admin-sticky-styles';
-            style.textContent = `
-                /* Container do modal admin com scroll próprio */
-                #adminModal .bg-\\[\\#1a1a1a\\]\\/95 {
-                    display: flex;
-                    flex-direction: column;
-                    overflow: hidden;
+    // Cria estilos CSS para os novos elementos
+    function addAdminStyles() {
+        if (document.getElementById('admin-enhanced-styles')) return;
+        
+        const style = document.createElement('style');
+        style.id = 'admin-enhanced-styles';
+        style.textContent = `
+            /* Container principal das listas admin */
+            .admin-list-container {
+                background: rgba(0, 0, 0, 0.3);
+                border-radius: 16px;
+                padding: 12px;
+                margin-top: 12px;
+            }
+            
+            /* Barra de busca admin */
+            .admin-search-bar {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 60px;
+                padding: 8px 16px;
+                margin-bottom: 16px;
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                transition: all 0.2s ease;
+            }
+            
+            .admin-search-bar:focus-within {
+                border-color: #e50914;
+                background: rgba(255, 255, 255, 0.15);
+            }
+            
+            .admin-search-bar i {
+                color: #e50914;
+                font-size: 14px;
+            }
+            
+            .admin-search-bar input {
+                flex: 1;
+                background: transparent;
+                border: none;
+                color: white;
+                font-size: 13px;
+                outline: none;
+                padding: 4px 0;
+            }
+            
+            .admin-search-bar input::placeholder {
+                color: rgba(255, 255, 255, 0.5);
+                font-size: 12px;
+            }
+            
+            .admin-search-bar .clear-search-btn {
+                background: rgba(255, 255, 255, 0.2);
+                border: none;
+                border-radius: 50%;
+                width: 24px;
+                height: 24px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                color: white;
+                font-size: 10px;
+                transition: all 0.2s;
+            }
+            
+            .admin-search-bar .clear-search-btn:hover {
+                background: rgba(255, 255, 255, 0.3);
+                transform: scale(1.05);
+            }
+            
+            /* Container da lista com altura aumentada e rolagem suave */
+            .admin-items-list {
+                max-height: 400px;
+                overflow-y: auto;
+                overflow-x: hidden;
+                scroll-behavior: smooth;
+                padding-right: 8px;
+            }
+            
+            /* Para desktop, altura ainda maior */
+            @media (min-width: 768px) {
+                .admin-items-list {
+                    max-height: 500px;
                 }
-                
-                /* Área do menu de abas - FIXA */
-                #adminModal .admin-tabs-wrapper {
-                    position: sticky;
-                    top: 0;
-                    background: #1a1a1a;
-                    z-index: 50;
-                    padding: 12px 16px 8px 16px;
-                    margin: 0;
-                    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-                    backdrop-filter: blur(8px);
-                }
-                
-                /* Container das abas com scroll horizontal */
-                .admin-tabs-scroll {
-                    display: flex;
-                    overflow-x: auto;
-                    overflow-y: hidden;
-                    white-space: nowrap;
-                    gap: 8px;
-                    padding-bottom: 8px;
-                    scrollbar-width: thin;
+            }
+            
+            /* Scrollbar personalizada */
+            .admin-items-list::-webkit-scrollbar {
+                width: 6px;
+            }
+            
+            .admin-items-list::-webkit-scrollbar-track {
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 10px;
+            }
+            
+            .admin-items-list::-webkit-scrollbar-thumb {
+                background: #e50914;
+                border-radius: 10px;
+            }
+            
+            /* Cards de itens melhorados */
+            .admin-item-card {
+                background: rgba(255, 255, 255, 0.08);
+                border-radius: 12px;
+                padding: 10px 12px;
+                margin-bottom: 8px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                transition: all 0.2s ease;
+                border: 1px solid rgba(255, 255, 255, 0.05);
+            }
+            
+            .admin-item-card:hover {
+                background: rgba(255, 255, 255, 0.12);
+                transform: translateX(4px);
+                border-color: rgba(229, 9, 20, 0.3);
+            }
+            
+            .admin-item-info {
+                flex: 1;
+                min-width: 0;
+            }
+            
+            .admin-item-title {
+                font-weight: 600;
+                font-size: 13px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                color: white;
+            }
+            
+            .admin-item-meta {
+                font-size: 10px;
+                color: rgba(255, 255, 255, 0.5);
+                margin-top: 2px;
+                display: flex;
+                gap: 12px;
+            }
+            
+            .admin-item-actions-enhanced {
+                display: flex;
+                gap: 10px;
+                flex-shrink: 0;
+                margin-left: 12px;
+            }
+            
+            .admin-item-actions-enhanced button {
+                background: rgba(255, 255, 255, 0.1);
+                border: none;
+                border-radius: 8px;
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: all 0.2s;
+                color: white;
+            }
+            
+            .admin-item-actions-enhanced button:hover {
+                transform: scale(1.05);
+            }
+            
+            .admin-item-actions-enhanced .edit-btn-admin {
+                background: rgba(34, 197, 94, 0.2);
+                color: #22c55e;
+            }
+            
+            .admin-item-actions-enhanced .edit-btn-admin:hover {
+                background: rgba(34, 197, 94, 0.4);
+            }
+            
+            .admin-item-actions-enhanced .delete-btn-admin {
+                background: rgba(239, 68, 68, 0.2);
+                color: #ef4444;
+            }
+            
+            .admin-item-actions-enhanced .delete-btn-admin:hover {
+                background: rgba(239, 68, 68, 0.4);
+            }
+            
+            /* Contador de resultados */
+            .admin-items-count {
+                font-size: 11px;
+                color: rgba(255, 255, 255, 0.6);
+                padding: 8px 0 4px 0;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                margin-bottom: 12px;
+            }
+            
+            .admin-items-count span:first-child i {
+                margin-right: 4px;
+            }
+            
+            .reset-view-btn {
+                background: rgba(229, 9, 20, 0.2);
+                border: none;
+                border-radius: 20px;
+                padding: 4px 12px;
+                font-size: 10px;
+                color: #e50914;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+            
+            .reset-view-btn:hover {
+                background: rgba(229, 9, 20, 0.4);
+                transform: scale(0.98);
+            }
+            
+            /* Mensagem de nenhum resultado */
+            .admin-no-results {
+                text-align: center;
+                padding: 40px 20px;
+                color: rgba(255, 255, 255, 0.5);
+                font-size: 13px;
+            }
+            
+            /* Corrige o problema de rolagem em dispositivos móveis */
+            @media (max-width: 768px) {
+                .admin-items-list {
+                    max-height: 350px;
                     -webkit-overflow-scrolling: touch;
                 }
                 
-                .admin-tabs-scroll::-webkit-scrollbar {
-                    height: 3px;
+                .admin-item-card {
+                    padding: 12px;
                 }
                 
-                .admin-tabs-scroll::-webkit-scrollbar-track {
-                    background: rgba(255, 255, 255, 0.1);
-                    border-radius: 10px;
+                .admin-item-title {
+                    font-size: 12px;
                 }
-                
-                .admin-tabs-scroll::-webkit-scrollbar-thumb {
-                    background: #e50914;
-                    border-radius: 10px;
-                }
-                
-                /* Botões das abas */
-                .admin-tab-btn {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 8px;
-                    padding: 8px 16px;
-                    font-size: 13px;
-                    font-weight: 500;
-                    border-radius: 40px;
-                    transition: all 0.2s ease;
-                    background: rgba(255, 255, 255, 0.05);
-                    cursor: pointer;
-                    flex-shrink: 0;
-                    white-space: nowrap;
-                }
-                
-                .admin-tab-btn:hover {
-                    background: rgba(255, 255, 255, 0.15);
-                    transform: translateY(-1px);
-                }
-                
-                .admin-tab-btn.active {
-                    background: #e50914;
-                    color: white;
-                }
-                
-                /* Área de conteúdo rolável */
-                #adminModal .admin-content-area {
-                    flex: 1;
-                    overflow-y: auto;
-                    padding: 16px;
-                    scroll-behavior: smooth;
-                }
-                
-                /* Header com logo e contadores - TAMBÉM FIXO */
-                .admin-header-stats {
-                    position: sticky;
-                    top: 0;
-                    background: #1a1a1a;
-                    z-index: 45;
-                    padding: 12px 16px;
-                    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    flex-wrap: wrap;
-                    gap: 10px;
-                }
-                
-                .admin-header-stats .stats-group {
-                    display: flex;
-                    gap: 12px;
-                    flex-wrap: wrap;
-                }
-                
-                .admin-header-stats .stat-item {
-                    background: rgba(0, 0, 0, 0.4);
-                    padding: 4px 12px;
-                    border-radius: 40px;
-                    font-size: 11px;
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
-                }
-                
-                /* Campo de busca em cada lista */
-                .list-search-wrapper {
-                    position: sticky;
-                    top: 0;
-                    background: inherit;
-                    padding: 12px 0;
-                    margin-bottom: 12px;
-                    z-index: 10;
-                }
-                
-                .list-search-input {
-                    width: 100%;
-                    padding: 10px 16px 10px 40px;
-                    background: rgba(255, 255, 255, 0.1);
-                    border: 1px solid rgba(255, 255, 255, 0.2);
-                    border-radius: 40px;
-                    color: white;
-                    font-size: 13px;
-                    outline: none;
-                    transition: all 0.2s ease;
-                }
-                
-                .list-search-input:focus {
-                    border-color: #e50914;
-                    background: rgba(255, 255, 255, 0.15);
-                }
-                
-                .list-search-wrapper .search-icon {
-                    position: absolute;
-                    left: 12px;
-                    top: 50%;
-                    transform: translateY(-50%);
-                    color: rgba(255, 255, 255, 0.5);
-                    font-size: 14px;
-                }
-                
-                .list-search-wrapper .clear-search {
-                    position: absolute;
-                    right: 12px;
-                    top: 50%;
-                    transform: translateY(-50%);
-                    background: none;
-                    border: none;
-                    color: rgba(255, 255, 255, 0.5);
-                    cursor: pointer;
-                    padding: 4px;
-                    border-radius: 50%;
-                    display: none;
-                }
-                
-                .list-search-wrapper .clear-search:hover {
-                    color: #e50914;
-                    background: rgba(255, 255, 255, 0.1);
-                }
-                
-                /* Container da lista com altura melhorada */
-                .admin-list-container {
-                    max-height: 450px;
-                    overflow-y: auto;
-                    overflow-x: hidden;
-                    padding-right: 8px;
-                }
-                
-                /* Resultado da busca vazio */
-                .search-no-results {
-                    text-align: center;
-                    padding: 40px 20px;
-                    color: rgba(255, 255, 255, 0.5);
-                    font-size: 13px;
-                }
-                
-                /* Ajustes para mobile */
-                @media (max-width: 768px) {
-                    .admin-tab-btn {
-                        padding: 6px 12px;
-                        font-size: 11px;
-                    }
-                    
-                    .admin-header-stats {
-                        flex-direction: column;
-                        align-items: flex-start;
-                    }
-                    
-                    .admin-list-container {
-                        max-height: 350px;
-                    }
-                    
-                    .list-search-input {
-                        font-size: 14px;
-                        padding: 12px 16px 12px 40px;
-                    }
-                }
-            `;
-            document.head.appendChild(style);
-        }
-        
-        // Reestruturar o modal admin
-        const adminModal = document.getElementById('adminModal');
-        if (!adminModal) return;
-        
-        const modalContent = adminModal.querySelector('.bg-\\[\\#1a1a1a\\]\\/95');
-        if (!modalContent) return;
-        
-        // Salvar o conteúdo original
-        const originalHeader = modalContent.querySelector('.sticky');
-        const originalBody = modalContent.querySelector('.p-4');
-        
-        if (!originalBody) return;
-        
-        // Verificar se já foi modificado
-        if (modalContent.hasAttribute('data-restructured')) return;
-        modalContent.setAttribute('data-restructured', 'true');
-        
-        // Extrair contadores
-        const filmesCountSpan = document.getElementById('filmesCount');
-        const seriesCountSpan = document.getElementById('seriesCount');
-        const canaisCountSpan = document.getElementById('canaisCount');
-        
-        // Criar novo header com estatísticas
-        const statsHeader = document.createElement('div');
-        statsHeader.className = 'admin-header-stats';
-        statsHeader.innerHTML = `
-            <div class="flex items-center gap-3">
-                <i class="fas fa-film text-red-500 text-xl"></i>
-                <span class="font-bold text-white">Admin Panel</span>
-            </div>
-            <div class="stats-group">
-                <span class="stat-item"><i class="fas fa-film text-red-400"></i> Filmes: ${filmesCountSpan?.innerText || '0'}</span>
-                <span class="stat-item"><i class="fas fa-tv text-red-400"></i> Séries: ${seriesCountSpan?.innerText || '0'}</span>
-                <span class="stat-item"><i class="fas fa-satellite-dish text-red-400"></i> Canais: ${canaisCountSpan?.innerText || '0'}</span>
-            </div>
-        `;
-        
-        // Mover as abas para um wrapper fixo
-        const tabsContainer = modalContent.querySelector('.flex.space-x-2');
-        if (tabsContainer) {
-            const tabsWrapper = document.createElement('div');
-            tabsWrapper.className = 'admin-tabs-wrapper';
-            tabsContainer.classList.add('admin-tabs-scroll');
-            tabsContainer.classList.remove('flex-wrap');
-            tabsWrapper.appendChild(tabsContainer.cloneNode(true));
+            }
             
-            // Substituir o container original
-            tabsContainer.parentNode.replaceChild(tabsWrapper, tabsContainer);
-        }
-        
-        // Criar área de conteúdo rolável
-        const contentArea = document.createElement('div');
-        contentArea.className = 'admin-content-area';
-        
-        // Mover todo o conteúdo do body para a contentArea
-        while (originalBody.firstChild) {
-            contentArea.appendChild(originalBody.firstChild);
-        }
-        
-        // Reorganizar o modal
-        modalContent.innerHTML = '';
-        modalContent.appendChild(statsHeader);
-        modalContent.appendChild(modalContent.querySelector('.admin-tabs-wrapper') || tabsContainer);
-        modalContent.appendChild(contentArea);
-        
-        // Atualizar estatísticas em tempo real
-        const updateStats = () => {
-            const statsHeaderEl = modalContent.querySelector('.admin-header-stats');
-            if (statsHeaderEl && filmesCountSpan && seriesCountSpan && canaisCountSpan) {
-                const statsGroup = statsHeaderEl.querySelector('.stats-group');
-                if (statsGroup) {
-                    statsGroup.innerHTML = `
-                        <span class="stat-item"><i class="fas fa-film text-red-400"></i> Filmes: ${filmesCountSpan.innerText || '0'}</span>
-                        <span class="stat-item"><i class="fas fa-tv text-red-400"></i> Séries: ${seriesCountSpan.innerText || '0'}</span>
-                        <span class="stat-item"><i class="fas fa-satellite-dish text-red-400"></i> Canais: ${canaisCountSpan.innerText || '0'}</span>
-                    `;
-                }
+            /* Light mode suporte */
+            body.light-mode .admin-search-bar {
+                background: rgba(0, 0, 0, 0.05);
+                border-color: rgba(0, 0, 0, 0.1);
             }
-        };
-        
-        // Observar mudanças nos contadores
-        const observeCounters = () => {
-            if (filmesCountSpan) {
-                const observer = new MutationObserver(updateStats);
-                observer.observe(filmesCountSpan, { childList: true, subtree: true, characterData: true });
+            
+            body.light-mode .admin-search-bar input {
+                color: #1a1a1a;
             }
-            if (seriesCountSpan) {
-                const observer = new MutationObserver(updateStats);
-                observer.observe(seriesCountSpan, { childList: true, subtree: true, characterData: true });
+            
+            body.light-mode .admin-item-card {
+                background: rgba(0, 0, 0, 0.05);
+                border-color: rgba(0, 0, 0, 0.08);
             }
-            if (canaisCountSpan) {
-                const observer = new MutationObserver(updateStats);
-                observer.observe(canaisCountSpan, { childList: true, subtree: true, characterData: true });
+            
+            body.light-mode .admin-item-card:hover {
+                background: rgba(0, 0, 0, 0.1);
             }
-        };
-        
-        setTimeout(observeCounters, 100);
+            
+            body.light-mode .admin-item-title {
+                color: #1a1a1a;
+            }
+        `;
+        document.head.appendChild(style);
     }
-    
-    // ============================================
-    // PARTE 2: CAMPO DE BUSCA PARA CADA LISTA
-    // ============================================
-    
-    // Função para adicionar campo de busca em uma lista
-    function addSearchToList(listContainerId, itemsArray, type, renderFunction) {
-        const container = document.getElementById(listContainerId);
-        if (!container) return;
+
+    // Referências para os elementos de busca
+    let currentSearchTerm = '';
+    let currentAdminListType = '';
+
+    // Função para criar o container melhorado
+    function enhanceAdminList(containerId, items, type, onEdit, onDelete) {
+        const originalContainer = document.getElementById(containerId);
+        if (!originalContainer) return null;
         
-        // Verificar se já existe busca
-        if (container.parentElement?.querySelector('.list-search-wrapper')) return;
+        // Guarda o conteúdo original do container
+        const parent = originalContainer.parentNode;
+        const containerDiv = document.createElement('div');
+        containerDiv.className = 'admin-list-container';
+        containerDiv.id = `${containerId}_enhanced`;
         
-        // Criar wrapper da busca
-        const searchWrapper = document.createElement('div');
-        searchWrapper.className = 'list-search-wrapper';
-        searchWrapper.style.position = 'relative';
-        searchWrapper.innerHTML = `
-            <i class="fas fa-search search-icon"></i>
-            <input type="text" class="list-search-input" placeholder="Buscar ${type === 'canais' ? 'canal' : (type === 'filmes' ? 'filme' : 'série')} por nome..." autocomplete="off">
-            <button class="clear-search"><i class="fas fa-times"></i></button>
+        // Cria barra de busca
+        const searchBar = document.createElement('div');
+        searchBar.className = 'admin-search-bar';
+        searchBar.innerHTML = `
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Buscar ${type === 'canais' ? 'canal' : (type === 'filmes' ? 'filme' : 'série')}..." id="search_${containerId}">
+            <button class="clear-search-btn" id="clear_${containerId}" style="display: none;">
+                <i class="fas fa-times"></i>
+            </button>
         `;
         
-        // Envolver o container da lista em um div para melhor organização
-        const listWrapper = document.createElement('div');
-        listWrapper.className = 'admin-list-container';
-        container.parentNode.insertBefore(listWrapper, container);
-        listWrapper.appendChild(container);
+        // Área de contagem
+        const countArea = document.createElement('div');
+        countArea.className = 'admin-items-count';
+        countArea.id = `count_${containerId}`;
+        countArea.innerHTML = `<span><i class="fas fa-list"></i> <span id="total_${containerId}">${items.length}</span> itens</span>`;
         
-        // Inserir busca antes do container
-        listWrapper.insertBefore(searchWrapper, container);
+        // Container da lista com rolagem
+        const listContainer = document.createElement('div');
+        listContainer.className = 'admin-items-list';
+        listContainer.id = `list_${containerId}`;
         
-        const searchInput = searchWrapper.querySelector('.list-search-input');
-        const clearBtn = searchWrapper.querySelector('.clear-search');
+        // Monta o container
+        containerDiv.appendChild(searchBar);
+        containerDiv.appendChild(countArea);
+        containerDiv.appendChild(listContainer);
         
-        // Função de busca
-        const performSearch = () => {
-            const searchTerm = searchInput.value.toLowerCase().trim();
+        // Substitui o container original
+        parent.replaceChild(containerDiv, originalContainer);
+        
+        // Armazena os dados para busca
+        let allItems = [...items];
+        
+        // Função para renderizar a lista
+        function renderList(searchTerm = '') {
+            let filteredItems = [...allItems];
             
-            if (!searchTerm) {
-                clearBtn.style.display = 'none';
-                // Restaurar lista original
-                if (typeof renderFunction === 'function') {
-                    renderFunction();
-                } else if (itemsArray && itemsArray.length) {
-                    const sortedItems = [...itemsArray].sort((a, b) => (a.title || '').localeCompare(b.title || ''));
-                    renderFilteredList(container, sortedItems, type);
+            if (searchTerm) {
+                const term = searchTerm.toLowerCase();
+                filteredItems = allItems.filter(item => {
+                    const title = (item.title || '').toLowerCase();
+                    const category = (item.category || '').toLowerCase();
+                    return title.includes(term) || category.includes(term);
+                });
+            }
+            
+            // Ordena alfabeticamente
+            filteredItems.sort((a, b) => {
+                const titleA = (a.title || '').toLowerCase();
+                const titleB = (b.title || '').toLowerCase();
+                return titleA.localeCompare(titleB, 'pt-BR');
+            });
+            
+            // Atualiza contador
+            const totalSpan = document.getElementById(`total_${containerId}`);
+            if (totalSpan) {
+                totalSpan.textContent = filteredItems.length;
+                if (searchTerm) {
+                    countArea.innerHTML = `<span><i class="fas fa-search"></i> <span id="total_${containerId}">${filteredItems.length}</span> resultados encontrados</span>
+                                          <button class="reset-view-btn" id="reset_${containerId}"><i class="fas fa-undo-alt"></i> Limpar busca</button>`;
+                } else {
+                    countArea.innerHTML = `<span><i class="fas fa-list"></i> <span id="total_${containerId}">${filteredItems.length}</span> itens</span>`;
                 }
+                
+                // Adiciona evento de reset
+                const resetBtn = document.getElementById(`reset_${containerId}`);
+                if (resetBtn) {
+                    resetBtn.onclick = () => {
+                        const searchInput = document.getElementById(`search_${containerId}`);
+                        if (searchInput) {
+                            searchInput.value = '';
+                            currentSearchTerm = '';
+                            renderList('');
+                            const clearBtn = document.getElementById(`clear_${containerId}`);
+                            if (clearBtn) clearBtn.style.display = 'none';
+                        }
+                    };
+                }
+            }
+            
+            // Renderiza os itens
+            if (filteredItems.length === 0) {
+                listContainer.innerHTML = `<div class="admin-no-results"><i class="fas fa-inbox"></i><br>Nenhum ${type === 'canais' ? 'canal' : (type === 'filmes' ? 'filme' : 'episódio')} encontrado</div>`;
                 return;
             }
             
-            clearBtn.style.display = 'flex';
+            listContainer.innerHTML = filteredItems.map(item => {
+                const title = item.title || 'Sem título';
+                const id = item.id || '';
+                const category = item.category || 'Geral';
+                const year = item.year || '';
+                return `
+                    <div class="admin-item-card" data-id="${id}">
+                        <div class="admin-item-info">
+                            <div class="admin-item-title" title="${escapeHtml(title)}">${escapeHtml(title)}</div>
+                            <div class="admin-item-meta">
+                                <span><i class="fas fa-tag"></i> ${escapeHtml(category)}</span>
+                                ${year ? `<span><i class="fas fa-calendar"></i> ${year}</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="admin-item-actions-enhanced">
+                            <button class="edit-btn-admin" data-id="${id}" data-type="${type}" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="delete-btn-admin" data-id="${id}" data-type="${type}" title="Excluir">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
             
-            // Filtrar itens
-            const filtered = itemsArray.filter(item => {
-                const title = (item.title || '').toLowerCase();
-                const category = (item.category || '').toLowerCase();
-                return title.includes(searchTerm) || category.includes(searchTerm);
+            // Adiciona eventos aos botões
+            listContainer.querySelectorAll('.edit-btn-admin').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    const id = btn.getAttribute('data-id');
+                    const itemType = btn.getAttribute('data-type');
+                    if (onEdit) onEdit(id, itemType);
+                };
             });
             
-            // Ordenar resultados filtrados
-            const sortedFiltered = [...filtered].sort((a, b) => (a.title || '').localeCompare(b.title || ''));
-            
-            // Renderizar resultados filtrados
-            renderFilteredList(container, sortedFiltered, type);
-            
-            // Mostrar mensagem se não houver resultados
-            if (sortedFiltered.length === 0) {
-                container.innerHTML = `<div class="search-no-results">
-                    <i class="fas fa-search" style="font-size: 32px; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
-                    Nenhum resultado encontrado para "<strong>${escapeHtml(searchTerm)}</strong>"
-                </div>`;
-            }
-        };
-        
-        // Eventos
-        searchInput.addEventListener('input', performSearch);
-        searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') performSearch();
-        });
-        
-        clearBtn.addEventListener('click', () => {
-            searchInput.value = '';
-            performSearch();
-            searchInput.focus();
-        });
-    }
-    
-    // Função para renderizar lista filtrada
-    function renderFilteredList(container, items, type) {
-        if (!items || items.length === 0) {
-            container.innerHTML = `<div class="empty-list-message">
-                <i class="fas fa-inbox" style="font-size: 32px; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
-                Nenhum ${type === 'canais' ? 'canal' : (type === 'filmes' ? 'filme' : 'episódio')} adicionado ainda.
-            </div>`;
-            return;
+            listContainer.querySelectorAll('.delete-btn-admin').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    const id = btn.getAttribute('data-id');
+                    const itemType = btn.getAttribute('data-type');
+                    const typeName = itemType === 'canais' ? 'Canal' : (itemType === 'filmes' ? 'Filme' : 'Episódio');
+                    if (confirm(`Tem certeza que deseja excluir este ${typeName}?`)) {
+                        if (onDelete) onDelete(id, itemType);
+                    }
+                };
+            });
         }
         
-        const html = items.map(item => {
-            const title = item && item.title ? item.title : 'Sem título';
-            const id = item && item.id ? item.id : '';
-            const category = item && item.category ? item.category : '';
-            const year = item && item.year ? item.year : '';
-            
-            return `
-                <div class="bg-white/10 p-3 rounded-xl flex justify-between items-center mb-2 hover:bg-white/15 transition-all">
-                    <div class="flex-1 min-w-0">
-                        <div class="font-medium text-sm truncate" title="${escapeHtml(title)}">${escapeHtml(title)}</div>
-                        ${category || year ? `<div class="text-[10px] text-gray-400 mt-1">${category} ${year ? `• ${year}` : ''}</div>` : ''}
-                    </div>
-                    <div class="admin-item-actions flex gap-2 ml-3">
-                        <button class="edit-item-btn bg-black/30 hover:bg-green-600 text-green-400 hover:text-white px-3 py-1.5 rounded-full text-xs transition-all" data-id="${id}" data-type="${type}">
-                            <i class="fas fa-edit"></i> Editar
-                        </button>
-                        <button class="delete-item-btn bg-black/30 hover:bg-red-600 text-red-400 hover:text-white px-3 py-1.5 rounded-full text-xs transition-all" data-id="${id}" data-type="${type}">
-                            <i class="fas fa-trash-alt"></i> Excluir
-                        </button>
-                    </div>
-                </div>
-            `;
-        }).join('');
+        // Configura busca em tempo real
+        const searchInput = document.getElementById(`search_${containerId}`);
+        const clearBtn = document.getElementById(`clear_${containerId}`);
         
-        container.innerHTML = html;
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                currentSearchTerm = e.target.value;
+                renderList(currentSearchTerm);
+                if (clearBtn) {
+                    clearBtn.style.display = currentSearchTerm ? 'flex' : 'none';
+                }
+            });
+        }
         
-        // Reaplicar eventos
-        container.querySelectorAll('.edit-item-btn').forEach(btn => {
-            btn.removeEventListener('click', handleEditClick);
-            btn.addEventListener('click', handleEditClick);
-        });
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                if (searchInput) {
+                    searchInput.value = '';
+                    currentSearchTerm = '';
+                    renderList('');
+                    clearBtn.style.display = 'none';
+                }
+            });
+        }
         
-        container.querySelectorAll('.delete-item-btn').forEach(btn => {
-            btn.removeEventListener('click', handleDeleteClick);
-            btn.addEventListener('click', handleDeleteClick);
-        });
+        // Função para atualizar a lista com novos dados
+        function updateItems(newItems) {
+            allItems = [...newItems];
+            renderList(currentSearchTerm);
+        }
+        
+        // Renderiza inicialmente
+        renderList('');
+        
+        return { updateItems, container: listContainer };
     }
     
-    // Handlers para edição/exclusão
-    function handleEditClick(e) {
-        const id = this.getAttribute('data-id');
-        const type = this.getAttribute('data-type');
-        if (typeof editItem === 'function') {
-            editItem(id, type);
-        } else if (typeof window.editItem === 'function') {
-            window.editItem(id, type);
+    // Inicializa as listas admin melhoradas
+    let enhancedCanais = null;
+    let enhancedFilmes = null;
+    let enhancedSeries = null;
+    
+    function initEnhancedAdminLists() {
+        // Verifica se já foram criados para evitar duplicação
+        if (document.getElementById('canaisAdminList_enhanced')) return;
+        
+        // Canais
+        const canaisContainer = document.getElementById('canaisAdminList');
+        if (canaisContainer && canais) {
+            enhancedCanais = enhanceAdminList('canaisAdminList', canais, 'canais', 
+                (id, type) => {
+                    if (typeof editItem === 'function') editItem(id, type);
+                    else if (typeof window.editItem === 'function') window.editItem(id, type);
+                },
+                (id, type) => {
+                    database.ref(`${type}/${id}`).remove().then(() => {
+                        showToast('Item removido com sucesso!');
+                        if (type === 'canais') loadCanaisFromFirebase();
+                        else if (type === 'filmes') loadFilmesFromFirebase();
+                        else if (type === 'series') loadSeriesFromFirebase();
+                    }).catch(error => showToast('Erro ao excluir: ' + error.message));
+                }
+            );
+        }
+        
+        // Filmes
+        const filmesContainer = document.getElementById('filmesAdminList');
+        if (filmesContainer && filmes) {
+            enhancedFilmes = enhanceAdminList('filmesAdminList', filmes, 'filmes',
+                (id, type) => {
+                    if (typeof editItem === 'function') editItem(id, type);
+                    else if (typeof window.editItem === 'function') window.editItem(id, type);
+                },
+                (id, type) => {
+                    database.ref(`${type}/${id}`).remove().then(() => {
+                        showToast('Item removido com sucesso!');
+                        if (type === 'canais') loadCanaisFromFirebase();
+                        else if (type === 'filmes') loadFilmesFromFirebase();
+                        else if (type === 'series') loadSeriesFromFirebase();
+                    }).catch(error => showToast('Erro ao excluir: ' + error.message));
+                }
+            );
+        }
+        
+        // Séries
+        const seriesContainer = document.getElementById('seriesAdminList');
+        if (seriesContainer && series) {
+            enhancedSeries = enhanceAdminList('seriesAdminList', series, 'series',
+                (id, type) => {
+                    if (typeof editItem === 'function') editItem(id, type);
+                    else if (typeof window.editItem === 'function') window.editItem(id, type);
+                },
+                (id, type) => {
+                    database.ref(`${type}/${id}`).remove().then(() => {
+                        showToast('Item removido com sucesso!');
+                        if (type === 'canais') loadCanaisFromFirebase();
+                        else if (type === 'filmes') loadFilmesFromFirebase();
+                        else if (type === 'series') loadSeriesFromFirebase();
+                    }).catch(error => showToast('Erro ao excluir: ' + error.message));
+                }
+            );
         }
     }
     
-    function handleDeleteClick(e) {
-        const id = this.getAttribute('data-id');
-        const type = this.getAttribute('data-type');
-        const typeName = type === 'canais' ? 'Canal' : (type === 'filmes' ? 'Filme' : 'Episódio');
-        if (confirm(`Tem certeza que deseja excluir este ${typeName}?`)) {
-            database.ref(`${type}/${id}`).remove().then(() => {
-                showToast(`${typeName} removido com sucesso!`);
-                if (type === 'canais') loadCanaisFromFirebase();
-                else if (type === 'filmes') loadFilmesFromFirebase();
-                else if (type === 'series') loadSeriesFromFirebase();
-            }).catch(error => showToast('Erro ao excluir: ' + error.message));
+    // Função para atualizar as listas quando os dados mudam
+    function updateEnhancedLists() {
+        if (enhancedCanais && canais) {
+            const sortedCanais = [...canais].sort((a, b) => {
+                const titleA = (a.title || '').toLowerCase();
+                const titleB = (b.title || '').toLowerCase();
+                return titleA.localeCompare(titleB, 'pt-BR');
+            });
+            enhancedCanais.updateItems(sortedCanais);
+        }
+        
+        if (enhancedFilmes && filmes) {
+            const sortedFilmes = [...filmes].sort((a, b) => {
+                const titleA = (a.title || '').toLowerCase();
+                const titleB = (b.title || '').toLowerCase();
+                return titleA.localeCompare(titleB, 'pt-BR');
+            });
+            enhancedFilmes.updateItems(sortedFilmes);
+        }
+        
+        if (enhancedSeries && series) {
+            const sortedSeries = [...series].sort((a, b) => {
+                const titleA = (a.title || '').toLowerCase();
+                const titleB = (b.title || '').toLowerCase();
+                return titleA.localeCompare(titleB, 'pt-BR');
+            });
+            enhancedSeries.updateItems(sortedSeries);
         }
     }
     
-    // ============================================
-    // PARTE 3: INICIALIZAÇÃO
-    // ============================================
+    // Sobrescreve refreshAdminLists para usar as listas melhoradas
+    const originalRefreshAdminLists = window.refreshAdminLists;
     
-    // Função principal para adicionar buscas às listas
-    function addSearchToAllLists() {
+    window.refreshAdminLists = function() {
         if (!isAdminLogged) return;
         
-        // Aguardar os dados serem carregados
-        setTimeout(() => {
-            // Adicionar busca na lista de Canais
-            if (canais && canais.length >= 0) {
-                addSearchToList('canaisAdminList', canais, 'canais', () => {
-                    if (typeof updateCanaisAdminList === 'function') updateCanaisAdminList();
-                    else if (typeof refreshCanaisList === 'function') refreshCanaisList();
-                });
-            }
-            
-            // Adicionar busca na lista de Filmes
-            if (filmes && filmes.length >= 0) {
-                addSearchToList('filmesAdminList', filmes, 'filmes', () => {
-                    if (typeof updateFilmesAdminList === 'function') updateFilmesAdminList();
-                    else if (typeof refreshFilmesList === 'function') refreshFilmesList();
-                });
-            }
-            
-            // Adicionar busca na lista de Séries
-            if (series && series.length >= 0) {
-                addSearchToList('seriesAdminList', series, 'series', () => {
-                    if (typeof updateSeriesAdminList === 'function') updateSeriesAdminList();
-                    else if (typeof refreshSeriesList === 'function') refreshSeriesList();
-                });
-            }
-        }, 500);
-    }
-    
-    // Sobrescrever funções de carregamento para manter as buscas
-    const originalLoadCanaisSearch = window.loadCanaisFromFirebase;
-    const originalLoadFilmesSearch = window.loadFilmesFromFirebase;
-    const originalLoadSeriesSearch = window.loadSeriesFromFirebase;
-    
-    if (originalLoadCanaisSearch) {
-        window.loadCanaisFromFirebase = function() {
-            originalLoadCanaisSearch();
-            setTimeout(() => {
-                if (isAdminLogged) addSearchToAllLists();
-            }, 300);
-        };
-    }
-    
-    if (originalLoadFilmesSearch) {
-        window.loadFilmesFromFirebase = function() {
-            originalLoadFilmesSearch();
-            setTimeout(() => {
-                if (isAdminLogged) addSearchToAllLists();
-            }, 300);
-        };
-    }
-    
-    if (originalLoadSeriesSearch) {
-        window.loadSeriesFromFirebase = function() {
-            originalLoadSeriesSearch();
-            setTimeout(() => {
-                if (isAdminLogged) addSearchToAllLists();
-            }, 300);
-        };
-    }
-    
-    // Observar quando o admin faz login
-    function initAdminFeatures() {
-        // Aplicar menu fixo
-        setTimeout(fixAdminMenuSticky, 200);
+        if (originalRefreshAdminLists) {
+            originalRefreshAdminLists();
+        }
         
-        // Adicionar buscas nas listas
-        const checkLogin = setInterval(() => {
-            if (typeof isAdminLogged !== 'undefined' && isAdminLogged) {
-                clearInterval(checkLogin);
+        // Atualiza as listas melhoradas
+        setTimeout(updateEnhancedLists, 100);
+    };
+    
+    // Intercepta as funções de carregamento
+    const originalLoadCanais = window.loadCanaisFromFirebase;
+    const originalLoadFilmes = window.loadFilmesFromFirebase;
+    const originalLoadSeries = window.loadSeriesFromFirebase;
+    
+    if (originalLoadCanais) {
+        window.loadCanaisFromFirebase = function() {
+            if (originalLoadCanais) originalLoadCanais();
+            setTimeout(() => {
+                if (isAdminLogged && enhancedCanais && canais) {
+                    const sorted = [...canais].sort((a, b) => {
+                        const titleA = (a.title || '').toLowerCase();
+                        const titleB = (b.title || '').toLowerCase();
+                        return titleA.localeCompare(titleB, 'pt-BR');
+                    });
+                    enhancedCanais.updateItems(sorted);
+                }
+            }, 200);
+        };
+    }
+    
+    if (originalLoadFilmes) {
+        window.loadFilmesFromFirebase = function() {
+            if (originalLoadFilmes) originalLoadFilmes();
+            setTimeout(() => {
+                if (isAdminLogged && enhancedFilmes && filmes) {
+                    const sorted = [...filmes].sort((a, b) => {
+                        const titleA = (a.title || '').toLowerCase();
+                        const titleB = (b.title || '').toLowerCase();
+                        return titleA.localeCompare(titleB, 'pt-BR');
+                    });
+                    enhancedFilmes.updateItems(sorted);
+                }
+            }, 200);
+        };
+    }
+    
+    if (originalLoadSeries) {
+        window.loadSeriesFromFirebase = function() {
+            if (originalLoadSeries) originalLoadSeries();
+            setTimeout(() => {
+                if (isAdminLogged && enhancedSeries && series) {
+                    const sorted = [...series].sort((a, b) => {
+                        const titleA = (a.title || '').toLowerCase();
+                        const titleB = (b.title || '').toLowerCase();
+                        return titleA.localeCompare(titleB, 'pt-BR');
+                    });
+                    enhancedSeries.updateItems(sorted);
+                }
+            }, 200);
+        };
+    }
+    
+    // Observer para inicializar quando o adminPanel ficar visível
+    function setupAdminObserver() {
+        const observer = new MutationObserver((mutations) => {
+            const adminPanel = document.getElementById('adminPanel');
+            if (adminPanel && !adminPanel.classList.contains('hidden') && isAdminLogged) {
+                addAdminStyles();
                 setTimeout(() => {
-                    addSearchToAllLists();
-                    fixAdminMenuSticky();
-                }, 300);
+                    initEnhancedAdminLists();
+                    updateEnhancedLists();
+                }, 200);
             }
-        }, 500);
+        });
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                observer.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+            });
+        } else {
+            observer.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+        }
     }
     
-    // Exportar funções globalmente
-    window.addSearchToList = addSearchToList;
-    window.fixAdminMenuSticky = fixAdminMenuSticky;
-    window.initAdminFeatures = initAdminFeatures;
+    // Exporta funções
+    window.initEnhancedAdminLists = initEnhancedAdminLists;
+    window.updateEnhancedLists = updateEnhancedLists;
     
-    // Iniciar quando o DOM estiver pronto
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initAdminFeatures);
-    } else {
-        initAdminFeatures();
+    // Inicializa
+    setupAdminObserver();
+    
+    // Adiciona script para corrigir o problema de rolagem em dispositivos móveis
+    function fixMobileScrollIssue() {
+        // Salva a posição de rolagem antes de trocar de aba
+        const scrollPositions = {};
+        
+        // Salva a posição ao rolar
+        document.querySelectorAll('.admin-items-list').forEach(list => {
+            list.addEventListener('scroll', function() {
+                const listId = this.id;
+                if (listId) {
+                    scrollPositions[listId] = this.scrollTop;
+                }
+            });
+        });
+        
+        // Restaura a posição quando a aba for reativada
+        const originalSetNavTab = window.setNavTab;
+        if (originalSetNavTab) {
+            window.setNavTab = function(tab) {
+                // Salva posição atual antes de trocar
+                document.querySelectorAll('.admin-items-list').forEach(list => {
+                    const listId = list.id;
+                    if (listId) {
+                        scrollPositions[listId] = list.scrollTop;
+                    }
+                });
+                
+                originalSetNavTab(tab);
+                
+                // Restaura após um pequeno delay
+                setTimeout(() => {
+                    document.querySelectorAll('.admin-items-list').forEach(list => {
+                        const listId = list.id;
+                        if (listId && scrollPositions[listId] !== undefined) {
+                            list.scrollTop = scrollPositions[listId];
+                        }
+                    });
+                }, 100);
+            };
+        }
     }
     
-    console.log('✅ Admin melhorado: Menu fixo, buscas em cada lista e layout otimizado!');
+    // Executa a correção de rolagem
+    setTimeout(fixMobileScrollIssue, 1000);
+    
+    console.log('✅ Admin melhorado: espaço ampliado, busca adicionada e rolagem corrigida!');
 })();
 
                 
