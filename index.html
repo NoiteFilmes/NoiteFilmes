@@ -8152,446 +8152,586 @@ if (loginAdminBtn) {
 
 
                 // =====================================================
-// SCRIPT PARA MELHORAR O ESPAÇO DAS LISTAS ADMIN
-// Aumenta altura, melhora aparência e usabilidade
+// SCRIPT COMPLETO PARA ADMIN:
+// 1. Campo de busca em cada lista (Canais, Filmes, Séries)
+// 2. Menu de abas FIXO no topo (não some ao rolar)
+// 3. Melhorias visuais e responsividade para mobile
 // =====================================================
 
 (function() {
-    // Função para adicionar estilos CSS melhorados
-    function addImprovedAdminStyles() {
-        if (document.getElementById('admin-list-styles')) return;
-        
-        const style = document.createElement('style');
-        style.id = 'admin-list-styles';
-        style.textContent = `
-            /* Container principal das listas admin */
-            #adminListsContainer {
-                margin-top: 16px;
-            }
-            
-            /* Estilos gerais para os containers das listas */
-            #adminCanaisList,
-            #adminFilmesList,
-            #adminSeriesList,
-            #adminDuplicadosList,
-            #reportsList,
-            #adminUsersList {
-                background: rgba(0, 0, 0, 0.25);
-                border-radius: 16px;
-                padding: 12px;
-                margin-bottom: 20px;
-                backdrop-filter: blur(4px);
-            }
-            
-            /* Headers das listas */
-            #adminCanaisList h3,
-            #adminFilmesList h3,
-            #adminSeriesList h3,
-            #adminDuplicadosList h3,
-            #reportsList h3,
-            #adminUsersList h3 {
-                font-size: 14px;
-                font-weight: bold;
-                margin-bottom: 12px;
-                padding-bottom: 8px;
-                border-bottom: 2px solid #e50914;
-                display: inline-block;
-                position: sticky;
-                top: 0;
-                background: rgba(0,0,0,0.5);
-                backdrop-filter: blur(8px);
-                z-index: 10;
-                width: 100%;
-            }
-            
-            /* Containers de rolagem das listas - ALTURA AUMENTADA */
-            #canaisAdminList,
-            #filmesAdminList,
-            #seriesAdminList {
-                max-height: 400px !important;
-                min-height: 200px;
-                overflow-y: auto;
-                overflow-x: hidden;
-                padding-right: 8px;
-                scroll-behavior: smooth;
-            }
-            
-            /* Estilo dos itens individuais - MAIS ESPAÇOSOS */
-            #canaisAdminList > div,
-            #filmesAdminList > div,
-            #seriesAdminList > div {
-                background: rgba(255, 255, 255, 0.08);
-                padding: 12px 16px !important;
-                margin-bottom: 8px !important;
-                border-radius: 12px !important;
-                transition: all 0.2s ease;
-                border-left: 3px solid transparent;
-            }
-            
-            /* Hover effect nos itens */
-            #canaisAdminList > div:hover,
-            #filmesAdminList > div:hover,
-            #seriesAdminList > div:hover {
-                background: rgba(255, 255, 255, 0.15);
-                transform: translateX(4px);
-                border-left-color: #e50914;
-            }
-            
-            /* Texto do título - MAIOR E MAIS LEGÍVEL */
-            #canaisAdminList .truncate,
-            #filmesAdminList .truncate,
-            #seriesAdminList .truncate {
-                font-size: 13px !important;
-                font-weight: 500;
-                letter-spacing: 0.3px;
-            }
-            
-            /* Botões de ação - MAIORES E MAIS CLICÁVEIS */
-            .admin-item-actions {
-                display: flex;
-                gap: 12px !important;
-            }
-            
-            .admin-item-actions button {
-                padding: 6px 10px !important;
-                font-size: 12px !important;
-                border-radius: 20px !important;
-                transition: all 0.2s ease;
-                background: rgba(0, 0, 0, 0.4);
-            }
-            
-            .admin-item-actions button:hover {
-                transform: scale(1.05);
-            }
-            
-            .admin-item-actions .edit-item-btn:hover {
-                background: #10b981;
-                color: white;
-            }
-            
-            .admin-item-actions .delete-item-btn:hover {
-                background: #e50914;
-                color: white;
-            }
-            
-            /* Scrollbar customizada para as listas */
-            #canaisAdminList::-webkit-scrollbar,
-            #filmesAdminList::-webkit-scrollbar,
-            #seriesAdminList::-webkit-scrollbar {
-                width: 6px;
-            }
-            
-            #canaisAdminList::-webkit-scrollbar-track,
-            #filmesAdminList::-webkit-scrollbar-track,
-            #seriesAdminList::-webkit-scrollbar-track {
-                background: rgba(255, 255, 255, 0.1);
-                border-radius: 10px;
-            }
-            
-            #canaisAdminList::-webkit-scrollbar-thumb,
-            #filmesAdminList::-webkit-scrollbar-thumb,
-            #seriesAdminList::-webkit-scrollbar-thumb {
-                background: #e50914;
-                border-radius: 10px;
-            }
-            
-            #canaisAdminList::-webkit-scrollbar-thumb:hover,
-            #filmesAdminList::-webkit-scrollbar-thumb:hover,
-            #seriesAdminList::-webkit-scrollbar-thumb:hover {
-                background: #ff2d2d;
-            }
-            
-            /* Container de duplicados também melhorado */
-            #duplicadosAdminList .duplicate-group {
-                background: rgba(0, 0, 0, 0.3);
-                padding: 16px;
-                border-radius: 16px;
-                margin-bottom: 16px;
-            }
-            
-            #duplicadosAdminList .duplicate-checkbox-item {
-                padding: 10px !important;
-                margin-bottom: 6px !important;
-                border-radius: 12px !important;
-            }
-            
-            /* Estatísticas da lista */
-            .admin-list-stats {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 12px;
-                padding: 8px 12px;
-                background: rgba(0, 0, 0, 0.3);
-                border-radius: 12px;
-                font-size: 11px;
-                position: sticky;
-                top: 0;
-                z-index: 5;
-                backdrop-filter: blur(8px);
-            }
-            
-            .admin-list-stats span {
-                display: flex;
-                align-items: center;
-                gap: 6px;
-            }
-            
-            .admin-list-stats i {
-                color: #e50914;
-            }
-            
-            /* Mensagem de lista vazia */
-            .empty-list-message {
-                text-align: center;
-                padding: 40px 20px;
-                color: rgba(255, 255, 255, 0.5);
-                font-size: 13px;
-                background: rgba(0, 0, 0, 0.2);
-                border-radius: 16px;
-                border: 1px dashed rgba(255, 255, 255, 0.2);
-            }
-            
-            /* Botão de rolagem para o topo da lista */
-            .scroll-to-top-btn {
-                position: sticky;
-                bottom: 10px;
-                left: 100%;
-                background: #e50914;
-                color: white;
-                width: 32px;
-                height: 32px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                opacity: 0;
-                transition: opacity 0.3s ease;
-                z-index: 20;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-                margin-left: -40px;
-            }
-            
-            .scroll-to-top-btn.visible {
-                opacity: 1;
-            }
-            
-            .scroll-to-top-btn:hover {
-                transform: scale(1.1);
-                background: #ff2d2d;
-            }
-            
-            /* Indicador de quantidade de itens */
-            .item-count-badge {
-                background: #e50914;
-                color: white;
-                border-radius: 20px;
-                padding: 2px 8px;
-                font-size: 10px;
-                margin-left: 8px;
-            }
-        `;
-        
-        document.head.appendChild(style);
-    }
+    // ============================================
+    // PARTE 1: CORREÇÃO DO MENU FIXO NO ADMIN
+    // ============================================
     
-    // Função para atualizar as listas com layout melhorado
-    function updateImprovedLists() {
-        if (!isAdminLogged) return;
-        
-        // Melhorar lista de Canais
-        improveListContainer('canaisAdminList', canais, 'canais');
-        
-        // Melhorar lista de Filmes
-        improveListContainer('filmesAdminList', filmes, 'filmes');
-        
-        // Melhorar lista de Séries
-        improveListContainer('seriesAdminList', series, 'series');
-        
-        // Adicionar estatísticas
-        addListStatistics();
-    }
-    
-    // Função para melhorar um container de lista específico
-    function improveListContainer(containerId, items, type) {
-        const container = document.getElementById(containerId);
-        if (!container) return;
-        
-        // Adicionar classe para controle de scroll
-        container.classList.add('improved-list-container');
-        
-        // Verificar se já existe o wrapper de estatísticas
-        let statsWrapper = container.parentElement?.querySelector('.admin-list-stats');
-        if (!statsWrapper && container.parentElement) {
-            statsWrapper = document.createElement('div');
-            statsWrapper.className = 'admin-list-stats';
-            statsWrapper.innerHTML = `
-                <span><i class="fas fa-list-ul"></i> Total: <strong id="${type}-count">${items?.length || 0}</strong></span>
-                <span><i class="fas fa-arrow-up"></i> Role para ver mais</span>
-            `;
-            container.parentElement.insertBefore(statsWrapper, container);
-        } else if (statsWrapper) {
-            const countSpan = statsWrapper.querySelector(`#${type}-count`);
-            if (countSpan) countSpan.textContent = items?.length || 0;
-        }
-        
-        // Adicionar botão de scroll to top se não existir
-        let scrollBtn = container.parentElement?.querySelector('.scroll-to-top-btn');
-        if (!scrollBtn && container.parentElement) {
-            scrollBtn = document.createElement('div');
-            scrollBtn.className = 'scroll-to-top-btn';
-            scrollBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
-            scrollBtn.onclick = () => {
-                container.scrollTo({ top: 0, behavior: 'smooth' });
-            };
-            container.parentElement.style.position = 'relative';
-            container.parentElement.appendChild(scrollBtn);
-            
-            // Mostrar/esconder botão baseado no scroll
-            container.addEventListener('scroll', () => {
-                if (container.scrollTop > 100) {
-                    scrollBtn.classList.add('visible');
-                } else {
-                    scrollBtn.classList.remove('visible');
+    function fixAdminMenuSticky() {
+        // Adicionar estilos CSS para o menu fixo
+        if (!document.getElementById('admin-sticky-styles')) {
+            const style = document.createElement('style');
+            style.id = 'admin-sticky-styles';
+            style.textContent = `
+                /* Container do modal admin com scroll próprio */
+                #adminModal .bg-\\[\\#1a1a1a\\]\\/95 {
+                    display: flex;
+                    flex-direction: column;
+                    overflow: hidden;
                 }
-            });
-        }
-        
-        // Se a lista estiver vazia, mostrar mensagem elegante
-        if (!items || items.length === 0) {
-            if (container.innerHTML.trim() === '' || container.innerHTML.includes('Nenhum')) {
-                container.innerHTML = `<div class="empty-list-message">
-                    <i class="fas fa-inbox" style="font-size: 32px; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
-                    Nenhum ${type === 'canais' ? 'canal' : (type === 'filmes' ? 'filme' : 'episódio')} adicionado ainda.<br>
-                    <span style="font-size: 11px;">Use o formulário acima para adicionar conteúdo.</span>
-                </div>`;
-            }
-        }
-    }
-    
-    // Função para adicionar estatísticas das listas
-    function addListStatistics() {
-        const containers = [
-            { id: 'canaisAdminList', name: 'canais', items: canais },
-            { id: 'filmesAdminList', name: 'filmes', items: filmes },
-            { id: 'seriesAdminList', name: 'series', items: series }
-        ];
-        
-        containers.forEach(({ id, name, items }) => {
-            const container = document.getElementById(id);
-            if (container && container.parentElement) {
-                let statsWrapper = container.parentElement.querySelector('.admin-list-stats');
-                if (!statsWrapper) {
-                    statsWrapper = document.createElement('div');
-                    statsWrapper.className = 'admin-list-stats';
-                    container.parentElement.insertBefore(statsWrapper, container);
+                
+                /* Área do menu de abas - FIXA */
+                #adminModal .admin-tabs-wrapper {
+                    position: sticky;
+                    top: 0;
+                    background: #1a1a1a;
+                    z-index: 50;
+                    padding: 12px 16px 8px 16px;
+                    margin: 0;
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                    backdrop-filter: blur(8px);
                 }
-                statsWrapper.innerHTML = `
-                    <span><i class="fas fa-list-ul"></i> Total: <strong id="${name}-count">${items?.length || 0}</strong></span>
-                    <span><i class="fas fa-arrow-up"></i> Role para ver mais</span>
-                    <span><i class="fas fa-clock"></i> Atualizado recentemente</span>
-                `;
-            }
-        });
-    }
-    
-    // Sobrescrever a função refreshAdminLists para incluir melhorias visuais
-    const originalRefreshAdminListsImproved = window.refreshAdminLists;
-    
-    window.refreshAdminLists = function() {
-        if (originalRefreshAdminListsImproved) {
-            originalRefreshAdminListsImproved();
-        } else if (typeof refreshAdminLists === 'function') {
-            refreshAdminLists();
-        }
-        
-        // Aplicar melhorias nas listas
-        setTimeout(() => {
-            if (isAdminLogged) {
-                updateImprovedLists();
-            }
-        }, 100);
-    };
-    
-    // Aplicar estilos quando as listas forem carregadas
-    function observeListLoad() {
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                    const adminPanel = document.getElementById('adminPanel');
-                    if (adminPanel && !adminPanel.classList.contains('hidden') && isAdminLogged) {
-                        setTimeout(updateImprovedLists, 150);
+                
+                /* Container das abas com scroll horizontal */
+                .admin-tabs-scroll {
+                    display: flex;
+                    overflow-x: auto;
+                    overflow-y: hidden;
+                    white-space: nowrap;
+                    gap: 8px;
+                    padding-bottom: 8px;
+                    scrollbar-width: thin;
+                    -webkit-overflow-scrolling: touch;
+                }
+                
+                .admin-tabs-scroll::-webkit-scrollbar {
+                    height: 3px;
+                }
+                
+                .admin-tabs-scroll::-webkit-scrollbar-track {
+                    background: rgba(255, 255, 255, 0.1);
+                    border-radius: 10px;
+                }
+                
+                .admin-tabs-scroll::-webkit-scrollbar-thumb {
+                    background: #e50914;
+                    border-radius: 10px;
+                }
+                
+                /* Botões das abas */
+                .admin-tab-btn {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 8px 16px;
+                    font-size: 13px;
+                    font-weight: 500;
+                    border-radius: 40px;
+                    transition: all 0.2s ease;
+                    background: rgba(255, 255, 255, 0.05);
+                    cursor: pointer;
+                    flex-shrink: 0;
+                    white-space: nowrap;
+                }
+                
+                .admin-tab-btn:hover {
+                    background: rgba(255, 255, 255, 0.15);
+                    transform: translateY(-1px);
+                }
+                
+                .admin-tab-btn.active {
+                    background: #e50914;
+                    color: white;
+                }
+                
+                /* Área de conteúdo rolável */
+                #adminModal .admin-content-area {
+                    flex: 1;
+                    overflow-y: auto;
+                    padding: 16px;
+                    scroll-behavior: smooth;
+                }
+                
+                /* Header com logo e contadores - TAMBÉM FIXO */
+                .admin-header-stats {
+                    position: sticky;
+                    top: 0;
+                    background: #1a1a1a;
+                    z-index: 45;
+                    padding: 12px 16px;
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    flex-wrap: wrap;
+                    gap: 10px;
+                }
+                
+                .admin-header-stats .stats-group {
+                    display: flex;
+                    gap: 12px;
+                    flex-wrap: wrap;
+                }
+                
+                .admin-header-stats .stat-item {
+                    background: rgba(0, 0, 0, 0.4);
+                    padding: 4px 12px;
+                    border-radius: 40px;
+                    font-size: 11px;
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                }
+                
+                /* Campo de busca em cada lista */
+                .list-search-wrapper {
+                    position: sticky;
+                    top: 0;
+                    background: inherit;
+                    padding: 12px 0;
+                    margin-bottom: 12px;
+                    z-index: 10;
+                }
+                
+                .list-search-input {
+                    width: 100%;
+                    padding: 10px 16px 10px 40px;
+                    background: rgba(255, 255, 255, 0.1);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    border-radius: 40px;
+                    color: white;
+                    font-size: 13px;
+                    outline: none;
+                    transition: all 0.2s ease;
+                }
+                
+                .list-search-input:focus {
+                    border-color: #e50914;
+                    background: rgba(255, 255, 255, 0.15);
+                }
+                
+                .list-search-wrapper .search-icon {
+                    position: absolute;
+                    left: 12px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    color: rgba(255, 255, 255, 0.5);
+                    font-size: 14px;
+                }
+                
+                .list-search-wrapper .clear-search {
+                    position: absolute;
+                    right: 12px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    background: none;
+                    border: none;
+                    color: rgba(255, 255, 255, 0.5);
+                    cursor: pointer;
+                    padding: 4px;
+                    border-radius: 50%;
+                    display: none;
+                }
+                
+                .list-search-wrapper .clear-search:hover {
+                    color: #e50914;
+                    background: rgba(255, 255, 255, 0.1);
+                }
+                
+                /* Container da lista com altura melhorada */
+                .admin-list-container {
+                    max-height: 450px;
+                    overflow-y: auto;
+                    overflow-x: hidden;
+                    padding-right: 8px;
+                }
+                
+                /* Resultado da busca vazio */
+                .search-no-results {
+                    text-align: center;
+                    padding: 40px 20px;
+                    color: rgba(255, 255, 255, 0.5);
+                    font-size: 13px;
+                }
+                
+                /* Ajustes para mobile */
+                @media (max-width: 768px) {
+                    .admin-tab-btn {
+                        padding: 6px 12px;
+                        font-size: 11px;
+                    }
+                    
+                    .admin-header-stats {
+                        flex-direction: column;
+                        align-items: flex-start;
+                    }
+                    
+                    .admin-list-container {
+                        max-height: 350px;
+                    }
+                    
+                    .list-search-input {
+                        font-size: 14px;
+                        padding: 12px 16px 12px 40px;
                     }
                 }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        // Reestruturar o modal admin
+        const adminModal = document.getElementById('adminModal');
+        if (!adminModal) return;
+        
+        const modalContent = adminModal.querySelector('.bg-\\[\\#1a1a1a\\]\\/95');
+        if (!modalContent) return;
+        
+        // Salvar o conteúdo original
+        const originalHeader = modalContent.querySelector('.sticky');
+        const originalBody = modalContent.querySelector('.p-4');
+        
+        if (!originalBody) return;
+        
+        // Verificar se já foi modificado
+        if (modalContent.hasAttribute('data-restructured')) return;
+        modalContent.setAttribute('data-restructured', 'true');
+        
+        // Extrair contadores
+        const filmesCountSpan = document.getElementById('filmesCount');
+        const seriesCountSpan = document.getElementById('seriesCount');
+        const canaisCountSpan = document.getElementById('canaisCount');
+        
+        // Criar novo header com estatísticas
+        const statsHeader = document.createElement('div');
+        statsHeader.className = 'admin-header-stats';
+        statsHeader.innerHTML = `
+            <div class="flex items-center gap-3">
+                <i class="fas fa-film text-red-500 text-xl"></i>
+                <span class="font-bold text-white">Admin Panel</span>
+            </div>
+            <div class="stats-group">
+                <span class="stat-item"><i class="fas fa-film text-red-400"></i> Filmes: ${filmesCountSpan?.innerText || '0'}</span>
+                <span class="stat-item"><i class="fas fa-tv text-red-400"></i> Séries: ${seriesCountSpan?.innerText || '0'}</span>
+                <span class="stat-item"><i class="fas fa-satellite-dish text-red-400"></i> Canais: ${canaisCountSpan?.innerText || '0'}</span>
+            </div>
+        `;
+        
+        // Mover as abas para um wrapper fixo
+        const tabsContainer = modalContent.querySelector('.flex.space-x-2');
+        if (tabsContainer) {
+            const tabsWrapper = document.createElement('div');
+            tabsWrapper.className = 'admin-tabs-wrapper';
+            tabsContainer.classList.add('admin-tabs-scroll');
+            tabsContainer.classList.remove('flex-wrap');
+            tabsWrapper.appendChild(tabsContainer.cloneNode(true));
+            
+            // Substituir o container original
+            tabsContainer.parentNode.replaceChild(tabsWrapper, tabsContainer);
+        }
+        
+        // Criar área de conteúdo rolável
+        const contentArea = document.createElement('div');
+        contentArea.className = 'admin-content-area';
+        
+        // Mover todo o conteúdo do body para a contentArea
+        while (originalBody.firstChild) {
+            contentArea.appendChild(originalBody.firstChild);
+        }
+        
+        // Reorganizar o modal
+        modalContent.innerHTML = '';
+        modalContent.appendChild(statsHeader);
+        modalContent.appendChild(modalContent.querySelector('.admin-tabs-wrapper') || tabsContainer);
+        modalContent.appendChild(contentArea);
+        
+        // Atualizar estatísticas em tempo real
+        const updateStats = () => {
+            const statsHeaderEl = modalContent.querySelector('.admin-header-stats');
+            if (statsHeaderEl && filmesCountSpan && seriesCountSpan && canaisCountSpan) {
+                const statsGroup = statsHeaderEl.querySelector('.stats-group');
+                if (statsGroup) {
+                    statsGroup.innerHTML = `
+                        <span class="stat-item"><i class="fas fa-film text-red-400"></i> Filmes: ${filmesCountSpan.innerText || '0'}</span>
+                        <span class="stat-item"><i class="fas fa-tv text-red-400"></i> Séries: ${seriesCountSpan.innerText || '0'}</span>
+                        <span class="stat-item"><i class="fas fa-satellite-dish text-red-400"></i> Canais: ${canaisCountSpan.innerText || '0'}</span>
+                    `;
+                }
+            }
+        };
+        
+        // Observar mudanças nos contadores
+        const observeCounters = () => {
+            if (filmesCountSpan) {
+                const observer = new MutationObserver(updateStats);
+                observer.observe(filmesCountSpan, { childList: true, subtree: true, characterData: true });
+            }
+            if (seriesCountSpan) {
+                const observer = new MutationObserver(updateStats);
+                observer.observe(seriesCountSpan, { childList: true, subtree: true, characterData: true });
+            }
+            if (canaisCountSpan) {
+                const observer = new MutationObserver(updateStats);
+                observer.observe(canaisCountSpan, { childList: true, subtree: true, characterData: true });
+            }
+        };
+        
+        setTimeout(observeCounters, 100);
+    }
+    
+    // ============================================
+    // PARTE 2: CAMPO DE BUSCA PARA CADA LISTA
+    // ============================================
+    
+    // Função para adicionar campo de busca em uma lista
+    function addSearchToList(listContainerId, itemsArray, type, renderFunction) {
+        const container = document.getElementById(listContainerId);
+        if (!container) return;
+        
+        // Verificar se já existe busca
+        if (container.parentElement?.querySelector('.list-search-wrapper')) return;
+        
+        // Criar wrapper da busca
+        const searchWrapper = document.createElement('div');
+        searchWrapper.className = 'list-search-wrapper';
+        searchWrapper.style.position = 'relative';
+        searchWrapper.innerHTML = `
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" class="list-search-input" placeholder="Buscar ${type === 'canais' ? 'canal' : (type === 'filmes' ? 'filme' : 'série')} por nome..." autocomplete="off">
+            <button class="clear-search"><i class="fas fa-times"></i></button>
+        `;
+        
+        // Envolver o container da lista em um div para melhor organização
+        const listWrapper = document.createElement('div');
+        listWrapper.className = 'admin-list-container';
+        container.parentNode.insertBefore(listWrapper, container);
+        listWrapper.appendChild(container);
+        
+        // Inserir busca antes do container
+        listWrapper.insertBefore(searchWrapper, container);
+        
+        const searchInput = searchWrapper.querySelector('.list-search-input');
+        const clearBtn = searchWrapper.querySelector('.clear-search');
+        
+        // Função de busca
+        const performSearch = () => {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            
+            if (!searchTerm) {
+                clearBtn.style.display = 'none';
+                // Restaurar lista original
+                if (typeof renderFunction === 'function') {
+                    renderFunction();
+                } else if (itemsArray && itemsArray.length) {
+                    const sortedItems = [...itemsArray].sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+                    renderFilteredList(container, sortedItems, type);
+                }
+                return;
+            }
+            
+            clearBtn.style.display = 'flex';
+            
+            // Filtrar itens
+            const filtered = itemsArray.filter(item => {
+                const title = (item.title || '').toLowerCase();
+                const category = (item.category || '').toLowerCase();
+                return title.includes(searchTerm) || category.includes(searchTerm);
             });
+            
+            // Ordenar resultados filtrados
+            const sortedFiltered = [...filtered].sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+            
+            // Renderizar resultados filtrados
+            renderFilteredList(container, sortedFiltered, type);
+            
+            // Mostrar mensagem se não houver resultados
+            if (sortedFiltered.length === 0) {
+                container.innerHTML = `<div class="search-no-results">
+                    <i class="fas fa-search" style="font-size: 32px; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
+                    Nenhum resultado encontrado para "<strong>${escapeHtml(searchTerm)}</strong>"
+                </div>`;
+            }
+        };
+        
+        // Eventos
+        searchInput.addEventListener('input', performSearch);
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') performSearch();
         });
         
-        observer.observe(document.body, { childList: true, subtree: true });
-    }
-    
-    // Inicializar as melhorias
-    function initImprovedAdminLists() {
-        addImprovedAdminStyles();
-        
-        // Aguardar a disponibilidade das funções principais
-        const checkInterval = setInterval(() => {
-            if (typeof isAdminLogged !== 'undefined') {
-                clearInterval(checkInterval);
-                
-                // Se o admin já estiver logado, aplicar melhorias
-                if (isAdminLogged) {
-                    setTimeout(updateImprovedLists, 200);
-                }
-                
-                // Observar quando o admin fizer login
-                const originalLoginHandler = document.getElementById('loginAdminBtn')?.onclick;
-                if (document.getElementById('loginAdminBtn')) {
-                    document.getElementById('loginAdminBtn').addEventListener('click', () => {
-                        setTimeout(() => {
-                            if (isAdminLogged) {
-                                updateImprovedLists();
-                            }
-                        }, 500);
-                    });
-                }
-            }
-        }, 100);
-        
-        observeListLoad();
-    }
-    
-    // Função para redimensionar listas dinamicamente (útil para telas pequenas)
-    window.adjustAdminListHeight = function() {
-        const containers = ['canaisAdminList', 'filmesAdminList', 'seriesAdminList'];
-        const viewportHeight = window.innerHeight;
-        const maxHeight = Math.min(500, viewportHeight - 300);
-        
-        containers.forEach(containerId => {
-            const container = document.getElementById(containerId);
-            if (container) {
-                container.style.maxHeight = `${maxHeight}px`;
-            }
+        clearBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            performSearch();
+            searchInput.focus();
         });
-    };
+    }
     
-    // Ajustar altura quando a janela for redimensionada
-    window.addEventListener('resize', () => {
-        setTimeout(window.adjustAdminListHeight, 100);
-    });
+    // Função para renderizar lista filtrada
+    function renderFilteredList(container, items, type) {
+        if (!items || items.length === 0) {
+            container.innerHTML = `<div class="empty-list-message">
+                <i class="fas fa-inbox" style="font-size: 32px; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
+                Nenhum ${type === 'canais' ? 'canal' : (type === 'filmes' ? 'filme' : 'episódio')} adicionado ainda.
+            </div>`;
+            return;
+        }
+        
+        const html = items.map(item => {
+            const title = item && item.title ? item.title : 'Sem título';
+            const id = item && item.id ? item.id : '';
+            const category = item && item.category ? item.category : '';
+            const year = item && item.year ? item.year : '';
+            
+            return `
+                <div class="bg-white/10 p-3 rounded-xl flex justify-between items-center mb-2 hover:bg-white/15 transition-all">
+                    <div class="flex-1 min-w-0">
+                        <div class="font-medium text-sm truncate" title="${escapeHtml(title)}">${escapeHtml(title)}</div>
+                        ${category || year ? `<div class="text-[10px] text-gray-400 mt-1">${category} ${year ? `• ${year}` : ''}</div>` : ''}
+                    </div>
+                    <div class="admin-item-actions flex gap-2 ml-3">
+                        <button class="edit-item-btn bg-black/30 hover:bg-green-600 text-green-400 hover:text-white px-3 py-1.5 rounded-full text-xs transition-all" data-id="${id}" data-type="${type}">
+                            <i class="fas fa-edit"></i> Editar
+                        </button>
+                        <button class="delete-item-btn bg-black/30 hover:bg-red-600 text-red-400 hover:text-white px-3 py-1.5 rounded-full text-xs transition-all" data-id="${id}" data-type="${type}">
+                            <i class="fas fa-trash-alt"></i> Excluir
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        container.innerHTML = html;
+        
+        // Reaplicar eventos
+        container.querySelectorAll('.edit-item-btn').forEach(btn => {
+            btn.removeEventListener('click', handleEditClick);
+            btn.addEventListener('click', handleEditClick);
+        });
+        
+        container.querySelectorAll('.delete-item-btn').forEach(btn => {
+            btn.removeEventListener('click', handleDeleteClick);
+            btn.addEventListener('click', handleDeleteClick);
+        });
+    }
     
-    // Exportar funções para uso global
-    window.improveAdminLists = updateImprovedLists;
-    window.adjustAdminListHeight = adjustAdminListHeight;
+    // Handlers para edição/exclusão
+    function handleEditClick(e) {
+        const id = this.getAttribute('data-id');
+        const type = this.getAttribute('data-type');
+        if (typeof editItem === 'function') {
+            editItem(id, type);
+        } else if (typeof window.editItem === 'function') {
+            window.editItem(id, type);
+        }
+    }
+    
+    function handleDeleteClick(e) {
+        const id = this.getAttribute('data-id');
+        const type = this.getAttribute('data-type');
+        const typeName = type === 'canais' ? 'Canal' : (type === 'filmes' ? 'Filme' : 'Episódio');
+        if (confirm(`Tem certeza que deseja excluir este ${typeName}?`)) {
+            database.ref(`${type}/${id}`).remove().then(() => {
+                showToast(`${typeName} removido com sucesso!`);
+                if (type === 'canais') loadCanaisFromFirebase();
+                else if (type === 'filmes') loadFilmesFromFirebase();
+                else if (type === 'series') loadSeriesFromFirebase();
+            }).catch(error => showToast('Erro ao excluir: ' + error.message));
+        }
+    }
+    
+    // ============================================
+    // PARTE 3: INICIALIZAÇÃO
+    // ============================================
+    
+    // Função principal para adicionar buscas às listas
+    function addSearchToAllLists() {
+        if (!isAdminLogged) return;
+        
+        // Aguardar os dados serem carregados
+        setTimeout(() => {
+            // Adicionar busca na lista de Canais
+            if (canais && canais.length >= 0) {
+                addSearchToList('canaisAdminList', canais, 'canais', () => {
+                    if (typeof updateCanaisAdminList === 'function') updateCanaisAdminList();
+                    else if (typeof refreshCanaisList === 'function') refreshCanaisList();
+                });
+            }
+            
+            // Adicionar busca na lista de Filmes
+            if (filmes && filmes.length >= 0) {
+                addSearchToList('filmesAdminList', filmes, 'filmes', () => {
+                    if (typeof updateFilmesAdminList === 'function') updateFilmesAdminList();
+                    else if (typeof refreshFilmesList === 'function') refreshFilmesList();
+                });
+            }
+            
+            // Adicionar busca na lista de Séries
+            if (series && series.length >= 0) {
+                addSearchToList('seriesAdminList', series, 'series', () => {
+                    if (typeof updateSeriesAdminList === 'function') updateSeriesAdminList();
+                    else if (typeof refreshSeriesList === 'function') refreshSeriesList();
+                });
+            }
+        }, 500);
+    }
+    
+    // Sobrescrever funções de carregamento para manter as buscas
+    const originalLoadCanaisSearch = window.loadCanaisFromFirebase;
+    const originalLoadFilmesSearch = window.loadFilmesFromFirebase;
+    const originalLoadSeriesSearch = window.loadSeriesFromFirebase;
+    
+    if (originalLoadCanaisSearch) {
+        window.loadCanaisFromFirebase = function() {
+            originalLoadCanaisSearch();
+            setTimeout(() => {
+                if (isAdminLogged) addSearchToAllLists();
+            }, 300);
+        };
+    }
+    
+    if (originalLoadFilmesSearch) {
+        window.loadFilmesFromFirebase = function() {
+            originalLoadFilmesSearch();
+            setTimeout(() => {
+                if (isAdminLogged) addSearchToAllLists();
+            }, 300);
+        };
+    }
+    
+    if (originalLoadSeriesSearch) {
+        window.loadSeriesFromFirebase = function() {
+            originalLoadSeriesSearch();
+            setTimeout(() => {
+                if (isAdminLogged) addSearchToAllLists();
+            }, 300);
+        };
+    }
+    
+    // Observar quando o admin faz login
+    function initAdminFeatures() {
+        // Aplicar menu fixo
+        setTimeout(fixAdminMenuSticky, 200);
+        
+        // Adicionar buscas nas listas
+        const checkLogin = setInterval(() => {
+            if (typeof isAdminLogged !== 'undefined' && isAdminLogged) {
+                clearInterval(checkLogin);
+                setTimeout(() => {
+                    addSearchToAllLists();
+                    fixAdminMenuSticky();
+                }, 300);
+            }
+        }, 500);
+    }
+    
+    // Exportar funções globalmente
+    window.addSearchToList = addSearchToList;
+    window.fixAdminMenuSticky = fixAdminMenuSticky;
+    window.initAdminFeatures = initAdminFeatures;
     
     // Iniciar quando o DOM estiver pronto
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initImprovedAdminLists);
+        document.addEventListener('DOMContentLoaded', initAdminFeatures);
     } else {
-        initImprovedAdminLists();
+        initAdminFeatures();
     }
     
-    console.log('✅ Espaço das listas Admin melhorado! Altura aumentada e layout otimizado.');
+    console.log('✅ Admin melhorado: Menu fixo, buscas em cada lista e layout otimizado!');
 })();
 
                 
