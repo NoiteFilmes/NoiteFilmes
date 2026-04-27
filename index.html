@@ -8859,12 +8859,13 @@ if (loginAdminBtn) {
 
 
 
-// =====================================================
-// BOTÃO DE BACKUP DENTRO DO ADMIN (VERSÃO CORRIGIDA)
-// =====================================================
+// ============================================
+// BOTÃO DE BACKUP FIXO NO PAINEL ADMIN
+// ============================================
 (function() {
     const LAST_BACKUP_KEY = 'noitefilmes_last_backup_date';
 
+    // Função toast (popup)
     function showBackupToast(message, isSuccess = true) {
         const toast = document.createElement('div');
         toast.className = 'toast';
@@ -8880,11 +8881,11 @@ if (loginAdminBtn) {
         setTimeout(() => toast.remove(), 4000);
     }
 
+    // Função que faz o backup e baixa o arquivo
     function performBackup() {
         try {
-            // Verificar se os dados existem
             if (!window.filmes && !window.series && !window.canais) {
-                showBackupToast('⚠️ Nenhum dado carregado ainda. Aguarde um momento e tente novamente.', false);
+                showBackupToast('⚠️ Nenhum dado carregado. Aguarde e tente novamente.', false);
                 return;
             }
             const backupData = {
@@ -8898,48 +8899,79 @@ if (loginAdminBtn) {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `backup_noitefilmes_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
+            a.download = `backup_noitefilmes_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.json`;
             a.click();
             URL.revokeObjectURL(url);
             const now = new Date();
             localStorage.setItem(LAST_BACKUP_KEY, now.toLocaleString('pt-BR'));
-            showBackupToast(`✅ Backup salvo! Último backup: ${now.toLocaleString('pt-BR')}`);
+            showBackupToast(`✅ Backup salvo! Último: ${now.toLocaleString('pt-BR')}`);
+            // Atualizar tooltip do botão
             const btn = document.getElementById('adminBackupBtn');
             if (btn) btn.title = `Último backup: ${now.toLocaleString('pt-BR')}`;
         } catch (error) {
             console.error('Erro no backup:', error);
-            showBackupToast('❌ Erro ao fazer backup. Veja o console (F12).', false);
+            showBackupToast('❌ Erro ao fazer backup. Veja console (F12).', false);
         }
     }
 
-    // Função para adicionar o botão APENAS quando o admin estiver logado e o painel visível
-    function tryAddBackupButton() {
-        // Só adiciona se o admin estiver logado, o painel existir e estiver visível
-        if (!window.isAdminLogged) return;
-        const adminPanel = document.getElementById('adminPanel');
-        if (!adminPanel || adminPanel.classList.contains('hidden')) return;
+    // Função que adiciona o botão no painel admin (de forma garantida)
+    function addBackupButtonToAdminPanel() {
+        // O botão já existe? Se sim, não recria.
         if (document.getElementById('adminBackupBtn')) return;
 
-        // Procura local ideal: ao lado do botão "Ordenar Todas as Listas" ou dentro de 'adminListsContainer'
-        let target = document.querySelector('#adminPanel .flex.justify-end');
-        if (!target) target = document.getElementById('adminListsContainer');
-        if (!target) return;
+        // Aguardar o modal admin estar visível
+        const adminModal = document.getElementById('adminModal');
+        if (!adminModal || adminModal.classList.contains('hidden')) return;
 
+        // Procurar o título "Admin" ou a div de abas para anexar o botão
+        let target = document.querySelector('#adminModal .sticky .flex.justify-between');
+        if (!target) {
+            // Fallback: procurar qualquer .flex.justify-between dentro do modal
+            target = document.querySelector('#adminModal .flex.justify-between');
+        }
+        if (!target) {
+            // Fallback extremo: adicionar no topo do conteúdo
+            target = document.querySelector('#adminModal .p-4');
+        }
+        if (!target) {
+            console.warn('Não foi possível encontrar local para o botão de backup');
+            return;
+        }
+
+        // Criar o botão
         const backupBtn = document.createElement('button');
         backupBtn.id = 'adminBackupBtn';
-        backupBtn.className = 'bg-green-700 hover:bg-green-800 text-white px-3 py-1.5 rounded-full text-xs transition flex items-center gap-2 ml-2 shadow';
+        backupBtn.className = 'bg-green-700 hover:bg-green-800 text-white px-3 py-1.5 rounded-full text-xs transition flex items-center gap-2 shadow ml-2';
         backupBtn.innerHTML = '<i class="fas fa-download"></i> 💾 Backup Manual';
         const lastBackup = localStorage.getItem(LAST_BACKUP_KEY);
         backupBtn.title = lastBackup ? `Último backup: ${lastBackup}` : 'Nenhum backup ainda';
         backupBtn.onclick = (e) => { e.stopPropagation(); performBackup(); };
+
+        // Inserir ao lado do título "Admin" (ou no final do target)
         target.appendChild(backupBtn);
         console.log('✅ Botão de backup adicionado no Admin');
     }
 
-    // Usar um intervalo simples para verificar periodicamente (sem MutationObserver problemático)
-    setInterval(() => {
-        tryAddBackupButton();
-    }, 2000);
+    // Observa quando o modal admin é aberto (classe hidden removida)
+    const adminModal = document.getElementById('adminModal');
+    if (adminModal) {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    if (!adminModal.classList.contains('hidden')) {
+                        // Admin foi aberto: adiciona o botão (com pequeno delay para garantir DOM)
+                        setTimeout(addBackupButtonToAdminPanel, 300);
+                    }
+                }
+            });
+        });
+        observer.observe(adminModal, { attributes: true });
+    }
+
+    // Também tenta adicionar quando a página carregar (caso o admin já esteja aberto)
+    window.addEventListener('load', () => {
+        setTimeout(addBackupButtonToAdminPanel, 1000);
+    });
 })();
 
 
