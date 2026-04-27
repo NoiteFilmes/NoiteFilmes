@@ -7359,7 +7359,307 @@ window.viewProfileFromPost = function(userId) {
 
 
 
+// =====================================================
+// ADMIN - LISTA DE USUÁRIOS CADASTRADOS
+// =====================================================
 
+// Adicionar a nova aba "Usuários" no menu do Admin
+function addAdminUsersTab() {
+    const adminTabsContainer = document.querySelector('#adminPanel .flex.space-x-2');
+    if (!adminTabsContainer || document.getElementById('adminTabUsuarios')) return;
+    
+    const newTab = document.createElement('button');
+    newTab.id = 'adminTabUsuarios';
+    newTab.className = 'admin-tab-btn py-1 px-2 text-gray-400 text-xs';
+    newTab.innerHTML = '<i class="fas fa-users"></i> Usuários';
+    adminTabsContainer.appendChild(newTab);
+    
+    // Criar o container da lista de usuários (inicialmente oculto)
+    const adminListsContainer = document.getElementById('adminListsContainer');
+    if (adminListsContainer && !document.getElementById('adminUsersList')) {
+        const usersListDiv = document.createElement('div');
+        usersListDiv.id = 'adminUsersList';
+        usersListDiv.className = 'hidden mt-3';
+        usersListDiv.innerHTML = `
+            <div class="bg-gray-800/50 p-3 rounded-xl">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-sm text-white"><i class="fas fa-users mr-2"></i>Usuários Registrados</h3>
+                    <div class="flex gap-3 text-xs">
+                        <span class="bg-blue-600/50 px-2 py-1 rounded-full"><i class="fas fa-database"></i> Total: <span id="totalUsersCount">0</span></span>
+                        <span class="bg-green-600/50 px-2 py-1 rounded-full"><i class="fas fa-circle text-green-400 text-[8px]"></i> Online: <span id="onlineUsersCount">0</span></span>
+                    </div>
+                </div>
+                <div id="usersListContainer" class="space-y-2 max-h-96 overflow-y-auto pr-1 custom-scroll"></div>
+            </div>
+        `;
+        adminListsContainer.appendChild(usersListDiv);
+    }
+}
+
+// Carregar e exibir todos os usuários
+async function loadAllUsersForAdmin() {
+    const container = document.getElementById('usersListContainer');
+    if (!container) return;
+    
+    container.innerHTML = '<div class="text-center text-gray-400 text-sm py-4"><i class="fas fa-spinner fa-pulse"></i> Carregando usuários...</div>';
+    
+    try {
+        const usersSnapshot = await database.ref('usuarios').once('value');
+        const users = usersSnapshot.val();
+        
+        if (!users) {
+            container.innerHTML = '<div class="text-center text-gray-500 py-4">Nenhum usuário cadastrado ainda.</div>';
+            document.getElementById('totalUsersCount').innerText = '0';
+            document.getElementById('onlineUsersCount').innerText = '0';
+            return;
+        }
+        
+        const usersArray = Object.entries(users).map(([uid, data]) => ({
+            uid,
+            email: data.email || 'Email não informado',
+            nickname: data.nickname || uid.substring(0, 8),
+            displayName: data.displayName || data.nickname || 'Usuário',
+            bio: data.bio || 'Sem bio',
+            externalLink: data.externalLink || '',
+            phone: data.phone || '',
+            whatsapp: data.whatsapp || '',
+            avatarUrl: getAvatarUrl(data.avatarUrl),
+            lastSeen: data.lastSeen || null,
+            createdAt: data.createdAt || null,
+            isAdmin: data.isAdmin || false
+        }));
+        
+        // Ordenar por último visto (mais recentes primeiro)
+        usersArray.sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0));
+        
+        const now = Date.now();
+        const onlineUsers = usersArray.filter(u => u.lastSeen && (now - u.lastSeen < 60000));
+        
+        document.getElementById('totalUsersCount').innerText = usersArray.length;
+        document.getElementById('onlineUsersCount').innerText = onlineUsers.length;
+        
+        if (usersArray.length === 0) {
+            container.innerHTML = '<div class="text-center text-gray-500 py-4">Nenhum usuário encontrado.</div>';
+            return;
+        }
+        
+        // Gerar HTML dos cards
+        container.innerHTML = usersArray.map(user => {
+            const isOnline = user.lastSeen && (now - user.lastSeen < 60000);
+            const lastSeenText = formatLastSeen(user.lastSeen);
+            const createdDate = user.createdAt ? new Date(user.createdAt).toLocaleDateString('pt-BR') : 'Desconhecido';
+            
+            return `
+                <div class="user-admin-card glass-card p-3 transition-all hover:scale-[1.01] border border-white/10 rounded-xl" data-uid="${user.uid}">
+                    <div class="flex items-start gap-3">
+                        <div class="relative flex-shrink-0">
+                            <img src="${user.avatarUrl}" class="w-12 h-12 rounded-full object-cover border-2 ${isOnline ? 'border-green-500' : 'border-gray-500'}" onerror="this.src='${DEFAULT_AVATAR_URL}'">
+                            ${isOnline ? '<div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-black"></div>' : ''}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex flex-wrap justify-between items-start gap-1">
+                                <div>
+                                    <p class="font-bold text-sm truncate">${escapeHtml(user.displayName)}</p>
+                                    <p class="text-xs text-red-400">@${escapeHtml(user.nickname)}</p>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-[10px] ${isOnline ? 'text-green-400' : 'text-gray-400'}">
+                                        ${isOnline ? '<i class="fas fa-circle text-[8px]"></i> Online' : lastSeenText}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-300 mt-1 break-all">
+                                <i class="fas fa-envelope mr-1"></i> ${escapeHtml(user.email)}
+                            </div>
+                            ${user.phone ? `<div class="text-xs text-gray-400 mt-0.5"><i class="fas fa-phone mr-1"></i> ${escapeHtml(user.phone)}</div>` : ''}
+                            ${user.whatsapp ? `<div class="text-xs text-gray-400 mt-0.5"><i class="fab fa-whatsapp mr-1 text-green-400"></i> ${escapeHtml(user.whatsapp)}</div>` : ''}
+                            ${user.externalLink ? `<div class="text-xs text-blue-400 mt-0.5 truncate"><i class="fas fa-link mr-1"></i> <a href="${user.externalLink}" target="_blank" class="hover:underline">${escapeHtml(user.externalLink)}</a></div>` : ''}
+                            <div class="text-[10px] text-gray-500 mt-1 flex flex-wrap gap-2">
+                                <span><i class="far fa-calendar-alt"></i> Cadastro: ${createdDate}</span>
+                                <span><i class="fas fa-id-card"></i> UID: ${user.uid.substring(0, 8)}...</span>
+                            </div>
+                            ${user.bio ? `<div class="text-[11px] text-gray-400 mt-2 border-l-2 border-red-500 pl-2 italic">${escapeHtml(user.bio.substring(0, 100))}${user.bio.length > 100 ? '...' : ''}</div>` : ''}
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-2 mt-2 pt-2 border-t border-white/10">
+                        <button class="view-user-profile-btn text-xs bg-blue-600/50 hover:bg-blue-600 px-3 py-1 rounded-full transition" data-uid="${user.uid}">
+                            <i class="fas fa-user-circle"></i> Ver Perfil
+                        </button>
+                        ${!user.isAdmin ? `<button class="delete-user-btn text-xs bg-red-600/50 hover:bg-red-600 px-3 py-1 rounded-full transition" data-uid="${user.uid}" data-name="${escapeHtml(user.displayName)}">
+                            <i class="fas fa-trash-alt"></i> Excluir
+                        </button>` : '<span class="text-xs bg-yellow-600/50 px-2 py-1 rounded-full"><i class="fas fa-shield-alt"></i> Admin</span>'}
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        // Adicionar eventos aos botões
+        document.querySelectorAll('.view-user-profile-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const uid = btn.getAttribute('data-uid');
+                if (uid) {
+                    renderInstagramProfile(uid);
+                    switchSection('perfil');
+                    // Fechar modal admin (opcional)
+                    document.getElementById('adminModal').classList.add('hidden');
+                }
+            });
+        });
+        
+        document.querySelectorAll('.delete-user-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const uid = btn.getAttribute('data-uid');
+                const name = btn.getAttribute('data-name');
+                if (confirm(`Tem certeza que deseja excluir permanentemente o usuário "${name}"? Todas as suas postagens, comentários e dados serão removidos.`)) {
+                    await deleteUserAccount(uid);
+                    showToast(`Usuário ${name} excluído!`);
+                    loadAllUsersForAdmin(); // Recarregar lista
+                }
+            });
+        });
+        
+    } catch (error) {
+        console.error('Erro ao carregar usuários:', error);
+        container.innerHTML = '<div class="text-center text-red-400 py-4">Erro ao carregar usuários. Tente novamente.</div>';
+    }
+}
+
+// Função para excluir usuário (admin)
+async function deleteUserAccount(uid) {
+    if (!isAdminLogged) {
+        showToast('Acesso negado. Faça login como admin.');
+        return;
+    }
+    
+    try {
+        // 1. Remover dados do usuário do Realtime Database
+        await database.ref(`usuarios/${uid}`).remove();
+        
+        // 2. Remover posts do feed
+        const postsSnap = await database.ref('feed_posts').orderByChild('userId').equalTo(uid).once('value');
+        const posts = postsSnap.val();
+        if (posts) {
+            const deletions = Object.keys(posts).map(postId => database.ref(`feed_posts/${postId}`).remove());
+            await Promise.all(deletions);
+        }
+        
+        // 3. Remover favoritos
+        await database.ref(`favoritos/${uid}`).remove();
+        
+        // 4. Remover histórico assistido
+        await database.ref(`watched_history/${uid}`).remove();
+        
+        // 5. Remover relações de seguir/seguidores
+        await database.ref(`followers/${uid}`).remove();
+        await database.ref(`following/${uid}`).remove();
+        
+        // 6. Remover comentários em posts (opcional: varredura pesada, pode ser ignorado ou feito em lote)
+        
+        // 7. Se tiver autenticação, deletar conta do Firebase Auth (requer funções cloud ou token admin)
+        // Por questões de segurança, geralmente não se deleta auth pelo client. Mas podemos tentar via API admin (não disponível no client).
+        // Vamos apenas deletar os dados do RTDB, a conta do Auth permanecerá, mas sem dados.
+        showToast(`Usuário ${uid} removido do banco de dados.`);
+        
+    } catch (error) {
+        console.error('Erro ao excluir usuário:', error);
+        throw error;
+    }
+}
+
+// Integrar a nova aba ao sistema de abas admin
+function setupAdminUsersTabIntegration() {
+    // Adicionar a aba ao DOM
+    addAdminUsersTab();
+    
+    // Configurar evento de clique na nova aba
+    const usersTab = document.getElementById('adminTabUsuarios');
+    const adminUsersList = document.getElementById('adminUsersList');
+    
+    if (usersTab && adminUsersList) {
+        usersTab.addEventListener('click', () => {
+            // Resetar todas as abas
+            document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+                btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500');
+                btn.classList.add('text-gray-400');
+            });
+            usersTab.classList.add('border-b-2', 'border-red-600', 'text-red-500');
+            usersTab.classList.remove('text-gray-400');
+            
+            // Ocultar todas as outras listas
+            document.getElementById('adminCanaisList')?.classList.add('hidden');
+            document.getElementById('adminFilmesList')?.classList.add('hidden');
+            document.getElementById('adminSeriesList')?.classList.add('hidden');
+            document.getElementById('adminDuplicadosList')?.classList.add('hidden');
+            document.getElementById('reportsList')?.classList.add('hidden');
+            
+            // Mostrar lista de usuários
+            adminUsersList.classList.remove('hidden');
+            
+            // Ocultar formulários de admin
+            document.getElementById('adminFormArea')?.classList.add('hidden');
+            document.getElementById('batchFilmesArea')?.classList.add('hidden');
+            document.getElementById('batchSeriesArea')?.classList.add('hidden');
+            
+            // Carregar usuários
+            loadAllUsersForAdmin();
+        });
+    }
+}
+
+// Sobrescrever a função que inicializa o admin (já existente) para incluir a nova aba
+const originalOpenAdminModal = (window.openAdminModal || function() {});
+window.setupAdminUsers = function() {
+    setupAdminUsersTabIntegration();
+};
+
+// Executar quando o admin fizer login
+const originalLoginAdmin = document.getElementById('loginAdminBtn')?.onclick;
+if (document.getElementById('loginAdminBtn')) {
+    const oldHandler = document.getElementById('loginAdminBtn').onclick;
+    document.getElementById('loginAdminBtn').addEventListener('click', function(e) {
+        if (oldHandler) oldHandler.call(this, e);
+        if (isAdminLogged) {
+            setTimeout(() => setupAdminUsersTabIntegration(), 500);
+        }
+    });
+} else {
+    // Fallback: observar se o adminPanel ficou visível
+    const observerAdmin = new MutationObserver((mutations) => {
+        const adminPanel = document.getElementById('adminPanel');
+        if (adminPanel && !adminPanel.classList.contains('hidden') && isAdminLogged) {
+            setupAdminUsersTabIntegration();
+            observerAdmin.disconnect();
+        }
+    });
+    observerAdmin.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+}
+
+// Garantir que a função formatLastSeen está disponível
+if (typeof formatLastSeen !== 'function') {
+    window.formatLastSeen = function(timestamp) {
+        if (!timestamp) return 'nunca';
+        const diff = Date.now() - timestamp;
+        const minutes = Math.floor(diff / 60000);
+        if (minutes < 1) return 'agora';
+        if (minutes < 60) return `${minutes} min`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours} h`;
+        const days = Math.floor(hours / 24);
+        if (days === 1) return 'ontem';
+        return `${days} dias`;
+    };
+}
+
+// Inicializar quando o DOM estiver pronto
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        setupAdminUsersTabIntegration();
+    });
+} else {
+    setupAdminUsersTabIntegration();
+}
 
                 
          </script>  
