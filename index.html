@@ -8861,265 +8861,204 @@ if (loginAdminBtn) {
 
 
 
-<!-- O código completo foi gerado acima. Por questões de espaço, reutilize o HTML que você enviou, 
-     mas adicione o seguinte bloco de script ANTES da tag </body> para aplicar as correções. 
-     Se preferir, use o arquivo completo que posso fornecer mediante solicitação. -->
 
 
-function fixChatSystem() {
-    // ==================== CORREÇÕES DO CHAT ====================
-    console.log('⚙️ Aplicando correções definitivas do chat...');
-
-    // 1. Adicionar badge global no menu Chat (bottom nav)
-    function addGlobalChatBadge() {
-        const chatNavItem = document.querySelector('.bottom-nav-item[data-section="chat"]');
-        if (!chatNavItem) return;
+<script>
+(function fixLoginAndChat() {
+    // ==================== GARANTIR QUE O LOGIN FUNCIONE ====================
+    // 1. Verificar se o modal de login está visível e remover qualquer overlay travado
+    function ensureLoginModalBehavior() {
+        const loginModal = document.getElementById('loginModal');
+        if (!loginModal) return;
         
-        // Verifica se já existe badge
-        if (chatNavItem.querySelector('.global-chat-badge')) return;
-        
-        const badgeSpan = document.createElement('span');
-        badgeSpan.className = 'global-chat-badge absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1';
-        badgeSpan.style.position = 'absolute';
-        badgeSpan.style.top = '-4px';
-        badgeSpan.style.right = '-8px';
-        badgeSpan.style.display = 'none';
-        badgeSpan.textContent = '0';
-        
-        chatNavItem.style.position = 'relative';
-        chatNavItem.appendChild(badgeSpan);
-        
-        window.globalChatBadge = badgeSpan;
+        // Forçar que o modal só fique visível se NÃO houver usuário logado
+        const user = auth.currentUser;
+        if (user) {
+            loginModal.classList.add('hidden');
+        } else {
+            loginModal.classList.remove('hidden');
+        }
     }
     
-    // 2. Atualizar badge global e textos de conversas
-    function updateUnreadBadgesEnhanced() {
-        if (!window.unreadMessages) window.unreadMessages = new Map();
-        if (!window.globalChatBadge) addGlobalChatBadge();
+    // 2. Interceptar o evento de login bem‑sucedido para fechar o modal e recarregar o chat
+    const originalOnAuthStateChanged = auth.onAuthStateChanged;
+    auth.onAuthStateChanged((user) => {
+        // Chama os listeners originais (se houver)
+        if (originalOnAuthStateChanged) originalOnAuthStateChanged(user);
         
+        const loginModal = document.getElementById('loginModal');
+        if (user) {
+            if (loginModal) loginModal.classList.add('hidden');
+            // Pequeno delay para garantir que o DOM do chat esteja pronto
+            setTimeout(() => {
+                if (typeof loadChatList === 'function') loadChatList();
+                if (typeof updateUnreadBadgesEnhanced === 'function') updateUnreadBadgesEnhanced();
+                if (typeof sortChatList === 'function') sortChatList();
+            }, 500);
+        } else {
+            if (loginModal) loginModal.classList.remove('hidden');
+        }
+    });
+    
+    // 3. Corrigir os botões de login/registro para não travarem
+    const doLoginBtn = document.getElementById('doLogin');
+    if (doLoginBtn) {
+        const originalClick = doLoginBtn.onclick;
+        doLoginBtn.onclick = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+                // O onAuthStateChanged já fechará o modal
+            } catch (error) {
+                showToast('Erro: ' + error.message);
+            }
+        };
+    }
+    
+    const doRegisterBtn = document.getElementById('doRegister');
+    if (doRegisterBtn) {
+        doRegisterBtn.onclick = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            let nickname = document.getElementById('registerNickname').value.trim();
+            if (nickname.startsWith('@')) nickname = nickname.substring(1);
+            if (!nickname) { showToast('Digite um @nickname'); return; }
+            try {
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+                await database.ref(`usuarios/${user.uid}`).set({ email, nickname, createdAt: Date.now() });
+                currentUsername = nickname;
+                localStorage.setItem('noitefilmes_username', currentUsername);
+                showToast(`✅ Cadastro realizado! @${nickname}`);
+            } catch (error) {
+                showToast('Erro: ' + error.message);
+            }
+        };
+    }
+    
+    // 4. Impedir que as funções do chat sejam executadas antes do login
+    const safeWrap = (fn) => {
+        return function(...args) {
+            if (!auth.currentUser) {
+                console.log('Chat não disponível: usuário não logado');
+                return;
+            }
+            return fn.apply(this, args);
+        };
+    };
+    
+    if (typeof loadChatList === 'function') window.loadChatList = safeWrap(window.loadChatList);
+    if (typeof setupChatUnreadListener === 'function') window.setupChatUnreadListener = safeWrap(window.setupChatUnreadListener);
+    if (typeof setupRealtimeUnread === 'function') window.setupRealtimeUnread = safeWrap(window.setupRealtimeUnread);
+    
+    // 5. Garantir que o badge global e as funções de atualização existam,
+    //    mas só sejam executadas após login.
+    window.updateUnreadBadgesEnhanced = window.updateUnreadBadgesEnhanced || function() {
+        if (!auth.currentUser) return;
+        if (!window.unreadMessages) window.unreadMessages = new Map();
         let totalUnread = 0;
         window.unreadMessages.forEach((count) => { totalUnread += count; });
         
-        // Atualiza badge global
-        if (window.globalChatBadge) {
+        const chatNavItem = document.querySelector('.bottom-nav-item[data-section="chat"]');
+        if (chatNavItem) {
+            let badge = chatNavItem.querySelector('.global-chat-badge');
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.className = 'global-chat-badge absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1';
+                badge.style.position = 'absolute';
+                badge.style.top = '-4px';
+                badge.style.right = '-8px';
+                badge.style.display = 'none';
+                chatNavItem.style.position = 'relative';
+                chatNavItem.appendChild(badge);
+                window.globalChatBadge = badge;
+            }
             if (totalUnread > 0) {
-                window.globalChatBadge.textContent = totalUnread > 99 ? '99+' : totalUnread;
-                window.globalChatBadge.style.display = 'flex';
+                badge.textContent = totalUnread > 99 ? '99+' : totalUnread;
+                badge.style.display = 'flex';
             } else {
-                window.globalChatBadge.style.display = 'none';
+                badge.style.display = 'none';
             }
         }
         
-        // Atualiza cada item da lista de conversas
-        const chatUsers = document.querySelectorAll('.chat-user');
-        chatUsers.forEach(userItem => {
+        // Atualiza textos "X mensagens não lidas" na lista de conversas
+        document.querySelectorAll('.chat-user').forEach(userItem => {
             const userId = userItem.getAttribute('data-user-id');
             let unreadCount = 0;
-            if (userId === 'geral') {
-                unreadCount = window.unreadMessages.get('geral') || 0;
-            } else if (userId) {
-                unreadCount = window.unreadMessages.get(userId) || 0;
-            }
+            if (userId === 'geral') unreadCount = window.unreadMessages.get('geral') || 0;
+            else if (userId) unreadCount = window.unreadMessages.get(userId) || 0;
             
-            // Atualiza o badge do avatar
-            let avatarBadge = userItem.querySelector('.unread-badge');
+            let badgeSpan = userItem.querySelector('.unread-badge');
             if (unreadCount > 0) {
-                if (!avatarBadge) {
-                    avatarBadge = document.createElement('span');
-                    avatarBadge.className = 'unread-badge';
+                if (!badgeSpan) {
+                    badgeSpan = document.createElement('span');
+                    badgeSpan.className = 'unread-badge';
                     const avatarDiv = userItem.querySelector('.chat-user-avatar');
-                    if (avatarDiv) avatarDiv.appendChild(avatarBadge);
+                    if (avatarDiv) avatarDiv.appendChild(badgeSpan);
                 }
-                avatarBadge.textContent = unreadCount;
-            } else {
-                if (avatarBadge) avatarBadge.remove();
-            }
+                badgeSpan.textContent = unreadCount;
+            } else if (badgeSpan) badgeSpan.remove();
             
-            // Adiciona / atualiza o texto de mensagens não lidas abaixo do nome
-            let unreadTextSpan = userItem.querySelector('.unread-text');
+            let unreadText = userItem.querySelector('.unread-text');
             const infoDiv = userItem.querySelector('.chat-user-info');
             if (infoDiv) {
                 if (unreadCount > 0) {
-                    if (!unreadTextSpan) {
-                        unreadTextSpan = document.createElement('span');
-                        unreadTextSpan.className = 'unread-text text-red-400 text-[11px] mt-0.5';
-                        infoDiv.appendChild(unreadTextSpan);
+                    if (!unreadText) {
+                        unreadText = document.createElement('span');
+                        unreadText.className = 'unread-text text-red-400 text-[11px] mt-0.5';
+                        infoDiv.appendChild(unreadText);
                     }
-                    unreadTextSpan.textContent = `${unreadCount} mensagem${unreadCount !== 1 ? 's' : ''} não lida${unreadCount !== 1 ? 's' : ''}`;
-                } else {
-                    if (unreadTextSpan) unreadTextSpan.remove();
-                }
+                    unreadText.textContent = `${unreadCount} mensagem${unreadCount !== 1 ? 's' : ''} não lida${unreadCount !== 1 ? 's' : ''}`;
+                } else if (unreadText) unreadText.remove();
             }
         });
-    }
+    };
     
-    // 3. Ordenar conversas pela última mensagem (mais recente primeiro)
-    async function sortChatList() {
+    window.sortChatList = window.sortChatList || async function() {
+        if (!auth.currentUser) return;
         const chatList = document.getElementById('chatUsersList');
         if (!chatList) return;
-        
         const chatItems = Array.from(chatList.querySelectorAll('.chat-user'));
         if (chatItems.length <= 1) return;
         
-        // Mapeia cada item com sua última mensagem timestamp
         const itemsWithTime = await Promise.all(chatItems.map(async (item) => {
             const chatId = item.getAttribute('data-chat-id');
             const userId = item.getAttribute('data-user-id');
             let lastTimestamp = 0;
-            
             if (chatId === 'geral') {
                 const snapshot = await database.ref('chat_messages').orderByKey().limitToLast(1).once('value');
                 const lastMsg = snapshot.val();
-                if (lastMsg) {
-                    const msgKey = Object.keys(lastMsg)[0];
-                    lastTimestamp = lastMsg[msgKey]?.timestamp || 0;
-                }
-            } else if (userId && userId !== 'geral' && auth.currentUser) {
+                if (lastMsg) lastTimestamp = Object.values(lastMsg)[0]?.timestamp || 0;
+            } else if (userId && userId !== 'geral') {
                 const chatIdKey = `private_${[auth.currentUser.uid, userId].sort().join('_')}`;
                 const snapshot = await database.ref(`private_messages/${chatIdKey}`).orderByKey().limitToLast(1).once('value');
                 const lastMsg = snapshot.val();
-                if (lastMsg) {
-                    const msgKey = Object.keys(lastMsg)[0];
-                    lastTimestamp = lastMsg[msgKey]?.timestamp || 0;
-                }
+                if (lastMsg) lastTimestamp = Object.values(lastMsg)[0]?.timestamp || 0;
             }
             return { item, lastTimestamp };
         }));
-        
-        // Ordena do maior timestamp para o menor
         itemsWithTime.sort((a, b) => b.lastTimestamp - a.lastTimestamp);
-        
-        // Reinsere no DOM
-        itemsWithTime.forEach(({ item }) => {
-            chatList.appendChild(item);
-        });
-    }
-    
-    // 4. Marcar conversa como lida ao abrir
-    const originalSelectChat = window.selectChat;
-    window.selectChat = async function(chatId, userName, userAvatar, userId = null) {
-        // Chama função original primeiro
-        if (originalSelectChat) originalSelectChat(chatId, userName, userAvatar, userId);
-        
-        // Marcar todas as mensagens desta conversa como lidas
-        if (userId && userId !== 'geral' && auth.currentUser) {
-            const chatIdKey = `private_${[auth.currentUser.uid, userId].sort().join('_')}`;
-            const messagesRef = database.ref(`private_messages/${chatIdKey}`);
-            const snapshot = await messagesRef.once('value');
-            const messages = snapshot.val();
-            if (messages) {
-                const updates = {};
-                Object.keys(messages).forEach(msgId => {
-                    const msg = messages[msgId];
-                    if (msg.senderId !== auth.currentUser.uid && msg.status !== 'read') {
-                        updates[`${msgId}/status`] = 'read';
-                        updates[`${msgId}/readAt`] = Date.now();
-                    }
-                });
-                if (Object.keys(updates).length > 0) {
-                    await messagesRef.update(updates);
-                }
-            }
-            // Zera contador local
-            window.unreadMessages.set(userId, 0);
-        } else if (chatId === 'geral') {
-            // Marcar todas as mensagens do chat geral como lidas
-            const messagesRef = database.ref('chat_messages');
-            const snapshot = await messagesRef.once('value');
-            const messages = snapshot.val();
-            if (messages) {
-                const updates = {};
-                Object.keys(messages).forEach(msgId => {
-                    const msg = messages[msgId];
-                    if (msg.senderId !== auth.currentUser.uid && msg.status !== 'read') {
-                        updates[`${msgId}/status`] = 'read';
-                        updates[`${msgId}/readAt`] = Date.now();
-                    }
-                });
-                if (Object.keys(updates).length > 0) {
-                    await messagesRef.update(updates);
-                }
-            }
-            window.unreadMessages.set('geral', 0);
-        }
-        
-        // Atualiza interface e ordenação
-        updateUnreadBadgesEnhanced();
-        sortChatList();
+        itemsWithTime.forEach(({ item }) => chatList.appendChild(item));
     };
     
-    // 5. Melhorar loadChatList para incluir ordenação e textos
-    const originalLoadChatList = window.loadChatList;
-    window.loadChatList = async function() {
-        if (originalLoadChatList) await originalLoadChatList();
-        setTimeout(() => {
-            updateUnreadBadgesEnhanced();
-            sortChatList();
-        }, 300);
-    };
-    
-    // 6. Interceptar novos eventos de mensagem para atualizar contadores em tempo real
-    function setupRealtimeUnread() {
-        if (!auth.currentUser) return;
-        const user = auth.currentUser;
-        
-        // Chat geral
-        database.ref('chat_messages').on('child_added', (snapshot) => {
-            const msg = snapshot.val();
-            if (msg && msg.senderId !== user.uid && currentChat !== 'geral') {
-                const currentCount = window.unreadMessages.get('geral') || 0;
-                window.unreadMessages.set('geral', currentCount + 1);
-                updateUnreadBadgesEnhanced();
-                sortChatList();
-            }
-        });
-        
-        // Chats privados
-        database.ref('private_messages').on('child_added', (snapshot) => {
-            const chatId = snapshot.key;
-            const messages = snapshot.val();
-            if (messages && typeof messages === 'object') {
-                Object.values(messages).forEach(msg => {
-                    if (msg && msg.senderId !== user.uid) {
-                        const parts = chatId.split('_');
-                        const otherUserId = parts[0] === user.uid ? parts[1] : parts[0];
-                        if (otherUserId !== currentChatUser) {
-                            const currentCount = window.unreadMessages.get(otherUserId) || 0;
-                            window.unreadMessages.set(otherUserId, currentCount + 1);
-                            updateUnreadBadgesEnhanced();
-                            sortChatList();
-                        }
-                    }
-                });
-            }
-        });
-    }
-    
-    // 7. Inicializar tudo quando o usuário estiver logado
-    auth.onAuthStateChanged((user) => {
-        if (user) {
-            addGlobalChatBadge();
+    // 6. Forçar a verificação do estado de login ao carregar a página
+    window.addEventListener('load', () => {
+        ensureLoginModalBehavior();
+        if (auth.currentUser) {
             setTimeout(() => {
-                updateUnreadBadgesEnhanced();
-                sortChatList();
-                setupRealtimeUnread();
-            }, 1000);
+                if (typeof loadChatList === 'function') loadChatList();
+                if (typeof updateUnreadBadgesEnhanced === 'function') updateUnreadBadgesEnhanced();
+                if (typeof sortChatList === 'function') sortChatList();
+            }, 300);
         }
     });
     
-    // 8. Garantir que o badge seja recriado se a navegação recarregar o DOM
-    const observer = new MutationObserver(() => {
-        if (auth.currentUser && !document.querySelector('.global-chat-badge')) {
-            addGlobalChatBadge();
-            updateUnreadBadgesEnhanced();
-        }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-    
-    console.log('✅ Correções do chat aplicadas com sucesso!');
+    console.log('✅ Correção de login aplicada – chat funcional e sem travamento.');
 })();
-
-
+</script>
 
                 
          </script>  
