@@ -8139,7 +8139,460 @@ if (loginAdminBtn) {
 
     console.log('✅ Sistema de ordenação alfabética para Admin inicializado!');
 })();
+
+
+
+
+
+
+
+
+
+
+
+
+                // =====================================================
+// SCRIPT PARA MELHORAR O ESPAÇO DAS LISTAS ADMIN
+// Aumenta altura, melhora aparência e usabilidade
+// =====================================================
+
+(function() {
+    // Função para adicionar estilos CSS melhorados
+    function addImprovedAdminStyles() {
+        if (document.getElementById('admin-list-styles')) return;
+        
+        const style = document.createElement('style');
+        style.id = 'admin-list-styles';
+        style.textContent = `
+            /* Container principal das listas admin */
+            #adminListsContainer {
+                margin-top: 16px;
+            }
+            
+            /* Estilos gerais para os containers das listas */
+            #adminCanaisList,
+            #adminFilmesList,
+            #adminSeriesList,
+            #adminDuplicadosList,
+            #reportsList,
+            #adminUsersList {
+                background: rgba(0, 0, 0, 0.25);
+                border-radius: 16px;
+                padding: 12px;
+                margin-bottom: 20px;
+                backdrop-filter: blur(4px);
+            }
+            
+            /* Headers das listas */
+            #adminCanaisList h3,
+            #adminFilmesList h3,
+            #adminSeriesList h3,
+            #adminDuplicadosList h3,
+            #reportsList h3,
+            #adminUsersList h3 {
+                font-size: 14px;
+                font-weight: bold;
+                margin-bottom: 12px;
+                padding-bottom: 8px;
+                border-bottom: 2px solid #e50914;
+                display: inline-block;
+                position: sticky;
+                top: 0;
+                background: rgba(0,0,0,0.5);
+                backdrop-filter: blur(8px);
+                z-index: 10;
+                width: 100%;
+            }
+            
+            /* Containers de rolagem das listas - ALTURA AUMENTADA */
+            #canaisAdminList,
+            #filmesAdminList,
+            #seriesAdminList {
+                max-height: 400px !important;
+                min-height: 200px;
+                overflow-y: auto;
+                overflow-x: hidden;
+                padding-right: 8px;
+                scroll-behavior: smooth;
+            }
+            
+            /* Estilo dos itens individuais - MAIS ESPAÇOSOS */
+            #canaisAdminList > div,
+            #filmesAdminList > div,
+            #seriesAdminList > div {
+                background: rgba(255, 255, 255, 0.08);
+                padding: 12px 16px !important;
+                margin-bottom: 8px !important;
+                border-radius: 12px !important;
+                transition: all 0.2s ease;
+                border-left: 3px solid transparent;
+            }
+            
+            /* Hover effect nos itens */
+            #canaisAdminList > div:hover,
+            #filmesAdminList > div:hover,
+            #seriesAdminList > div:hover {
+                background: rgba(255, 255, 255, 0.15);
+                transform: translateX(4px);
+                border-left-color: #e50914;
+            }
+            
+            /* Texto do título - MAIOR E MAIS LEGÍVEL */
+            #canaisAdminList .truncate,
+            #filmesAdminList .truncate,
+            #seriesAdminList .truncate {
+                font-size: 13px !important;
+                font-weight: 500;
+                letter-spacing: 0.3px;
+            }
+            
+            /* Botões de ação - MAIORES E MAIS CLICÁVEIS */
+            .admin-item-actions {
+                display: flex;
+                gap: 12px !important;
+            }
+            
+            .admin-item-actions button {
+                padding: 6px 10px !important;
+                font-size: 12px !important;
+                border-radius: 20px !important;
+                transition: all 0.2s ease;
+                background: rgba(0, 0, 0, 0.4);
+            }
+            
+            .admin-item-actions button:hover {
+                transform: scale(1.05);
+            }
+            
+            .admin-item-actions .edit-item-btn:hover {
+                background: #10b981;
+                color: white;
+            }
+            
+            .admin-item-actions .delete-item-btn:hover {
+                background: #e50914;
+                color: white;
+            }
+            
+            /* Scrollbar customizada para as listas */
+            #canaisAdminList::-webkit-scrollbar,
+            #filmesAdminList::-webkit-scrollbar,
+            #seriesAdminList::-webkit-scrollbar {
+                width: 6px;
+            }
+            
+            #canaisAdminList::-webkit-scrollbar-track,
+            #filmesAdminList::-webkit-scrollbar-track,
+            #seriesAdminList::-webkit-scrollbar-track {
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 10px;
+            }
+            
+            #canaisAdminList::-webkit-scrollbar-thumb,
+            #filmesAdminList::-webkit-scrollbar-thumb,
+            #seriesAdminList::-webkit-scrollbar-thumb {
+                background: #e50914;
+                border-radius: 10px;
+            }
+            
+            #canaisAdminList::-webkit-scrollbar-thumb:hover,
+            #filmesAdminList::-webkit-scrollbar-thumb:hover,
+            #seriesAdminList::-webkit-scrollbar-thumb:hover {
+                background: #ff2d2d;
+            }
+            
+            /* Container de duplicados também melhorado */
+            #duplicadosAdminList .duplicate-group {
+                background: rgba(0, 0, 0, 0.3);
+                padding: 16px;
+                border-radius: 16px;
+                margin-bottom: 16px;
+            }
+            
+            #duplicadosAdminList .duplicate-checkbox-item {
+                padding: 10px !important;
+                margin-bottom: 6px !important;
+                border-radius: 12px !important;
+            }
+            
+            /* Estatísticas da lista */
+            .admin-list-stats {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 12px;
+                padding: 8px 12px;
+                background: rgba(0, 0, 0, 0.3);
+                border-radius: 12px;
+                font-size: 11px;
+                position: sticky;
+                top: 0;
+                z-index: 5;
+                backdrop-filter: blur(8px);
+            }
+            
+            .admin-list-stats span {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+            
+            .admin-list-stats i {
+                color: #e50914;
+            }
+            
+            /* Mensagem de lista vazia */
+            .empty-list-message {
+                text-align: center;
+                padding: 40px 20px;
+                color: rgba(255, 255, 255, 0.5);
+                font-size: 13px;
+                background: rgba(0, 0, 0, 0.2);
+                border-radius: 16px;
+                border: 1px dashed rgba(255, 255, 255, 0.2);
+            }
+            
+            /* Botão de rolagem para o topo da lista */
+            .scroll-to-top-btn {
+                position: sticky;
+                bottom: 10px;
+                left: 100%;
+                background: #e50914;
+                color: white;
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+                z-index: 20;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                margin-left: -40px;
+            }
+            
+            .scroll-to-top-btn.visible {
+                opacity: 1;
+            }
+            
+            .scroll-to-top-btn:hover {
+                transform: scale(1.1);
+                background: #ff2d2d;
+            }
+            
+            /* Indicador de quantidade de itens */
+            .item-count-badge {
+                background: #e50914;
+                color: white;
+                border-radius: 20px;
+                padding: 2px 8px;
+                font-size: 10px;
+                margin-left: 8px;
+            }
+        `;
+        
+        document.head.appendChild(style);
+    }
+    
+    // Função para atualizar as listas com layout melhorado
+    function updateImprovedLists() {
+        if (!isAdminLogged) return;
+        
+        // Melhorar lista de Canais
+        improveListContainer('canaisAdminList', canais, 'canais');
+        
+        // Melhorar lista de Filmes
+        improveListContainer('filmesAdminList', filmes, 'filmes');
+        
+        // Melhorar lista de Séries
+        improveListContainer('seriesAdminList', series, 'series');
+        
+        // Adicionar estatísticas
+        addListStatistics();
+    }
+    
+    // Função para melhorar um container de lista específico
+    function improveListContainer(containerId, items, type) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        
+        // Adicionar classe para controle de scroll
+        container.classList.add('improved-list-container');
+        
+        // Verificar se já existe o wrapper de estatísticas
+        let statsWrapper = container.parentElement?.querySelector('.admin-list-stats');
+        if (!statsWrapper && container.parentElement) {
+            statsWrapper = document.createElement('div');
+            statsWrapper.className = 'admin-list-stats';
+            statsWrapper.innerHTML = `
+                <span><i class="fas fa-list-ul"></i> Total: <strong id="${type}-count">${items?.length || 0}</strong></span>
+                <span><i class="fas fa-arrow-up"></i> Role para ver mais</span>
+            `;
+            container.parentElement.insertBefore(statsWrapper, container);
+        } else if (statsWrapper) {
+            const countSpan = statsWrapper.querySelector(`#${type}-count`);
+            if (countSpan) countSpan.textContent = items?.length || 0;
+        }
+        
+        // Adicionar botão de scroll to top se não existir
+        let scrollBtn = container.parentElement?.querySelector('.scroll-to-top-btn');
+        if (!scrollBtn && container.parentElement) {
+            scrollBtn = document.createElement('div');
+            scrollBtn.className = 'scroll-to-top-btn';
+            scrollBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
+            scrollBtn.onclick = () => {
+                container.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+            container.parentElement.style.position = 'relative';
+            container.parentElement.appendChild(scrollBtn);
+            
+            // Mostrar/esconder botão baseado no scroll
+            container.addEventListener('scroll', () => {
+                if (container.scrollTop > 100) {
+                    scrollBtn.classList.add('visible');
+                } else {
+                    scrollBtn.classList.remove('visible');
+                }
+            });
+        }
+        
+        // Se a lista estiver vazia, mostrar mensagem elegante
+        if (!items || items.length === 0) {
+            if (container.innerHTML.trim() === '' || container.innerHTML.includes('Nenhum')) {
+                container.innerHTML = `<div class="empty-list-message">
+                    <i class="fas fa-inbox" style="font-size: 32px; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
+                    Nenhum ${type === 'canais' ? 'canal' : (type === 'filmes' ? 'filme' : 'episódio')} adicionado ainda.<br>
+                    <span style="font-size: 11px;">Use o formulário acima para adicionar conteúdo.</span>
+                </div>`;
+            }
+        }
+    }
+    
+    // Função para adicionar estatísticas das listas
+    function addListStatistics() {
+        const containers = [
+            { id: 'canaisAdminList', name: 'canais', items: canais },
+            { id: 'filmesAdminList', name: 'filmes', items: filmes },
+            { id: 'seriesAdminList', name: 'series', items: series }
+        ];
+        
+        containers.forEach(({ id, name, items }) => {
+            const container = document.getElementById(id);
+            if (container && container.parentElement) {
+                let statsWrapper = container.parentElement.querySelector('.admin-list-stats');
+                if (!statsWrapper) {
+                    statsWrapper = document.createElement('div');
+                    statsWrapper.className = 'admin-list-stats';
+                    container.parentElement.insertBefore(statsWrapper, container);
+                }
+                statsWrapper.innerHTML = `
+                    <span><i class="fas fa-list-ul"></i> Total: <strong id="${name}-count">${items?.length || 0}</strong></span>
+                    <span><i class="fas fa-arrow-up"></i> Role para ver mais</span>
+                    <span><i class="fas fa-clock"></i> Atualizado recentemente</span>
+                `;
+            }
+        });
+    }
+    
+    // Sobrescrever a função refreshAdminLists para incluir melhorias visuais
+    const originalRefreshAdminListsImproved = window.refreshAdminLists;
+    
+    window.refreshAdminLists = function() {
+        if (originalRefreshAdminListsImproved) {
+            originalRefreshAdminListsImproved();
+        } else if (typeof refreshAdminLists === 'function') {
+            refreshAdminLists();
+        }
+        
+        // Aplicar melhorias nas listas
+        setTimeout(() => {
+            if (isAdminLogged) {
+                updateImprovedLists();
+            }
+        }, 100);
+    };
+    
+    // Aplicar estilos quando as listas forem carregadas
+    function observeListLoad() {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                    const adminPanel = document.getElementById('adminPanel');
+                    if (adminPanel && !adminPanel.classList.contains('hidden') && isAdminLogged) {
+                        setTimeout(updateImprovedLists, 150);
+                    }
+                }
+            });
+        });
+        
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
+    
+    // Inicializar as melhorias
+    function initImprovedAdminLists() {
+        addImprovedAdminStyles();
+        
+        // Aguardar a disponibilidade das funções principais
+        const checkInterval = setInterval(() => {
+            if (typeof isAdminLogged !== 'undefined') {
+                clearInterval(checkInterval);
                 
+                // Se o admin já estiver logado, aplicar melhorias
+                if (isAdminLogged) {
+                    setTimeout(updateImprovedLists, 200);
+                }
+                
+                // Observar quando o admin fizer login
+                const originalLoginHandler = document.getElementById('loginAdminBtn')?.onclick;
+                if (document.getElementById('loginAdminBtn')) {
+                    document.getElementById('loginAdminBtn').addEventListener('click', () => {
+                        setTimeout(() => {
+                            if (isAdminLogged) {
+                                updateImprovedLists();
+                            }
+                        }, 500);
+                    });
+                }
+            }
+        }, 100);
+        
+        observeListLoad();
+    }
+    
+    // Função para redimensionar listas dinamicamente (útil para telas pequenas)
+    window.adjustAdminListHeight = function() {
+        const containers = ['canaisAdminList', 'filmesAdminList', 'seriesAdminList'];
+        const viewportHeight = window.innerHeight;
+        const maxHeight = Math.min(500, viewportHeight - 300);
+        
+        containers.forEach(containerId => {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.style.maxHeight = `${maxHeight}px`;
+            }
+        });
+    };
+    
+    // Ajustar altura quando a janela for redimensionada
+    window.addEventListener('resize', () => {
+        setTimeout(window.adjustAdminListHeight, 100);
+    });
+    
+    // Exportar funções para uso global
+    window.improveAdminLists = updateImprovedLists;
+    window.adjustAdminListHeight = adjustAdminListHeight;
+    
+    // Iniciar quando o DOM estiver pronto
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initImprovedAdminLists);
+    } else {
+        initImprovedAdminLists();
+    }
+    
+    console.log('✅ Espaço das listas Admin melhorado! Altura aumentada e layout otimizado.');
+})();
 
                 
          </script>  
