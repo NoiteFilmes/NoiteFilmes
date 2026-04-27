@@ -8854,6 +8854,141 @@ if (loginAdminBtn) {
     console.log('✅ Admin melhorado: espaço ampliado, busca adicionada e rolagem corrigida!');
 })();
 
+
+
+
+
+
+// =====================================================
+// BOTÃO DE BACKUP MANUAL DENTRO DO PAINEL ADMIN
+// =====================================================
+
+(function() {
+    // Nome da chave no localStorage para guardar a data do último backup
+    const LAST_BACKUP_KEY = 'noitefilmes_last_backup_date';
+
+    // Função para mostrar toast (popup temporário)
+    function showBackupToast(message, isSuccess = true) {
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.style.backgroundColor = isSuccess ? '#1a5c1a' : '#8b0000';
+        toast.style.color = 'white';
+        toast.style.padding = '12px 20px';
+        toast.style.borderRadius = '40px';
+        toast.style.fontSize = '13px';
+        toast.style.fontWeight = 'bold';
+        toast.style.zIndex = '10001';
+        toast.innerText = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 4000);
+    }
+
+    // Função que gera e baixa o backup
+    function performBackup() {
+        try {
+            // Coletar dados atuais
+            const backupData = {
+                filmes: window.filmes || [],
+                series: window.series || [],
+                canais: window.canais || [],
+                dataBackup: new Date().toISOString()
+            };
+
+            // Criar arquivo JSON
+            const jsonStr = JSON.stringify(backupData, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `backup_noitefilmes_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            // Salvar data do último backup no localStorage
+            const now = new Date();
+            localStorage.setItem(LAST_BACKUP_KEY, now.toLocaleString('pt-BR'));
+            
+            // Mostrar popup com a data
+            showBackupToast(`✅ Backup salvo com sucesso! Último backup: ${now.toLocaleString('pt-BR')}`);
+            
+            // Atualizar texto do botão (se existir)
+            const btn = document.getElementById('adminBackupBtn');
+            if (btn) {
+                const lastDate = localStorage.getItem(LAST_BACKUP_KEY);
+                btn.title = lastDate ? `Último backup: ${lastDate}` : 'Nenhum backup ainda';
+            }
+        } catch (error) {
+            console.error('Erro no backup:', error);
+            showBackupToast('❌ Erro ao fazer backup. Veja o console.', false);
+        }
+    }
+
+    // Função que adiciona o botão dentro do painel Admin
+    function addBackupButtonToAdmin() {
+        // Aguardar o painel admin existir no DOM
+        const adminPanel = document.getElementById('adminPanel');
+        if (!adminPanel) {
+            setTimeout(addBackupButtonToAdmin, 500);
+            return;
+        }
+
+        // Evitar duplicar o botão
+        if (document.getElementById('adminBackupBtn')) return;
+
+        // Procurar um local estratégico: dentro da div com a classe 'flex justify-end' (onde está o botão "Ordenar Todas as Listas")
+        let targetContainer = document.querySelector('#adminPanel .flex.justify-end');
+        if (!targetContainer) {
+            // Alternativa: criar um novo container no topo das listas
+            targetContainer = document.querySelector('#adminListsContainer');
+            if (!targetContainer) return;
+        }
+
+        // Criar o botão
+        const backupBtn = document.createElement('button');
+        backupBtn.id = 'adminBackupBtn';
+        backupBtn.className = 'bg-green-700 hover:bg-green-800 text-white px-3 py-1.5 rounded-full text-xs transition flex items-center gap-2 ml-2 shadow';
+        backupBtn.innerHTML = '<i class="fas fa-download"></i> 💾 Backup Manual';
+        
+        // Recuperar data do último backup
+        const lastBackup = localStorage.getItem(LAST_BACKUP_KEY);
+        backupBtn.title = lastBackup ? `Último backup: ${lastBackup}` : 'Nenhum backup realizado ainda';
+        
+        // Adicionar evento de clique
+        backupBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            performBackup();
+        });
+
+        // Inserir o botão ao lado do botão "Ordenar Todas as Listas" (se existir)
+        const sortAllBtn = document.getElementById('adminSortAllBtn');
+        if (sortAllBtn && sortAllBtn.parentNode) {
+            sortAllBtn.parentNode.appendChild(backupBtn);
+        } else {
+            // Senão, adicionar no container encontrado
+            targetContainer.appendChild(backupBtn);
+        }
+
+        console.log('✅ Botão de backup adicionado no painel Admin');
+    }
+
+    // Quando o admin fizer login e o painel for exibido, adicionar o botão
+    const observer = new MutationObserver((mutations) => {
+        const adminPanel = document.getElementById('adminPanel');
+        if (adminPanel && !adminPanel.classList.contains('hidden') && window.isAdminLogged) {
+            addBackupButtonToAdmin();
+            observer.disconnect(); // para de observar depois que adicionar
+        }
+    });
+    observer.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+
+    // Também tenta adicionar imediatamente se o admin já estiver logado e visível
+    if (window.isAdminLogged && document.getElementById('adminPanel') && !document.getElementById('adminPanel').classList.contains('hidden')) {
+        addBackupButtonToAdmin();
+    }
+})();
+```
+
+
                 
          </script>  
         </body>
