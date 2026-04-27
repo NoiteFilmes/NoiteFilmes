@@ -9059,6 +9059,90 @@ function fixLoginAndChat() {
     console.log('✅ Correção de login aplicada – chat funcional e sem travamento.');
 })();
 
+
+<script>
+(function emergencyLoginFix() {
+    // Força o modal a ser escondido quando o usuário logar
+    const originalOnAuth = firebase.auth().onAuthStateChanged;
+    firebase.auth().onAuthStateChanged((user) => {
+        // Chama listeners anteriores (se existirem)
+        if (originalOnAuth) originalOnAuth(user);
+        
+        const modal = document.getElementById('loginModal');
+        if (modal) {
+            if (user) {
+                modal.classList.add('hidden');
+                console.log('✅ Login detectado – modal fechado');
+            } else {
+                modal.classList.remove('hidden');
+                console.log('🔓 Usuário não logado – modal exibido');
+            }
+        }
+    });
+    
+    // Corrige os botões de login e cadastro para evitar múltiplos eventos
+    const loginBtn = document.getElementById('doLogin');
+    if (loginBtn) {
+        loginBtn.replaceWith(loginBtn.cloneNode(true));
+        const newLoginBtn = document.getElementById('doLogin');
+        newLoginBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const pwd = document.getElementById('loginPassword').value;
+            try {
+                await firebase.auth().signInWithEmailAndPassword(email, pwd);
+                // O onAuthStateChanged já fechará o modal
+            } catch (err) {
+                alert('Erro: ' + err.message);
+            }
+        });
+    }
+    
+    const registerBtn = document.getElementById('doRegister');
+    if (registerBtn) {
+        registerBtn.replaceWith(registerBtn.cloneNode(true));
+        const newRegBtn = document.getElementById('doRegister');
+        newRegBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('registerEmail').value;
+            const pwd = document.getElementById('registerPassword').value;
+            let nick = document.getElementById('registerNickname').value.trim();
+            if (nick.startsWith('@')) nick = nick.substring(1);
+            if (!nick) { alert('Digite um @nickname'); return; }
+            try {
+                const cred = await firebase.auth().createUserWithEmailAndPassword(email, pwd);
+                await firebase.database().ref(`usuarios/${cred.user.uid}`).set({ email, nickname: nick, createdAt: Date.now() });
+                localStorage.setItem('noitefilmes_username', nick);
+                alert('✅ Cadastro realizado!');
+            } catch (err) {
+                alert('Erro: ' + err.message);
+            }
+        });
+    }
+    
+    // Remove qualquer overlay "travado" que possa ter ficado
+    const closeModalOnClickOutside = () => {
+        const modal = document.getElementById('loginModal');
+        if (!modal) return;
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal && !firebase.auth().currentUser) {
+                // Não fecha se clicar fora sem estar logado – apenas segurança
+                console.log('Clique fora do modal – ignore');
+            }
+        });
+    };
+    closeModalOnClickOutside();
+    
+    // Se o usuário já estiver logado no momento do carregamento, fecha modal imediatamente
+    if (firebase.auth().currentUser) {
+        const modal = document.getElementById('loginModal');
+        if (modal) modal.classList.add('hidden');
+    }
+    
+    console.log('🚀 Script de emergência do login ativado');
+})();
+</script>
+
                 
          </script>  
         </body>
