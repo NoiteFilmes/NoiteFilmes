@@ -8859,100 +8859,32 @@ if (loginAdminBtn) {
 
 
 
-(function() {
-    const LAST_BACKUP_KEY = 'noitefilmes_last_backup_date';
+function addBackupButtonToAdminPanel() {
+    if (document.getElementById('adminBackupBtn')) return;
+    const adminModal = document.getElementById('adminModal');
+    if (!adminModal || adminModal.classList.contains('hidden')) return;
 
-    function showToast(msg, isSuccess = true) {
-        const toast = document.createElement('div');
-        toast.className = 'toast';
-        toast.style.backgroundColor = isSuccess ? '#1a5c1a' : '#8b0000';
-        toast.style.color = 'white';
-        toast.style.padding = '12px 20px';
-        toast.style.borderRadius = '40px';
-        toast.style.fontSize = '13px';
-        toast.style.fontWeight = 'bold';
-        toast.style.zIndex = '10001';
-        toast.innerText = msg;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 4000);
+    // Local alternativo: barra de abas do admin
+    let target = document.querySelector('#adminPanel .admin-tabs-scroll');
+    if (!target) target = document.querySelector('#adminPanel .flex.space-x-2');
+
+    if (!target) {
+        console.warn('Não foi possível encontrar local para o botão de backup');
+        return;
     }
 
-    function performBackup() {
-        try {
-            // Verificar se os dados existem
-            if (!window.filmes && !window.series && !window.canais) {
-                showToast('⚠️ Dados ainda não carregados. Tente novamente em alguns segundos.', false);
-                return;
-            }
-            const backupData = {
-                filmes: window.filmes || [],
-                series: window.series || [],
-                canais: window.canais || [],
-                dataBackup: new Date().toISOString()
-            };
-            // Verificar se há filmes/séries/canais
-            const total = backupData.filmes.length + backupData.series.length + backupData.canais.length;
-            if (total === 0) {
-                showToast('⚠️ Nenhum filme, série ou canal para salvar.', false);
-                return;
-            }
-            const jsonStr = JSON.stringify(backupData, null, 2);
-            const blob = new Blob([jsonStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `backup_noitefilmes_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-            const now = new Date();
-            localStorage.setItem(LAST_BACKUP_KEY, now.toLocaleString('pt-BR'));
-            showToast(`✅ Backup salvo! (${total} itens) Último backup: ${now.toLocaleString('pt-BR')}`);
-            // Atualizar tooltip do botão
-            const btn = document.getElementById('adminBackupBtn');
-            if (btn) btn.title = `Último backup: ${now.toLocaleString('pt-BR')}`;
-        } catch (error) {
-            console.error('Erro no backup:', error);
-            showToast('❌ Erro ao gerar backup. Veja console (F12).', false);
-        }
-    }
-
-    // Função que adiciona o botão DENTRO do painel admin (após login)
-    function addBackupButton() {
-        // Só adiciona se o admin estiver logado e o painel visível
-        if (!window.isAdminLogged) return;
-        const adminPanel = document.getElementById('adminPanel');
-        if (!adminPanel || adminPanel.classList.contains('hidden')) return;
-        if (document.getElementById('adminBackupBtn')) return;
-
-        // Procurar um local adequado: ao lado do título "Admin" no topo do modal
-        // Opção 1: dentro do .sticky .flex.justify-between
-        let target = document.querySelector('#adminModal .sticky .flex.justify-between');
-        // Opção 2: dentro do #adminPanel (fallback)
-        if (!target) target = document.querySelector('#adminPanel .flex.justify-end');
-        // Opção 3: simplesmente dentro do #adminPanel (no final)
-        if (!target) target = adminPanel;
-
-        const backupBtn = document.createElement('button');
-        backupBtn.id = 'adminBackupBtn';
-        backupBtn.className = 'bg-green-700 hover:bg-green-800 text-white px-3 py-1.5 rounded-full text-xs transition flex items-center gap-2 ml-2 shadow';
-        backupBtn.innerHTML = '<i class="fas fa-download"></i> 💾 Backup Manual';
-        const lastBackup = localStorage.getItem(LAST_BACKUP_KEY);
-        backupBtn.title = lastBackup ? `Último backup: ${lastBackup}` : 'Clique para salvar backup dos filmes/séries/canais';
-        backupBtn.onclick = (e) => {
-            e.stopPropagation();
-            performBackup();
-        };
-        target.appendChild(backupBtn);
-        console.log('✅ Botão de backup adicionado no painel Admin');
-    }
-
-    // Verificar a cada 2 segundos se o admin está logado e o painel visível
-    setInterval(() => {
-        if (window.isAdminLogged) {
-            addBackupButton();
-        }
-    }, 2000);
-})();
+    const backupBtn = document.createElement('button');
+    backupBtn.id = 'adminBackupBtn';
+    backupBtn.className = 'bg-green-700 hover:bg-green-800 text-white px-3 py-1.5 rounded-full text-xs transition flex items-center gap-2 shadow ml-2';
+    backupBtn.innerHTML = '<i class="fas fa-download"></i> 💾 Backup Manual';
+    backupBtn.title = 'Clique para salvar backup dos filmes/séries/canais';
+    backupBtn.onclick = (e) => {
+        e.stopPropagation();
+        performBackup(); // Função que você já tem
+    };
+    target.appendChild(backupBtn);
+    console.log('✅ Botão de backup adicionado na aba Admin');
+}
 
 
                 
