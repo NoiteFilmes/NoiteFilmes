@@ -8859,201 +8859,251 @@ if (loginAdminBtn) {
 
 
 
+// =====================================================
+// CONTADOR DE MENSAGENS NÃO LIDAS - VERSÃO CORRIGIDA
+// =====================================================
 (function() {
-    // Aguarda o Firebase e o DOM estarem prontos
-    function waitForFirebase() {
-        if (typeof firebase === 'undefined' || !firebase.database) {
-            setTimeout(waitForFirebase, 300);
-            return;
-        }
-        initUnreadCounter();
+    // Aguarda Firebase e DOM
+    if (typeof firebase === 'undefined' || !firebase.database) {
+        setTimeout(arguments.callee, 300);
+        return;
     }
 
-    async function initUnreadCounter() {
-        const auth = firebase.auth();
-        const db = firebase.database();
+    const db = firebase.database();
+    const auth = firebase.auth();
 
-        auth.onAuthStateChanged(async (user) => {
-            if (!user) return;
-            const uid = user.uid;
+    // Mapa de contagem por userId
+    let unreadMap = new Map();
+    let totalUnread = 0;
 
-            // Mapeia usuário -> quantidade de não lidas
-            let unreadMap = new Map();
-            let totalUnread = 0;
+    // Estilos CSS injetados para garantir que os badges fiquem proporcionais
+    const style = document.createElement('style');
+    style.textContent = `
+        /* Badge no menu inferior (chat) */
+        .chat-nav-badge {
+            position: absolute;
+            top: -4px;
+            right: -8px;
+            background-color: #e50914;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 5px;
+            font-size: 9px;
+            font-weight: bold;
+            min-width: 16px;
+            height: 16px;
+            line-height: 12px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: sans-serif;
+            box-shadow: 0 0 2px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+        /* Badge no avatar do usuário na lista de chats */
+        .user-unread-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background-color: #e50914;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 4px;
+            font-size: 9px;
+            font-weight: bold;
+            min-width: 16px;
+            height: 16px;
+            line-height: 12px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: sans-serif;
+            z-index: 10;
+        }
+        .chat-user-avatar {
+            position: relative;
+        }
+        .bottom-nav-item {
+            position: relative;
+        }
+    `;
+    document.head.appendChild(style);
 
-            // Função para atualizar todos os badges na tela
-            function updateBadges() {
-                // 1. Badge total no ícone do chat (menu inferior)
-                const chatNav = document.querySelector('.bottom-nav-item[data-section="chat"]');
-                if (chatNav) {
-                    let badge = chatNav.querySelector('.chat-total-badge');
-                    if (!badge && totalUnread > 0) {
-                        badge = document.createElement('span');
-                        badge.className = 'chat-total-badge';
-                        badge.style.position = 'absolute';
-                        badge.style.top = '-5px';
-                        badge.style.right = '-5px';
-                        badge.style.backgroundColor = '#e50914';
-                        badge.style.color = 'white';
-                        badge.style.borderRadius = '50%';
-                        badge.style.padding = '2px 6px';
-                        badge.style.fontSize = '10px';
-                        badge.style.fontWeight = 'bold';
-                        badge.style.minWidth = '18px';
-                        badge.style.textAlign = 'center';
-                        chatNav.style.position = 'relative';
-                        chatNav.appendChild(badge);
-                    }
-                    if (badge) {
-                        badge.textContent = totalUnread > 99 ? '99+' : totalUnread;
-                        badge.style.display = totalUnread > 0 ? 'flex' : 'none';
-                    }
-                }
-
-                // 2. Badges na lista de chats (dentro do .chat-user)
-                document.querySelectorAll('.chat-user').forEach(el => {
-                    const userId = el.getAttribute('data-user-id');
-                    if (!userId || userId === 'geral') return;
-                    const count = unreadMap.get(userId) || 0;
-                    const avatarDiv = el.querySelector('.chat-user-avatar');
-                    if (!avatarDiv) return;
-                    let badgeSpan = avatarDiv.querySelector('.unread-badge');
-                    if (!badgeSpan && count > 0) {
-                        badgeSpan = document.createElement('span');
-                        badgeSpan.className = 'unread-badge';
-                        badgeSpan.style.position = 'absolute';
-                        badgeSpan.style.top = '-5px';
-                        badgeSpan.style.right = '-5px';
-                        badgeSpan.style.backgroundColor = '#e50914';
-                        badgeSpan.style.color = 'white';
-                        badgeSpan.style.borderRadius = '50%';
-                        badgeSpan.style.padding = '2px 5px';
-                        badgeSpan.style.fontSize = '10px';
-                        badgeSpan.style.fontWeight = 'bold';
-                        avatarDiv.style.position = 'relative';
-                        avatarDiv.appendChild(badgeSpan);
-                    }
-                    if (badgeSpan) {
-                        badgeSpan.textContent = count > 99 ? '99+' : count;
-                        badgeSpan.style.display = count > 0 ? 'flex' : 'none';
-                        if (count > 0) el.classList.add('unread');
-                        else el.classList.remove('unread');
-                    }
-                });
-
-                // Atualizar texto "Mensagens" no topo do sidebar
-                const totalSpan = document.getElementById('unreadTotal');
-                if (totalSpan) {
-                    totalSpan.textContent = totalUnread;
-                    totalSpan.style.display = totalUnread > 0 ? 'inline-flex' : 'none';
-                }
+    // Função para atualizar todos os badges na tela
+    function updateAllBadges() {
+        // 1. Badge do menu inferior (chat)
+        const chatNav = document.querySelector('.bottom-nav-item[data-section="chat"]');
+        if (chatNav) {
+            let badge = chatNav.querySelector('.chat-nav-badge');
+            if (!badge && totalUnread > 0) {
+                badge = document.createElement('span');
+                badge.className = 'chat-nav-badge';
+                chatNav.appendChild(badge);
             }
-
-            // Carregar timestamps de leitura salvos (localStorage)
-            const STORAGE_KEY = 'nf_chat_read';
-            let readTimestamps = new Map();
-            try {
-                const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-                for (let [k, v] of Object.entries(saved)) readTimestamps.set(k, v);
-            } catch(e) {}
-
-            // Salvar timestamp de leitura para um usuário
-            function markAsRead(userId) {
-                if (!userId) return;
-                const now = Date.now();
-                readTimestamps.set(userId, now);
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(Object.fromEntries(readTimestamps)));
-                // Também salva no Firebase (opcional)
-                db.ref(`chat_read/${uid}/${userId}`).set(now);
-                // Recalcular contagem para este usuário
-                recalcUnreadForUser(userId);
-            }
-
-            // Recalcular mensagens não lidas para um usuário específico
-            async function recalcUnreadForUser(userId) {
-                if (!userId) return;
-                const lastRead = readTimestamps.get(userId) || 0;
-                const chatIdKey = `private_${[uid, userId].sort().join('_')}`;
-                const snapshot = await db.ref(`private_messages/${chatIdKey}`).once('value');
-                const messages = snapshot.val();
-                if (!messages) {
-                    unreadMap.set(userId, 0);
-                    recalcTotal();
-                    updateBadges();
-                    return;
-                }
-                let unread = 0;
-                Object.values(messages).forEach(msg => {
-                    if (msg.senderId !== uid && (!msg.read) && msg.timestamp > lastRead) {
-                        unread++;
-                    }
-                });
-                unreadMap.set(userId, unread);
-                recalcTotal();
-                updateBadges();
-            }
-
-            function recalcTotal() {
-                let sum = 0;
-                for (let v of unreadMap.values()) sum += v;
-                totalUnread = sum;
-            }
-
-            // Escutar novas mensagens em tempo real
-            const privateRef = db.ref('private_messages');
-            privateRef.on('child_added', (snapshot) => {
-                const chatId = snapshot.key;
-                const parts = chatId.split('_');
-                if (parts.length !== 2) return;
-                const otherUserId = parts[0] === uid ? parts[1] : parts[0];
-                recalcUnreadForUser(otherUserId);
-            });
-            privateRef.on('child_changed', (snapshot) => {
-                const chatId = snapshot.key;
-                const parts = chatId.split('_');
-                if (parts.length !== 2) return;
-                const otherUserId = parts[0] === uid ? parts[1] : parts[0];
-                recalcUnreadForUser(otherUserId);
-            });
-
-            // Carregar contagem inicial para todos os usuários que já têm conversa
-            const usersSnapshot = await db.ref('usuarios').once('value');
-            const allUsers = usersSnapshot.val();
-            if (allUsers) {
-                for (let otherUserId in allUsers) {
-                    if (otherUserId !== uid) {
-                        await recalcUnreadForUser(otherUserId);
-                    }
+            if (badge) {
+                if (totalUnread > 0) {
+                    badge.textContent = totalUnread > 99 ? '99+' : totalUnread;
+                    badge.style.display = 'flex';
+                } else {
+                    badge.style.display = 'none';
                 }
             }
-            updateBadges();
+        }
 
-            // Interceptar clique em conversa para marcar como lida
-            function interceptChatClicks() {
-                document.querySelectorAll('.chat-user').forEach(el => {
-                    const userId = el.getAttribute('data-user-id');
-                    if (!userId || userId === 'geral') return;
-                    el.removeEventListener('click', handleChatClick);
-                    el.addEventListener('click', handleChatClick);
-                });
+        // 2. Badges ao lado de cada usuário na lista de chats
+        document.querySelectorAll('.chat-user').forEach(userEl => {
+            const userId = userEl.getAttribute('data-user-id');
+            if (!userId || userId === 'geral') return;
+            const count = unreadMap.get(userId) || 0;
+            const avatarDiv = userEl.querySelector('.chat-user-avatar');
+            if (!avatarDiv) return;
+
+            // Remove badge antigo se existir
+            const oldBadge = avatarDiv.querySelector('.user-unread-badge');
+            if (oldBadge) oldBadge.remove();
+
+            if (count > 0) {
+                const badge = document.createElement('span');
+                badge.className = 'user-unread-badge';
+                badge.textContent = count > 99 ? '99+' : count;
+                avatarDiv.appendChild(badge);
+                userEl.classList.add('unread');
+            } else {
+                userEl.classList.remove('unread');
             }
+        });
 
-            function handleChatClick(e) {
-                const userId = this.getAttribute('data-user-id');
-                if (userId && userId !== 'geral') {
-                    setTimeout(() => markAsRead(userId), 1000);
-                }
+        // 3. Atualizar total ao lado de "Mensagens" no header do chat (opcional)
+        const totalSpan = document.getElementById('unreadTotal');
+        if (totalSpan) {
+            totalSpan.textContent = totalUnread;
+            totalSpan.style.display = totalUnread > 0 ? 'inline-flex' : 'none';
+        }
+    }
+
+    // Marca mensagens como lidas para um usuário específico
+    async function markAsRead(userId) {
+        if (!userId || !auth.currentUser) return;
+        const uid = auth.currentUser.uid;
+        const now = Date.now();
+
+        // Salva timestamp no Firebase e no localStorage
+        await db.ref(`chat_read/${uid}/${userId}`).set(now);
+        // Também atualiza localStorage
+        const stored = JSON.parse(localStorage.getItem('nf_chat_read') || '{}');
+        stored[userId] = now;
+        localStorage.setItem('nf_chat_read', JSON.stringify(stored));
+
+        // Recalcular contagem para este usuário
+        await recalcUnreadForUser(userId);
+    }
+
+    // Recalcula quantas mensagens não lidas um usuário tem
+    async function recalcUnreadForUser(userId) {
+        const uid = auth.currentUser.uid;
+        const lastRead = await getLastReadTimestamp(userId);
+        const chatIdKey = `private_${[uid, userId].sort().join('_')}`;
+        const snapshot = await db.ref(`private_messages/${chatIdKey}`).once('value');
+        const messages = snapshot.val();
+        if (!messages) {
+            unreadMap.set(userId, 0);
+            updateTotalAndBadges();
+            return;
+        }
+        let unread = 0;
+        for (let msg of Object.values(messages)) {
+            if (msg.senderId !== uid && (!msg.read) && msg.timestamp > lastRead) {
+                unread++;
             }
+        }
+        unreadMap.set(userId, unread);
+        updateTotalAndBadges();
+    }
 
-            // Observar mudanças na lista de chats (quando carrega novos usuários)
-            const observer = new MutationObserver(() => interceptChatClicks());
-            const chatUsersList = document.getElementById('chatUsersList');
-            if (chatUsersList) observer.observe(chatUsersList, { childList: true, subtree: true });
-            interceptChatClicks();
+    async function getLastReadTimestamp(userId) {
+        const uid = auth.currentUser.uid;
+        // Primeiro tenta do localStorage
+        const local = JSON.parse(localStorage.getItem('nf_chat_read') || '{}');
+        if (local[userId]) return local[userId];
+        // Depois do Firebase
+        const snap = await db.ref(`chat_read/${uid}/${userId}`).once('value');
+        return snap.val() || 0;
+    }
+
+    function updateTotalAndBadges() {
+        let total = 0;
+        for (let count of unreadMap.values()) total += count;
+        totalUnread = total;
+        updateAllBadges();
+    }
+
+    // Escuta novas mensagens em tempo real
+    function listenForNewMessages() {
+        const uid = auth.currentUser.uid;
+        const privateRef = db.ref('private_messages');
+        privateRef.on('child_added', (snapshot) => {
+            const chatId = snapshot.key;
+            const parts = chatId.split('_');
+            if (parts.length !== 2) return;
+            const otherUserId = parts[0] === uid ? parts[1] : parts[0];
+            recalcUnreadForUser(otherUserId);
+        });
+        privateRef.on('child_changed', (snapshot) => {
+            const chatId = snapshot.key;
+            const parts = chatId.split('_');
+            if (parts.length !== 2) return;
+            const otherUserId = parts[0] === uid ? parts[1] : parts[0];
+            recalcUnreadForUser(otherUserId);
         });
     }
 
-    waitForFirebase();
+    // Inicialização
+    auth.onAuthStateChanged(async (user) => {
+        if (!user) return;
+        const uid = user.uid;
+
+        // Carrega contagem para todos os usuários com conversas
+        const usersSnapshot = await db.ref('usuarios').once('value');
+        const allUsers = usersSnapshot.val();
+        if (allUsers) {
+            for (let otherUserId in allUsers) {
+                if (otherUserId !== uid) {
+                    await recalcUnreadForUser(otherUserId);
+                }
+            }
+        }
+
+        // Escuta mudanças
+        listenForNewMessages();
+
+        // Intercepta clique nos itens do chat para marcar como lido
+        function interceptChatClicks() {
+            document.querySelectorAll('.chat-user').forEach(el => {
+                const userId = el.getAttribute('data-user-id');
+                if (!userId || userId === 'geral') return;
+                el.removeEventListener('click', handleChatClick);
+                el.addEventListener('click', handleChatClick);
+            });
+        }
+
+        function handleChatClick() {
+            const userId = this.getAttribute('data-user-id');
+            if (userId && userId !== 'geral') {
+                // Pequeno delay para garantir que a conversa foi aberta
+                setTimeout(() => markAsRead(userId), 1000);
+            }
+        }
+
+        // Observa a lista de chats para novos itens
+        const chatList = document.getElementById('chatUsersList');
+        if (chatList) {
+            const observer = new MutationObserver(() => interceptChatClicks());
+            observer.observe(chatList, { childList: true, subtree: true });
+        }
+        interceptChatClicks();
+    });
 })();
 
 
