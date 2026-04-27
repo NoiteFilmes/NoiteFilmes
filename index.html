@@ -7881,7 +7881,264 @@ if (loginAdminBtn) {
 
 
 
+// =====================================================
+// SCRIPT DE ORDENAÇÃO ALFABÉTICA PARA ADMIN
+// Ordena canais, filmes e séries em ordem alfabética
+// =====================================================
 
+(function() {
+    // Função principal para ordenar qualquer lista de itens alfabeticamente pelo título
+    function sortItemsAlphabetically(items) {
+        if (!items || !Array.isArray(items)) return [];
+        // Cria uma cópia do array para não modificar o original
+        const sortedItems = [...items];
+        sortedItems.sort((a, b) => {
+            // Garante que os títulos existam para comparação
+            const titleA = (a.title || '').toLowerCase().trim();
+            const titleB = (b.title || '').toLowerCase().trim();
+            return titleA.localeCompare(titleB, 'pt-BR');
+        });
+        return sortedItems;
+    }
+
+    // Função para atualizar a lista de canais no admin
+    function updateCanaisAdminList() {
+        const canaisContainer = document.getElementById('canaisAdminList');
+        if (!canaisContainer) return;
+
+        if (!canais || canais.length === 0) {
+            canaisContainer.innerHTML = '<div class="text-center text-gray-500 py-2 text-[10px]">Nenhum canal adicionado ainda</div>';
+            return;
+        }
+
+        // Ordena os canais alfabeticamente
+        const sortedCanais = sortItemsAlphabetically(canais);
+        
+        // Gera o HTML ordenado
+        const canaisHtml = sortedCanais.map(c => {
+            const title = c && c.title ? c.title : 'Sem título';
+            const id = c && c.id ? c.id : '';
+            return `
+                <div class="bg-white/10 p-1 rounded-lg flex justify-between items-center text-[10px] mb-0.5">
+                    <span class="truncate flex-1" title="${escapeHtml(title)}">${escapeHtml(title.substring(0, 25))}</span>
+                    <div class="admin-item-actions flex gap-1 ml-2">
+                        <button class="edit-item-btn text-green-400 text-[10px] px-1" data-id="${id}" data-type="canais"><i class="fas fa-edit"></i></button>
+                        <button class="delete-item-btn text-red-400 text-[10px] px-1" data-id="${id}" data-type="canais"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        canaisContainer.innerHTML = canaisHtml;
+        
+        // Reaplica os eventos de edição e exclusão
+        document.querySelectorAll('#canaisAdminList .edit-item-btn').forEach(btn => {
+            btn.removeEventListener('click', handleEditClick);
+            btn.addEventListener('click', handleEditClick);
+        });
+        
+        document.querySelectorAll('#canaisAdminList .delete-item-btn').forEach(btn => {
+            btn.removeEventListener('click', handleDeleteClick);
+            btn.addEventListener('click', handleDeleteClick);
+        });
+    }
+
+    // Função para atualizar a lista de filmes no admin
+    function updateFilmesAdminList() {
+        const filmesContainer = document.getElementById('filmesAdminList');
+        if (!filmesContainer) return;
+
+        if (!filmes || filmes.length === 0) {
+            filmesContainer.innerHTML = '<div class="text-center text-gray-500 py-2 text-[10px]">Nenhum filme adicionado ainda</div>';
+            return;
+        }
+
+        // Ordena os filmes alfabeticamente
+        const sortedFilmes = sortItemsAlphabetically(filmes);
+        
+        // Gera o HTML ordenado
+        const filmesHtml = sortedFilmes.map(f => {
+            const title = f && f.title ? f.title : 'Sem título';
+            const id = f && f.id ? f.id : '';
+            return `
+                <div class="bg-white/10 p-1 rounded-lg flex justify-between items-center text-[10px] mb-0.5">
+                    <span class="truncate flex-1" title="${escapeHtml(title)}">${escapeHtml(title.substring(0, 25))}</span>
+                    <div class="admin-item-actions flex gap-1 ml-2">
+                        <button class="edit-item-btn text-green-400 text-[10px] px-1" data-id="${id}" data-type="filmes"><i class="fas fa-edit"></i></button>
+                        <button class="delete-item-btn text-red-400 text-[10px] px-1" data-id="${id}" data-type="filmes"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        filmesContainer.innerHTML = filmesHtml;
+        
+        // Reaplica os eventos de edição e exclusão
+        document.querySelectorAll('#filmesAdminList .edit-item-btn').forEach(btn => {
+            btn.removeEventListener('click', handleEditClick);
+            btn.addEventListener('click', handleEditClick);
+        });
+        
+        document.querySelectorAll('#filmesAdminList .delete-item-btn').forEach(btn => {
+            btn.removeEventListener('click', handleDeleteClick);
+            btn.addEventListener('click', handleDeleteClick);
+        });
+    }
+
+    // Função para atualizar a lista de séries no admin
+    function updateSeriesAdminList() {
+        const seriesContainer = document.getElementById('seriesAdminList');
+        if (!seriesContainer) return;
+
+        if (!series || series.length === 0) {
+            seriesContainer.innerHTML = '<div class="text-center text-gray-500 py-2 text-[10px]">Nenhuma série/episódio adicionado ainda</div>';
+            return;
+        }
+
+        // Ordena as séries alfabeticamente
+        const sortedSeries = sortItemsAlphabetically(series);
+        
+        // Gera o HTML ordenado
+        const seriesHtml = sortedSeries.map(s => {
+            const title = s && s.title ? s.title : 'Sem título';
+            const id = s && s.id ? s.id : '';
+            return `
+                <div class="bg-white/10 p-1 rounded-lg flex justify-between items-center text-[10px] mb-0.5">
+                    <span class="truncate flex-1" title="${escapeHtml(title)}">${escapeHtml(title.substring(0, 25))}</span>
+                    <div class="admin-item-actions flex gap-1 ml-2">
+                        <button class="edit-item-btn text-green-400 text-[10px] px-1" data-id="${id}" data-type="series"><i class="fas fa-edit"></i></button>
+                        <button class="delete-item-btn text-red-400 text-[10px] px-1" data-id="${id}" data-type="series"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        seriesContainer.innerHTML = seriesHtml;
+        
+        // Reaplica os eventos de edição e exclusão
+        document.querySelectorAll('#seriesAdminList .edit-item-btn').forEach(btn => {
+            btn.removeEventListener('click', handleEditClick);
+            btn.addEventListener('click', handleEditClick);
+        });
+        
+        document.querySelectorAll('#seriesAdminList .delete-item-btn').forEach(btn => {
+            btn.removeEventListener('click', handleDeleteClick);
+            btn.addEventListener('click', handleDeleteClick);
+        });
+    }
+
+    // Função de callback para edição (uses as funções globais já existentes)
+    function handleEditClick(e) {
+        const id = this.getAttribute('data-id');
+        const type = this.getAttribute('data-type');
+        if (typeof window.editItem === 'function') {
+            window.editItem(id, type);
+        } else if (typeof editItem === 'function') {
+            editItem(id, type);
+        }
+    }
+
+    function handleDeleteClick(e) {
+        const id = this.getAttribute('data-id');
+        const type = this.getAttribute('data-type');
+        const typeName = type === 'canais' ? 'Canal' : (type === 'filmes' ? 'Filme' : 'Episódio');
+        if (confirm(`Tem certeza que deseja excluir este ${typeName}?`)) {
+            database.ref(`${type}/${id}`).remove().then(() => {
+                showToast(`${typeName} removido com sucesso!`);
+                if (type === 'canais') loadCanaisFromFirebase();
+                else if (type === 'filmes') loadFilmesFromFirebase();
+                else if (type === 'series') loadSeriesFromFirebase();
+            }).catch(error => showToast('Erro ao excluir: ' + error.message));
+        }
+    }
+
+    // Sobrescreve a função refreshAdminLists para incluir ordenação
+    const originalRefreshAdminLists = window.refreshAdminLists;
+    
+    window.refreshAdminLists = function() {
+        if (!isAdminLogged) return;
+        
+        if (originalRefreshAdminLists) {
+            originalRefreshAdminLists();
+        }
+        
+        // Aplica ordenação alfabética nas listas
+        updateCanaisAdminList();
+        updateFilmesAdminList();
+        updateSeriesAdminList();
+    };
+
+    // Exporta funções para serem usadas globalmente
+    window.sortItemsAlphabetically = sortItemsAlphabetically;
+    window.updateCanaisAdminList = updateCanaisAdminList;
+    window.updateFilmesAdminList = updateFilmesAdminList;
+    window.updateSeriesAdminList = updateSeriesAdminList;
+
+    // Intercepta as funções de carregamento para aplicar ordenação
+    const originalLoadCanais = window.loadCanaisFromFirebase;
+    const originalLoadFilmes = window.loadFilmesFromFirebase;
+    const originalLoadSeries = window.loadSeriesFromFirebase;
+
+    if (originalLoadCanais) {
+        window.loadCanaisFromFirebase = function() {
+            if (originalLoadCanais) originalLoadCanais();
+            setTimeout(() => {
+                if (isAdminLogged) updateCanaisAdminList();
+            }, 300);
+        };
+    }
+
+    if (originalLoadFilmes) {
+        window.loadFilmesFromFirebase = function() {
+            if (originalLoadFilmes) originalLoadFilmes();
+            setTimeout(() => {
+                if (isAdminLogged) updateFilmesAdminList();
+            }, 300);
+        };
+    }
+
+    if (originalLoadSeries) {
+        window.loadSeriesFromFirebase = function() {
+            if (originalLoadSeries) originalLoadSeries();
+            setTimeout(() => {
+                if (isAdminLogged) updateSeriesAdminList();
+            }, 300);
+        };
+    }
+
+    // Observer para quando o adminPanel ficar visível
+    const observer = new MutationObserver((mutations) => {
+        const adminPanel = document.getElementById('adminPanel');
+        if (adminPanel && !adminPanel.classList.contains('hidden') && isAdminLogged) {
+            setTimeout(() => {
+                updateCanaisAdminList();
+                updateFilmesAdminList();
+                updateSeriesAdminList();
+            }, 200);
+        }
+    });
+    
+    // Inicia o observer após o DOM carregar
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            observer.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+        });
+    } else {
+        observer.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+    }
+
+    // Função para ordenação manual (pode ser chamada externamente)
+    window.sortAdminLists = function() {
+        if (isAdminLogged) {
+            updateCanaisAdminList();
+            updateFilmesAdminList();
+            updateSeriesAdminList();
+            showToast('📋 Listas reorganizadas em ordem alfabética!');
+        }
+    };
+
+    console.log('✅ Sistema de ordenação alfabética para Admin inicializado!');
+})();
                 
 
                 
