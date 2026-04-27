@@ -7879,6 +7879,331 @@ if (loginAdminBtn) {
     });
 }
 
+
+
+
+                // =====================================================
+// ORDENAÇÃO ALFABÉTICA DAS LISTAS DO ADMIN
+// =====================================================
+
+// Função para ordenar um array de itens por título (alfabeticamente)
+function sortItemsAlphabetically(items) {
+    if (!items || !Array.isArray(items)) return [];
+    return [...items].sort((a, b) => {
+        const titleA = (a.title || '').toLowerCase().trim();
+        const titleB = (b.title || '').toLowerCase().trim();
+        return titleA.localeCompare(titleB, 'pt-BR');
+    });
+}
+
+// Função para ordenar filmes na lista do admin
+function sortFilmesInAdmin() {
+    if (filmes && filmes.length > 0) {
+        filmes = sortItemsAlphabetically(filmes);
+        refreshAdminLists();
+        showToast('✅ Lista de filmes ordenada alfabeticamente');
+    } else {
+        showToast('Nenhum filme encontrado para ordenar');
+    }
+}
+
+// Função para ordenar séries na lista do admin
+function sortSeriesInAdmin() {
+    if (series && series.length > 0) {
+        series = sortItemsAlphabetically(series);
+        refreshAdminLists();
+        showToast('✅ Lista de séries ordenada alfabeticamente');
+    } else {
+        showToast('Nenhuma série encontrada para ordenar');
+    }
+}
+
+// Função para ordenar canais na lista do admin
+function sortCanaisInAdmin() {
+    if (canais && canais.length > 0) {
+        canais = sortItemsAlphabetically(canais);
+        refreshAdminLists();
+        showToast('✅ Lista de canais ordenada alfabeticamente');
+    } else {
+        showToast('Nenhum canal encontrado para ordenar');
+    }
+}
+
+// Função para ordenar TODAS as listas do admin de uma vez
+function sortAllAdminLists() {
+    let sortedCount = 0;
+    
+    if (filmes && filmes.length > 0) {
+        filmes = sortItemsAlphabetically(filmes);
+        sortedCount++;
+    }
+    
+    if (series && series.length > 0) {
+        series = sortItemsAlphabetically(series);
+        sortedCount++;
+    }
+    
+    if (canais && canais.length > 0) {
+        canais = sortItemsAlphabetically(canais);
+        sortedCount++;
+    }
+    
+    if (sortedCount > 0) {
+        refreshAdminLists();
+        showToast(`✅ ${sortedCount} lista(s) ordenada(s) alfabeticamente!`);
+    } else {
+        showToast('Nenhum conteúdo encontrado para ordenar');
+    }
+}
+
+// Função para adicionar botões de ordenação no painel admin
+function addSortButtonsToAdminPanel() {
+    // Verificar se os botões já existem
+    if (document.getElementById('adminSortFilmesBtn')) return;
+    
+    // Área onde os botões serão inseridos (ao lado dos títulos das listas)
+    const adminCanaisList = document.getElementById('adminCanaisList');
+    const adminFilmesList = document.getElementById('adminFilmesList');
+    const adminSeriesList = document.getElementById('adminSeriesList');
+    
+    // Adicionar botão de ordenação para CANAIS
+    if (adminCanaisList && !adminCanaisList.querySelector('.admin-sort-btn')) {
+        const headerCanais = adminCanaisList.querySelector('h3');
+        if (headerCanais) {
+            const sortBtn = document.createElement('button');
+            sortBtn.id = 'adminSortCanaisBtn';
+            sortBtn.className = 'admin-sort-btn ml-2 text-[10px] bg-blue-600/50 hover:bg-blue-600 px-2 py-0.5 rounded-full transition inline-flex items-center gap-1';
+            sortBtn.innerHTML = '<i class="fas fa-sort-alpha-down"></i> Ordenar A-Z';
+            sortBtn.onclick = (e) => {
+                e.stopPropagation();
+                sortCanaisInAdmin();
+            };
+            headerCanais.appendChild(sortBtn);
+        }
+    }
+    
+    // Adicionar botão de ordenação para FILMES
+    if (adminFilmesList && !adminFilmesList.querySelector('.admin-sort-btn')) {
+        const headerFilmes = adminFilmesList.querySelector('h3');
+        if (headerFilmes) {
+            const sortBtn = document.createElement('button');
+            sortBtn.id = 'adminSortFilmesBtn';
+            sortBtn.className = 'admin-sort-btn ml-2 text-[10px] bg-blue-600/50 hover:bg-blue-600 px-2 py-0.5 rounded-full transition inline-flex items-center gap-1';
+            sortBtn.innerHTML = '<i class="fas fa-sort-alpha-down"></i> Ordenar A-Z';
+            sortBtn.onclick = (e) => {
+                e.stopPropagation();
+                sortFilmesInAdmin();
+            };
+            headerFilmes.appendChild(sortBtn);
+        }
+    }
+    
+    // Adicionar botão de ordenação para SÉRIES
+    if (adminSeriesList && !adminSeriesList.querySelector('.admin-sort-btn')) {
+        const headerSeries = adminSeriesList.querySelector('h3');
+        if (headerSeries) {
+            const sortBtn = document.createElement('button');
+            sortBtn.id = 'adminSortSeriesBtn';
+            sortBtn.className = 'admin-sort-btn ml-2 text-[10px] bg-blue-600/50 hover:bg-blue-600 px-2 py-0.5 rounded-full transition inline-flex items-center gap-1';
+            sortBtn.innerHTML = '<i class="fas fa-sort-alpha-down"></i> Ordenar A-Z';
+            sortBtn.onclick = (e) => {
+                e.stopPropagation();
+                sortSeriesInAdmin();
+            };
+            headerSeries.appendChild(sortBtn);
+        }
+    }
+    
+    // Adicionar botão "Ordenar Tudo" no topo do painel admin (opcional)
+    const adminPanel = document.getElementById('adminPanel');
+    if (adminPanel && !document.getElementById('adminSortAllBtn')) {
+        const sortAllContainer = document.createElement('div');
+        sortAllContainer.className = 'mb-3 flex justify-end';
+        sortAllContainer.innerHTML = `
+            <button id="adminSortAllBtn" class="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white px-3 py-1.5 rounded-full text-xs transition flex items-center gap-2 shadow-lg">
+                <i class="fas fa-sort-amount-down-alt"></i>
+                Ordenar Todas as Listas (A-Z)
+            </button>
+        `;
+        
+        // Inserir antes da área de listas
+        const adminListsContainer = document.getElementById('adminListsContainer');
+        if (adminListsContainer) {
+            adminListsContainer.insertBefore(sortAllContainer, adminListsContainer.firstChild);
+            
+            const sortAllBtn = document.getElementById('adminSortAllBtn');
+            if (sortAllBtn) {
+                sortAllBtn.onclick = () => sortAllAdminLists();
+            }
+        }
+    }
+}
+
+// Função para salvar a ordem no Firebase (opcional - persiste a ordenação)
+async function saveSortedOrderToFirebase(type, sortedIds) {
+    if (!isAdminLogged) return;
+    
+    try {
+        // Salvar a ordem no Firebase para persistir entre sessões
+        await database.ref(`admin_preferences/sort_order/${type}`).set({
+            ids: sortedIds,
+            updatedAt: Date.now()
+        });
+        console.log(`✅ Ordem salva para ${type}`);
+    } catch (error) {
+        console.error('Erro ao salvar ordem:', error);
+    }
+}
+
+// Função para carregar a ordem salva do Firebase
+async function loadSavedOrderFromFirebase(type) {
+    try {
+        const snapshot = await database.ref(`admin_preferences/sort_order/${type}`).once('value');
+        const data = snapshot.val();
+        if (data && data.ids && Array.isArray(data.ids)) {
+            return data.ids;
+        }
+    } catch (error) {
+        console.error('Erro ao carregar ordem salva:', error);
+    }
+    return null;
+}
+
+// Função para aplicar a ordenação salva ao carregar os dados
+async function applySavedSortOrder() {
+    if (!filmes || !series || !canais) return;
+    
+    // Carregar ordens salvas
+    const filmesOrder = await loadSavedOrderFromFirebase('filmes');
+    const seriesOrder = await loadSavedOrderFromFirebase('series');
+    const canaisOrder = await loadSavedOrderFromFirebase('canais');
+    
+    // Aplicar ordem salva para filmes
+    if (filmesOrder && filmesOrder.length === filmes.length) {
+        filmes.sort((a, b) => {
+            const indexA = filmesOrder.indexOf(a.id);
+            const indexB = filmesOrder.indexOf(b.id);
+            return indexA - indexB;
+        });
+    } else {
+        // Se não tem ordem salva, ordenar alfabeticamente
+        filmes = sortItemsAlphabetically(filmes);
+    }
+    
+    // Aplicar ordem salva para séries
+    if (seriesOrder && seriesOrder.length === series.length) {
+        series.sort((a, b) => {
+            const indexA = seriesOrder.indexOf(a.id);
+            const indexB = seriesOrder.indexOf(b.id);
+            return indexA - indexB;
+        });
+    } else {
+        series = sortItemsAlphabetically(series);
+    }
+    
+    // Aplicar ordem salva para canais
+    if (canaisOrder && canaisOrder.length === canais.length) {
+        canais.sort((a, b) => {
+            const indexA = canaisOrder.indexOf(a.id);
+            const indexB = canaisOrder.indexOf(b.id);
+            return indexA - indexB;
+        });
+    } else {
+        canais = sortItemsAlphabetically(canais);
+    }
+    
+    refreshAdminLists();
+}
+
+// Sobrescrever o refreshAdminLists original para incluir os botões de ordenação
+const originalRefreshAdminLists = window.refreshAdminLists;
+window.refreshAdminLists = function() {
+    if (originalRefreshAdminLists) {
+        originalRefreshAdminLists();
+    }
+    // Adicionar botões de ordenação após atualizar as listas
+    setTimeout(() => addSortButtonsToAdminPanel(), 100);
+};
+
+// Executar a ordenação automática ao carregar os dados
+function setupAutoSortOnLoad() {
+    // Aguardar os dados serem carregados
+    const checkDataInterval = setInterval(() => {
+        if (filmesLoaded && seriesLoaded && canaisLoaded) {
+            clearInterval(checkDataInterval);
+            applySavedSortOrder();
+        }
+    }, 500);
+}
+
+// Iniciar a ordenação automática quando os dados são carregados
+setupAutoSortOnLoad();
+
+// Adicionar botões quando o admin fizer login
+const originalAdminLogin = document.getElementById('loginAdminBtn')?.onclick;
+if (document.getElementById('loginAdminBtn')) {
+    document.getElementById('loginAdminBtn').addEventListener('click', function(e) {
+        setTimeout(() => {
+            if (isAdminLogged) {
+                addSortButtonsToAdminPanel();
+            }
+        }, 500);
+    });
+}
+
+// Observar quando o painel admin for aberto
+const adminModal = document.getElementById('adminModal');
+if (adminModal) {
+    const observer = new MutationObserver((mutations) => {
+        if (!adminModal.classList.contains('hidden') && isAdminLogged) {
+            setTimeout(() => addSortButtonsToAdminPanel(), 300);
+        }
+    });
+    observer.observe(adminModal, { attributes: true, attributeFilter: ['class'] });
+}
+
+// Função para exportar listas ordenadas (útil para backup)
+function exportSortedLists() {
+    const exportData = {
+        filmes: filmes.map(f => ({ id: f.id, title: f.title })),
+        series: series.map(s => ({ id: s.id, title: s.title })),
+        canais: canais.map(c => ({ id: c.id, title: c.title })),
+        exportedAt: new Date().toISOString()
+    };
+    
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    const exportFileDefaultName = `noitefilmes_listas_ordenadas_${new Date().toISOString().slice(0,19)}.json`;
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+    
+    showToast('📁 Listas exportadas com sucesso!');
+}
+
+// Adicionar botão de exportação no admin (opcional)
+function addExportButton() {
+    if (document.getElementById('adminExportBtn')) return;
+    
+    const adminPanel = document.getElementById('adminPanel');
+    if (adminPanel) {
+        const exportBtn = document.createElement('button');
+        exportBtn.id = 'adminExportBtn';
+        exportBtn.className = 'fixed bottom-20 right-4 bg-green-600 hover:bg-green-700 text-white p-3 rounded-full shadow-lg transition transform hover:scale-105 z-50';
+        exportBtn.innerHTML = '<i class="fas fa-download"></i>';
+        exportBtn.title = 'Exportar listas ordenadas';
+        exportBtn.onclick = exportSortedLists;
+        document.body.appendChild(exportBtn);
+    }
+}
+
+// Adicionar botão de exportação
+addExportButton();
+
+console.log('✅ Sistema de ordenação alfabética do Admin carregado!');
+
                 
          </script>  
         </body>
