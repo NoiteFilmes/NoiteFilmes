@@ -8859,32 +8859,232 @@ if (loginAdminBtn) {
 
 
 
-function addBackupButtonToAdminPanel() {
-    if (document.getElementById('adminBackupBtn')) return;
-    const adminModal = document.getElementById('adminModal');
-    if (!adminModal || adminModal.classList.contains('hidden')) return;
-
-    // Local alternativo: barra de abas do admin
-    let target = document.querySelector('#adminPanel .admin-tabs-scroll');
-    if (!target) target = document.querySelector('#adminPanel .flex.space-x-2');
-
-    if (!target) {
-        console.warn('Não foi possível encontrar local para o botão de backup');
+// =====================================================
+// SISTEMA DE MENSAGENS NÃO LIDAS - VERSÃO CORRIGIDA
+// =====================================================
+(function() {
+    if (!window.database || !window.auth) {
+        console.error('Firebase não carregado. Aguardando...');
+        setTimeout(arguments.callee, 500);
         return;
     }
 
-    const backupBtn = document.createElement('button');
-    backupBtn.id = 'adminBackupBtn';
-    backupBtn.className = 'bg-green-700 hover:bg-green-800 text-white px-3 py-1.5 rounded-full text-xs transition flex items-center gap-2 shadow ml-2';
-    backupBtn.innerHTML = '<i class="fas fa-download"></i> 💾 Backup Manual';
-    backupBtn.title = 'Clique para salvar backup dos filmes/séries/canais';
-    backupBtn.onclick = (e) => {
-        e.stopPropagation();
-        performBackup(); // Função que você já tem
-    };
-    target.appendChild(backupBtn);
-    console.log('✅ Botão de backup adicionado na aba Admin');
-}
+    // Armazenamento local dos contadores
+    let unreadCounts = new Map();      // userId -> número de mensagens não lidas
+    let totalUnread = 0;              // Total geral
+
+    // Chave no localStorage para salvar timestamps
+    const STORAGE_KEY = 'noitefilmes_chat_read';
+
+    // Salva os timestamps de leitura no localStorage
+    function saveReadTimestamps() {
+        const timestamps = {};
+        for (let [userId, timestamp] of unreadCounts.entries()) {
+            if (timestamp > 0) timestamps[userId] = timestamp;
+        }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(timestamps));
+    }
+
+    // Carrega timestamps salvos
+    function loadReadTimestamps() {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            try {
+                const timestamps = JSON.parse(saved);
+                for (let [userId, ts] of Object.entries(timestamps)) {
+                    unreadCounts.set(userId, ts);
+                }
+            } catch(e) {}
+        }
+    }
+
+    // Atualiza todos os badges na tela
+    function updateAllBadges() {
+        // 1. Atualizar total no menu inferior (ícone do chat)
+        const chatBottomNav = document.querySelector('.bottom-nav-item[data-section="chat"]');
+        if (chatBottomNav) {
+            let badge = chatBottomNav.querySelector('.unread-badge-total');
+            if (!badge && totalUnread > 0) {
+                badge = document.createElement('span');
+                badge.className = 'unread-badge-total';
+                badge.style.position = 'absolute';
+                badge.style.top = '-5px';
+                badge.style.right = '-8px';
+                badge.style.backgroundColor = '#e50914';
+                badge.style.color = 'white';
+                badge.style.borderRadius = '50%';
+                badge.style.padding = '2px 6px';
+                badge.style.fontSize = '10px';
+                badge.style.fontWeight = 'bold';
+                badge.style.minWidth = '18px';
+                badge.style.textAlign = 'center';
+                chatBottomNav.style.position = 'relative';
+                chatBottomNav.appendChild(badge);
+            }
+            if (badge) {
+                if (totalUnread > 0) {
+                    badge.textContent = totalUnread > 99 ? '99+' : totalUnread;
+                    badge.style.display = 'flex';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+        }
+
+        // 2. Atualizar badge ao lado de "Mensagens" no topo do sidebar
+        const unreadTotalSpan = document.getElementById('unreadTotal');
+        if (unreadTotalSpan) {
+            unreadTotalSpan.textContent = totalUnread;
+            unreadTotalSpan.style.display = totalUnread > 0 ? 'inline-flex' : 'none';
+        }
+
+        // 3. Atualizar badges nos itens da lista de usuários
+        document.querySelectorAll('.chat-user').forEach(item => {
+            const userId = item.getAttribute('data-user-id');
+            if (!userId || userId === 'geral') return;
+            const count = unreadCounts.get(userId) || 0;
+            const avatarDiv = item.querySelector('.chat-user-avatar');
+            if (!avatarDiv) return;
+            let badgeSpan = avatarDiv.querySelector('.unread-badge');
+            if (!badgeSpan && count > 0) {
+                badgeSpan = document.createElement('span');
+                badgeSpan.className = 'unread-badge';
+                badgeSpan.style.position = 'absolute';
+                badgeSpan.style.top = '-5px';
+                badgeSpan.style.right = '-5px';
+                badgeSpan.style.backgroundColor = '#e50914';
+                badgeSpan.style.color = 'white';
+                badgeSpan.style.borderRadius = '50%';
+                badgeSpan.style.padding = '2px 5px';
+                badgeSpan.style.fontSize = '10px';
+                badgeSpan.style.fontWeight = 'bold';
+                badgeSpan.style.minWidth = '18px';
+                badgeSpan.style.textAlign = 'center';
+                avatarDiv.style.position = 'relative';
+                avatarDiv.appendChild(badgeSpan);
+            }
+            if (badgeSpan) {
+                if (count > 0) {
+                    badgeSpan.textContent = count > 99 ? '99+' : count;
+                    badgeSpan.style.display = 'flex';
+                    item.classList.add('unread');
+                } else {
+                    badgeSpan.style.display = 'none';
+                    item.classList.remove('unread');
+                }
+            }
+        });
+    }
+
+    // Marca mensagens de um usuário como lidas
+    async function markMessagesAsRead(userId) {
+        if (!userId || userId === 'geral') return;
+        const previousCount = unreadCounts.get(userId) || 0;
+        if (previousCount === 0) return;
+        unreadCounts.set(userId, 0);
+        recalcTotal();
+        saveReadTimestamps();
+        updateAllBadges();
+
+        // Atualizar no Firebase que o usuário leu (opcional, para persistência)
+        if (window.currentUser) {
+            await database.ref(`chat_read/${window.currentUser.uid}/${userId}`).set(Date.now());
+        }
+    }
+
+    // Recalcula o total geral
+    function recalcTotal() {
+        let sum = 0;
+        for (let count of unreadCounts.values()) {
+            sum += count;
+        }
+        totalUnread = sum;
+    }
+
+    // Incrementa contador não lido para um usuário (quando recebe mensagem)
+    function incrementUnread(userId) {
+        if (!userId || userId === 'geral') return;
+        // Não incrementa se a conversa estiver aberta no momento
+        if (window.currentChat === `private_${userId}` || window.currentChatUser === userId) return;
+        const current = unreadCounts.get(userId) || 0;
+        unreadCounts.set(userId, current + 1);
+        recalcTotal();
+        saveReadTimestamps();
+        updateAllBadges();
+    }
+
+    // Escuta novas mensagens privadas
+    function setupUnreadListeners() {
+        if (!window.currentUser) return;
+        const uid = window.currentUser.uid;
+
+        // Escuta mensagens privadas
+        const privateRef = database.ref('private_messages');
+        privateRef.on('child_added', (snapshot) => {
+            const chatId = snapshot.key;
+            const parts = chatId.split('_');
+            if (parts.length !== 2) return;
+            const otherUserId = parts[0] === uid ? parts[1] : parts[0];
+            const messages = snapshot.val();
+            if (!messages) return;
+
+            // Verificar última mensagem lida para este usuário
+            const lastRead = unreadCounts.get(otherUserId) ? 0 : (() => {
+                // Buscar timestamp da última leitura no Firebase
+                return database.ref(`chat_read/${uid}/${otherUserId}`).once('value').then(snap => snap.val() || 0);
+            })();
+
+            // Contar mensagens não lidas (timestamp > lastRead e sender != uid)
+            let unreadInChat = 0;
+            Object.values(messages).forEach(msg => {
+                if (msg.senderId !== uid && (!lastRead || msg.timestamp > lastRead)) {
+                    unreadInChat++;
+                }
+            });
+            if (unreadInChat > 0) {
+                const current = unreadCounts.get(otherUserId) || 0;
+                unreadCounts.set(otherUserId, current + unreadInChat);
+                recalcTotal();
+                saveReadTimestamps();
+                updateAllBadges();
+            }
+        }, (error) => console.error('Erro no listener:', error));
+
+        // Também escutar mensagens novas em tempo real (child_changed)
+        privateRef.on('child_changed', (snapshot) => {
+            // similar ao child_added, mas pode ser necessário para atualizações
+        });
+    }
+
+    // Sobrescrever a função selectChat para marcar como lido ao abrir conversa
+    const originalSelectChat = window.selectChat;
+    if (originalSelectChat) {
+        window.selectChat = function(chatId, userName, userAvatar, userId) {
+            originalSelectChat(chatId, userName, userAvatar, userId);
+            if (userId && userId !== 'geral') {
+                setTimeout(() => markMessagesAsRead(userId), 500);
+            }
+        };
+    }
+
+    // Inicialização
+    function init() {
+        loadReadTimestamps();
+        recalcTotal();
+        updateAllBadges();
+        if (window.currentUser) {
+            setupUnreadListeners();
+        }
+        // Aguardar login
+        window.auth.onAuthStateChanged(user => {
+            if (user) {
+                setupUnreadListeners();
+            }
+        });
+    }
+
+    init();
+})();
 
 
                 
