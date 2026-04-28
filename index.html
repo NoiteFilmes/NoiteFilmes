@@ -8931,10 +8931,10 @@ if (loginAdminBtn) {
         
     
 // =====================================================
-// CHAT DEFINITIVO - CORREÇÕES: ROLAGEM, ÍCONE E EXCLUSÃO
+// CHAT DEFINITIVO - SWIPE CORRIGIDO + ORDEM CERTA
 // =====================================================
 (function() {
-    console.log('🚀 CHAT VERSÃO FINAL CORRIGIDA');
+    console.log('🚀 CHAT VERSÃO FINAL - CORREÇÕES');
 
     let estado = {
         user: null,
@@ -9074,12 +9074,13 @@ if (loginAdminBtn) {
     function adicionarSwipeConversa(elemento, chatId, conv) {
         let touchStartX = 0;
         let deleteBtn = null;
+        let isSwiping = false;
 
         const removerBotao = () => {
             if (deleteBtn && deleteBtn.parentNode) deleteBtn.remove();
             deleteBtn = null;
             elemento.style.transform = '';
-            elemento.style.overflow = '';
+            isSwiping = false;
         };
 
         elemento.addEventListener('touchstart', (e) => {
@@ -9090,19 +9091,21 @@ if (loginAdminBtn) {
         elemento.addEventListener('touchmove', (e) => {
             const diff = e.touches[0].clientX - touchStartX;
             if (diff < -30) {
+                isSwiping = true;
                 elemento.style.transform = `translateX(${diff}px)`;
                 e.preventDefault();
             }
         });
 
         elemento.addEventListener('touchend', (e) => {
+            if (!isSwiping) return;
             const diff = touchStartX - e.changedTouches[0].clientX;
             if (diff > 50) {
                 if (!deleteBtn) {
                     deleteBtn = document.createElement('div');
                     deleteBtn.className = 'swipe-delete-conv';
                     deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
-                    deleteBtn.style.cssText = `position:absolute; right:10px; top:0; bottom:0; width:50px; background:#e53935; display:flex; align-items:center; justify-content:center; color:white; font-size:20px; z-index:200; cursor:pointer; border-top-right-radius:12px; border-bottom-right-radius:12px;`;
+                    deleteBtn.style.cssText = `position:absolute; right:0px; top:0px; bottom:0px; width:70px; background:#e53935; display:flex; align-items:center; justify-content:center; color:white; font-size:22px; z-index:200; cursor:pointer; border-top-right-radius:12px; border-bottom-right-radius:12px; transition:0.2s;`;
                     deleteBtn.onclick = (ev) => {
                         ev.stopPropagation();
                         if (confirm(`Excluir toda a conversa com ${conv.nome}?`)) {
@@ -9127,6 +9130,7 @@ if (loginAdminBtn) {
                 removerBotao();
             }
             elemento.style.transform = '';
+            isSwiping = false;
         });
     }
 
@@ -9147,6 +9151,7 @@ if (loginAdminBtn) {
             li.setAttribute('data-id', conv.id);
             li.style.position = 'relative';
             li.style.overflow = 'hidden';
+            li.style.transition = 'transform 0.2s';
             li.innerHTML = `
                 <div style="display:flex; align-items:center; gap:12px; width:100%;">
                     <div class="chat-user-avatar" style="position:relative; width:50px; height:50px; flex-shrink:0;">
@@ -9174,14 +9179,15 @@ if (loginAdminBtn) {
     // ========== SWIPE COM ÍCONE (MENSAGENS) - CORRIGIDO ==========
     function adicionarSwipeMensagem(elemento, chatId, messageId, isOwner) {
         if (!isOwner) return;
-        let deleteBtn = null;
         let touchStartX = 0;
+        let deleteBtn = null;
+        let isSwiping = false;
 
         const removerBotao = () => {
             if (deleteBtn && deleteBtn.parentNode) deleteBtn.remove();
             deleteBtn = null;
             elemento.style.transform = '';
-            elemento.style.overflow = '';
+            isSwiping = false;
         };
 
         elemento.addEventListener('touchstart', (e) => {
@@ -9192,19 +9198,21 @@ if (loginAdminBtn) {
         elemento.addEventListener('touchmove', (e) => {
             const diff = e.touches[0].clientX - touchStartX;
             if (diff < -30) {
+                isSwiping = true;
                 elemento.style.transform = `translateX(${diff}px)`;
                 e.preventDefault();
             }
         });
 
         elemento.addEventListener('touchend', (e) => {
+            if (!isSwiping) return;
             const diff = touchStartX - e.changedTouches[0].clientX;
             if (diff > 50) {
                 if (!deleteBtn) {
                     deleteBtn = document.createElement('div');
                     deleteBtn.className = 'swipe-delete-msg';
                     deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
-                    deleteBtn.style.cssText = `position:absolute; right:10px; top:0; bottom:0; width:50px; background:#e53935; display:flex; align-items:center; justify-content:center; color:white; font-size:18px; z-index:200; cursor:pointer; border-radius:12px;`;
+                    deleteBtn.style.cssText = `position:absolute; right:0px; top:0px; bottom:0px; width:60px; background:#e53935; display:flex; align-items:center; justify-content:center; color:white; font-size:18px; z-index:200; cursor:pointer; border-radius:12px; transition:0.2s;`;
                     deleteBtn.onclick = (ev) => {
                         ev.stopPropagation();
                         if (confirm('Excluir esta mensagem?')) {
@@ -9224,10 +9232,11 @@ if (loginAdminBtn) {
                 removerBotao();
             }
             elemento.style.transform = '';
+            isSwiping = false;
         });
     }
 
-    // ========== CARREGAR MENSAGENS (TODAS DE UMA VEZ, SEM EFEITO UMA A UMA) ==========
+    // ========== CARREGAR MENSAGENS (ORDEM CORRETA) ==========
     async function carregarMensagensIniciais(chatId, outroId) {
         if (!chatBoxEl) return;
         if (estado.msgListener) estado.msgListener();
@@ -9242,8 +9251,8 @@ if (loginAdminBtn) {
         if (!msgs) {
             chatBoxEl.innerHTML = '<div style="text-align:center; padding:40px;">Nenhuma mensagem</div>';
         } else {
+            // Ordem correta: do mais antigo para o mais novo
             const lista = Object.entries(msgs).map(([id, m]) => ({ id, ...m })).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-            // Adiciona todas as mensagens de uma só vez (sem delay)
             const fragment = document.createDocumentFragment();
             for (const msg of lista) {
                 const isOwner = estado.user && msg.senderId === estado.user.uid;
@@ -9273,16 +9282,41 @@ if (loginAdminBtn) {
             chatBoxEl.scrollTop = chatBoxEl.scrollHeight;
         }
 
-        // Listener para novas mensagens (adiciona uma por uma, SEM recarregar todas)
-        const onNewMessage = (snap) => {
+        // Listener para novas mensagens (adiciona ao final, mantendo ordem)
+        const onNewMessage = async (snap) => {
             const msg = snap.val();
-            if (msg) {
-                adicionarMensagemAoChat(chatId, msg, snap.key);
-                if (msg.senderId !== estado.user.uid && msg.status === 'sent') {
-                    marcarComoEntregue(chatId, snap.key);
-                }
-                carregarConversas(); // atualiza última mensagem na lista
+            if (!msg) return;
+            // Verificar se já não existe (evitar duplicação)
+            if (document.getElementById(`msg-${chatId}-${snap.key}`)) return;
+            
+            const isOwner = estado.user && msg.senderId === estado.user.uid;
+            let avatar = avatarPadrao();
+            if (!isOwner && msg.senderId) {
+                const snapUser = await db.ref(`usuarios/${msg.senderId}/avatarUrl`).once('value');
+                if (snapUser.val()) avatar = snapUser.val();
             }
+            const statusIcon = isOwner ? getStatusIcon(msg.status) : '';
+            const div = document.createElement('div');
+            div.className = `message ${isOwner ? 'sent' : 'received'}`;
+            div.id = `msg-${chatId}-${snap.key}`;
+            div.innerHTML = `
+                <div class="message-avatar"><img src="${avatar}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='${avatarPadrao()}'"></div>
+                <div class="message-content">
+                    <p>${escapeHtml(msg.text || '')}</p>
+                    <div style="display:flex; justify-content:flex-end; align-items:center; gap:4px; margin-top:4px;">
+                        <span class="message-time" style="font-size:10px; opacity:0.7;">${tempoAgo(msg.timestamp)}</span>
+                        ${statusIcon ? `<span class="message-status">${statusIcon}</span>` : ''}
+                    </div>
+                </div>
+            `;
+            adicionarSwipeMensagem(div, chatId, snap.key, isOwner);
+            chatBoxEl.appendChild(div);
+            chatBoxEl.scrollTop = chatBoxEl.scrollHeight;
+            
+            if (msg.senderId !== estado.user.uid && msg.status === 'sent') {
+                marcarComoEntregue(chatId, snap.key);
+            }
+            carregarConversas(); // atualiza última mensagem na lista
         };
 
         const onStatusChange = (snap) => {
@@ -9294,34 +9328,6 @@ if (loginAdminBtn) {
         ref.on('child_changed', onStatusChange);
         estado.msgListener = () => ref.off('child_added', onNewMessage);
         estado.statusListener = () => ref.off('child_changed', onStatusChange);
-    }
-
-    async function adicionarMensagemAoChat(chatId, msg, msgId) {
-        if (estado.chatAtual !== chatId) return;
-        const isOwner = estado.user && msg.senderId === estado.user.uid;
-        let avatar = avatarPadrao();
-        if (!isOwner && msg.senderId) {
-            const db = firebase.database();
-            const snap = await db.ref(`usuarios/${msg.senderId}/avatarUrl`).once('value');
-            if (snap.val()) avatar = snap.val();
-        }
-        const statusIcon = isOwner ? getStatusIcon(msg.status) : '';
-        const div = document.createElement('div');
-        div.className = `message ${isOwner ? 'sent' : 'received'}`;
-        div.id = `msg-${chatId}-${msgId}`;
-        div.innerHTML = `
-            <div class="message-avatar"><img src="${avatar}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='${avatarPadrao()}'"></div>
-            <div class="message-content">
-                <p>${escapeHtml(msg.text || '')}</p>
-                <div style="display:flex; justify-content:flex-end; align-items:center; gap:4px; margin-top:4px;">
-                    <span class="message-time" style="font-size:10px; opacity:0.7;">${tempoAgo(msg.timestamp)}</span>
-                    ${statusIcon ? `<span class="message-status">${statusIcon}</span>` : ''}
-                </div>
-            </div>
-        `;
-        adicionarSwipeMensagem(div, chatId, msgId, isOwner);
-        chatBoxEl.appendChild(div);
-        chatBoxEl.scrollTop = chatBoxEl.scrollHeight;
     }
 
     // ========== ABRIR CONVERSA ==========
@@ -9447,8 +9453,10 @@ if (loginAdminBtn) {
         .unread-count-badge { box-shadow: 0 0 0 2px #202c33; }
         .menu-badge-chat { box-shadow: 0 0 0 2px #1e1e2a; }
         .message-status i { vertical-align: middle; }
-        .message, .chat-user { transition: transform 0.2s ease; overflow: visible; }
-        .swipe-delete-conv, .swipe-delete-msg { cursor: pointer; }
+        .message, .chat-user { transition: transform 0.2s ease; overflow: visible; position: relative; }
+        .swipe-delete-conv, .swipe-delete-msg { cursor: pointer; border-radius: 12px !important; box-shadow: -2px 0 5px rgba(0,0,0,0.2); }
+        .swipe-delete-conv:hover, .swipe-delete-msg:hover { background: #c62828 !important; transform: scale(1.02); }
+        .message { margin-bottom: 8px; }
     `;
     document.head.appendChild(style);
 })();
