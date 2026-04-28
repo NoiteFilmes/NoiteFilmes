@@ -14,496 +14,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-
-
-
-
-
-
-
-<!-- COLE ESTE BLOCO COMPLETO DENTRO DA TAG <body> DO SEU SITE -->
-<!-- Ele substitui TODO o sistema de chat. Nada do chat antigo vai interferir -->
-
-
-    /* Estilos obrigatórios para o novo chat */
-    #novoChatContainer .chat-user.unread {
-        background: rgba(229, 9, 20, 0.15) !important;
-        border-left: 3px solid #e50914 !important;
-    }
-    #novoChatContainer .unread-count-badge {
-        position: absolute;
-        top: -5px;
-        right: -5px;
-        background: #e50914;
-        color: white;
-        font-size: 10px;
-        font-weight: bold;
-        min-width: 20px;
-        height: 20px;
-        border-radius: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0 5px;
-        border: 2px solid #202c33;
-        z-index: 999;
-    }
-    #novoChatContainer .chat-unread-badge {
-        position: absolute;
-        top: -8px;
-        right: -12px;
-        background: #e50914;
-        color: white;
-        font-size: 11px;
-        font-weight: bold;
-        min-width: 18px;
-        height: 18px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0 4px;
-        box-shadow: 0 0 0 2px #0a0a0a;
-        z-index: 1000;
-    }
-    #novoChatContainer .chat-user-avatar {
-        position: relative;
-        width: 50px;
-        height: 50px;
-        flex-shrink: 0;
-    }
-    .chat-notification-toast {
-        position: fixed;
-        bottom: 80px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: #202c33;
-        color: white;
-        padding: 10px 20px;
-        border-radius: 30px;
-        font-size: 13px;
-        z-index: 9999;
-        animation: fadeInOut 3s ease;
-    }
-    @keyframes fadeInOut {
-        0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
-        15% { opacity: 1; transform: translateX(-50%) translateY(0); }
-        85% { opacity: 1; transform: translateX(-50%) translateY(0); }
-        100% { opacity: 0; transform: translateX(-50%) translateY(-10px); visibility: hidden; }
-    }
-</style>
-
-<script>
-(function() {
-    console.log('🚀 NOVO CHAT - Iniciando...');
-    
-    // Aguardar o DOM carregar completamente
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', iniciarChatNovo);
-    } else {
-        iniciarChatNovo();
-    }
-    
-    async function iniciarChatNovo() {
-        // Aguardar Firebase carregar
-        if (typeof firebase === 'undefined' || !firebase.database) {
-            console.log('⏳ Aguardando Firebase...');
-            setTimeout(iniciarChatNovo, 500);
-            return;
-        }
-        
-        // Aguardar auth
-        if (typeof auth === 'undefined') {
-            console.log('⏳ Aguardando Auth...');
-            setTimeout(iniciarChatNovo, 500);
-            return;
-        }
-        
-        const database = firebase.database();
-        let currentUser = null;
-        let currentChatId = null;
-        let currentChatUser = null;
-        let unsubscribeFunc = null;
-        
-        // Mapas de dados
-        let conversas = new Map();
-        let lidos = new Map();
-        
-        // Carregar timestamps de leitura
-        function carregarLidos() {
-            if (!currentUser) return;
-            const salvo = localStorage.getItem(`chat_lidos_${currentUser.uid}`);
-            if (salvo) {
-                const data = JSON.parse(salvo);
-                for (const [id, time] of Object.entries(data)) {
-                    lidos.set(id, time);
-                }
-            }
-        }
-        
-        function salvarLido(chatId) {
-            if (!currentUser) return;
-            lidos.set(chatId, Date.now());
-            const obj = {};
-            lidos.forEach((v, k) => { obj[k] = v; });
-            localStorage.setItem(`chat_lidos_${currentUser.uid}`, JSON.stringify(obj));
-        }
-        
-        // Contar mensagens não lidas
-        function contarNaoLidas(mensagens, chatId) {
-            if (!mensagens || !currentUser) return 0;
-            const ultimoLido = lidos.get(chatId) || 0;
-            return mensagens.filter(m => m.senderId !== currentUser.uid && m.timestamp > ultimoLido).length;
-        }
-        
-        // Formatar tempo
-        function tempoAgo(timestamp) {
-            if (!timestamp) return '';
-            const seg = Math.floor((Date.now() - timestamp) / 1000);
-            if (seg < 60) return 'agora';
-            const min = Math.floor(seg / 60);
-            if (min < 60) return `${min} min`;
-            const hrs = Math.floor(min / 60);
-            if (hrs < 24) return `${hrs} h`;
-            const dias = Math.floor(hrs / 24);
-            if (dias === 1) return 'ontem';
-            return `${dias} dias`;
-        }
-        
-        function escapeHtml(t) {
-            if (!t) return '';
-            const div = document.createElement('div');
-            div.textContent = t;
-            return div.innerHTML;
-        }
-        
-        // Atualizar badge do menu Chat
-        function atualizarBadgeMenu() {
-            let total = 0;
-            conversas.forEach(c => { total += c.naoLidas || 0; });
-            
-            const menuChat = document.querySelector('.bottom-nav-item[data-section="chat"], .bottom-nav-item:has(.fa-comment-dots)');
-            if (menuChat) {
-                const badgeAntigo = menuChat.querySelector('.menu-badge-chat');
-                if (badgeAntigo) badgeAntigo.remove();
-                
-                if (total > 0) {
-                    const badge = document.createElement('span');
-                    badge.className = 'menu-badge-chat';
-                    badge.textContent = total > 99 ? '99+' : total;
-                    badge.style.cssText = 'position:absolute; top:-6px; right:-10px; background:#e50914; color:white; font-size:10px; font-weight:bold; min-width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center; padding:0 4px; box-shadow:0 0 0 2px #0a0a0a; z-index:100;';
-                    menuChat.style.position = 'relative';
-                    menuChat.appendChild(badge);
-                }
-            }
-            
-            const totalSpan = document.getElementById('unreadTotal');
-            if (totalSpan) {
-                if (total > 0) {
-                    totalSpan.textContent = total;
-                    totalSpan.style.display = 'inline-flex';
-                } else {
-                    totalSpan.style.display = 'none';
-                }
-            }
-        }
-        
-        // Renderizar lista de conversas
-        function renderizarLista() {
-            const container = document.getElementById('chatUsersList');
-            if (!container) return;
-            
-            if (conversas.size === 0) {
-                container.innerHTML = '<li class="chat-user" style="justify-content:center;">Nenhuma conversa</li>';
-                return;
-            }
-            
-            // Ordenar por último timestamp (mais recente primeiro)
-            const ordenadas = Array.from(conversas.values()).sort((a, b) => (b.ultimoTempo || 0) - (a.ultimoTempo || 0));
-            
-            container.innerHTML = '';
-            for (const conv of ordenadas) {
-                const ativa = currentChatId === conv.id;
-                const badge = conv.naoLidas || 0;
-                
-                const li = document.createElement('li');
-                li.className = `chat-user ${badge > 0 ? 'unread' : ''} ${ativa ? 'active' : ''}`;
-                li.setAttribute('data-id', conv.id);
-                li.setAttribute('data-user', conv.userId || '');
-                li.setAttribute('data-name', conv.nome);
-                
-                li.innerHTML = `
-                    <div class="chat-user-avatar" style="position:relative; width:50px; height:50px;">
-                        ${conv.avatarUrl ? 
-                            `<img src="${conv.avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png'">` :
-                            `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#e50914,#b20710); border-radius:50%; font-weight:bold; font-size:18px;">${conv.avatar}</div>`
-                        }
-                        ${badge > 0 ? `<span class="unread-count-badge">${badge > 99 ? '99+' : badge}</span>` : ''}
-                    </div>
-                    <div class="chat-user-info" style="flex:1;">
-                        <div style="display:flex; justify-content:space-between; align-items:baseline;">
-                            <strong>${escapeHtml(conv.nome)}</strong>
-                            <span style="font-size:10px; color:#8696a0;">${tempoAgo(conv.ultimoTempo)}</span>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-                            <span style="font-size:12px; ${badge > 0 ? 'color:#e9edef; font-weight:500;' : 'color:#8696a0;'}">
-                                ${badge > 0 ? '📩 ' : ''}${escapeHtml((conv.ultimaMsg || 'Nenhuma mensagem').substring(0, 35))}
-                            </span>
-                            ${badge > 0 ? `<span style="background:#e50914; color:white; font-size:10px; font-weight:bold; padding:2px 8px; border-radius:20px;">${badge}</span>` : ''}
-                        </div>
-                    </div>
-                `;
-                
-                li.onclick = () => abrirConversa(conv.id, conv);
-                container.appendChild(li);
-            }
-        }
-        
-        // Carregar todas as conversas
-        async function carregarConversas() {
-            if (!currentUser) return;
-            console.log('📂 Carregando conversas...');
-            conversas.clear();
-            
-            // Conversa Geral
-            const geralSnap = await database.ref('chat_messages').once('value');
-            const geralMsgs = geralSnap.val();
-            const geralList = geralMsgs ? Object.values(geralMsgs) : [];
-            geralList.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-            
-            conversas.set('geral', {
-                id: 'geral',
-                nome: 'Geral',
-                avatar: 'G',
-                avatarUrl: null,
-                ultimaMsg: geralList[0]?.text || 'Nenhuma mensagem',
-                ultimoTempo: geralList[0]?.timestamp || 0,
-                naoLidas: contarNaoLidas(geralList, 'geral'),
-                userId: null
-            });
-            
-            // Conversas privadas
-            const privSnap = await database.ref('private_messages').once('value');
-            const privados = privSnap.val() || {};
-            
-            for (const [chatId, msgs] of Object.entries(privados)) {
-                const msgList = msgs ? Object.values(msgs) : [];
-                msgList.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-                
-                const partes = chatId.replace('private_', '').split('_');
-                const outroId = partes.find(id => id !== currentUser.uid);
-                
-                if (outroId) {
-                    const userSnap = await database.ref(`usuarios/${outroId}`).once('value');
-                    const userData = userSnap.val() || {};
-                    
-                    conversas.set(chatId, {
-                        id: chatId,
-                        nome: userData.displayName || userData.nickname || 'Usuário',
-                        avatar: (userData.displayName || userData.nickname || 'U').charAt(0),
-                        avatarUrl: userData.avatarUrl || null,
-                        ultimaMsg: msgList[0]?.text || 'Nenhuma mensagem',
-                        ultimoTempo: msgList[0]?.timestamp || 0,
-                        naoLidas: contarNaoLidas(msgList, chatId),
-                        userId: outroId
-                    });
-                }
-            }
-            
-            renderizarLista();
-            atualizarBadgeMenu();
-            console.log(`✅ ${conversas.size} conversas carregadas`);
-        }
-        
-        // Abrir conversa
-        async function abrirConversa(chatId, conv) {
-            if (unsubscribeFunc) unsubscribeFunc();
-            
-            currentChatId = chatId;
-            currentChatUser = conv.userId;
-            
-            // Atualizar header
-            const headerNome = document.getElementById('chatHeaderName');
-            const headerAvatar = document.getElementById('chatHeaderAvatar');
-            if (headerNome) headerNome.innerText = conv.nome;
-            if (headerAvatar) {
-                if (conv.avatarUrl) {
-                    headerAvatar.innerHTML = `<img src="${conv.avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
-                } else {
-                    headerAvatar.innerHTML = conv.avatar;
-                    headerAvatar.style.cssText = 'display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#e50914,#b20710); border-radius:50%; font-weight:bold; font-size:18px;';
-                }
-            }
-            
-            // Marcar como lida
-            salvarLido(chatId);
-            if (conversas.has(chatId)) {
-                conversas.get(chatId).naoLidas = 0;
-            }
-            renderizarLista();
-            atualizarBadgeMenu();
-            
-            // Esconder sidebar em mobile
-            const sidebar = document.getElementById('chatSidebar');
-            const main = document.getElementById('chatMain');
-            if (sidebar) sidebar.classList.add('hidden');
-            if (main) main.classList.remove('hidden');
-            
-            // Carregar mensagens
-            carregarMensagens(chatId, conv.userId);
-        }
-        
-        // Carregar mensagens da conversa
-        function carregarMensagens(chatId, outroId) {
-            const chatBox = document.getElementById('chatBox');
-            chatBox.innerHTML = '<div style="text-align:center; padding:40px;">Carregando...</div>';
-            
-            let ref;
-            if (chatId === 'geral') {
-                ref = database.ref('chat_messages');
-            } else {
-                ref = database.ref(`private_messages/${chatId}`);
-            }
-            
-            const callback = async (snapshot) => {
-                const msgs = snapshot.val();
-                chatBox.innerHTML = '';
-                
-                if (!msgs) {
-                    chatBox.innerHTML = '<div style="text-align:center; padding:40px;">Nenhuma mensagem</div>';
-                    return;
-                }
-                
-                const lista = Object.entries(msgs).map(([id, m]) => ({ id, ...m })).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-                
-                for (const msg of lista) {
-                    const isOwner = currentUser && msg.senderId === currentUser.uid;
-                    let avatarUrl = 'https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png';
-                    
-                    if (!isOwner && msg.senderId) {
-                        const snap = await database.ref(`usuarios/${msg.senderId}/avatarUrl`).once('value');
-                        if (snap.val()) avatarUrl = snap.val();
-                    }
-                    
-                    const div = document.createElement('div');
-                    div.className = `message ${isOwner ? 'sent' : 'received'}`;
-                    div.innerHTML = `
-                        <div class="message-avatar">
-                            <img src="${avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png'">
-                        </div>
-                        <div class="message-content">
-                            <p>${escapeHtml(msg.text || '')}</p>
-                            <span class="message-time">${tempoAgo(msg.timestamp)}</span>
-                        </div>
-                    `;
-                    chatBox.appendChild(div);
-                }
-                
-                chatBox.scrollTop = chatBox.scrollHeight;
-            };
-            
-            ref.on('value', callback);
-            unsubscribeFunc = () => ref.off('value', callback);
-        }
-        
-        // Enviar mensagem
-        async function enviarMensagem() {
-            const input = document.getElementById('chatInput');
-            const texto = input.value.trim();
-            
-            if (!texto || !currentUser || !currentChatId) return;
-            
-            const msgData = {
-                text: texto,
-                senderId: currentUser.uid,
-                senderName: window.currentUsername || 'Usuário',
-                timestamp: Date.now()
-            };
-            
-            let ref;
-            if (currentChatId === 'geral') {
-                ref = database.ref('chat_messages');
-            } else {
-                const key = `private_${[currentUser.uid, currentChatUser].sort().join('_')}`;
-                ref = database.ref(`private_messages/${key}`);
-            }
-            
-            await ref.push(msgData);
-            input.value = '';
-            input.style.height = 'auto';
-            
-            setTimeout(() => {
-                const box = document.getElementById('chatBox');
-                if (box) box.scrollTop = box.scrollHeight;
-            }, 100);
-        }
-        
-        // Voltar para lista
-        function voltarLista() {
-            const sidebar = document.getElementById('chatSidebar');
-            const main = document.getElementById('chatMain');
-            if (sidebar) sidebar.classList.remove('hidden');
-            if (main) main.classList.add('hidden');
-            renderizarLista();
-        }
-        
-        // Escutar novas mensagens
-        function escutarNovas() {
-            if (!currentUser) return;
-            
-            database.ref('chat_messages').on('child_added', () => {
-                setTimeout(carregarConversas, 500);
-            });
-            database.ref('private_messages').on('child_added', () => {
-                setTimeout(carregarConversas, 500);
-            });
-        }
-        
-        // Função para mostrar notificação
-        function mostrarNotificacao(msg) {
-            let toast = document.querySelector('.chat-notification-toast');
-            if (toast) toast.remove();
-            toast = document.createElement('div');
-            toast.className = 'chat-notification-toast';
-            toast.innerHTML = `<i class="fas fa-comment-dots"></i> ${msg}`;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
-        }
-        
-        // Expor funções globais
-        window.NovoChatEnviar = enviarMensagem;
-        window.NovoChatVoltar = voltarLista;
-        window.sendMessage = enviarMensagem;
-        window.backToUsersList = voltarLista;
-        window.handleChatKeyPress = (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                enviarMensagem();
-            }
-        };
-        window.autoResize = (t) => {
-            t.style.height = 'auto';
-            t.style.height = (t.scrollHeight) + 'px';
-        };
-        window.updateChatActions = () => {};
-        
-        // Iniciar quando usuário logar
-        auth.onAuthStateChanged(async (user) => {
-            currentUser = user;
-            if (user) {
-                carregarLidos();
-                await carregarConversas();
-                escutarNovas();
-                console.log('✅ NOVO CHAT funcionando!');
-            }
-        });
-    }
-})();
-
-
-
-
-        
         * { 
             box-sizing: border-box; 
             -webkit-tap-highlight-color: transparent; 
@@ -9353,7 +8863,485 @@ if (loginAdminBtn) {
 
 
 
+<!-- COLE ESTE BLOCO COMPLETO DENTRO DA TAG <body> DO SEU SITE -->
+<!-- Ele substitui TODO o sistema de chat. Nada do chat antigo vai interferir -->
 
+<style>
+    /* Estilos obrigatórios para o novo chat */
+    #novoChatContainer .chat-user.unread {
+        background: rgba(229, 9, 20, 0.15) !important;
+        border-left: 3px solid #e50914 !important;
+    }
+    #novoChatContainer .unread-count-badge {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: #e50914;
+        color: white;
+        font-size: 10px;
+        font-weight: bold;
+        min-width: 20px;
+        height: 20px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 5px;
+        border: 2px solid #202c33;
+        z-index: 999;
+    }
+    #novoChatContainer .chat-unread-badge {
+        position: absolute;
+        top: -8px;
+        right: -12px;
+        background: #e50914;
+        color: white;
+        font-size: 11px;
+        font-weight: bold;
+        min-width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 4px;
+        box-shadow: 0 0 0 2px #0a0a0a;
+        z-index: 1000;
+    }
+    #novoChatContainer .chat-user-avatar {
+        position: relative;
+        width: 50px;
+        height: 50px;
+        flex-shrink: 0;
+    }
+    .chat-notification-toast {
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #202c33;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 30px;
+        font-size: 13px;
+        z-index: 9999;
+        animation: fadeInOut 3s ease;
+    }
+    @keyframes fadeInOut {
+        0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+        15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+        85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+        100% { opacity: 0; transform: translateX(-50%) translateY(-10px); visibility: hidden; }
+    }
+</style>
+
+<script>
+(function() {
+    console.log('🚀 NOVO CHAT - Iniciando...');
+    
+    // Aguardar o DOM carregar completamente
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', iniciarChatNovo);
+    } else {
+        iniciarChatNovo();
+    }
+    
+    async function iniciarChatNovo() {
+        // Aguardar Firebase carregar
+        if (typeof firebase === 'undefined' || !firebase.database) {
+            console.log('⏳ Aguardando Firebase...');
+            setTimeout(iniciarChatNovo, 500);
+            return;
+        }
+        
+        // Aguardar auth
+        if (typeof auth === 'undefined') {
+            console.log('⏳ Aguardando Auth...');
+            setTimeout(iniciarChatNovo, 500);
+            return;
+        }
+        
+        const database = firebase.database();
+        let currentUser = null;
+        let currentChatId = null;
+        let currentChatUser = null;
+        let unsubscribeFunc = null;
+        
+        // Mapas de dados
+        let conversas = new Map();
+        let lidos = new Map();
+        
+        // Carregar timestamps de leitura
+        function carregarLidos() {
+            if (!currentUser) return;
+            const salvo = localStorage.getItem(`chat_lidos_${currentUser.uid}`);
+            if (salvo) {
+                const data = JSON.parse(salvo);
+                for (const [id, time] of Object.entries(data)) {
+                    lidos.set(id, time);
+                }
+            }
+        }
+        
+        function salvarLido(chatId) {
+            if (!currentUser) return;
+            lidos.set(chatId, Date.now());
+            const obj = {};
+            lidos.forEach((v, k) => { obj[k] = v; });
+            localStorage.setItem(`chat_lidos_${currentUser.uid}`, JSON.stringify(obj));
+        }
+        
+        // Contar mensagens não lidas
+        function contarNaoLidas(mensagens, chatId) {
+            if (!mensagens || !currentUser) return 0;
+            const ultimoLido = lidos.get(chatId) || 0;
+            return mensagens.filter(m => m.senderId !== currentUser.uid && m.timestamp > ultimoLido).length;
+        }
+        
+        // Formatar tempo
+        function tempoAgo(timestamp) {
+            if (!timestamp) return '';
+            const seg = Math.floor((Date.now() - timestamp) / 1000);
+            if (seg < 60) return 'agora';
+            const min = Math.floor(seg / 60);
+            if (min < 60) return `${min} min`;
+            const hrs = Math.floor(min / 60);
+            if (hrs < 24) return `${hrs} h`;
+            const dias = Math.floor(hrs / 24);
+            if (dias === 1) return 'ontem';
+            return `${dias} dias`;
+        }
+        
+        function escapeHtml(t) {
+            if (!t) return '';
+            const div = document.createElement('div');
+            div.textContent = t;
+            return div.innerHTML;
+        }
+        
+        // Atualizar badge do menu Chat
+        function atualizarBadgeMenu() {
+            let total = 0;
+            conversas.forEach(c => { total += c.naoLidas || 0; });
+            
+            const menuChat = document.querySelector('.bottom-nav-item[data-section="chat"], .bottom-nav-item:has(.fa-comment-dots)');
+            if (menuChat) {
+                const badgeAntigo = menuChat.querySelector('.menu-badge-chat');
+                if (badgeAntigo) badgeAntigo.remove();
+                
+                if (total > 0) {
+                    const badge = document.createElement('span');
+                    badge.className = 'menu-badge-chat';
+                    badge.textContent = total > 99 ? '99+' : total;
+                    badge.style.cssText = 'position:absolute; top:-6px; right:-10px; background:#e50914; color:white; font-size:10px; font-weight:bold; min-width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center; padding:0 4px; box-shadow:0 0 0 2px #0a0a0a; z-index:100;';
+                    menuChat.style.position = 'relative';
+                    menuChat.appendChild(badge);
+                }
+            }
+            
+            const totalSpan = document.getElementById('unreadTotal');
+            if (totalSpan) {
+                if (total > 0) {
+                    totalSpan.textContent = total;
+                    totalSpan.style.display = 'inline-flex';
+                } else {
+                    totalSpan.style.display = 'none';
+                }
+            }
+        }
+        
+        // Renderizar lista de conversas
+        function renderizarLista() {
+            const container = document.getElementById('chatUsersList');
+            if (!container) return;
+            
+            if (conversas.size === 0) {
+                container.innerHTML = '<li class="chat-user" style="justify-content:center;">Nenhuma conversa</li>';
+                return;
+            }
+            
+            // Ordenar por último timestamp (mais recente primeiro)
+            const ordenadas = Array.from(conversas.values()).sort((a, b) => (b.ultimoTempo || 0) - (a.ultimoTempo || 0));
+            
+            container.innerHTML = '';
+            for (const conv of ordenadas) {
+                const ativa = currentChatId === conv.id;
+                const badge = conv.naoLidas || 0;
+                
+                const li = document.createElement('li');
+                li.className = `chat-user ${badge > 0 ? 'unread' : ''} ${ativa ? 'active' : ''}`;
+                li.setAttribute('data-id', conv.id);
+                li.setAttribute('data-user', conv.userId || '');
+                li.setAttribute('data-name', conv.nome);
+                
+                li.innerHTML = `
+                    <div class="chat-user-avatar" style="position:relative; width:50px; height:50px;">
+                        ${conv.avatarUrl ? 
+                            `<img src="${conv.avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png'">` :
+                            `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#e50914,#b20710); border-radius:50%; font-weight:bold; font-size:18px;">${conv.avatar}</div>`
+                        }
+                        ${badge > 0 ? `<span class="unread-count-badge">${badge > 99 ? '99+' : badge}</span>` : ''}
+                    </div>
+                    <div class="chat-user-info" style="flex:1;">
+                        <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                            <strong>${escapeHtml(conv.nome)}</strong>
+                            <span style="font-size:10px; color:#8696a0;">${tempoAgo(conv.ultimoTempo)}</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                            <span style="font-size:12px; ${badge > 0 ? 'color:#e9edef; font-weight:500;' : 'color:#8696a0;'}">
+                                ${badge > 0 ? '📩 ' : ''}${escapeHtml((conv.ultimaMsg || 'Nenhuma mensagem').substring(0, 35))}
+                            </span>
+                            ${badge > 0 ? `<span style="background:#e50914; color:white; font-size:10px; font-weight:bold; padding:2px 8px; border-radius:20px;">${badge}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+                
+                li.onclick = () => abrirConversa(conv.id, conv);
+                container.appendChild(li);
+            }
+        }
+        
+        // Carregar todas as conversas
+        async function carregarConversas() {
+            if (!currentUser) return;
+            console.log('📂 Carregando conversas...');
+            conversas.clear();
+            
+            // Conversa Geral
+            const geralSnap = await database.ref('chat_messages').once('value');
+            const geralMsgs = geralSnap.val();
+            const geralList = geralMsgs ? Object.values(geralMsgs) : [];
+            geralList.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            
+            conversas.set('geral', {
+                id: 'geral',
+                nome: 'Geral',
+                avatar: 'G',
+                avatarUrl: null,
+                ultimaMsg: geralList[0]?.text || 'Nenhuma mensagem',
+                ultimoTempo: geralList[0]?.timestamp || 0,
+                naoLidas: contarNaoLidas(geralList, 'geral'),
+                userId: null
+            });
+            
+            // Conversas privadas
+            const privSnap = await database.ref('private_messages').once('value');
+            const privados = privSnap.val() || {};
+            
+            for (const [chatId, msgs] of Object.entries(privados)) {
+                const msgList = msgs ? Object.values(msgs) : [];
+                msgList.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                
+                const partes = chatId.replace('private_', '').split('_');
+                const outroId = partes.find(id => id !== currentUser.uid);
+                
+                if (outroId) {
+                    const userSnap = await database.ref(`usuarios/${outroId}`).once('value');
+                    const userData = userSnap.val() || {};
+                    
+                    conversas.set(chatId, {
+                        id: chatId,
+                        nome: userData.displayName || userData.nickname || 'Usuário',
+                        avatar: (userData.displayName || userData.nickname || 'U').charAt(0),
+                        avatarUrl: userData.avatarUrl || null,
+                        ultimaMsg: msgList[0]?.text || 'Nenhuma mensagem',
+                        ultimoTempo: msgList[0]?.timestamp || 0,
+                        naoLidas: contarNaoLidas(msgList, chatId),
+                        userId: outroId
+                    });
+                }
+            }
+            
+            renderizarLista();
+            atualizarBadgeMenu();
+            console.log(`✅ ${conversas.size} conversas carregadas`);
+        }
+        
+        // Abrir conversa
+        async function abrirConversa(chatId, conv) {
+            if (unsubscribeFunc) unsubscribeFunc();
+            
+            currentChatId = chatId;
+            currentChatUser = conv.userId;
+            
+            // Atualizar header
+            const headerNome = document.getElementById('chatHeaderName');
+            const headerAvatar = document.getElementById('chatHeaderAvatar');
+            if (headerNome) headerNome.innerText = conv.nome;
+            if (headerAvatar) {
+                if (conv.avatarUrl) {
+                    headerAvatar.innerHTML = `<img src="${conv.avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+                } else {
+                    headerAvatar.innerHTML = conv.avatar;
+                    headerAvatar.style.cssText = 'display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#e50914,#b20710); border-radius:50%; font-weight:bold; font-size:18px;';
+                }
+            }
+            
+            // Marcar como lida
+            salvarLido(chatId);
+            if (conversas.has(chatId)) {
+                conversas.get(chatId).naoLidas = 0;
+            }
+            renderizarLista();
+            atualizarBadgeMenu();
+            
+            // Esconder sidebar em mobile
+            const sidebar = document.getElementById('chatSidebar');
+            const main = document.getElementById('chatMain');
+            if (sidebar) sidebar.classList.add('hidden');
+            if (main) main.classList.remove('hidden');
+            
+            // Carregar mensagens
+            carregarMensagens(chatId, conv.userId);
+        }
+        
+        // Carregar mensagens da conversa
+        function carregarMensagens(chatId, outroId) {
+            const chatBox = document.getElementById('chatBox');
+            chatBox.innerHTML = '<div style="text-align:center; padding:40px;">Carregando...</div>';
+            
+            let ref;
+            if (chatId === 'geral') {
+                ref = database.ref('chat_messages');
+            } else {
+                ref = database.ref(`private_messages/${chatId}`);
+            }
+            
+            const callback = async (snapshot) => {
+                const msgs = snapshot.val();
+                chatBox.innerHTML = '';
+                
+                if (!msgs) {
+                    chatBox.innerHTML = '<div style="text-align:center; padding:40px;">Nenhuma mensagem</div>';
+                    return;
+                }
+                
+                const lista = Object.entries(msgs).map(([id, m]) => ({ id, ...m })).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+                
+                for (const msg of lista) {
+                    const isOwner = currentUser && msg.senderId === currentUser.uid;
+                    let avatarUrl = 'https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png';
+                    
+                    if (!isOwner && msg.senderId) {
+                        const snap = await database.ref(`usuarios/${msg.senderId}/avatarUrl`).once('value');
+                        if (snap.val()) avatarUrl = snap.val();
+                    }
+                    
+                    const div = document.createElement('div');
+                    div.className = `message ${isOwner ? 'sent' : 'received'}`;
+                    div.innerHTML = `
+                        <div class="message-avatar">
+                            <img src="${avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png'">
+                        </div>
+                        <div class="message-content">
+                            <p>${escapeHtml(msg.text || '')}</p>
+                            <span class="message-time">${tempoAgo(msg.timestamp)}</span>
+                        </div>
+                    `;
+                    chatBox.appendChild(div);
+                }
+                
+                chatBox.scrollTop = chatBox.scrollHeight;
+            };
+            
+            ref.on('value', callback);
+            unsubscribeFunc = () => ref.off('value', callback);
+        }
+        
+        // Enviar mensagem
+        async function enviarMensagem() {
+            const input = document.getElementById('chatInput');
+            const texto = input.value.trim();
+            
+            if (!texto || !currentUser || !currentChatId) return;
+            
+            const msgData = {
+                text: texto,
+                senderId: currentUser.uid,
+                senderName: window.currentUsername || 'Usuário',
+                timestamp: Date.now()
+            };
+            
+            let ref;
+            if (currentChatId === 'geral') {
+                ref = database.ref('chat_messages');
+            } else {
+                const key = `private_${[currentUser.uid, currentChatUser].sort().join('_')}`;
+                ref = database.ref(`private_messages/${key}`);
+            }
+            
+            await ref.push(msgData);
+            input.value = '';
+            input.style.height = 'auto';
+            
+            setTimeout(() => {
+                const box = document.getElementById('chatBox');
+                if (box) box.scrollTop = box.scrollHeight;
+            }, 100);
+        }
+        
+        // Voltar para lista
+        function voltarLista() {
+            const sidebar = document.getElementById('chatSidebar');
+            const main = document.getElementById('chatMain');
+            if (sidebar) sidebar.classList.remove('hidden');
+            if (main) main.classList.add('hidden');
+            renderizarLista();
+        }
+        
+        // Escutar novas mensagens
+        function escutarNovas() {
+            if (!currentUser) return;
+            
+            database.ref('chat_messages').on('child_added', () => {
+                setTimeout(carregarConversas, 500);
+            });
+            database.ref('private_messages').on('child_added', () => {
+                setTimeout(carregarConversas, 500);
+            });
+        }
+        
+        // Função para mostrar notificação
+        function mostrarNotificacao(msg) {
+            let toast = document.querySelector('.chat-notification-toast');
+            if (toast) toast.remove();
+            toast = document.createElement('div');
+            toast.className = 'chat-notification-toast';
+            toast.innerHTML = `<i class="fas fa-comment-dots"></i> ${msg}`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+        
+        // Expor funções globais
+        window.NovoChatEnviar = enviarMensagem;
+        window.NovoChatVoltar = voltarLista;
+        window.sendMessage = enviarMensagem;
+        window.backToUsersList = voltarLista;
+        window.handleChatKeyPress = (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                enviarMensagem();
+            }
+        };
+        window.autoResize = (t) => {
+            t.style.height = 'auto';
+            t.style.height = (t.scrollHeight) + 'px';
+        };
+        window.updateChatActions = () => {};
+        
+        // Iniciar quando usuário logar
+        auth.onAuthStateChanged(async (user) => {
+            currentUser = user;
+            if (user) {
+                carregarLidos();
+                await carregarConversas();
+                escutarNovas();
+                console.log('✅ NOVO CHAT funcionando!');
+            }
+        });
+    }
+})();
+</script>
 
 
                 
