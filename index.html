@@ -8926,12 +8926,12 @@ if (loginAdminBtn) {
 
 
 // =====================================================
-// CHAT NOVO E INDEPENDENTE - VERSÃO FINAL
-// EXECUTA DESDE O INÍCIO E NÃO CONFLITA
+// CHAT COMPLETO COM CONFIRMAÇÃO DE LEITURA (VISTO)
+// ✅ = enviada | ✅✅ = recebida | ✅✅ AZUL = lida
 // =====================================================
 
 (function() {
-    console.log('🚀 INICIANDO CHAT NOVO...');
+    console.log('🚀 INICIANDO CHAT COM VISTO...');
     
     // Estado do chat
     let estado = {
@@ -8972,6 +8972,111 @@ if (loginAdminBtn) {
         return 'https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png';
     }
     
+    // ========== GERENCIAMENTO DE STATUS DAS MENSAGENS ==========
+    // Status: 'sent' (enviada - 1 check), 'delivered' (recebida - 2 checks), 'read' (lida - 2 checks azuis)
+    
+    function getStatusIcon(status) {
+        if (status === 'sent') {
+            return '<i class="fas fa-check" style="font-size: 10px; color: #8696a0;"></i>';
+        } else if (status === 'delivered') {
+            return '<i class="fas fa-check-double" style="font-size: 10px; color: #8696a0;"></i>';
+        } else if (status === 'read') {
+            return '<i class="fas fa-check-double" style="font-size: 10px; color: #53bdeb;"></i>';
+        }
+        return '<i class="fas fa-clock" style="font-size: 10px; color: #8696a0;"></i>';
+    }
+    
+    // Atualizar status de uma mensagem específica
+    function atualizarStatusMensagem(chatId, messageId, novoStatus) {
+        const db = firebase.database();
+        let ref;
+        
+        if (chatId === 'geral') {
+            ref = db.ref(`chat_messages/${messageId}/status`);
+        } else {
+            ref = db.ref(`private_messages/${chatId}/${messageId}/status`);
+        }
+        
+        ref.set(novoStatus);
+    }
+    
+    // Marcar mensagem como entregue (recebida)
+    function marcarComoEntregue(chatId, messageId) {
+        const db = firebase.database();
+        let ref;
+        
+        if (chatId === 'geral') {
+            ref = db.ref(`chat_messages/${messageId}`);
+        } else {
+            ref = db.ref(`private_messages/${chatId}/${messageId}`);
+        }
+        
+        ref.once('value', (snapshot) => {
+            const msg = snapshot.val();
+            if (msg && msg.senderId !== estado.user?.uid && msg.status === 'sent') {
+                if (chatId === 'geral') {
+                    db.ref(`chat_messages/${messageId}/status`).set('delivered');
+                } else {
+                    db.ref(`private_messages/${chatId}/${messageId}/status`).set('delivered');
+                }
+            }
+        });
+    }
+    
+    // Marcar mensagem como lida (quando o usuário abre a conversa)
+    function marcarComoLida(chatId, messageId, senderId) {
+        if (!estado.user || senderId === estado.user.uid) return;
+        
+        const db = firebase.database();
+        let ref;
+        
+        if (chatId === 'geral') {
+            ref = db.ref(`chat_messages/${messageId}`);
+        } else {
+            ref = db.ref(`private_messages/${chatId}/${messageId}`);
+        }
+        
+        ref.once('value', (snapshot) => {
+            const msg = snapshot.val();
+            if (msg && msg.status !== 'read') {
+                if (chatId === 'geral') {
+                    db.ref(`chat_messages/${messageId}/status`).set('read');
+                } else {
+                    db.ref(`private_messages/${chatId}/${messageId}/status`).set('read');
+                }
+            }
+        });
+    }
+    
+    // Marcar TODAS as mensagens da conversa como lidas
+    function marcarTodasComoLidas(chatId) {
+        if (!estado.user || !chatId) return;
+        
+        const db = firebase.database();
+        let ref;
+        
+        if (chatId === 'geral') {
+            ref = db.ref('chat_messages');
+        } else {
+            ref = db.ref(`private_messages/${chatId}`);
+        }
+        
+        ref.once('value', (snapshot) => {
+            const msgs = snapshot.val();
+            if (!msgs) return;
+            
+            for (const [msgId, msg] of Object.entries(msgs)) {
+                if (msg.senderId !== estado.user.uid && msg.status !== 'read') {
+                    if (chatId === 'geral') {
+                        db.ref(`chat_messages/${msgId}/status`).set('read');
+                    } else {
+                        db.ref(`private_messages/${chatId}/${msgId}/status`).set('read');
+                    }
+                }
+            }
+        });
+    }
+    
     // ========== LEITURAS (LOCALSTORAGE) ==========
     function salvarLeitura(chatId) {
         if (!estado.user) return;
@@ -8979,6 +9084,9 @@ if (loginAdminBtn) {
         const obj = {};
         leiturasCache.forEach((v, k) => obj[k] = v);
         localStorage.setItem(`chat_novo_leitura_${estado.user.uid}`, JSON.stringify(obj));
+        
+        // Marcar todas as mensagens como lidas ao abrir a conversa
+        marcarTodasComoLidas(chatId);
     }
     
     function carregarLeituras() {
@@ -8996,7 +9104,7 @@ if (loginAdminBtn) {
     function contarNaoLidas(mensagens, chatId) {
         if (!mensagens || !estado.user) return 0;
         const ultimaLeitura = leiturasCache.get(chatId) || 0;
-        return mensagens.filter(m => m.senderId !== estado.user.uid && (m.timestamp || 0) > ultimaLeitura).length;
+        return mensagens.filter(m => m.senderId !== estado.user.uid && (m.timestamp || 0) > ultimaLeitura && m.status !== 'read').length;
     }
     
     // ========== ATUALIZAR BADGE DO MENU ==========
@@ -9161,6 +9269,18 @@ if (loginAdminBtn) {
                     if (snap.val()) avatar = snap.val();
                 }
                 
+                // Se não for dono e a mensagem ainda não foi marcada como entregue, marcar
+                if (!isOwner && (!msg.status || msg.status === 'sent')) {
+                    marcarComoEntregue(chatId, msg.id);
+                }
+                
+                // Se a conversa está aberta e a mensagem não é minha, marcar como lida
+                if (!isOwner && estado.chatAtual === chatId && msg.status !== 'read') {
+                    setTimeout(() => marcarComoLida(chatId, msg.id, msg.senderId), 100);
+                }
+                
+                const statusIcon = isOwner ? getStatusIcon(msg.status) : '';
+                
                 const div = document.createElement('div');
                 div.className = `message ${isOwner ? 'sent' : 'received'}`;
                 div.innerHTML = `
@@ -9169,7 +9289,10 @@ if (loginAdminBtn) {
                     </div>
                     <div class="message-content">
                         <p>${escapeHtml(msg.text || '')}</p>
-                        <span class="message-time">${tempoAgo(msg.timestamp)}</span>
+                        <div style="display:flex; justify-content:flex-end; align-items:center; gap:4px; margin-top:4px;">
+                            <span class="message-time" style="font-size:10px; opacity:0.7;">${tempoAgo(msg.timestamp)}</span>
+                            ${statusIcon ? `<span class="message-status" style="margin-left:4px;">${statusIcon}</span>` : ''}
+                        </div>
                     </div>
                 `;
                 chatBoxEl.appendChild(div);
@@ -9219,7 +9342,8 @@ if (loginAdminBtn) {
             text: texto,
             senderId: estado.user.uid,
             senderName: window.currentUsername || 'Usuário',
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            status: 'sent'  // Status inicial: enviada (1 check)
         };
         
         const db = firebase.database();
@@ -9232,7 +9356,26 @@ if (loginAdminBtn) {
             ref = db.ref(`private_messages/${key}`);
         }
         
-        await ref.push(msgData);
+        const novaMsgRef = await ref.push(msgData);
+        
+        // Simular entrega após 1 segundo (para demonstração)
+        setTimeout(async () => {
+            const msgSnapshot = await novaMsgRef.once('value');
+            const msg = msgSnapshot.val();
+            if (msg && msg.status === 'sent') {
+                if (estado.chatAtual === 'geral') {
+                    await db.ref(`chat_messages/${novaMsgRef.key}/status`).set('delivered');
+                } else {
+                    const key = `private_${[estado.user.uid, estado.chatUsuario].sort().join('_')}`;
+                    await db.ref(`private_messages/${key}/${novaMsgRef.key}/status`).set('delivered');
+                }
+                // Recarregar mensagens para mostrar o status atualizado
+                if (estado.chatAtual) {
+                    carregarMensagens(estado.chatAtual, estado.chatUsuario);
+                }
+            }
+        }, 1000);
+        
         inputEl.value = '';
         inputEl.style.height = 'auto';
         setTimeout(() => { if (chatBoxEl) chatBoxEl.scrollTop = chatBoxEl.scrollHeight; }, 100);
@@ -9249,7 +9392,8 @@ if (loginAdminBtn) {
     window.abrirBuscarUsuarios = function() {
         const modal = document.getElementById('buscarUsuariosModal');
         if (modal) modal.classList.remove('hidden');
-        document.getElementById('buscarUsuarioInput').value = '';
+        const input = document.getElementById('buscarUsuarioInput');
+        if (input) input.value = '';
         buscarUsuariosLista();
     };
     
@@ -9334,8 +9478,24 @@ if (loginAdminBtn) {
     function ouvirNovas() {
         if (!estado.user) return;
         const db = firebase.database();
+        
         db.ref('chat_messages').on('child_added', () => setTimeout(carregarConversas, 300));
         db.ref('private_messages').on('child_added', () => setTimeout(carregarConversas, 300));
+        
+        // Ouvir mudanças de status para atualizar em tempo real
+        db.ref('chat_messages').on('child_changed', (snapshot) => {
+            if (estado.chatAtual === 'geral') {
+                carregarMensagens('geral', null);
+            }
+        });
+        
+        db.ref('private_messages').on('child_changed', (snapshot) => {
+            const chatId = snapshot.key;
+            if (estado.chatAtual === chatId) {
+                const conv = conversasCache.get(chatId);
+                if (conv) carregarMensagens(chatId, conv.userId);
+            }
+        });
     }
     
     // ========== INICIALIZAR ==========
@@ -9362,7 +9522,7 @@ if (loginAdminBtn) {
                     carregarLeituras();
                     await carregarConversas();
                     ouvirNovas();
-                    console.log('✅ CHAT NOVO INICIALIZADO COM SUCESSO!');
+                    console.log('✅ CHAT COM VISTO INICIALIZADO COM SUCESSO!');
                 }
             });
         }
