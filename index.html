@@ -8930,25 +8930,27 @@ if (loginAdminBtn) {
         
         
     
-    // =====================================================
-// CHAT COM SEGUNDO CHECK AUTOMÁTICO (SIMULA ENTREGA)
+// =====================================================
+// CHAT DEFINITIVO - SEM PISCAR + EXCLUSÃO COM ÍCONE
 // =====================================================
 (function() {
-    console.log('🚀 CHAT COM ENTREGA AUTOMÁTICA');
+    console.log('🚀 CHAT VERSÃO ESTÁVEL');
 
     let estado = {
         user: null,
         chatAtual: null,
         chatUsuario: null,
-        listenerMsg: null,
-        listenerStatus: null
+        msgListener: null,
+        statusListener: null
     };
 
     let conversasCache = new Map();
     let leiturasCache = new Map();
+    let mensagensCache = new Map(); // cache para evitar recarregar tudo
 
     let sidebarEl, mainEl, usersListEl, chatBoxEl, inputEl, headerNameEl, headerAvatarEl, totalBadgeEl;
 
+    // ========== AUXILIARES ==========
     function tempoAgo(timestamp) {
         if (!timestamp) return '';
         const seg = Math.floor((Date.now() - timestamp) / 1000);
@@ -8980,20 +8982,26 @@ if (loginAdminBtn) {
         return '<i class="fas fa-clock" style="font-size: 10px; color: #b0b0b0;"></i>';
     }
 
-    // ========== MARCAR COMO DELIVERED (AUTOMÁTICO APÓS ENVIO) ==========
-    async function marcarComoEntregue(chatId, messageId, senderId) {
-        if (!estado.user || senderId === estado.user.uid) return;
+    // ========== MARCAR COMO DELIVERED (SIMULA ENTREGA) ==========
+    async function marcarComoEntregue(chatId, messageId) {
+        if (!estado.user) return;
         const db = firebase.database();
         const msgRef = chatId === 'geral' ? db.ref(`chat_messages/${messageId}`) : db.ref(`private_messages/${chatId}/${messageId}`);
         const snap = await msgRef.once('value');
         const msg = snap.val();
-        if (msg && msg.status === 'sent') {
+        if (msg && msg.senderId !== estado.user.uid && msg.status === 'sent') {
             const statusRef = chatId === 'geral' ? db.ref(`chat_messages/${messageId}/status`) : db.ref(`private_messages/${chatId}/${messageId}/status`);
             await statusRef.set('delivered');
-            if (estado.chatAtual === chatId) {
-                const conv = conversasCache.get(chatId);
-                if (conv) carregarMensagens(chatId, conv.userId);
-            }
+            // Atualizar ícone na mensagem se estiver visível
+            atualizarIconeMensagem(chatId, messageId, 'delivered');
+        }
+    }
+
+    function atualizarIconeMensagem(chatId, messageId, novoStatus) {
+        const msgDiv = document.getElementById(`msg-${chatId}-${messageId}`);
+        if (msgDiv) {
+            const statusSpan = msgDiv.querySelector('.message-status');
+            if (statusSpan) statusSpan.innerHTML = getStatusIcon(novoStatus);
         }
     }
 
@@ -9009,12 +9017,12 @@ if (loginAdminBtn) {
                 if (msg.senderId !== estado.user.uid && msg.status !== 'read') {
                     const statusRef = chatId === 'geral' ? db.ref(`chat_messages/${msgId}/status`) : db.ref(`private_messages/${chatId}/${msgId}/status`);
                     statusRef.set('read');
+                    atualizarIconeMensagem(chatId, msgId, 'read');
                 }
             }
         });
     }
 
-    // Salvar leitura (abriu a conversa)
     function salvarLeitura(chatId) {
         if (!estado.user) return;
         leiturasCache.set(chatId, Date.now());
@@ -9042,7 +9050,7 @@ if (loginAdminBtn) {
         return mensagens.filter(m => m.senderId !== estado.user.uid && (m.timestamp || 0) > ultimaLeitura && m.status !== 'read').length;
     }
 
-    // ========== BADGE MENU (CSS ATUALIZADO) ==========
+    // ========== BADGE MENU ==========
     function atualizarBadgeMenu() {
         let total = 0;
         conversasCache.forEach(c => { total += c.naoLidas || 0; });
@@ -9065,25 +9073,61 @@ if (loginAdminBtn) {
         }
     }
 
-    // ========== SWIPE NA LISTA DE CONVERSAS ==========
+    // ========== SWIPE COM ÍCONE DE LIXEIRA (CONVERSAS) ==========
     function adicionarSwipeConversa(elemento, chatId, conv) {
-        let touchStartX = 0;
-        elemento.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
-        elemento.addEventListener('touchend', async (e) => {
-            const touchEndX = e.changedTouches[0].screenX;
-            if (touchStartX - touchEndX > 80) {
-                if (confirm(`Excluir toda a conversa com ${conv.nome}?`)) {
-                    const db = firebase.database();
-                    if (chatId === 'geral') await db.ref('chat_messages').remove();
-                    else {
-                        await db.ref(`private_messages/${chatId}`).remove();
-                        await db.ref(`private_chats/${chatId}`).remove();
-                    }
-                    await carregarConversas();
-                    if (estado.chatAtual === chatId) window.fecharChatAberto();
-                    alert('Conversa excluída');
-                }
+        let touchStartX = 0, touchEndX = 0;
+        let deleteBtn = null;
+
+        const removerBotao = () => {
+            if (deleteBtn && deleteBtn.parentNode) deleteBtn.remove();
+            deleteBtn = null;
+            elemento.style.transform = '';
+        };
+
+        elemento.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+            removerBotao();
+        });
+        elemento.addEventListener('touchmove', (e) => {
+            const currentX = e.changedTouches[0].screenX;
+            const diff = currentX - touchStartX;
+            if (diff < -30) {
+                elemento.style.transform = `translateX(${diff}px)`;
+                e.preventDefault();
             }
+        });
+        elemento.addEventListener('touchend', async (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            const diff = touchStartX - touchEndX;
+            if (diff > 50) {
+                if (!deleteBtn) {
+                    deleteBtn = document.createElement('div');
+                    deleteBtn.className = 'swipe-delete-btn-conv';
+                    deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+                    deleteBtn.style.cssText = `position:absolute; right:10px; top:50%; transform:translateY(-50%); background:#e53935; color:white; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:20; box-shadow:0 2px 5px rgba(0,0,0,0.2);`;
+                    deleteBtn.onclick = async (ev) => {
+                        ev.stopPropagation();
+                        if (confirm(`Excluir toda a conversa com ${conv.nome}?`)) {
+                            const db = firebase.database();
+                            if (chatId === 'geral') await db.ref('chat_messages').remove();
+                            else {
+                                await db.ref(`private_messages/${chatId}`).remove();
+                                await db.ref(`private_chats/${chatId}`).remove();
+                            }
+                            await carregarConversas();
+                            if (estado.chatAtual === chatId) window.fecharChatAberto();
+                            alert('Conversa excluída');
+                        }
+                        removerBotao();
+                    };
+                    elemento.style.position = 'relative';
+                    elemento.appendChild(deleteBtn);
+                    setTimeout(() => { if (deleteBtn) removerBotao(); }, 3000);
+                }
+            } else {
+                removerBotao();
+            }
+            elemento.style.transform = '';
         });
     }
 
@@ -9102,6 +9146,8 @@ if (loginAdminBtn) {
             const li = document.createElement('li');
             li.className = `chat-user ${naoLidas > 0 ? 'unread' : ''} ${ativa ? 'active' : ''}`;
             li.setAttribute('data-id', conv.id);
+            li.style.position = 'relative';
+            li.style.transition = 'transform 0.2s';
             li.innerHTML = `
                 <div class="chat-user-avatar" style="position:relative;">
                     ${conv.avatarUrl ? `<img src="${conv.avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='${avatarPadrao()}'">` : `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#e50914,#b20710); border-radius:50%; font-weight:bold; font-size:18px;">${conv.avatar}</div>`}
@@ -9118,71 +9164,143 @@ if (loginAdminBtn) {
                     </div>
                 </div>
             `;
-            li.onclick = (e) => { e.stopPropagation(); abrirConversa(conv.id, conv); };
+            li.onclick = (e) => { if (!e.target.closest('.swipe-delete-btn-conv')) abrirConversa(conv.id, conv); };
             adicionarSwipeConversa(li, conv.id, conv);
             usersListEl.appendChild(li);
         }
     }
 
-    // ========== SWIPE NA MENSAGEM INDIVIDUAL ==========
+    // ========== SWIPE COM ÍCONE DE LIXEIRA (MENSAGENS) ==========
     function adicionarSwipeMensagem(elemento, chatId, messageId, isOwner) {
         if (!isOwner) return;
+        let deleteBtn = null;
+        const removerBotao = () => {
+            if (deleteBtn && deleteBtn.parentNode) deleteBtn.remove();
+            deleteBtn = null;
+            elemento.style.transform = '';
+        };
         let touchStartX = 0;
-        elemento.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
-        elemento.addEventListener('touchend', async (e) => {
-            const touchEndX = e.changedTouches[0].screenX;
-            if (touchStartX - touchEndX > 80) {
-                if (confirm('Excluir esta mensagem?')) {
-                    const db = firebase.database();
-                    if (chatId === 'geral') await db.ref(`chat_messages/${messageId}`).remove();
-                    else await db.ref(`private_messages/${chatId}/${messageId}`).remove();
-                    elemento.remove();
-                }
+        elemento.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+            removerBotao();
+        });
+        elemento.addEventListener('touchmove', (e) => {
+            const diff = e.changedTouches[0].screenX - touchStartX;
+            if (diff < -30) {
+                elemento.style.transform = `translateX(${diff}px)`;
+                e.preventDefault();
             }
+        });
+        elemento.addEventListener('touchend', (e) => {
+            const diff = touchStartX - e.changedTouches[0].screenX;
+            if (diff > 50) {
+                if (!deleteBtn) {
+                    deleteBtn = document.createElement('div');
+                    deleteBtn.className = 'swipe-delete-msg';
+                    deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+                    deleteBtn.style.cssText = `position:absolute; right:10px; top:50%; transform:translateY(-50%); background:#e53935; color:white; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:20; box-shadow:0 2px 5px rgba(0,0,0,0.2);`;
+                    deleteBtn.onclick = async (ev) => {
+                        ev.stopPropagation();
+                        if (confirm('Excluir esta mensagem?')) {
+                            const db = firebase.database();
+                            if (chatId === 'geral') await db.ref(`chat_messages/${messageId}`).remove();
+                            else await db.ref(`private_messages/${chatId}/${messageId}`).remove();
+                            elemento.remove();
+                        }
+                        removerBotao();
+                    };
+                    elemento.style.position = 'relative';
+                    elemento.appendChild(deleteBtn);
+                    setTimeout(() => removerBotao(), 3000);
+                }
+            } else {
+                removerBotao();
+            }
+            elemento.style.transform = '';
         });
     }
 
-    // ========== CARREGAR MENSAGENS (COM ROLAGEM AUTOMÁTICA) ==========
-    function carregarMensagens(chatId, outroId) {
+    // ========== ADICIONAR MENSAGEM INDIVIDUAL (SEM RECARREGAR TUDO) ==========
+    async function adicionarMensagemAoChat(chatId, msg, msgId) {
+        if (estado.chatAtual !== chatId) return;
+        const isOwner = estado.user && msg.senderId === estado.user.uid;
+        let avatar = avatarPadrao();
+        if (!isOwner && msg.senderId) {
+            const db = firebase.database();
+            const snap = await db.ref(`usuarios/${msg.senderId}/avatarUrl`).once('value');
+            if (snap.val()) avatar = snap.val();
+        }
+        const statusIcon = isOwner ? getStatusIcon(msg.status) : '';
+        const div = document.createElement('div');
+        div.className = `message ${isOwner ? 'sent' : 'received'}`;
+        div.id = `msg-${chatId}-${msgId}`;
+        div.innerHTML = `
+            <div class="message-avatar"><img src="${avatar}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='${avatarPadrao()}'"></div>
+            <div class="message-content">
+                <p>${escapeHtml(msg.text || '')}</p>
+                <div style="display:flex; justify-content:flex-end; align-items:center; gap:4px; margin-top:4px;">
+                    <span class="message-time" style="font-size:10px; opacity:0.7;">${tempoAgo(msg.timestamp)}</span>
+                    ${statusIcon ? `<span class="message-status">${statusIcon}</span>` : ''}
+                </div>
+            </div>
+        `;
+        adicionarSwipeMensagem(div, chatId, msgId, isOwner);
+        chatBoxEl.appendChild(div);
+        chatBoxEl.scrollTop = chatBoxEl.scrollHeight;
+    }
+
+    // ========== CARREGAR MENSAGENS INICIAIS (SÓ UMA VEZ) ==========
+    async function carregarMensagensIniciais(chatId, outroId) {
         if (!chatBoxEl) return;
-        if (estado.listenerMsg) estado.listenerMsg();
-        if (estado.listenerStatus) estado.listenerStatus();
+        if (estado.msgListener) estado.msgListener();
+        if (estado.statusListener) estado.statusListener();
+        chatBoxEl.innerHTML = '<div style="text-align:center; padding:40px;">Carregando...</div>';
         const db = firebase.database();
         let ref = chatId === 'geral' ? db.ref('chat_messages') : db.ref(`private_messages/${chatId}`);
 
-        const msgCallback = async (snapshot) => {
+        const carregarTodas = async () => {
+            const snapshot = await ref.once('value');
             const msgs = snapshot.val();
-            if (!msgs) { chatBoxEl.innerHTML = '<div style="text-align:center; padding:40px;">Nenhuma mensagem</div>'; return; }
-            const lista = Object.entries(msgs).map(([id, m]) => ({ id, ...m })).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
             chatBoxEl.innerHTML = '';
-            for (const msg of lista) {
-                const isOwner = estado.user && msg.senderId === estado.user.uid;
-                let avatar = avatarPadrao();
-                if (!isOwner && msg.senderId) {
-                    const snap = await db.ref(`usuarios/${msg.senderId}/avatarUrl`).once('value');
-                    if (snap.val()) avatar = snap.val();
-                }
-                const statusIcon = isOwner ? getStatusIcon(msg.status) : '';
-                const div = document.createElement('div');
-                div.className = `message ${isOwner ? 'sent' : 'received'}`;
-                div.innerHTML = `
-                    <div class="message-avatar"><img src="${avatar}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='${avatarPadrao()}'"></div>
-                    <div class="message-content">
-                        <p>${escapeHtml(msg.text || '')}</p>
-                        <div style="display:flex; justify-content:flex-end; align-items:center; gap:4px; margin-top:4px;">
-                            <span class="message-time" style="font-size:10px; opacity:0.7;">${tempoAgo(msg.timestamp)}</span>
-                            ${statusIcon ? `<span class="message-status">${statusIcon}</span>` : ''}
-                        </div>
-                    </div>
-                `;
-                adicionarSwipeMensagem(div, chatId, msg.id, isOwner);
-                chatBoxEl.appendChild(div);
+            if (!msgs) {
+                chatBoxEl.innerHTML = '<div style="text-align:center; padding:40px;">Nenhuma mensagem</div>';
+                return;
             }
-            chatBoxEl.scrollTop = chatBoxEl.scrollHeight; // Rola para o final
+            const lista = Object.entries(msgs).map(([id, m]) => ({ id, ...m })).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+            for (const msg of lista) {
+                await adicionarMensagemAoChat(chatId, msg, msg.id);
+            }
+            chatBoxEl.scrollTop = chatBoxEl.scrollHeight;
         };
-        ref.on('value', msgCallback);
-        ref.on('child_changed', () => ref.once('value', msgCallback));
-        estado.listenerMsg = () => ref.off('value', msgCallback);
+
+        // Listener para novas mensagens (child_added)
+        const onNewMessage = async (snap) => {
+            const msg = snap.val();
+            if (msg) {
+                await adicionarMensagemAoChat(chatId, msg, snap.key);
+                // Se a mensagem for de outro usuário e ainda 'sent', marcar como delivered
+                if (msg.senderId !== estado.user.uid && msg.status === 'sent') {
+                    marcarComoEntregue(chatId, snap.key);
+                }
+                // Atualizar lista de conversas (última mensagem)
+                carregarConversas();
+            }
+        };
+
+        // Listener para mudanças de status (child_changed)
+        const onStatusChange = (snap) => {
+            const msg = snap.val();
+            if (msg && msg.status) {
+                atualizarIconeMensagem(chatId, snap.key, msg.status);
+            }
+        };
+
+        ref.on('child_added', onNewMessage);
+        ref.on('child_changed', onStatusChange);
+        estado.msgListener = () => ref.off('child_added', onNewMessage);
+        estado.statusListener = () => ref.off('child_changed', onStatusChange);
+
+        await carregarTodas();
     }
 
     // ========== ABRIR CONVERSA ==========
@@ -9199,10 +9317,10 @@ if (loginAdminBtn) {
         atualizarBadgeMenu();
         if (sidebarEl) sidebarEl.classList.add('hidden');
         if (mainEl) mainEl.classList.remove('hidden');
-        carregarMensagens(chatId, conv.userId);
+        await carregarMensagensIniciais(chatId, conv.userId);
     }
 
-    // ========== ENVIAR MENSAGEM + SEGUNDO CHECK AUTOMÁTICO ==========
+    // ========== ENVIAR MENSAGEM ==========
     async function enviarMensagem() {
         if (!inputEl) return;
         const texto = inputEl.value.trim();
@@ -9213,26 +9331,20 @@ if (loginAdminBtn) {
         const newMsgRef = await ref.push(msgData);
         inputEl.value = '';
         inputEl.style.height = 'auto';
-        
-        // SIMULAÇÃO DE ENTREGA: após 1.5 segundos, marca como 'delivered'
+        // Simular entrega após 1.5s
         setTimeout(async () => {
             const snap = await newMsgRef.once('value');
             const msg = snap.val();
             if (msg && msg.status === 'sent') {
                 const statusRef = estado.chatAtual === 'geral' ? db.ref(`chat_messages/${newMsgRef.key}/status`) : db.ref(`private_messages/${estado.chatAtual}/${newMsgRef.key}/status`);
                 await statusRef.set('delivered');
-                // Atualiza a interface se a conversa ainda estiver aberta
-                if (estado.chatAtual === estado.chatAtual) {
-                    carregarMensagens(estado.chatAtual, estado.chatUsuario);
-                }
+                atualizarIconeMensagem(estado.chatAtual, newMsgRef.key, 'delivered');
             }
         }, 1500);
-        
-        carregarConversas(); // atualiza última mensagem na lista
-        setTimeout(() => { if (chatBoxEl) chatBoxEl.scrollTop = chatBoxEl.scrollHeight; }, 100);
+        carregarConversas(); // atualiza a lista de conversas (última mensagem)
     }
 
-    // ========== CARREGAR CONVERSAS ==========
+    // ========== CARREGAR CONVERSAS (LISTA) ==========
     async function carregarConversas() {
         if (!estado.user) return;
         const db = firebase.database();
@@ -9261,17 +9373,11 @@ if (loginAdminBtn) {
         atualizarBadgeMenu();
     }
 
-    // ========== LISTENERS EM TEMPO REAL (BADGE E DELIVERED DE TERCEIROS) ==========
-    function setupRealTimeListeners() {
+    // ========== LISTENERS GLOBAIS (BADGE) ==========
+    function setupGlobalListeners() {
         if (!estado.user) return;
         const db = firebase.database();
-        const atualizarBadge = async () => {
-            await carregarConversas();
-            if (estado.chatAtual) {
-                const conv = conversasCache.get(estado.chatAtual);
-                if (conv) carregarMensagens(estado.chatAtual, conv.userId);
-            }
-        };
+        const atualizarBadge = () => carregarConversas();
         db.ref('chat_messages').on('child_added', atualizarBadge);
         db.ref('chat_messages').on('child_changed', atualizarBadge);
         db.ref('private_messages').on('child_added', atualizarBadge);
@@ -9305,8 +9411,8 @@ if (loginAdminBtn) {
                     estado.user = user;
                     carregarLeituras();
                     await carregarConversas();
-                    setupRealTimeListeners();
-                    console.log('✅ Chat com segundo check automático funcionando');
+                    setupGlobalListeners();
+                    console.log('✅ Chat estável com swipe e sem piscar!');
                 }
             });
         }
@@ -9314,12 +9420,16 @@ if (loginAdminBtn) {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', inicializar);
     else inicializar();
 
-    // Estilos
     const style = document.createElement('style');
-    style.textContent = `.chat-user.unread { background: rgba(229,57,53,0.08) !important; border-left: 3px solid #e53935 !important; }
+    style.textContent = `
+        .chat-user.unread { background: rgba(229,57,53,0.08) !important; border-left: 3px solid #e53935 !important; }
         .chat-user.active { background: rgba(0,168,255,0.1) !important; border-left: 3px solid #00a8ff !important; }
-        .unread-count-badge { box-shadow: 0 0 0 2px #202c33; } .menu-badge-chat { box-shadow: 0 0 0 2px #1e1e2a; }
-        .message-status i { vertical-align: middle; }`;
+        .unread-count-badge { box-shadow: 0 0 0 2px #202c33; }
+        .menu-badge-chat { box-shadow: 0 0 0 2px #1e1e2a; }
+        .message-status i { vertical-align: middle; }
+        .message { transition: transform 0.2s ease; }
+        .chat-user { transition: transform 0.2s ease; }
+    `;
     document.head.appendChild(style);
 })();
 
