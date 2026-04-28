@@ -8928,11 +8928,13 @@ if (loginAdminBtn) {
 
         
         
-        // =====================================================
-// CHAT COMPLETO - REAL TIME + SWIPE TO DELETE
+        
+    
+    // =====================================================
+// CHAT COM SEGUNDO CHECK AUTOMÁTICO (SIMULA ENTREGA)
 // =====================================================
 (function() {
-    console.log('🚀 CHAT REAL TIME COM SWIPE');
+    console.log('🚀 CHAT COM ENTREGA AUTOMÁTICA');
 
     let estado = {
         user: null,
@@ -8947,7 +8949,6 @@ if (loginAdminBtn) {
 
     let sidebarEl, mainEl, usersListEl, chatBoxEl, inputEl, headerNameEl, headerAvatarEl, totalBadgeEl;
 
-    // ========== AUXILIARES ==========
     function tempoAgo(timestamp) {
         if (!timestamp) return '';
         const seg = Math.floor((Date.now() - timestamp) / 1000);
@@ -8979,7 +8980,7 @@ if (loginAdminBtn) {
         return '<i class="fas fa-clock" style="font-size: 10px; color: #b0b0b0;"></i>';
     }
 
-    // ========== MARCAR COMO ENTREGUE ==========
+    // ========== MARCAR COMO DELIVERED (AUTOMÁTICO APÓS ENVIO) ==========
     async function marcarComoEntregue(chatId, messageId, senderId) {
         if (!estado.user || senderId === estado.user.uid) return;
         const db = firebase.database();
@@ -8996,7 +8997,7 @@ if (loginAdminBtn) {
         }
     }
 
-    // ========== MARCAR TODAS COMO LIDAS ==========
+    // Marcar todas como lidas (quando abre a conversa)
     function marcarTodasComoLidas(chatId) {
         if (!estado.user || !chatId) return;
         const db = firebase.database();
@@ -9013,7 +9014,7 @@ if (loginAdminBtn) {
         });
     }
 
-    // ========== SALVAR LEITURA ==========
+    // Salvar leitura (abriu a conversa)
     function salvarLeitura(chatId) {
         if (!estado.user) return;
         leiturasCache.set(chatId, Date.now());
@@ -9035,14 +9036,13 @@ if (loginAdminBtn) {
         }
     }
 
-    // ========== CONTAR NÃO LIDAS ==========
     function contarNaoLidas(mensagens, chatId) {
         if (!mensagens || !estado.user) return 0;
         const ultimaLeitura = leiturasCache.get(chatId) || 0;
         return mensagens.filter(m => m.senderId !== estado.user.uid && (m.timestamp || 0) > ultimaLeitura && m.status !== 'read').length;
     }
 
-    // ========== BADGE MENU (EM TEMPO REAL) ==========
+    // ========== BADGE MENU (CSS ATUALIZADO) ==========
     function atualizarBadgeMenu() {
         let total = 0;
         conversasCache.forEach(c => { total += c.naoLidas || 0; });
@@ -9065,21 +9065,18 @@ if (loginAdminBtn) {
         }
     }
 
-    // ========== SWIPE TO DELETE NA LISTA DE CONVERSAS ==========
+    // ========== SWIPE NA LISTA DE CONVERSAS ==========
     function adicionarSwipeConversa(elemento, chatId, conv) {
         let touchStartX = 0;
-        let touchEndX = 0;
         elemento.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
         elemento.addEventListener('touchend', async (e) => {
-            touchEndX = e.changedTouches[0].screenX;
-            if (touchStartX - touchEndX > 80) { // deslizou da direita para esquerda
+            const touchEndX = e.changedTouches[0].screenX;
+            if (touchStartX - touchEndX > 80) {
                 if (confirm(`Excluir toda a conversa com ${conv.nome}?`)) {
                     const db = firebase.database();
-                    if (chatId === 'geral') {
-                        await db.ref('chat_messages').remove();
-                    } else {
+                    if (chatId === 'geral') await db.ref('chat_messages').remove();
+                    else {
                         await db.ref(`private_messages/${chatId}`).remove();
-                        // também remover referência nos participantes
                         await db.ref(`private_chats/${chatId}`).remove();
                     }
                     await carregarConversas();
@@ -9127,28 +9124,25 @@ if (loginAdminBtn) {
         }
     }
 
-    // ========== SWIPE TO DELETE EM MENSAGEM INDIVIDUAL ==========
+    // ========== SWIPE NA MENSAGEM INDIVIDUAL ==========
     function adicionarSwipeMensagem(elemento, chatId, messageId, isOwner) {
-        if (!isOwner) return; // só o dono pode excluir
-        let touchStartX = 0, touchEndX = 0;
+        if (!isOwner) return;
+        let touchStartX = 0;
         elemento.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
         elemento.addEventListener('touchend', async (e) => {
-            touchEndX = e.changedTouches[0].screenX;
+            const touchEndX = e.changedTouches[0].screenX;
             if (touchStartX - touchEndX > 80) {
                 if (confirm('Excluir esta mensagem?')) {
                     const db = firebase.database();
-                    if (chatId === 'geral') {
-                        await db.ref(`chat_messages/${messageId}`).remove();
-                    } else {
-                        await db.ref(`private_messages/${chatId}/${messageId}`).remove();
-                    }
+                    if (chatId === 'geral') await db.ref(`chat_messages/${messageId}`).remove();
+                    else await db.ref(`private_messages/${chatId}/${messageId}`).remove();
                     elemento.remove();
                 }
             }
         });
     }
 
-    // ========== CARREGAR MENSAGENS COM SWIPE ==========
+    // ========== CARREGAR MENSAGENS (COM ROLAGEM AUTOMÁTICA) ==========
     function carregarMensagens(chatId, outroId) {
         if (!chatBoxEl) return;
         if (estado.listenerMsg) estado.listenerMsg();
@@ -9184,8 +9178,7 @@ if (loginAdminBtn) {
                 adicionarSwipeMensagem(div, chatId, msg.id, isOwner);
                 chatBoxEl.appendChild(div);
             }
-            // Rolar para o final
-            chatBoxEl.scrollTop = chatBoxEl.scrollHeight;
+            chatBoxEl.scrollTop = chatBoxEl.scrollHeight; // Rola para o final
         };
         ref.on('value', msgCallback);
         ref.on('child_changed', () => ref.once('value', msgCallback));
@@ -9209,7 +9202,7 @@ if (loginAdminBtn) {
         carregarMensagens(chatId, conv.userId);
     }
 
-    // ========== ENVIAR MENSAGEM ==========
+    // ========== ENVIAR MENSAGEM + SEGUNDO CHECK AUTOMÁTICO ==========
     async function enviarMensagem() {
         if (!inputEl) return;
         const texto = inputEl.value.trim();
@@ -9217,9 +9210,24 @@ if (loginAdminBtn) {
         const msgData = { text: texto, senderId: estado.user.uid, senderName: window.currentUsername || 'Usuário', timestamp: Date.now(), status: 'sent' };
         const db = firebase.database();
         let ref = estado.chatAtual === 'geral' ? db.ref('chat_messages') : db.ref(`private_messages/${estado.chatAtual}`);
-        await ref.push(msgData);
+        const newMsgRef = await ref.push(msgData);
         inputEl.value = '';
         inputEl.style.height = 'auto';
+        
+        // SIMULAÇÃO DE ENTREGA: após 1.5 segundos, marca como 'delivered'
+        setTimeout(async () => {
+            const snap = await newMsgRef.once('value');
+            const msg = snap.val();
+            if (msg && msg.status === 'sent') {
+                const statusRef = estado.chatAtual === 'geral' ? db.ref(`chat_messages/${newMsgRef.key}/status`) : db.ref(`private_messages/${estado.chatAtual}/${newMsgRef.key}/status`);
+                await statusRef.set('delivered');
+                // Atualiza a interface se a conversa ainda estiver aberta
+                if (estado.chatAtual === estado.chatAtual) {
+                    carregarMensagens(estado.chatAtual, estado.chatUsuario);
+                }
+            }
+        }, 1500);
+        
         carregarConversas(); // atualiza última mensagem na lista
         setTimeout(() => { if (chatBoxEl) chatBoxEl.scrollTop = chatBoxEl.scrollHeight; }, 100);
     }
@@ -9253,31 +9261,21 @@ if (loginAdminBtn) {
         atualizarBadgeMenu();
     }
 
-    // ========== LISTENERS EM TEMPO REAL (DELIVERED + BADGE) ==========
+    // ========== LISTENERS EM TEMPO REAL (BADGE E DELIVERED DE TERCEIROS) ==========
     function setupRealTimeListeners() {
         if (!estado.user) return;
         const db = firebase.database();
-
-        const atualizarBadgeERecarregar = async (chatId, messageId, msg) => {
-            if (!msg || msg.senderId === estado.user.uid) return;
-            if (msg.status === 'sent') await marcarComoEntregue(chatId, messageId, msg.senderId);
+        const atualizarBadge = async () => {
             await carregarConversas();
-            if (estado.chatAtual === chatId) {
-                const conv = conversasCache.get(chatId);
-                if (conv) carregarMensagens(chatId, conv.userId);
+            if (estado.chatAtual) {
+                const conv = conversasCache.get(estado.chatAtual);
+                if (conv) carregarMensagens(estado.chatAtual, conv.userId);
             }
         };
-
-        db.ref('chat_messages').on('child_added', (snap) => atualizarBadgeERecarregar('geral', snap.key, snap.val()));
-        db.ref('private_messages').on('child_added', (snap) => {
-            const msgs = snap.val();
-            if (msgs) {
-                for (const [msgId, msg] of Object.entries(msgs))
-                    atualizarBadgeERecarregar(snap.key, msgId, msg);
-            }
-        });
-        db.ref('chat_messages').on('child_changed', () => carregarConversas());
-        db.ref('private_messages').on('child_changed', () => carregarConversas());
+        db.ref('chat_messages').on('child_added', atualizarBadge);
+        db.ref('chat_messages').on('child_changed', atualizarBadge);
+        db.ref('private_messages').on('child_added', atualizarBadge);
+        db.ref('private_messages').on('child_changed', atualizarBadge);
     }
 
     // ========== EVENTOS GLOBAIS ==========
@@ -9308,7 +9306,7 @@ if (loginAdminBtn) {
                     carregarLeituras();
                     await carregarConversas();
                     setupRealTimeListeners();
-                    console.log('✅ Chat real time com swipe funcionando');
+                    console.log('✅ Chat com segundo check automático funcionando');
                 }
             });
         }
@@ -9324,7 +9322,6 @@ if (loginAdminBtn) {
         .message-status i { vertical-align: middle; }`;
     document.head.appendChild(style);
 })();
-
 
 
                 
