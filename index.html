@@ -14,6 +14,79 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+
+        /* Estilos para o chat com badges */
+.chat-user {
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.chat-user.unread {
+    background: rgba(229, 9, 20, 0.12);
+    border-left: 3px solid #e50914;
+}
+
+.chat-user .chat-user-avatar {
+    position: relative;
+    width: 50px;
+    height: 50px;
+    flex-shrink: 0;
+}
+
+.unread-count-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #e50914;
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
+    min-width: 20px;
+    height: 20px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 5px;
+    border: 2px solid #202c33;
+    z-index: 10;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+/* Badge do menu Chat centralizado */
+.chat-unread-badge {
+    position: absolute;
+    top: -6px;
+    right: -10px;
+    background: #e50914;
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 5px;
+    box-shadow: 0 0 0 2px #0a0a0a;
+    z-index: 100;
+}
+
+/* Animações */
+@keyframes fadeInOut {
+    0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+    15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+    85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-10px); visibility: hidden; }
+}
+
+/* Ordenação das mensagens */
+.chat-messages {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
         * { 
             box-sizing: border-box; 
             -webkit-tap-highlight-color: transparent; 
@@ -8864,149 +8937,146 @@ if (loginAdminBtn) {
 
 
 // ============================================
-// SISTEMA DE CHAT COM CONTAGEM DE NÃO LIDAS - VERSÃO CORRIGIDA
+// CHAT COMPLETO COM CONTAGEM DE NÃO LIDAS - VERSÃO FINAL
 // ============================================
 
 (function() {
-    console.log('🚀 Iniciando sistema de chat com contagem de não lidas...');
+    console.log('🚀 Inicializando sistema de chat com contagem de não lidas...');
     
-    // Variáveis globais do chat
-    let currentChatId = 'geral';
+    // ========== VARIÁVEIS GLOBAIS ==========
+    let currentUser = null;
+    let currentChatId = null;
     let currentChatUser = null;
-    let currentChatUserName = 'Geral';
-    let currentChatUserAvatar = 'G';
-    let unsubscribeChat = null;
+    let currentChatUserName = '';
+    let unsubscribeMessages = null;
     
-    // Mapa para armazenar mensagens não lidas por conversa
-    // Key: chatId, Value: quantidade de mensagens não lidas
-    let unreadMessagesMap = new Map();
+    // Mapa para armazenar dados das conversas
+    let conversationsData = new Map(); // chatId -> { name, avatar, lastMessage, lastTimestamp, unreadCount, userId, avatarUrl }
     
-    // Mapa para armazenar último timestamp de leitura por conversa
-    let lastReadMap = new Map();
+    // Mapa de timestamps de leitura
+    let readTimestamps = new Map(); // chatId -> timestamp
     
-    // Inicializar contadores
-    function initUnreadCounters() {
-        unreadMessagesMap.clear();
-        // Inicializar com zero para todas as conversas existentes
-        const conversations = document.querySelectorAll('.chat-user');
-        conversations.forEach(conv => {
-            const chatId = conv.getAttribute('data-chat-id');
-            if (chatId) {
-                unreadMessagesMap.set(chatId, 0);
-            }
-        });
+    // ========== FUNÇÕES AUXILIARES ==========
+    function formatTimeAgo(timestamp) {
+        if (!timestamp) return '';
+        const seconds = Math.floor((Date.now() - timestamp) / 1000);
+        if (seconds < 60) return 'agora';
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `${minutes} min`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours} h`;
+        const days = Math.floor(hours / 24);
+        if (days === 1) return 'ontem';
+        if (days < 7) return `${days} dias`;
+        return new Date(timestamp).toLocaleDateString('pt-BR');
     }
     
-    // Carregar timestamps de leitura do localStorage
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    function getAvatarUrl(avatarUrl) {
+        if (avatarUrl && avatarUrl.trim() !== '') return avatarUrl;
+        return 'https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png';
+    }
+    
+    // ========== GERENCIAMENTO DE TIMESTAMPS DE LEITURA ==========
     function loadReadTimestamps() {
-        const saved = localStorage.getItem('chat_read_timestamps');
+        const saved = localStorage.getItem(`chat_read_${currentUser?.uid}`);
         if (saved) {
             const parsed = JSON.parse(saved);
             for (const [chatId, timestamp] of Object.entries(parsed)) {
-                lastReadMap.set(chatId, timestamp);
+                readTimestamps.set(chatId, timestamp);
             }
         }
     }
     
-    // Salvar timestamp de leitura
     function saveReadTimestamp(chatId) {
         const timestamp = Date.now();
-        lastReadMap.set(chatId, timestamp);
+        readTimestamps.set(chatId, timestamp);
+        
         const toSave = {};
-        for (const [key, value] of lastReadMap.entries()) {
+        for (const [key, value] of readTimestamps.entries()) {
             toSave[key] = value;
         }
-        localStorage.setItem('chat_read_timestamps', JSON.stringify(toSave));
+        localStorage.setItem(`chat_read_${currentUser?.uid}`, JSON.stringify(toSave));
     }
     
-    // Marcar conversa como lida (todas as mensagens)
     function markConversationAsRead(chatId) {
         if (!chatId) return;
-        
-        // Salvar timestamp atual
         saveReadTimestamp(chatId);
         
-        // Zerar contagem de não lidas
-        unreadMessagesMap.set(chatId, 0);
+        if (conversationsData.has(chatId)) {
+            conversationsData.get(chatId).unreadCount = 0;
+        }
         
-        // Atualizar visual da conversa na lista
-        updateConversationUnreadVisual(chatId, 0);
-        
-        // Atualizar badge do menu
-        updateMenuUnreadBadge();
-        
+        updateConversationsList();
+        updateChatMenuBadge();
         console.log(`✅ Conversa ${chatId} marcada como lida`);
     }
     
-    // Atualizar visual da conversa na lista (bolinha e badge)
-    function updateConversationUnreadVisual(chatId, unreadCount) {
-        const conversationItem = document.querySelector(`.chat-user[data-chat-id="${chatId}"]`);
-        if (!conversationItem) return;
+    // ========== CONTAGEM DE MENSAGENS NÃO LIDAS ==========
+    function countUnreadMessages(messages, chatId) {
+        if (!messages || messages.length === 0) return 0;
+        if (!currentUser) return 0;
         
-        // Remover badge existente
-        const existingBadge = conversationItem.querySelector('.unread-badge');
-        if (existingBadge) existingBadge.remove();
+        const lastRead = readTimestamps.get(chatId) || 0;
         
-        // Remover classe unread
-        conversationItem.classList.remove('unread');
-        
-        // Se tem mensagens não lidas, adicionar visual
-        if (unreadCount > 0) {
-            conversationItem.classList.add('unread');
-            
-            const avatarDiv = conversationItem.querySelector('.chat-user-avatar');
-            if (avatarDiv) {
-                const badge = document.createElement('span');
-                badge.className = 'unread-badge';
-                badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
-                avatarDiv.style.position = 'relative';
-                avatarDiv.appendChild(badge);
-            }
-        }
+        return messages.filter(msg => {
+            return msg.senderId !== currentUser.uid && msg.timestamp > lastRead;
+        }).length;
     }
     
-    // Atualizar badge do menu "Chat" (bolinha vermelha no menu inferior)
-    function updateMenuUnreadBadge() {
+    // ========== ATUALIZAR BADGE DO MENU CHAT ==========
+    function updateChatMenuBadge() {
         let totalUnread = 0;
-        for (const count of unreadMessagesMap.values()) {
-            totalUnread += count;
+        for (const [chatId, data] of conversationsData.entries()) {
+            totalUnread += data.unreadCount || 0;
         }
         
-        // Procurar o item do menu Chat no bottom-nav
-        const chatNavItem = document.querySelector('.bottom-nav-item[data-section="chat"]');
+        // Procurar o item do menu Chat
+        let chatNavItem = document.querySelector('.bottom-nav-item[data-section="chat"]');
+        if (!chatNavItem) {
+            chatNavItem = document.querySelector('.bottom-nav-item:has(i.fa-comment-dots), .bottom-nav-item:has(.fa-comment-dots)');
+        }
+        
         if (chatNavItem) {
-            // Remover badge existente
-            const existingBadge = chatNavItem.querySelector('.chat-menu-badge');
-            if (existingBadge) existingBadge.remove();
+            // Remover badge antigo
+            const oldBadge = chatNavItem.querySelector('.chat-unread-badge');
+            if (oldBadge) oldBadge.remove();
             
-            // Adicionar badge se tiver mensagens não lidas
+            // Adicionar novo badge se necessário
             if (totalUnread > 0) {
                 const badge = document.createElement('span');
-                badge.className = 'chat-menu-badge';
-                badge.textContent = totalUnread > 9 ? '9+' : totalUnread;
+                badge.className = 'chat-unread-badge';
+                badge.textContent = totalUnread > 99 ? '99+' : totalUnread;
                 Object.assign(badge.style, {
                     position: 'absolute',
-                    top: '-5px',
-                    right: '-8px',
+                    top: '-8px',
+                    right: '-12px',
                     backgroundColor: '#e50914',
                     color: 'white',
                     fontSize: '10px',
                     fontWeight: 'bold',
-                    minWidth: '16px',
-                    height: '16px',
+                    minWidth: '18px',
+                    height: '18px',
                     borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    padding: '0 4px',
-                    zIndex: '10'
+                    padding: '0 5px',
+                    boxShadow: '0 0 0 2px #1a1a1a',
+                    zIndex: '100'
                 });
                 chatNavItem.style.position = 'relative';
                 chatNavItem.appendChild(badge);
             }
         }
         
-        // Atualizar também o total no header do chat
+        // Atualizar também no header do chat sidebar
         const unreadTotalSpan = document.getElementById('unreadTotal');
         if (unreadTotalSpan) {
             if (totalUnread > 0) {
@@ -9016,165 +9086,310 @@ if (loginAdminBtn) {
                 unreadTotalSpan.style.display = 'none';
             }
         }
+        
+        console.log(`📊 Total de mensagens não lidas: ${totalUnread}`);
     }
     
-    // Contar mensagens não lidas de uma conversa
-    async function countUnreadMessagesForChat(chatId, messages) {
-        if (!messages || messages.length === 0) return 0;
-        if (!currentUser) return 0;
-        
-        const lastRead = lastReadMap.get(chatId) || 0;
-        
-        let unreadCount = 0;
-        for (const msg of messages) {
-            // Mensagem não é minha E foi enviada depois do último read
-            if (msg.senderId !== currentUser.uid && msg.timestamp > lastRead) {
-                unreadCount++;
-            }
-        }
-        return unreadCount;
-    }
-    
-    // Processar mensagens e atualizar contadores
-    async function processMessagesAndUpdateUnread(chatId, messages) {
-        if (!messages) return;
-        
-        const unread = await countUnreadMessagesForChat(chatId, messages);
-        const oldUnread = unreadMessagesMap.get(chatId) || 0;
-        
-        if (unread !== oldUnread) {
-            unreadMessagesMap.set(chatId, unread);
-            updateConversationUnreadVisual(chatId, unread);
-            updateMenuUnreadBadge();
-            
-            // Se a conversa atual está aberta, marcar como lida automaticamente
-            if (currentChatId === chatId && unread > 0) {
-                // As mensagens serão marcadas como lidas quando o usuário estiver na conversa
-                setTimeout(() => {
-                    markConversationAsRead(chatId);
-                    // Recarregar mensagens para atualizar visual
-                    if (typeof loadMessages === 'function') {
-                        // Forçar reload se existir
-                    }
-                }, 500);
-            }
-        }
-    }
-    
-    // Função para carregar todas as conversas e suas mensagens
-    async function loadAllConversationsAndCountUnread() {
+    // ========== CARREGAR TODAS AS CONVERSAS ==========
+    async function loadAllConversations() {
         if (!currentUser) return;
         
-        console.log('📊 Carregando contagem de não lidas...');
+        console.log('📂 Carregando todas as conversas...');
+        conversationsData.clear();
         
-        // Buscar conversas públicas (geral)
-        const publicMessagesSnap = await database.ref('chat_messages').once('value');
-        const publicMessages = publicMessagesSnap.val();
-        const publicMessagesList = publicMessages ? Object.values(publicMessages) : [];
+        // 1. Conversa Geral (pública)
+        const geralMessagesSnap = await database.ref('chat_messages').once('value');
+        const geralMessages = geralMessagesSnap.val();
+        const geralMessagesList = geralMessages ? Object.values(geralMessages) : [];
+        geralMessagesList.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
         
-        await processMessagesAndUpdateUnread('geral', publicMessagesList);
+        const geralUnread = countUnreadMessages(geralMessagesList, 'geral');
+        const lastGeralMsg = geralMessagesList[0];
         
-        // Buscar conversas privadas
+        conversationsData.set('geral', {
+            id: 'geral',
+            name: 'Geral',
+            avatar: 'G',
+            avatarUrl: null,
+            lastMessage: lastGeralMsg?.text || 'Nenhuma mensagem',
+            lastTimestamp: lastGeralMsg?.timestamp || 0,
+            unreadCount: geralUnread,
+            userId: null,
+            type: 'public'
+        });
+        
+        // 2. Conversas privadas
         const privateChatsSnap = await database.ref('private_messages').once('value');
         const privateChats = privateChatsSnap.val() || {};
         
         for (const [chatId, messages] of Object.entries(privateChats)) {
             const messagesList = messages ? Object.values(messages) : [];
-            await processMessagesAndUpdateUnread(chatId, messagesList);
+            messagesList.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            
+            // Identificar o outro usuário
+            const participants = chatId.replace('private_', '').split('_');
+            const otherUserId = participants.find(id => id !== currentUser.uid);
+            
+            if (otherUserId) {
+                // Buscar dados do usuário
+                const userSnap = await database.ref(`usuarios/${otherUserId}`).once('value');
+                const userData = userSnap.val() || {};
+                
+                const unread = countUnreadMessages(messagesList, chatId);
+                const lastMsg = messagesList[0];
+                
+                conversationsData.set(chatId, {
+                    id: chatId,
+                    name: userData.displayName || userData.nickname || 'Usuário',
+                    avatar: (userData.displayName || userData.nickname || 'U').charAt(0).toUpperCase(),
+                    avatarUrl: userData.avatarUrl || null,
+                    lastMessage: lastMsg?.text || 'Nenhuma mensagem',
+                    lastTimestamp: lastMsg?.timestamp || 0,
+                    unreadCount: unread,
+                    userId: otherUserId,
+                    type: 'private'
+                });
+            }
         }
         
-        console.log('✅ Contagem finalizada:', Object.fromEntries(unreadMessagesMap));
+        // Ordenar conversas por último timestamp (mais recente primeiro)
+        const sortedConversations = Array.from(conversationsData.values())
+            .sort((a, b) => (b.lastTimestamp || 0) - (a.lastTimestamp || 0));
+        
+        conversationsData.clear();
+        for (const conv of sortedConversations) {
+            conversationsData.set(conv.id, conv);
+        }
+        
+        console.log(`📋 ${conversationsData.size} conversas carregadas`);
+        updateConversationsList();
+        updateChatMenuBadge();
     }
     
-    // Sobrescrever a função selectChat original para marcar como lida
-    const originalSelectChat = window.selectChat;
-    if (originalSelectChat) {
-        window.selectChat = function(chatId, userName, userAvatar, userId, userAvatarUrl) {
-            // Chamar função original primeiro
-            if (originalSelectChat) {
-                originalSelectChat(chatId, userName, userAvatar, userId, userAvatarUrl);
-            }
+    // ========== RENDERIZAR LISTA DE CONVERSAS ==========
+    function updateConversationsList() {
+        const container = document.getElementById('chatUsersList');
+        if (!container) {
+            console.warn('Elemento chatUsersList não encontrado');
+            return;
+        }
+        
+        if (conversationsData.size === 0) {
+            container.innerHTML = `
+                <li class="chat-user" style="justify-content:center; cursor:default;">
+                    <div class="text-center text-gray-500 py-4">Nenhuma conversa ainda</div>
+                </li>`;
+            return;
+        }
+        
+        container.innerHTML = '';
+        
+        for (const [chatId, conv] of conversationsData.entries()) {
+            const isActive = currentChatId === chatId;
+            const unreadCount = conv.unreadCount || 0;
+            const avatarUrl = conv.avatarUrl;
+            const lastMessagePreview = conv.lastMessage && conv.lastMessage.length > 35 
+                ? conv.lastMessage.substring(0, 35) + '...' 
+                : conv.lastMessage || 'Nenhuma mensagem';
             
-            // Marcar conversa como lida
-            if (chatId) {
-                setTimeout(() => {
-                    markConversationAsRead(chatId);
-                }, 500);
-            }
-        };
-    } else {
-        // Criar selectChat se não existir
-        window.selectChat = function(chatId, userName, userAvatar, userId, userAvatarUrl) {
-            currentChatId = chatId;
-            currentChatUser = userId;
-            currentChatUserName = userName;
-            currentChatUserAvatar = userAvatar;
+            const li = document.createElement('li');
+            li.className = `chat-user ${unreadCount > 0 ? 'unread' : ''} ${isActive ? 'active' : ''}`;
+            li.setAttribute('data-chat-id', chatId);
+            li.setAttribute('data-user-id', conv.userId || '');
+            li.setAttribute('data-user-name', conv.name);
+            li.setAttribute('data-user-avatar', conv.avatar);
+            li.setAttribute('data-avatar-url', avatarUrl || '');
             
-            // Atualizar header
-            const headerName = document.getElementById('chatHeaderName');
-            const headerAvatar = document.getElementById('chatHeaderAvatar');
-            const headerStatus = document.getElementById('chatHeaderStatus');
+            li.innerHTML = `
+                <div class="chat-user-avatar" style="position: relative;">
+                    ${avatarUrl ? 
+                        `<img src="${avatarUrl}" onerror="this.src='${getAvatarUrl(null)}'" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">` : 
+                        `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, #e50914, #b20710); border-radius:50%; font-weight:bold; font-size:18px;">${conv.avatar}</div>`
+                    }
+                    ${unreadCount > 0 ? `<span class="unread-count-badge">${unreadCount > 99 ? '99+' : unreadCount}</span>` : ''}
+                </div>
+                <div class="chat-user-info">
+                    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                        <strong style="font-size: 15px;">${escapeHtml(conv.name)}</strong>
+                        <span style="font-size: 10px; color: #8696a0;">${formatTimeAgo(conv.lastTimestamp)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                        <span style="font-size: 12px; color: ${unreadCount > 0 ? '#e9edef' : '#8696a0'}; ${unreadCount > 0 ? 'font-weight: 500;' : ''}">
+                            ${unreadCount > 0 ? '📩 ' : ''}${escapeHtml(lastMessagePreview)}
+                        </span>
+                        ${unreadCount > 0 ? `<span style="background: #e50914; color: white; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 20px; margin-left: 8px;">${unreadCount}</span>` : ''}
+                    </div>
+                </div>
+            `;
             
-            if (headerName) headerName.innerText = userName;
-            if (headerAvatar) headerAvatar.innerHTML = userAvatarUrl ? `<img src="${userAvatarUrl}" style="width:100%;height:100%;object-fit:cover;">` : userAvatar;
-            if (headerStatus) headerStatus.innerText = 'Online';
-            
-            // Esconder sidebar e mostrar chat
-            const sidebar = document.getElementById('chatSidebar');
-            const main = document.getElementById('chatMain');
-            if (sidebar) sidebar.classList.add('hidden');
-            if (main) main.classList.remove('hidden');
-            
-            // Marcar como lida
-            setTimeout(() => markConversationAsRead(chatId), 500);
-            
-            // Carregar mensagens
-            if (typeof loadChatMessages === 'function') {
-                loadChatMessages(chatId, userId);
-            }
-        };
+            li.onclick = () => openConversation(chatId, conv);
+            container.appendChild(li);
+        }
     }
     
-    // Sobrescrever a função que exibe mensagens para contar não lidas
-    const originalDisplayMessage = window.displayMessage;
-    if (originalDisplayMessage) {
-        window.displayMessage = function(message, messageId) {
-            if (originalDisplayMessage) {
-                originalDisplayMessage(message, messageId);
+    // ========== ABRIR CONVERSA ==========
+    async function openConversation(chatId, convData) {
+        if (!chatId) return;
+        
+        // Salvar dados atuais
+        currentChatId = chatId;
+        currentChatUser = convData.userId;
+        currentChatUserName = convData.name;
+        
+        // Atualizar header do chat
+        const headerName = document.getElementById('chatHeaderName');
+        const headerAvatar = document.getElementById('chatHeaderAvatar');
+        const headerStatus = document.getElementById('chatHeaderStatus');
+        
+        if (headerName) headerName.innerText = convData.name;
+        if (headerAvatar) {
+            if (convData.avatarUrl) {
+                headerAvatar.innerHTML = `<img src="${convData.avatarUrl}" onerror="this.src='${getAvatarUrl(null)}'" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+            } else {
+                headerAvatar.innerHTML = convData.avatar;
+                headerAvatar.style.display = 'flex';
+                headerAvatar.style.alignItems = 'center';
+                headerAvatar.style.justifyContent = 'center';
+                headerAvatar.style.background = 'linear-gradient(135deg, #e50914, #b20710)';
+                headerAvatar.style.borderRadius = '50%';
+                headerAvatar.style.fontWeight = 'bold';
+                headerAvatar.style.fontSize = '18px';
             }
-            
-            // Se a mensagem não é minha e não estou na conversa atual, incrementar contador
-            if (message && currentUser && message.senderId !== currentUser.uid) {
-                const messageChatId = currentChatId; // Precisa saber de qual chat é
-                // Atualizar contagem
-                const currentCount = unreadMessagesMap.get(messageChatId) || 0;
-                unreadMessagesMap.set(messageChatId, currentCount + 1);
-                updateConversationUnreadVisual(messageChatId, currentCount + 1);
-                updateMenuUnreadBadge();
-            }
-        };
+        }
+        if (headerStatus) headerStatus.innerText = 'Online';
+        
+        // Esconder sidebar e mostrar chat (mobile)
+        const sidebar = document.getElementById('chatSidebar');
+        const main = document.getElementById('chatMain');
+        if (sidebar) sidebar.classList.add('hidden');
+        if (main) main.classList.remove('hidden');
+        
+        // Marcar como lida
+        markConversationAsRead(chatId);
+        
+        // Carregar mensagens
+        loadConversationMessages(chatId, convData.userId);
+        
+        // Atualizar lista
+        updateConversationsList();
     }
     
-    // Listener para novas mensagens em tempo real
-    function setupRealtimeUnreadListener() {
+    // ========== CARREGAR MENSAGENS DA CONVERSA ==========
+    function loadConversationMessages(chatId, otherUserId) {
+        if (unsubscribeMessages) unsubscribeMessages();
+        
+        const chatBox = document.getElementById('chatBox');
+        chatBox.innerHTML = '<div class="text-center text-gray-500 py-10">Carregando mensagens...</div>';
+        
+        let messagesRef;
+        if (chatId === 'geral') {
+            messagesRef = database.ref('chat_messages');
+        } else {
+            messagesRef = database.ref(`private_messages/${chatId}`);
+        }
+        
+        const onMessages = (snapshot) => {
+            const messages = snapshot.val();
+            chatBox.innerHTML = '';
+            
+            if (!messages) {
+                chatBox.innerHTML = '<div class="text-center text-gray-500 py-10">Nenhuma mensagem ainda. Envie a primeira!</div>';
+                return;
+            }
+            
+            const messagesList = Object.entries(messages)
+                .map(([id, msg]) => ({ id, ...msg }))
+                .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+            
+            for (const msg of messagesList) {
+                renderMessage(msg, msg.id, chatId);
+            }
+            
+            chatBox.scrollTop = chatBox.scrollHeight;
+        };
+        
+        messagesRef.on('value', onMessages);
+        unsubscribeMessages = () => messagesRef.off('value', onMessages);
+    }
+    
+    // ========== RENDERIZAR MENSAGEM ==========
+    async function renderMessage(message, messageId, chatId) {
+        if (!message) return;
+        
+        const isOwner = currentUser && message.senderId === currentUser.uid;
+        let avatarUrl = getAvatarUrl(null);
+        
+        if (!isOwner && message.senderId) {
+            const userSnap = await database.ref(`usuarios/${message.senderId}/avatarUrl`).once('value');
+            avatarUrl = getAvatarUrl(userSnap.val());
+        }
+        
+        const messageText = message.text || '';
+        const timeStr = formatTimeAgo(message.timestamp);
+        
+        const messageElement = document.createElement('div');
+        messageElement.className = `message ${isOwner ? 'sent' : 'received'}`;
+        
+        messageElement.innerHTML = `
+            <div class="message-avatar">
+                <img src="${avatarUrl}" onerror="this.src='${getAvatarUrl(null)}'" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">
+            </div>
+            <div class="message-content">
+                <p style="word-break: break-word;">${escapeHtml(messageText)}</p>
+                <span class="message-time">${timeStr}</span>
+            </div>
+        `;
+        
+        document.getElementById('chatBox').appendChild(messageElement);
+    }
+    
+    // ========== ENVIAR MENSAGEM ==========
+    async function sendChatMessage() {
+        const input = document.getElementById('chatInput');
+        const text = input.value.trim();
+        
+        if (!text || !currentUser || !currentChatId) return;
+        
+        const messageData = {
+            text: text,
+            senderId: currentUser.uid,
+            senderName: currentUsername || 'Usuário',
+            timestamp: Date.now(),
+            status: 'sent'
+        };
+        
+        let messagesRef;
+        if (currentChatId === 'geral') {
+            messagesRef = database.ref('chat_messages');
+        } else {
+            const chatKey = `private_${[currentUser.uid, currentChatUser].sort().join('_')}`;
+            messagesRef = database.ref(`private_messages/${chatKey}`);
+        }
+        
+        await messagesRef.push(messageData);
+        input.value = '';
+        input.style.height = 'auto';
+        
+        // Rolar para o fim
+        setTimeout(() => {
+            const chatBox = document.getElementById('chatBox');
+            if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+        }, 100);
+    }
+    
+    // ========== ESCUTAR NOVAS MENSAGENS EM TEMPO REAL ==========
+    function setupRealtimeListeners() {
         if (!currentUser) return;
         
         // Ouvir mensagens públicas
         database.ref('chat_messages').on('child_added', async (snapshot) => {
             const message = snapshot.val();
             if (message && message.senderId !== currentUser.uid) {
-                // Verificar se a conversa não está aberta
-                const isCurrentChatOpen = (currentChatId === 'geral');
+                await loadAllConversations();
                 
-                if (!isCurrentChatOpen) {
-                    // Incrementar contador
-                    const currentCount = unreadMessagesMap.get('geral') || 0;
-                    unreadMessagesMap.set('geral', currentCount + 1);
-                    updateConversationUnreadVisual('geral', currentCount + 1);
-                    updateMenuUnreadBadge();
-                } else {
-                    // Se está na conversa, marcar como lida automaticamente
-                    saveReadTimestamp('geral');
+                // Notificação se não estiver na conversa
+                if (currentChatId !== 'geral') {
+                    showNotificationToast(`📩 Nova mensagem no Chat Geral`);
                 }
             }
         });
@@ -9187,91 +9402,142 @@ if (loginAdminBtn) {
             if (messages) {
                 for (const [msgId, message] of Object.entries(messages)) {
                     if (message && message.senderId !== currentUser.uid) {
-                        const isCurrentChatOpen = (currentChatId === chatId);
+                        await loadAllConversations();
                         
-                        if (!isCurrentChatOpen) {
-                            const currentCount = unreadMessagesMap.get(chatId) || 0;
-                            unreadMessagesMap.set(chatId, currentCount + 1);
-                            updateConversationUnreadVisual(chatId, currentCount + 1);
-                            updateMenuUnreadBadge();
-                        } else {
-                            saveReadTimestamp(chatId);
+                        if (currentChatId !== chatId) {
+                            const convData = conversationsData.get(chatId);
+                            const name = convData?.name || 'Alguém';
+                            showNotificationToast(`📩 Nova mensagem de ${name}`);
                         }
-                        break; // Apenas uma notificação por lote
+                        break;
                     }
                 }
             }
         });
     }
     
-    // Forçar atualização da lista de conversas (chamar quando a lista for renderizada)
-    function refreshConversationsUnreadStatus() {
-        document.querySelectorAll('.chat-user').forEach(item => {
-            const chatId = item.getAttribute('data-chat-id');
-            if (chatId) {
-                const unreadCount = unreadMessagesMap.get(chatId) || 0;
-                updateConversationUnreadVisual(chatId, unreadCount);
-            }
-        });
-        updateMenuUnreadBadge();
-    }
-    
-    // Expor funções globalmente
-    window.markConversationAsRead = markConversationAsRead;
-    window.updateMenuUnreadBadge = updateMenuUnreadBadge;
-    window.refreshConversationsUnreadStatus = refreshConversationsUnreadStatus;
-    window.loadAllConversationsAndCountUnread = loadAllConversationsAndCountUnread;
-    
-    // Configurar observer para quando a lista de conversas for carregada
-    function setupConversationsObserver() {
-        const observer = new MutationObserver(() => {
-            refreshConversationsUnreadStatus();
+    // ========== NOTIFICAÇÃO TOAST ==========
+    function showNotificationToast(message) {
+        let toast = document.querySelector('.chat-notification-toast');
+        if (toast) toast.remove();
+        
+        toast = document.createElement('div');
+        toast.className = 'chat-notification-toast';
+        toast.innerHTML = `<i class="fas fa-comment-dots"></i> ${message}`;
+        Object.assign(toast.style, {
+            position: 'fixed',
+            bottom: '80px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: '#202c33',
+            color: 'white',
+            padding: '10px 20px',
+            borderRadius: '30px',
+            fontSize: '13px',
+            zIndex: '9999',
+            animation: 'fadeInOut 3s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
         });
         
-        const container = document.getElementById('chatUsersList');
-        if (container) {
-            observer.observe(container, { childList: true, subtree: true });
-        }
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
     }
     
-    // Inicializar quando o usuário estiver logado
-    if (typeof auth !== 'undefined') {
-        auth.onAuthStateChanged(async (user) => {
-            currentUser = user;
-            if (user) {
-                loadReadTimestamps();
-                setTimeout(async () => {
-                    await loadAllConversationsAndCountUnread();
-                    setupRealtimeUnreadListener();
-                    setupConversationsObserver();
-                    refreshConversationsUnreadStatus();
-                }, 1500);
-            }
-        });
-    }
-    
-    // Se a função loadChatList existir, estender para atualizar contadores
-    const originalLoadChatList = window.loadChatList;
-    if (originalLoadChatList) {
-        window.loadChatList = function() {
-            if (originalLoadChatList) originalLoadChatList();
-            setTimeout(() => {
-                refreshConversationsUnreadStatus();
-                loadAllConversationsAndCountUnread();
-            }, 500);
-        };
-    }
-    
-    // Botão voltar para lista
-    window.backToUsersList = function() {
+    // ========== BOTÃO VOLTAR ==========
+    function backToUsersList() {
         const sidebar = document.getElementById('chatSidebar');
         const main = document.getElementById('chatMain');
         if (sidebar) sidebar.classList.remove('hidden');
         if (main) main.classList.add('hidden');
-        refreshConversationsUnreadStatus();
+        updateConversationsList();
+    }
+    
+    // ========== INICIALIZAR CHAT ==========
+    async function initChatSystem() {
+        if (!currentUser) return;
+        
+        console.log('🔧 Inicializando sistema de chat...');
+        loadReadTimestamps();
+        await loadAllConversations();
+        setupRealtimeListeners();
+        
+        // Adicionar classe para animação
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInOut {
+                0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+                15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+                85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+                100% { opacity: 0; transform: translateX(-50%) translateY(-10px); visibility: hidden; }
+            }
+            .chat-user.unread {
+                background: rgba(229, 9, 20, 0.1);
+                border-left: 3px solid #e50914;
+            }
+            .unread-count-badge {
+                position: absolute;
+                top: -4px;
+                right: -4px;
+                background: #e50914;
+                color: white;
+                font-size: 10px;
+                font-weight: bold;
+                min-width: 18px;
+                height: 18px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 0 5px;
+                border: 1px solid #202c33;
+                z-index: 10;
+            }
+        `;
+        document.head.appendChild(style);
+        
+        console.log('✅ Sistema de chat inicializado com sucesso!');
+    }
+    
+    // ========== EXPOR FUNÇÕES GLOBAIS ==========
+    window.sendChatMessage = sendChatMessage;
+    window.backToUsersList = backToUsersList;
+    window.initChatSystem = initChatSystem;
+    window.sendMessage = sendChatMessage;
+    window.updateChatActions = function() {};
+    window.autoResize = function(textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = (textarea.scrollHeight) + 'px';
+    };
+    window.handleChatKeyPress = function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendChatMessage();
+        }
     };
     
-    console.log('✅ Sistema de contagem de não lidas inicializado com sucesso!');
+    // ========== INTEGRAR COM AUTH DO FIREBASE ==========
+    if (typeof auth !== 'undefined') {
+        auth.onAuthStateChanged(async (user) => {
+            currentUser = user;
+            if (user) {
+                // Aguardar usuário carregar
+                setTimeout(() => initChatSystem(), 1000);
+            }
+        });
+    } else {
+        console.warn('Firebase Auth não encontrado, aguardando...');
+        setTimeout(() => {
+            if (typeof auth !== 'undefined' && auth.currentUser) {
+                currentUser = auth.currentUser;
+                initChatSystem();
+            }
+        }, 2000);
+    }
+    
+    console.log('✅ Script de chat completo carregado!');
 })();
 
 
