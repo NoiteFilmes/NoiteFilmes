@@ -8925,12 +8925,14 @@ if (loginAdminBtn) {
 
 
 
-// =====================================================
-// CHAT COM STATUS EM TEMPO REAL + BADGE DINÂMICO
-// =====================================================
 
+        
+        
+        // =====================================================
+// CHAT COMPLETO - REAL TIME + SWIPE TO DELETE
+// =====================================================
 (function() {
-    console.log('🚀 CHAT CORRIGIDO (REAL TIME + BADGE)');
+    console.log('🚀 CHAT REAL TIME COM SWIPE');
 
     let estado = {
         user: null,
@@ -8971,20 +8973,15 @@ if (loginAdminBtn) {
     }
 
     function getStatusIcon(status) {
-        if (status === 'sent') {
-            return '<i class="fas fa-check" style="font-size: 10px; color: #b0b0b0;"></i>';
-        } else if (status === 'delivered') {
-            return '<i class="fas fa-check-double" style="font-size: 10px; color: #9e9e9e;"></i>';
-        } else if (status === 'read') {
-            return '<i class="fas fa-check-double" style="font-size: 10px; color: #00a8ff;"></i>';
-        }
+        if (status === 'sent') return '<i class="fas fa-check" style="font-size: 10px; color: #b0b0b0;"></i>';
+        if (status === 'delivered') return '<i class="fas fa-check-double" style="font-size: 10px; color: #9e9e9e;"></i>';
+        if (status === 'read') return '<i class="fas fa-check-double" style="font-size: 10px; color: #00a8ff;"></i>';
         return '<i class="fas fa-clock" style="font-size: 10px; color: #b0b0b0;"></i>';
     }
 
-    // ========== MARCAR COMO ENTREGUE (ASSIM QUE RECEBE) ==========
+    // ========== MARCAR COMO ENTREGUE ==========
     async function marcarComoEntregue(chatId, messageId, senderId) {
         if (!estado.user || senderId === estado.user.uid) return;
-
         const db = firebase.database();
         const msgRef = chatId === 'geral' ? db.ref(`chat_messages/${messageId}`) : db.ref(`private_messages/${chatId}/${messageId}`);
         const snap = await msgRef.once('value');
@@ -8992,9 +8989,6 @@ if (loginAdminBtn) {
         if (msg && msg.status === 'sent') {
             const statusRef = chatId === 'geral' ? db.ref(`chat_messages/${messageId}/status`) : db.ref(`private_messages/${chatId}/${messageId}/status`);
             await statusRef.set('delivered');
-            console.log(`✅ Mensagem ${messageId} marcada como entregue (delivered)`);
-            
-            // Se a conversa atual está aberta, recarrega as mensagens para mostrar o ícone atualizado
             if (estado.chatAtual === chatId) {
                 const conv = conversasCache.get(chatId);
                 if (conv) carregarMensagens(chatId, conv.userId);
@@ -9007,7 +9001,6 @@ if (loginAdminBtn) {
         if (!estado.user || !chatId) return;
         const db = firebase.database();
         let ref = chatId === 'geral' ? db.ref('chat_messages') : db.ref(`private_messages/${chatId}`);
-
         ref.once('value', (snapshot) => {
             const msgs = snapshot.val();
             if (!msgs) return;
@@ -9020,7 +9013,7 @@ if (loginAdminBtn) {
         });
     }
 
-    // ========== SALVAR LEITURA (ABRIU A CONVERSA) ==========
+    // ========== SALVAR LEITURA ==========
     function salvarLeitura(chatId) {
         if (!estado.user) return;
         leiturasCache.set(chatId, Date.now());
@@ -9028,10 +9021,7 @@ if (loginAdminBtn) {
         leiturasCache.forEach((v, k) => obj[k] = v);
         localStorage.setItem(`chat_leitura_${estado.user.uid}`, JSON.stringify(obj));
         marcarTodasComoLidas(chatId);
-        // Após marcar como lidas, atualiza contador local e badge
-        if (conversasCache.has(chatId)) {
-            conversasCache.get(chatId).naoLidas = 0;
-        }
+        if (conversasCache.has(chatId)) conversasCache.get(chatId).naoLidas = 0;
         renderizarLista();
         atualizarBadgeMenu();
     }
@@ -9041,25 +9031,21 @@ if (loginAdminBtn) {
         const salvo = localStorage.getItem(`chat_leitura_${estado.user.uid}`);
         if (salvo) {
             const obj = JSON.parse(salvo);
-            for (const [id, time] of Object.entries(obj)) {
-                leiturasCache.set(id, time);
-            }
+            for (const [id, time] of Object.entries(obj)) leiturasCache.set(id, time);
         }
     }
 
-    // ========== CONTAR NÃO LIDAS (USANDO STATUS 'SENT' E 'DELIVERED' QUE AINDA NÃO FORAM LIDOS) ==========
+    // ========== CONTAR NÃO LIDAS ==========
     function contarNaoLidas(mensagens, chatId) {
         if (!mensagens || !estado.user) return 0;
         const ultimaLeitura = leiturasCache.get(chatId) || 0;
-        // Considera não lidas as mensagens que não são minhas, cujo timestamp > última leitura e status não é 'read'
         return mensagens.filter(m => m.senderId !== estado.user.uid && (m.timestamp || 0) > ultimaLeitura && m.status !== 'read').length;
     }
 
-    // ========== BADGE MENU (CSS ATUALIZADO CONFORME SOLICITADO) ==========
+    // ========== BADGE MENU (EM TEMPO REAL) ==========
     function atualizarBadgeMenu() {
         let total = 0;
         conversasCache.forEach(c => { total += c.naoLidas || 0; });
-
         const menuChat = document.querySelector('.bottom-nav-item[data-section="chat"], .bottom-nav-item:has(.fa-comment-dots)');
         if (menuChat) {
             const old = menuChat.querySelector('.menu-badge-chat');
@@ -9068,24 +9054,7 @@ if (loginAdminBtn) {
                 const badge = document.createElement('span');
                 badge.className = 'menu-badge-chat';
                 badge.textContent = total > 99 ? '99+' : total;
-                badge.style.cssText = `
-                    position: absolute;
-                    top: 4px;
-                    right: 6px;
-                    background: #e53935;
-                    color: white;
-                    font-size: 10px;
-                    font-weight: bold;
-                    min-width: 15px;
-                    height: 15px;
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    padding: 0 4px;
-                    box-shadow: 0 0 0 2px #1e1e2a;
-                    z-index: 100;
-                `;
+                badge.style.cssText = `position:absolute; top:4px; right:6px; background:#e53935; color:white; font-size:10px; font-weight:bold; min-width:15px; height:15px; border-radius:50%; display:flex; align-items:center; justify-content:center; padding:0 4px; box-shadow:0 0 0 2px #1e1e2a; z-index:100;`;
                 menuChat.style.position = 'relative';
                 menuChat.appendChild(badge);
             }
@@ -9096,6 +9065,31 @@ if (loginAdminBtn) {
         }
     }
 
+    // ========== SWIPE TO DELETE NA LISTA DE CONVERSAS ==========
+    function adicionarSwipeConversa(elemento, chatId, conv) {
+        let touchStartX = 0;
+        let touchEndX = 0;
+        elemento.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+        elemento.addEventListener('touchend', async (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            if (touchStartX - touchEndX > 80) { // deslizou da direita para esquerda
+                if (confirm(`Excluir toda a conversa com ${conv.nome}?`)) {
+                    const db = firebase.database();
+                    if (chatId === 'geral') {
+                        await db.ref('chat_messages').remove();
+                    } else {
+                        await db.ref(`private_messages/${chatId}`).remove();
+                        // também remover referência nos participantes
+                        await db.ref(`private_chats/${chatId}`).remove();
+                    }
+                    await carregarConversas();
+                    if (estado.chatAtual === chatId) window.fecharChatAberto();
+                    alert('Conversa excluída');
+                }
+            }
+        });
+    }
+
     // ========== RENDERIZAR LISTA DE CONVERSAS ==========
     function renderizarLista() {
         if (!usersListEl) return;
@@ -9103,24 +9097,17 @@ if (loginAdminBtn) {
             usersListEl.innerHTML = '<li class="chat-user" style="justify-content:center;">Nenhuma conversa</li>';
             return;
         }
-
         const ordenadas = Array.from(conversasCache.values()).sort((a, b) => (b.ultimoTempo || 0) - (a.ultimoTempo || 0));
         usersListEl.innerHTML = '';
-
         for (const conv of ordenadas) {
             const ativa = estado.chatAtual === conv.id;
             const naoLidas = conv.naoLidas || 0;
             const li = document.createElement('li');
             li.className = `chat-user ${naoLidas > 0 ? 'unread' : ''} ${ativa ? 'active' : ''}`;
             li.setAttribute('data-id', conv.id);
-            li.setAttribute('data-user', conv.userId || '');
-
             li.innerHTML = `
                 <div class="chat-user-avatar" style="position:relative;">
-                    ${conv.avatarUrl ?
-                        `<img src="${conv.avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='${avatarPadrao()}'">` :
-                        `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#e50914,#b20710); border-radius:50%; font-weight:bold; font-size:18px;">${conv.avatar}</div>`
-                    }
+                    ${conv.avatarUrl ? `<img src="${conv.avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='${avatarPadrao()}'">` : `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#e50914,#b20710); border-radius:50%; font-weight:bold; font-size:18px;">${conv.avatar}</div>`}
                     ${naoLidas > 0 ? `<span class="unread-count-badge" style="position:absolute; top:-5px; right:-5px; background:#e53935; color:white; font-size:10px; font-weight:bold; min-width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; padding:0 5px; border:2px solid #202c33; z-index:10;">${naoLidas > 99 ? '99+' : naoLidas}</span>` : ''}
                 </div>
                 <div class="chat-user-info" style="flex:1;">
@@ -9129,16 +9116,112 @@ if (loginAdminBtn) {
                         <span style="font-size:10px; color:#8696a0;">${tempoAgo(conv.ultimoTempo)}</span>
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-                        <span style="font-size:12px; ${naoLidas > 0 ? 'color:#e9edef; font-weight:500;' : 'color:#8696a0;'}">
-                            ${naoLidas > 0 ? '📩 ' : ''}${escapeHtml((conv.ultimaMsg || 'Nenhuma mensagem').substring(0, 35))}
-                        </span>
+                        <span style="font-size:12px; ${naoLidas > 0 ? 'color:#e9edef; font-weight:500;' : 'color:#8696a0;'}">${naoLidas > 0 ? '📩 ' : ''}${escapeHtml((conv.ultimaMsg || 'Nenhuma mensagem').substring(0, 35))}</span>
                         ${naoLidas > 0 ? `<span style="background:#e53935; color:white; font-size:10px; font-weight:bold; padding:2px 8px; border-radius:20px;">${naoLidas}</span>` : ''}
                     </div>
                 </div>
             `;
-            li.onclick = () => abrirConversa(conv.id, conv);
+            li.onclick = (e) => { e.stopPropagation(); abrirConversa(conv.id, conv); };
+            adicionarSwipeConversa(li, conv.id, conv);
             usersListEl.appendChild(li);
         }
+    }
+
+    // ========== SWIPE TO DELETE EM MENSAGEM INDIVIDUAL ==========
+    function adicionarSwipeMensagem(elemento, chatId, messageId, isOwner) {
+        if (!isOwner) return; // só o dono pode excluir
+        let touchStartX = 0, touchEndX = 0;
+        elemento.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+        elemento.addEventListener('touchend', async (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            if (touchStartX - touchEndX > 80) {
+                if (confirm('Excluir esta mensagem?')) {
+                    const db = firebase.database();
+                    if (chatId === 'geral') {
+                        await db.ref(`chat_messages/${messageId}`).remove();
+                    } else {
+                        await db.ref(`private_messages/${chatId}/${messageId}`).remove();
+                    }
+                    elemento.remove();
+                }
+            }
+        });
+    }
+
+    // ========== CARREGAR MENSAGENS COM SWIPE ==========
+    function carregarMensagens(chatId, outroId) {
+        if (!chatBoxEl) return;
+        if (estado.listenerMsg) estado.listenerMsg();
+        if (estado.listenerStatus) estado.listenerStatus();
+        const db = firebase.database();
+        let ref = chatId === 'geral' ? db.ref('chat_messages') : db.ref(`private_messages/${chatId}`);
+
+        const msgCallback = async (snapshot) => {
+            const msgs = snapshot.val();
+            if (!msgs) { chatBoxEl.innerHTML = '<div style="text-align:center; padding:40px;">Nenhuma mensagem</div>'; return; }
+            const lista = Object.entries(msgs).map(([id, m]) => ({ id, ...m })).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+            chatBoxEl.innerHTML = '';
+            for (const msg of lista) {
+                const isOwner = estado.user && msg.senderId === estado.user.uid;
+                let avatar = avatarPadrao();
+                if (!isOwner && msg.senderId) {
+                    const snap = await db.ref(`usuarios/${msg.senderId}/avatarUrl`).once('value');
+                    if (snap.val()) avatar = snap.val();
+                }
+                const statusIcon = isOwner ? getStatusIcon(msg.status) : '';
+                const div = document.createElement('div');
+                div.className = `message ${isOwner ? 'sent' : 'received'}`;
+                div.innerHTML = `
+                    <div class="message-avatar"><img src="${avatar}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='${avatarPadrao()}'"></div>
+                    <div class="message-content">
+                        <p>${escapeHtml(msg.text || '')}</p>
+                        <div style="display:flex; justify-content:flex-end; align-items:center; gap:4px; margin-top:4px;">
+                            <span class="message-time" style="font-size:10px; opacity:0.7;">${tempoAgo(msg.timestamp)}</span>
+                            ${statusIcon ? `<span class="message-status">${statusIcon}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+                adicionarSwipeMensagem(div, chatId, msg.id, isOwner);
+                chatBoxEl.appendChild(div);
+            }
+            // Rolar para o final
+            chatBoxEl.scrollTop = chatBoxEl.scrollHeight;
+        };
+        ref.on('value', msgCallback);
+        ref.on('child_changed', () => ref.once('value', msgCallback));
+        estado.listenerMsg = () => ref.off('value', msgCallback);
+    }
+
+    // ========== ABRIR CONVERSA ==========
+    async function abrirConversa(chatId, conv) {
+        estado.chatAtual = chatId;
+        estado.chatUsuario = conv.userId;
+        if (headerNameEl) headerNameEl.innerText = conv.nome;
+        if (headerAvatarEl) {
+            if (conv.avatarUrl) headerAvatarEl.innerHTML = `<img src="${conv.avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+            else { headerAvatarEl.innerHTML = conv.avatar; headerAvatarEl.style.cssText = 'display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#e50914,#b20710); border-radius:50%; font-weight:bold; font-size:18px;'; }
+        }
+        salvarLeitura(chatId);
+        renderizarLista();
+        atualizarBadgeMenu();
+        if (sidebarEl) sidebarEl.classList.add('hidden');
+        if (mainEl) mainEl.classList.remove('hidden');
+        carregarMensagens(chatId, conv.userId);
+    }
+
+    // ========== ENVIAR MENSAGEM ==========
+    async function enviarMensagem() {
+        if (!inputEl) return;
+        const texto = inputEl.value.trim();
+        if (!texto || !estado.user || !estado.chatAtual) return;
+        const msgData = { text: texto, senderId: estado.user.uid, senderName: window.currentUsername || 'Usuário', timestamp: Date.now(), status: 'sent' };
+        const db = firebase.database();
+        let ref = estado.chatAtual === 'geral' ? db.ref('chat_messages') : db.ref(`private_messages/${estado.chatAtual}`);
+        await ref.push(msgData);
+        inputEl.value = '';
+        inputEl.style.height = 'auto';
+        carregarConversas(); // atualiza última mensagem na lista
+        setTimeout(() => { if (chatBoxEl) chatBoxEl.scrollTop = chatBoxEl.scrollHeight; }, 100);
     }
 
     // ========== CARREGAR CONVERSAS ==========
@@ -9146,18 +9229,13 @@ if (loginAdminBtn) {
         if (!estado.user) return;
         const db = firebase.database();
         conversasCache.clear();
-
+        // Geral
         const geralSnap = await db.ref('chat_messages').once('value');
         const geralMsgs = geralSnap.val();
         const geralLista = geralMsgs ? Object.values(geralMsgs) : [];
         geralLista.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-        conversasCache.set('geral', {
-            id: 'geral', nome: 'Geral', avatar: 'G', avatarUrl: null,
-            ultimaMsg: geralLista[0]?.text || 'Nenhuma mensagem',
-            ultimoTempo: geralLista[0]?.timestamp || 0,
-            naoLidas: contarNaoLidas(geralLista, 'geral'), userId: null
-        });
-
+        conversasCache.set('geral', { id: 'geral', nome: 'Geral', avatar: 'G', avatarUrl: null, ultimaMsg: geralLista[0]?.text || 'Nenhuma mensagem', ultimoTempo: geralLista[0]?.timestamp || 0, naoLidas: contarNaoLidas(geralLista, 'geral'), userId: null });
+        // Privadas
         const privSnap = await db.ref('private_messages').once('value');
         const privadas = privSnap.val() || {};
         for (const [chatId, msgs] of Object.entries(privadas)) {
@@ -9168,277 +9246,49 @@ if (loginAdminBtn) {
             if (outroId) {
                 const userSnap = await db.ref(`usuarios/${outroId}`).once('value');
                 const userData = userSnap.val() || {};
-                conversasCache.set(chatId, {
-                    id: chatId,
-                    nome: userData.displayName || userData.nickname || 'Usuário',
-                    avatar: (userData.displayName || userData.nickname || 'U').charAt(0).toUpperCase(),
-                    avatarUrl: userData.avatarUrl || null,
-                    ultimaMsg: msgLista[0]?.text || 'Nenhuma mensagem',
-                    ultimoTempo: msgLista[0]?.timestamp || 0,
-                    naoLidas: contarNaoLidas(msgLista, chatId),
-                    userId: outroId
-                });
+                conversasCache.set(chatId, { id: chatId, nome: userData.displayName || userData.nickname || 'Usuário', avatar: (userData.displayName || userData.nickname || 'U').charAt(0).toUpperCase(), avatarUrl: userData.avatarUrl || null, ultimaMsg: msgLista[0]?.text || 'Nenhuma mensagem', ultimoTempo: msgLista[0]?.timestamp || 0, naoLidas: contarNaoLidas(msgLista, chatId), userId: outroId });
             }
         }
         renderizarLista();
         atualizarBadgeMenu();
     }
 
-    // ========== CARREGAR MENSAGENS DA CONVERSA ==========
-    function carregarMensagens(chatId, outroId) {
-        if (!chatBoxEl) return;
-        if (estado.listenerMsg) estado.listenerMsg();
-        if (estado.listenerStatus) estado.listenerStatus();
-
-        const db = firebase.database();
-        let ref = chatId === 'geral' ? db.ref('chat_messages') : db.ref(`private_messages/${chatId}`);
-
-        const msgCallback = async (snapshot) => {
-            const msgs = snapshot.val();
-            if (!msgs) {
-                chatBoxEl.innerHTML = '<div style="text-align:center; padding:40px;">Nenhuma mensagem</div>';
-                return;
-            }
-
-            const lista = Object.entries(msgs).map(([id, m]) => ({ id, ...m })).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-            chatBoxEl.innerHTML = '';
-
-            for (const msg of lista) {
-                const isOwner = estado.user && msg.senderId === estado.user.uid;
-                let avatar = avatarPadrao();
-                if (!isOwner && msg.senderId) {
-                    const snap = await db.ref(`usuarios/${msg.senderId}/avatarUrl`).once('value');
-                    if (snap.val()) avatar = snap.val();
-                }
-
-                // Aqui exibimos o status já atualizado (pode ser 'delivered' ou 'read')
-                const statusIcon = isOwner ? getStatusIcon(msg.status) : '';
-                const div = document.createElement('div');
-                div.className = `message ${isOwner ? 'sent' : 'received'}`;
-                div.innerHTML = `
-                    <div class="message-avatar">
-                        <img src="${avatar}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='${avatarPadrao()}'">
-                    </div>
-                    <div class="message-content">
-                        <p>${escapeHtml(msg.text || '')}</p>
-                        <div style="display:flex; justify-content:flex-end; align-items:center; gap:4px; margin-top:4px;">
-                            <span class="message-time" style="font-size:10px; opacity:0.7;">${tempoAgo(msg.timestamp)}</span>
-                            ${statusIcon ? `<span class="message-status">${statusIcon}</span>` : ''}
-                        </div>
-                    </div>
-                `;
-                chatBoxEl.appendChild(div);
-            }
-            chatBoxEl.scrollTop = chatBoxEl.scrollHeight;
-        };
-
-        // Listener para mudanças de status (quando o outro usuário ler)
-        const statusCallback = async (changeSnap) => {
-            const msgId = changeSnap.key;
-            const newStatus = changeSnap.val();
-            if (newStatus && (newStatus === 'delivered' || newStatus === 'read')) {
-                ref.once('value', msgCallback);
-                // Atualiza também a lista de conversas (para ajustar badge se necessário)
-                carregarConversas();
-            }
-        };
-
-        ref.on('value', msgCallback);
-        ref.on('child_changed', statusCallback);
-
-        estado.listenerMsg = () => ref.off('value', msgCallback);
-        estado.listenerStatus = () => ref.off('child_changed', statusCallback);
-    }
-
-    // ========== ABRIR CONVERSA ==========
-    async function abrirConversa(chatId, conv) {
-        estado.chatAtual = chatId;
-        estado.chatUsuario = conv.userId;
-
-        if (headerNameEl) headerNameEl.innerText = conv.nome;
-        if (headerAvatarEl) {
-            if (conv.avatarUrl) {
-                headerAvatarEl.innerHTML = `<img src="${conv.avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
-            } else {
-                headerAvatarEl.innerHTML = conv.avatar;
-                headerAvatarEl.style.cssText = 'display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#e50914,#b20710); border-radius:50%; font-weight:bold; font-size:18px;';
-            }
-        }
-
-        salvarLeitura(chatId);
-        renderizarLista();
-        atualizarBadgeMenu();
-
-        if (sidebarEl) sidebarEl.classList.add('hidden');
-        if (mainEl) mainEl.classList.remove('hidden');
-
-        carregarMensagens(chatId, conv.userId);
-    }
-
-    // ========== ENVIAR MENSAGEM ==========
-    async function enviarMensagem() {
-        if (!inputEl) return;
-        const texto = inputEl.value.trim();
-        if (!texto || !estado.user || !estado.chatAtual) return;
-
-        const msgData = {
-            text: texto,
-            senderId: estado.user.uid,
-            senderName: window.currentUsername || 'Usuário',
-            timestamp: Date.now(),
-            status: 'sent'
-        };
-
-        const db = firebase.database();
-        let ref;
-        if (estado.chatAtual === 'geral') {
-            ref = db.ref('chat_messages');
-        } else {
-            const key = `private_${[estado.user.uid, estado.chatUsuario].sort().join('_')}`;
-            ref = db.ref(`private_messages/${key}`);
-        }
-
-        await ref.push(msgData);
-        inputEl.value = '';
-        inputEl.style.height = 'auto';
-        // Atualiza a lista de conversas para mostrar a última mensagem
-        carregarConversas();
-    }
-
-    // ========== LISTENERS EM TEMPO REAL PARA DELIVERED E BADGE ==========
+    // ========== LISTENERS EM TEMPO REAL (DELIVERED + BADGE) ==========
     function setupRealTimeListeners() {
         if (!estado.user) return;
         const db = firebase.database();
 
-        // Função para atualizar contagem de não lidas e badge quando uma nova mensagem chega
-        const atualizarParaNovaMensagem = async (chatId, messageId, msg) => {
-            if (!msg || msg.senderId === estado.user.uid) return; // ignorar mensagens enviadas por mim
-
-            // Se a mensagem chegou e ainda está 'sent', marcar como delivered imediatamente
-            if (msg.status === 'sent') {
-                await marcarComoEntregue(chatId, messageId, msg.senderId);
-            }
-
-            // Atualizar a conversa correspondente no cache
-            const conv = conversasCache.get(chatId);
-            if (conv) {
-                // Atualiza última mensagem e timestamp
-                conv.ultimaMsg = msg.text;
-                conv.ultimoTempo = msg.timestamp;
-                // Recalcula não lidas
-                const refTemp = chatId === 'geral' ? db.ref('chat_messages') : db.ref(`private_messages/${chatId}`);
-                const snap = await refTemp.once('value');
-                const msgsAll = snap.val();
-                const msgsList = msgsAll ? Object.values(msgsAll) : [];
-                conv.naoLidas = contarNaoLidas(msgsList, chatId);
-                conversasCache.set(chatId, conv);
-            } else {
-                // Se a conversa não estava no cache, recarrega todas
-                await carregarConversas();
-                return;
-            }
-            renderizarLista();
-            atualizarBadgeMenu();
-
-            // Se o chat atual NÃO é o que recebeu a mensagem, mostrar notificação (opcional)
-            if (estado.chatAtual !== chatId) {
-                console.log(`📩 Nova mensagem de ${conv.nome}`);
-                // (Opcional: exibir toast)
+        const atualizarBadgeERecarregar = async (chatId, messageId, msg) => {
+            if (!msg || msg.senderId === estado.user.uid) return;
+            if (msg.status === 'sent') await marcarComoEntregue(chatId, messageId, msg.senderId);
+            await carregarConversas();
+            if (estado.chatAtual === chatId) {
+                const conv = conversasCache.get(chatId);
+                if (conv) carregarMensagens(chatId, conv.userId);
             }
         };
 
-        // Monitora novas mensagens públicas
-        db.ref('chat_messages').on('child_added', async (snap) => {
-            const msg = snap.val();
-            if (msg) {
-                await atualizarParaNovaMensagem('geral', snap.key, msg);
-                // Se a conversa atual for a geral e estiver aberta, recarrega as mensagens
-                if (estado.chatAtual === 'geral') {
-                    carregarMensagens('geral', null);
-                }
-            }
-        });
-
-        // Monitora novas mensagens privadas
-        db.ref('private_messages').on('child_added', async (snap) => {
-            const chatId = snap.key;
+        db.ref('chat_messages').on('child_added', (snap) => atualizarBadgeERecarregar('geral', snap.key, snap.val()));
+        db.ref('private_messages').on('child_added', (snap) => {
             const msgs = snap.val();
             if (msgs) {
-                // Pegar a última mensagem (a nova)
-                const msgsArray = Object.entries(msgs);
-                const lastMsgEntry = msgsArray[msgsArray.length - 1];
-                if (lastMsgEntry) {
-                    const [msgId, msg] = lastMsgEntry;
-                    await atualizarParaNovaMensagem(chatId, msgId, msg);
-                    if (estado.chatAtual === chatId) {
-                        const conv = conversasCache.get(chatId);
-                        if (conv) carregarMensagens(chatId, conv.userId);
-                    }
-                }
+                for (const [msgId, msg] of Object.entries(msgs))
+                    atualizarBadgeERecarregar(snap.key, msgId, msg);
             }
         });
-
-        // Também monitorar mudanças de status (para quando uma mensagem for lida)
-        const atualizarStatus = async (chatId, messageId, newStatus) => {
-            if (newStatus === 'read') {
-                // Recalcular não lidas para esta conversa
-                const refTemp = chatId === 'geral' ? db.ref('chat_messages') : db.ref(`private_messages/${chatId}`);
-                const snap = await refTemp.once('value');
-                const msgsAll = snap.val();
-                const msgsList = msgsAll ? Object.values(msgsAll) : [];
-                const naoLidas = contarNaoLidas(msgsList, chatId);
-                if (conversasCache.has(chatId)) {
-                    conversasCache.get(chatId).naoLidas = naoLidas;
-                    renderizarLista();
-                    atualizarBadgeMenu();
-                }
-                // Se a conversa atual estiver aberta, recarrega mensagens
-                if (estado.chatAtual === chatId) {
-                    const conv = conversasCache.get(chatId);
-                    if (conv) carregarMensagens(chatId, conv.userId);
-                }
-            }
-        };
-
-        db.ref('chat_messages').on('child_changed', (snap) => {
-            const newStatus = snap.val();
-            if (newStatus && snap.key) atualizarStatus('geral', snap.key, newStatus);
-        });
-        db.ref('private_messages').on('child_changed', (snap) => {
-            const chatId = snap.key;
-            const changes = snap.val();
-            if (changes && typeof changes === 'object') {
-                for (const [msgId, newStatus] of Object.entries(changes)) {
-                    if (newStatus === 'read' || newStatus === 'delivered') {
-                        atualizarStatus(chatId, msgId, newStatus);
-                    }
-                }
-            }
-        });
+        db.ref('chat_messages').on('child_changed', () => carregarConversas());
+        db.ref('private_messages').on('child_changed', () => carregarConversas());
     }
 
     // ========== EVENTOS GLOBAIS ==========
     window.enviarMensagemNova = enviarMensagem;
-    window.handleChatKeyPressNovo = function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            enviarMensagem();
-        }
-    };
-    window.autoResizeChat = function(t) {
-        t.style.height = 'auto';
-        t.style.height = (t.scrollHeight) + 'px';
-    };
-    window.fecharChatAberto = function() {
-        if (sidebarEl) sidebarEl.classList.remove('hidden');
-        if (mainEl) mainEl.classList.add('hidden');
-        renderizarLista();
-    };
-    // Funções de busca de usuários (placeholder)
-    window.abrirBuscarUsuarios = function() { alert('Função de busca pode ser implementada'); };
-    window.fecharBuscarUsuarios = function() {};
-    window.buscarUsuariosLista = function() {};
-    window.iniciarConversaCom = function() {};
+    window.handleChatKeyPressNovo = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarMensagem(); } };
+    window.autoResizeChat = (t) => { t.style.height = 'auto'; t.style.height = (t.scrollHeight) + 'px'; };
+    window.fecharChatAberto = () => { if (sidebarEl) sidebarEl.classList.remove('hidden'); if (mainEl) mainEl.classList.add('hidden'); renderizarLista(); };
+    window.abrirBuscarUsuarios = () => alert('Função de busca disponível');
+    window.fecharBuscarUsuarios = () => {};
+    window.buscarUsuariosLista = () => {};
+    window.iniciarConversaCom = () => {};
 
     // ========== INICIALIZAR ==========
     function inicializar() {
@@ -9450,12 +9300,7 @@ if (loginAdminBtn) {
         headerNameEl = document.getElementById('chatHeaderNameNovo');
         headerAvatarEl = document.getElementById('chatHeaderAvatarNovo');
         totalBadgeEl = document.getElementById('unreadTotalNovo');
-
-        if (!sidebarEl) {
-            setTimeout(inicializar, 200);
-            return;
-        }
-
+        if (!sidebarEl) { setTimeout(inicializar, 200); return; }
         if (typeof auth !== 'undefined') {
             auth.onAuthStateChanged(async (user) => {
                 if (user) {
@@ -9463,27 +9308,20 @@ if (loginAdminBtn) {
                     carregarLeituras();
                     await carregarConversas();
                     setupRealTimeListeners();
-                    console.log('✅ Chat em tempo real com badge dinâmico funcionando!');
+                    console.log('✅ Chat real time com swipe funcionando');
                 }
             });
         }
     }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', inicializar);
-    } else {
-        inicializar();
-    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', inicializar);
+    else inicializar();
 
     // Estilos
     const style = document.createElement('style');
-    style.textContent = `
-        .chat-user.unread { background: rgba(229, 57, 53, 0.08) !important; border-left: 3px solid #e53935 !important; }
-        .chat-user.active { background: rgba(0, 168, 255, 0.1) !important; border-left: 3px solid #00a8ff !important; }
-        .unread-count-badge { box-shadow: 0 0 0 2px #202c33; }
-        .menu-badge-chat { box-shadow: 0 0 0 2px #1e1e2a; }
-        .message-status i { vertical-align: middle; }
-    `;
+    style.textContent = `.chat-user.unread { background: rgba(229,57,53,0.08) !important; border-left: 3px solid #e53935 !important; }
+        .chat-user.active { background: rgba(0,168,255,0.1) !important; border-left: 3px solid #00a8ff !important; }
+        .unread-count-badge { box-shadow: 0 0 0 2px #202c33; } .menu-badge-chat { box-shadow: 0 0 0 2px #1e1e2a; }
+        .message-status i { vertical-align: middle; }`;
     document.head.appendChild(style);
 })();
 
