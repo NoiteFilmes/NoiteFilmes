@@ -14,70 +14,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-
-/* Estilos do NOVO Chat */
-.chat-user.unread {
-    background: rgba(229, 9, 20, 0.15);
-    border-left: 3px solid #e50914 !important;
-}
-
-.unread-count-badge {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    background: #e50914;
-    color: white;
-    font-size: 10px;
-    font-weight: bold;
-    min-width: 20px;
-    height: 20px;
-    border-radius: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 5px;
-    border: 2px solid #202c33;
-    z-index: 999;
-}
-
-.chat-unread-badge {
-    position: absolute;
-    top: -8px;
-    right: -12px;
-    background: #e50914;
-    color: white;
-    font-size: 11px;
-    font-weight: bold;
-    min-width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 4px;
-    box-shadow: 0 0 0 2px #0a0a0a;
-    z-index: 1000;
-}
-
-.chat-notification-toast {
-    animation: fadeInOutChat 3s ease forwards;
-}
-
-@keyframes fadeInOutChat {
-    0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
-    15% { opacity: 1; transform: translateX(-50%) translateY(0); }
-    85% { opacity: 1; transform: translateX(-50%) translateY(0); }
-    100% { opacity: 0; transform: translateX(-50%) translateY(-10px); visibility: hidden; }
-}
-
-/* Para o badge no menu bottom */
-.bottom-nav-item[data-section="chat"] {
-    position: relative;
-}
-
-
-
-        
         * { 
             box-sizing: border-box; 
             -webkit-tap-highlight-color: transparent; 
@@ -5621,7 +5557,7 @@
                 function setupMessageStatusListener(chatId, otherUserId) { if (messageStatusListeners.has(chatId)) return; const messagesRef = chatId === 'geral' ? database.ref('chat_messages') : database.ref(`private_messages/${chatId}`); const onStatusChange = (snapshot) => { const messages = snapshot.val(); if (!messages) return; Object.entries(messages).forEach(([msgId, msg]) => { if (msg.senderId !== currentUser?.uid && msg.status !== 'read') markMessageAsRead(msgId, chatId, msg.senderId); if (msg.senderId === currentUser?.uid && msg.status) updateMessageStatus(msgId, msg.status); }); }; messagesRef.on('value', onStatusChange); messageStatusListeners.set(chatId, onStatusChange); }
                 
                 // ========== FUNÇÕES DO CHAT ==========
-                function //loadChatList() { const user = auth.currentUser; if (!user) { document.getElementById('chatUsersList').innerHTML = '<li class="chat-user" style="justify-content:center;">Faça login para ver suas conversas</li>'; return; } const usersList = document.getElementById('chatUsersList'); usersList.innerHTML = ''; const geralItem = document.createElement('li'); geralItem.className = 'chat-user'; geralItem.setAttribute('data-chat-id', 'geral'); geralItem.setAttribute('data-user-id', 'geral'); geralItem.setAttribute('data-user-name', 'Geral'); geralItem.setAttribute('data-user-avatar', 'G'); geralItem.onclick = () => selectChat('geral', 'Geral', 'G', null); geralItem.innerHTML = `<div class="chat-user-avatar">G</div><div class="chat-user-info"><strong>Geral</strong><span>Conversa com todos</span></div>`; usersList.appendChild(geralItem); database.ref('usuarios').once('value', (snapshot) => { const users = snapshot.val(); if (!users) return; const chatUsers = []; for (let uid in users) { if (uid !== user.uid) { const userData = users[uid]; chatUsers.push({ uid: uid, nickname: userData.nickname || uid.substring(0, 6), lastSeen: userData.lastSeen || null, displayName: userData.displayName || userData.nickname || 'Usuário', avatarUrl: getAvatarUrl(userData.avatarUrl) }); } } chatUsers.forEach((userData) => { const unreadCount = unreadMessages.get(userData.uid) || 0; const displayName = userData.displayName || userData.nickname || 'Usuário'; const chatItem = document.createElement('li'); chatItem.className = `chat-user ${unreadCount > 0 ? 'unread' : ''}`; chatItem.setAttribute('data-chat-id', `private_${userData.uid}`); chatItem.setAttribute('data-user-id', userData.uid); chatItem.setAttribute('data-user-name', displayName); chatItem.setAttribute('data-user-avatar', displayName.charAt(0).toUpperCase()); chatItem.onclick = () => selectChat(`private_${userData.uid}`, displayName, displayName.charAt(0).toUpperCase(), userData.uid); const isOnline = userData.lastSeen && (Date.now() - userData.lastSeen < 60000); const onlineClass = isOnline ? 'online' : ''; const lastSeenText = formatLastSeen(userData.lastSeen); chatItem.innerHTML = `<div class="chat-user-avatar ${onlineClass}"><img src="${userData.avatarUrl}" onerror="this.src='${DEFAULT_AVATAR_URL}'" style="width:100%; height:100%; object-fit:cover;">${unreadCount > 0 ? '<span class="unread-badge">' + unreadCount + '</span>' : ''}</div><div class="chat-user-info"><strong>${displayName}</strong><span>${lastSeenText}</span></div>`; usersList.appendChild(chatItem); if (userData.lastSeen) { const interval = setInterval(() => { const now = Date.now(); const isOnlineNow = (now - userData.lastSeen) < 60000; const avatarDiv = chatItem.querySelector('.chat-user-avatar'); const infoSpan = chatItem.querySelector('.chat-user-info span'); if (avatarDiv) { if (isOnlineNow) avatarDiv.classList.add('online'); else avatarDiv.classList.remove('online'); } if (infoSpan) infoSpan.innerText = formatLastSeen(userData.lastSeen); }, 30000); userStatusListeners.set(userData.uid, interval); } }); }); }
+                function loadChatList() { const user = auth.currentUser; if (!user) { document.getElementById('chatUsersList').innerHTML = '<li class="chat-user" style="justify-content:center;">Faça login para ver suas conversas</li>'; return; } const usersList = document.getElementById('chatUsersList'); usersList.innerHTML = ''; const geralItem = document.createElement('li'); geralItem.className = 'chat-user'; geralItem.setAttribute('data-chat-id', 'geral'); geralItem.setAttribute('data-user-id', 'geral'); geralItem.setAttribute('data-user-name', 'Geral'); geralItem.setAttribute('data-user-avatar', 'G'); geralItem.onclick = () => selectChat('geral', 'Geral', 'G', null); geralItem.innerHTML = `<div class="chat-user-avatar">G</div><div class="chat-user-info"><strong>Geral</strong><span>Conversa com todos</span></div>`; usersList.appendChild(geralItem); database.ref('usuarios').once('value', (snapshot) => { const users = snapshot.val(); if (!users) return; const chatUsers = []; for (let uid in users) { if (uid !== user.uid) { const userData = users[uid]; chatUsers.push({ uid: uid, nickname: userData.nickname || uid.substring(0, 6), lastSeen: userData.lastSeen || null, displayName: userData.displayName || userData.nickname || 'Usuário', avatarUrl: getAvatarUrl(userData.avatarUrl) }); } } chatUsers.forEach((userData) => { const unreadCount = unreadMessages.get(userData.uid) || 0; const displayName = userData.displayName || userData.nickname || 'Usuário'; const chatItem = document.createElement('li'); chatItem.className = `chat-user ${unreadCount > 0 ? 'unread' : ''}`; chatItem.setAttribute('data-chat-id', `private_${userData.uid}`); chatItem.setAttribute('data-user-id', userData.uid); chatItem.setAttribute('data-user-name', displayName); chatItem.setAttribute('data-user-avatar', displayName.charAt(0).toUpperCase()); chatItem.onclick = () => selectChat(`private_${userData.uid}`, displayName, displayName.charAt(0).toUpperCase(), userData.uid); const isOnline = userData.lastSeen && (Date.now() - userData.lastSeen < 60000); const onlineClass = isOnline ? 'online' : ''; const lastSeenText = formatLastSeen(userData.lastSeen); chatItem.innerHTML = `<div class="chat-user-avatar ${onlineClass}"><img src="${userData.avatarUrl}" onerror="this.src='${DEFAULT_AVATAR_URL}'" style="width:100%; height:100%; object-fit:cover;">${unreadCount > 0 ? '<span class="unread-badge">' + unreadCount + '</span>' : ''}</div><div class="chat-user-info"><strong>${displayName}</strong><span>${lastSeenText}</span></div>`; usersList.appendChild(chatItem); if (userData.lastSeen) { const interval = setInterval(() => { const now = Date.now(); const isOnlineNow = (now - userData.lastSeen) < 60000; const avatarDiv = chatItem.querySelector('.chat-user-avatar'); const infoSpan = chatItem.querySelector('.chat-user-info span'); if (avatarDiv) { if (isOnlineNow) avatarDiv.classList.add('online'); else avatarDiv.classList.remove('online'); } if (infoSpan) infoSpan.innerText = formatLastSeen(userData.lastSeen); }, 30000); userStatusListeners.set(userData.uid, interval); } }); }); }
                 
                 function selectChat(chatId, userName, userAvatar, userId = null) { if (unsubscribeChat) unsubscribeChat(); currentChat = chatId; currentChatUser = userId; currentChatUserName = userName; currentChatUserAvatar = userAvatar; currentChatId = chatId; if (userId) markAsRead(userId); document.getElementById('chatHeaderName').innerText = userName; document.getElementById('chatHeaderAvatar').innerHTML = `<img src="${userAvatar}" onerror="this.src='${DEFAULT_AVATAR_URL}'" style="width:100%; height:100%; object-fit:cover;">`; document.getElementById('chatHeaderAvatar').classList.remove('online'); if (userId) { database.ref(`usuarios/${userId}/avatarUrl`).once('value', (snap) => { const avatarUrl = getAvatarUrl(snap.val()); if (avatarUrl) document.getElementById('chatHeaderAvatar').innerHTML = `<img src="${avatarUrl}" onerror="this.src='${DEFAULT_AVATAR_URL}'" style="width:100%; height:100%; object-fit:cover;">`; }); database.ref(`usuarios/${userId}/lastSeen`).once('value', (snap) => { const lastSeen = snap.val(); const statusEl = document.getElementById('chatHeaderStatus'); const isOnline = lastSeen && (Date.now() - lastSeen < 60000); if (statusEl) { if (isOnline) { statusEl.innerText = 'Online'; document.getElementById('chatHeaderAvatar').classList.add('online'); } else statusEl.innerText = formatLastSeen(lastSeen); } }); document.getElementById('chatHeaderName').onclick = () => viewProfile(userId); document.getElementById('chatHeaderAvatar').onclick = () => viewProfile(userId); } else { document.getElementById('chatHeaderStatus').innerText = 'Online'; document.getElementById('chatHeaderName').onclick = null; document.getElementById('chatHeaderAvatar').onclick = null; } document.getElementById('chatSidebar').classList.add('hidden'); document.getElementById('chatMain').classList.remove('hidden'); document.querySelectorAll('.chat-user').forEach(item => { item.classList.remove('active'); if (chatId === 'geral' && item.getAttribute('data-chat-id') === 'geral') item.classList.add('active'); else if (item.getAttribute('data-user-id') === userId) { item.classList.add('active'); item.classList.remove('unread'); const badge = item.querySelector('.unread-badge'); if (badge) badge.remove(); } }); loadChat(chatId, userId); const chatActions = document.getElementById('chatActions'); chatActions.innerHTML = `<button class="message-bar-button" onclick="sendLike()" id="chatLikeBtn"><i class="fas fa-heart"></i></button><button class="message-bar-button primary" onclick="sendMessage()" id="chatSendBtn"><i class="fas fa-paper-plane"></i></button>`; document.getElementById('chatInput').value = ''; document.getElementById('chatInput').style.height = 'auto'; if (userId) { const chatIdKey = `private_${[auth.currentUser.uid, userId].sort().join('_')}`; setupMessageStatusListener(chatIdKey, userId); } else setupMessageStatusListener('geral', null); }
                 
@@ -8926,7 +8862,6 @@ if (loginAdminBtn) {
 
 
 
-
 // =====================================================
 // CHAT COMPLETO E INDEPENDENTE - SEM CONFLITOS
 // =====================================================
@@ -9357,7 +9292,7 @@ if (loginAdminBtn) {
     start();
     console.log('✅ NOVO chat instalado com sucesso!');
 })();
-                
+
 
 
                 
