@@ -3193,11 +3193,81 @@
     .suggestions-container.hidden {
         display: none;
     }
+
+
+
+
+
+/* Estilos do NOVO Chat */
+.chat-user.unread {
+    background: rgba(229, 9, 20, 0.15);
+    border-left: 3px solid #e50914 !important;
+}
+
+.unread-count-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #e50914;
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
+    min-width: 20px;
+    height: 20px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 5px;
+    border: 2px solid #202c33;
+    z-index: 999;
+}
+
+.chat-unread-badge {
+    position: absolute;
+    top: -8px;
+    right: -12px;
+    background: #e50914;
+    color: white;
+    font-size: 11px;
+    font-weight: bold;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    box-shadow: 0 0 0 2px #0a0a0a;
+    z-index: 1000;
+}
+
+.chat-notification-toast {
+    animation: fadeInOutChat 3s ease forwards;
+}
+
+@keyframes fadeInOutChat {
+    0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+    15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+    85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-10px); visibility: hidden; }
+}
+
+/* Para o badge no menu bottom */
+.bottom-nav-item[data-section="chat"] {
+    position: relative;
+}
+
+
+
+        
     </style>
     
     <link rel="apple-touch-icon" href="https://i.ibb.co/prnRsYbD/fd0f7999-e91b-44ce-ba4d-cdccb1ff6473.jpg">
     <link rel="icon" sizes="192x192" href="https://i.ibb.co/prnRsYbD/fd0f7999-e91b-44ce-ba4d-cdccb1ff6473.jpg">
     <link rel="icon" sizes="512x512" href="https://i.ibb.co/prnRsYbD/fd0f7999-e91b-44ce-ba4d-cdccb1ff6473.jpg">
+
+    
     
 </head>
 <body class="dark-mode">
