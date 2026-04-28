@@ -8926,11 +8926,11 @@ if (loginAdminBtn) {
 
 
 // =====================================================
-// CHAT COM STATUS: SENT -> DELIVERED -> READ (REAL TIME)
+// CHAT COM STATUS EM TEMPO REAL + BADGE DINÂMICO
 // =====================================================
 
 (function() {
-    console.log('🚀 CHAT COM STATUS CORRIGIDO...');
+    console.log('🚀 CHAT CORRIGIDO (REAL TIME + BADGE)');
 
     let estado = {
         user: null,
@@ -8983,7 +8983,7 @@ if (loginAdminBtn) {
 
     // ========== MARCAR COMO ENTREGUE (ASSIM QUE RECEBE) ==========
     async function marcarComoEntregue(chatId, messageId, senderId) {
-        if (!estado.user || senderId === estado.user.uid) return; // só marca se for mensagem recebida
+        if (!estado.user || senderId === estado.user.uid) return;
 
         const db = firebase.database();
         const msgRef = chatId === 'geral' ? db.ref(`chat_messages/${messageId}`) : db.ref(`private_messages/${chatId}/${messageId}`);
@@ -8993,10 +8993,16 @@ if (loginAdminBtn) {
             const statusRef = chatId === 'geral' ? db.ref(`chat_messages/${messageId}/status`) : db.ref(`private_messages/${chatId}/${messageId}/status`);
             await statusRef.set('delivered');
             console.log(`✅ Mensagem ${messageId} marcada como entregue (delivered)`);
+            
+            // Se a conversa atual está aberta, recarrega as mensagens para mostrar o ícone atualizado
+            if (estado.chatAtual === chatId) {
+                const conv = conversasCache.get(chatId);
+                if (conv) carregarMensagens(chatId, conv.userId);
+            }
         }
     }
 
-    // ========== MARCAR TODAS COMO LIDAS (QUANDO ABRE A CONVERSA) ==========
+    // ========== MARCAR TODAS COMO LIDAS ==========
     function marcarTodasComoLidas(chatId) {
         if (!estado.user || !chatId) return;
         const db = firebase.database();
@@ -9022,6 +9028,12 @@ if (loginAdminBtn) {
         leiturasCache.forEach((v, k) => obj[k] = v);
         localStorage.setItem(`chat_leitura_${estado.user.uid}`, JSON.stringify(obj));
         marcarTodasComoLidas(chatId);
+        // Após marcar como lidas, atualiza contador local e badge
+        if (conversasCache.has(chatId)) {
+            conversasCache.get(chatId).naoLidas = 0;
+        }
+        renderizarLista();
+        atualizarBadgeMenu();
     }
 
     function carregarLeituras() {
@@ -9035,13 +9047,15 @@ if (loginAdminBtn) {
         }
     }
 
+    // ========== CONTAR NÃO LIDAS (USANDO STATUS 'SENT' E 'DELIVERED' QUE AINDA NÃO FORAM LIDOS) ==========
     function contarNaoLidas(mensagens, chatId) {
         if (!mensagens || !estado.user) return 0;
         const ultimaLeitura = leiturasCache.get(chatId) || 0;
+        // Considera não lidas as mensagens que não são minhas, cujo timestamp > última leitura e status não é 'read'
         return mensagens.filter(m => m.senderId !== estado.user.uid && (m.timestamp || 0) > ultimaLeitura && m.status !== 'read').length;
     }
 
-    // ========== BADGE MENU ==========
+    // ========== BADGE MENU (CSS ATUALIZADO CONFORME SOLICITADO) ==========
     function atualizarBadgeMenu() {
         let total = 0;
         conversasCache.forEach(c => { total += c.naoLidas || 0; });
@@ -9082,7 +9096,7 @@ if (loginAdminBtn) {
         }
     }
 
-    // ========== RENDERIZAR LISTA ==========
+    // ========== RENDERIZAR LISTA DE CONVERSAS ==========
     function renderizarLista() {
         if (!usersListEl) return;
         if (conversasCache.size === 0) {
@@ -9170,7 +9184,7 @@ if (loginAdminBtn) {
         atualizarBadgeMenu();
     }
 
-    // ========== CARREGAR MENSAGENS (COM STATUS DELIVERED AUTOMÁTICO) ==========
+    // ========== CARREGAR MENSAGENS DA CONVERSA ==========
     function carregarMensagens(chatId, outroId) {
         if (!chatBoxEl) return;
         if (estado.listenerMsg) estado.listenerMsg();
@@ -9197,13 +9211,7 @@ if (loginAdminBtn) {
                     if (snap.val()) avatar = snap.val();
                 }
 
-                // Se NÃO for o dono (ou seja, é mensagem recebida) e ainda está 'sent', marca como 'delivered'
-                if (!isOwner && msg.status === 'sent') {
-                    await marcarComoEntregue(chatId, msg.id, msg.senderId);
-                    // Atualiza o status local para 'delivered' para já mostrar o ícone correto
-                    msg.status = 'delivered';
-                }
-
+                // Aqui exibimos o status já atualizado (pode ser 'delivered' ou 'read')
                 const statusIcon = isOwner ? getStatusIcon(msg.status) : '';
                 const div = document.createElement('div');
                 div.className = `message ${isOwner ? 'sent' : 'received'}`;
@@ -9229,8 +9237,9 @@ if (loginAdminBtn) {
             const msgId = changeSnap.key;
             const newStatus = changeSnap.val();
             if (newStatus && (newStatus === 'delivered' || newStatus === 'read')) {
-                // Recarregar apenas os status das mensagens
                 ref.once('value', msgCallback);
+                // Atualiza também a lista de conversas (para ajustar badge se necessário)
+                carregarConversas();
             }
         };
 
@@ -9257,9 +9266,6 @@ if (loginAdminBtn) {
         }
 
         salvarLeitura(chatId);
-        if (conversasCache.has(chatId)) {
-            conversasCache.get(chatId).naoLidas = 0;
-        }
         renderizarLista();
         atualizarBadgeMenu();
 
@@ -9295,20 +9301,58 @@ if (loginAdminBtn) {
         await ref.push(msgData);
         inputEl.value = '';
         inputEl.style.height = 'auto';
-        setTimeout(() => carregarConversas(), 200);
+        // Atualiza a lista de conversas para mostrar a última mensagem
+        carregarConversas();
     }
 
-    // ========== LISTENERS EM TEMPO REAL (PARA MARCAR DELIVERED) ==========
-    function setupRealTimeDelivered() {
+    // ========== LISTENERS EM TEMPO REAL PARA DELIVERED E BADGE ==========
+    function setupRealTimeListeners() {
         if (!estado.user) return;
         const db = firebase.database();
+
+        // Função para atualizar contagem de não lidas e badge quando uma nova mensagem chega
+        const atualizarParaNovaMensagem = async (chatId, messageId, msg) => {
+            if (!msg || msg.senderId === estado.user.uid) return; // ignorar mensagens enviadas por mim
+
+            // Se a mensagem chegou e ainda está 'sent', marcar como delivered imediatamente
+            if (msg.status === 'sent') {
+                await marcarComoEntregue(chatId, messageId, msg.senderId);
+            }
+
+            // Atualizar a conversa correspondente no cache
+            const conv = conversasCache.get(chatId);
+            if (conv) {
+                // Atualiza última mensagem e timestamp
+                conv.ultimaMsg = msg.text;
+                conv.ultimoTempo = msg.timestamp;
+                // Recalcula não lidas
+                const refTemp = chatId === 'geral' ? db.ref('chat_messages') : db.ref(`private_messages/${chatId}`);
+                const snap = await refTemp.once('value');
+                const msgsAll = snap.val();
+                const msgsList = msgsAll ? Object.values(msgsAll) : [];
+                conv.naoLidas = contarNaoLidas(msgsList, chatId);
+                conversasCache.set(chatId, conv);
+            } else {
+                // Se a conversa não estava no cache, recarrega todas
+                await carregarConversas();
+                return;
+            }
+            renderizarLista();
+            atualizarBadgeMenu();
+
+            // Se o chat atual NÃO é o que recebeu a mensagem, mostrar notificação (opcional)
+            if (estado.chatAtual !== chatId) {
+                console.log(`📩 Nova mensagem de ${conv.nome}`);
+                // (Opcional: exibir toast)
+            }
+        };
 
         // Monitora novas mensagens públicas
         db.ref('chat_messages').on('child_added', async (snap) => {
             const msg = snap.val();
-            if (msg && msg.senderId !== estado.user.uid && msg.status === 'sent') {
-                await marcarComoEntregue('geral', snap.key, msg.senderId);
-                // Atualiza a conversa atual se estiver visível
+            if (msg) {
+                await atualizarParaNovaMensagem('geral', snap.key, msg);
+                // Se a conversa atual for a geral e estiver aberta, recarrega as mensagens
                 if (estado.chatAtual === 'geral') {
                     carregarMensagens('geral', null);
                 }
@@ -9320,13 +9364,53 @@ if (loginAdminBtn) {
             const chatId = snap.key;
             const msgs = snap.val();
             if (msgs) {
-                for (const [msgId, msg] of Object.entries(msgs)) {
-                    if (msg && msg.senderId !== estado.user.uid && msg.status === 'sent') {
-                        await marcarComoEntregue(chatId, msgId, msg.senderId);
-                        if (estado.chatAtual === chatId) {
-                            const conv = conversasCache.get(chatId);
-                            if (conv) carregarMensagens(chatId, conv.userId);
-                        }
+                // Pegar a última mensagem (a nova)
+                const msgsArray = Object.entries(msgs);
+                const lastMsgEntry = msgsArray[msgsArray.length - 1];
+                if (lastMsgEntry) {
+                    const [msgId, msg] = lastMsgEntry;
+                    await atualizarParaNovaMensagem(chatId, msgId, msg);
+                    if (estado.chatAtual === chatId) {
+                        const conv = conversasCache.get(chatId);
+                        if (conv) carregarMensagens(chatId, conv.userId);
+                    }
+                }
+            }
+        });
+
+        // Também monitorar mudanças de status (para quando uma mensagem for lida)
+        const atualizarStatus = async (chatId, messageId, newStatus) => {
+            if (newStatus === 'read') {
+                // Recalcular não lidas para esta conversa
+                const refTemp = chatId === 'geral' ? db.ref('chat_messages') : db.ref(`private_messages/${chatId}`);
+                const snap = await refTemp.once('value');
+                const msgsAll = snap.val();
+                const msgsList = msgsAll ? Object.values(msgsAll) : [];
+                const naoLidas = contarNaoLidas(msgsList, chatId);
+                if (conversasCache.has(chatId)) {
+                    conversasCache.get(chatId).naoLidas = naoLidas;
+                    renderizarLista();
+                    atualizarBadgeMenu();
+                }
+                // Se a conversa atual estiver aberta, recarrega mensagens
+                if (estado.chatAtual === chatId) {
+                    const conv = conversasCache.get(chatId);
+                    if (conv) carregarMensagens(chatId, conv.userId);
+                }
+            }
+        };
+
+        db.ref('chat_messages').on('child_changed', (snap) => {
+            const newStatus = snap.val();
+            if (newStatus && snap.key) atualizarStatus('geral', snap.key, newStatus);
+        });
+        db.ref('private_messages').on('child_changed', (snap) => {
+            const chatId = snap.key;
+            const changes = snap.val();
+            if (changes && typeof changes === 'object') {
+                for (const [msgId, newStatus] of Object.entries(changes)) {
+                    if (newStatus === 'read' || newStatus === 'delivered') {
+                        atualizarStatus(chatId, msgId, newStatus);
                     }
                 }
             }
@@ -9350,8 +9434,8 @@ if (loginAdminBtn) {
         if (mainEl) mainEl.classList.add('hidden');
         renderizarLista();
     };
-    // Funções de busca de usuários (para não quebrar)
-    window.abrirBuscarUsuarios = function() { alert('Função de busca disponível'); };
+    // Funções de busca de usuários (placeholder)
+    window.abrirBuscarUsuarios = function() { alert('Função de busca pode ser implementada'); };
     window.fecharBuscarUsuarios = function() {};
     window.buscarUsuariosLista = function() {};
     window.iniciarConversaCom = function() {};
@@ -9378,8 +9462,8 @@ if (loginAdminBtn) {
                     estado.user = user;
                     carregarLeituras();
                     await carregarConversas();
-                    setupRealTimeDelivered();
-                    console.log('✅ Chat com status entregue/lida funcionando!');
+                    setupRealTimeListeners();
+                    console.log('✅ Chat em tempo real com badge dinâmico funcionando!');
                 }
             });
         }
@@ -9391,7 +9475,7 @@ if (loginAdminBtn) {
         inicializar();
     }
 
-    // Estilos (já existentes)
+    // Estilos
     const style = document.createElement('style');
     style.textContent = `
         .chat-user.unread { background: rgba(229, 57, 53, 0.08) !important; border-left: 3px solid #e53935 !important; }
@@ -9402,7 +9486,6 @@ if (loginAdminBtn) {
     `;
     document.head.appendChild(style);
 })();
-
 
 
 
