@@ -8926,18 +8926,35 @@ if (loginAdminBtn) {
 
 
 
-        
-        
-        
-    
-<script>
-// =====================================================
-// CHAT COMPLETO - VERSÃO DESKTOP CORRIGIDA
+   // =====================================================
+// CHAT COMPLETO - VERSÃO CORRIGIDA (SEM MODAL PRESO)
 // + BOTÃO DE EXCLUSÃO VISÍVEL (DESKTOP)
 // + CLIQUE DIREITO TAMBÉM FUNCIONA
 // =====================================================
 (function() {
-    console.log('🚀 CHAT VERSÃO DESKTOP - Com botão de exclusão visível');
+    console.log('🚀 CHAT CORRIGIDO - Sem modal preso na tela');
+
+    // ========== LIMPAR QUALQUER MODAL PRESO AO INICIAR ==========
+    function limparModaisPresos() {
+        // Remove qualquer modal de confirmação preso
+        const modais = document.querySelectorAll('.confirm-modal-overlay-custom, .confirm-modal-overlay');
+        modais.forEach(modal => {
+            if (modal && modal.parentNode) {
+                modal.remove();
+                console.log('Modal preso removido');
+            }
+        });
+        
+        // Remove qualquer menu de contexto preso
+        const menus = document.querySelectorAll('.chat-context-menu');
+        menus.forEach(menu => {
+            if (menu && menu.parentNode) menu.remove();
+        });
+        
+        // Remove botão de lixo flutuante
+        const lixoBtn = document.querySelector('.swipe-delete-btn-flutuante');
+        if (lixoBtn && lixoBtn.parentNode) lixoBtn.remove();
+    }
 
     let estado = {
         user: null,
@@ -8956,8 +8973,9 @@ if (loginAdminBtn) {
     let pendingDeleteChatId = null;
     let pendingDeleteChatNome = null;
     let modalSeguidosAtivo = null;
+    let modalAtivo = null;
 
-    // ========== FUNÇÃO PARA BUSCAR AVATAR COM CACHE ==========
+    // ========== FUNÇÃO PARA BUSCAR AVATAR ==========
     async function getAvatarUrl(userId) {
         if (!userId) return avatarPadrao();
         if (cacheAvatares.has(userId)) return cacheAvatares.get(userId);
@@ -8970,12 +8988,10 @@ if (loginAdminBtn) {
             cacheAvatares.set(userId, avatarUrl);
             return avatarUrl;
         } catch (error) {
-            console.error('Erro ao buscar avatar:', error);
             return avatarPadrao();
         }
     }
 
-    // ========== FUNÇÕES AUXILIARES ==========
     function tempoAgo(timestamp) {
         if (!timestamp) return '';
         const seg = Math.floor((Date.now() - timestamp) / 1000);
@@ -9016,10 +9032,16 @@ if (loginAdminBtn) {
         return '<i class="fas fa-clock" style="font-size: 10px; color: #b0b0b0;"></i>';
     }
 
-    // ========== POPUP DE CONFIRMAÇÃO ==========
+    // ========== POPUP DE CONFIRMAÇÃO CORRIGIDO ==========
     function showConfirmPopup(message, onConfirm, onCancel) {
-        let oldPopup = document.querySelector('.confirm-modal-overlay-custom');
-        if (oldPopup) oldPopup.remove();
+        // Fechar modal anterior se existir
+        if (modalAtivo && modalAtivo.parentNode) {
+            modalAtivo.remove();
+            modalAtivo = null;
+        }
+        
+        // Limpar outros modais
+        limparModaisPresos();
 
         let overlay = document.createElement('div');
         overlay.className = 'confirm-modal-overlay-custom';
@@ -9031,17 +9053,21 @@ if (loginAdminBtn) {
                 <h3 style="font-size:20px; font-weight:600; margin-bottom:12px;">⚠️ Atenção</h3>
                 <p style="color:rgba(255,255,255,0.7); margin-bottom:24px; line-height:1.4;">${escapeHtml(message)}</p>
                 <div style="display:flex; gap:12px;">
-                    <button id="confirmNoBtn" style="flex:1; background:rgba(255,255,255,0.1); border:none; border-radius:40px; padding:12px; font-weight:600; color:white; cursor:pointer;">Não</button>
-                    <button id="confirmYesBtn" style="flex:1; background:#e50914; border:none; border-radius:40px; padding:12px; font-weight:600; color:white; cursor:pointer;">Sim</button>
+                    <button id="confirmNoBtn" style="flex:1; background:rgba(255,255,255,0.1); border:none; border-radius:40px; padding:12px; font-weight:600; color:white; cursor:pointer;">Cancelar</button>
+                    <button id="confirmYesBtn" style="flex:1; background:#e50914; border:none; border-radius:40px; padding:12px; font-weight:600; color:white; cursor:pointer;">Sim, excluir</button>
                 </div>
             </div>
         `;
         document.body.appendChild(overlay);
+        modalAtivo = overlay;
 
         let yesBtn = overlay.querySelector('#confirmYesBtn');
         let noBtn = overlay.querySelector('#confirmNoBtn');
 
-        const close = () => overlay.remove();
+        const close = () => {
+            if (overlay && overlay.parentNode) overlay.remove();
+            modalAtivo = null;
+        };
 
         yesBtn.onclick = () => {
             if (onConfirm) onConfirm();
@@ -9056,14 +9082,13 @@ if (loginAdminBtn) {
         };
     }
 
-    // ========== FUNÇÃO PARA ROLAR ATÉ O FINAL DO CHAT ==========
     function scrollToBottomChat() {
         if (chatBoxEl) {
             chatBoxEl.scrollTop = chatBoxEl.scrollHeight;
         }
     }
 
-    // ========== EXCLUIR MENSAGEM SEM RECARREGAR O CHAT ==========
+    // ========== EXCLUIR MENSAGEM ==========
     async function excluirMensagemSemReload(chatId, messageId, elementoMsg) {
         try {
             const db = firebase.database();
@@ -9101,9 +9126,8 @@ if (loginAdminBtn) {
         }
     }
 
-    // ========== ADICIONAR BOTÃO DE EXCLUSÃO NA MENSAGEM (DESKTOP) ==========
+    // ========== ADICIONAR BOTÃO DE EXCLUSÃO NA MENSAGEM ==========
     function adicionarBotaoExcluirMensagem(elemento, chatId, messageId) {
-        // Verificar se já tem o botão para não duplicar
         if (elemento.querySelector('.msg-delete-btn-desktop')) return;
         
         const deleteBtn = document.createElement('button');
@@ -9146,19 +9170,27 @@ if (loginAdminBtn) {
         elemento.style.position = 'relative';
         elemento.appendChild(deleteBtn);
         
-        // Mostrar botão ao passar o mouse
         elemento.addEventListener('mouseenter', () => {
             deleteBtn.style.opacity = '1';
-            deleteBtn.style.right = '-45px';
+            if (elemento.classList.contains('sent')) {
+                deleteBtn.style.left = '-45px';
+                deleteBtn.style.right = 'auto';
+            } else {
+                deleteBtn.style.right = '-45px';
+            }
         });
         
         elemento.addEventListener('mouseleave', () => {
             deleteBtn.style.opacity = '0';
-            deleteBtn.style.right = '-40px';
+            if (elemento.classList.contains('sent')) {
+                deleteBtn.style.left = '-40px';
+            } else {
+                deleteBtn.style.right = '-40px';
+            }
         });
     }
 
-    // ========== MENU DE CONTEXTO PARA DESKTOP (CLICK DIREITO) ==========
+    // ========== MENU DE CONTEXTO ==========
     function showContextMenu(event, chatId, messageId, elementoMsg) {
         event.preventDefault();
         event.stopPropagation();
@@ -9203,13 +9235,6 @@ if (loginAdminBtn) {
             );
         });
         
-        deleteOption.addEventListener('mouseenter', () => {
-            deleteOption.style.background = 'rgba(255,255,255,0.1)';
-        });
-        deleteOption.addEventListener('mouseleave', () => {
-            deleteOption.style.background = 'transparent';
-        });
-        
         document.body.appendChild(menu);
         
         const closeMenu = (e) => {
@@ -9226,8 +9251,7 @@ if (loginAdminBtn) {
         }, 100);
     }
 
-    // ========== MENU DE CONTEXTO PARA CONVERSA (DESKTOP) ==========
-    function showContextMenuConversa(event, chatId, chatNome, elementoConv) {
+    function showContextMenuConversa(event, chatId, chatNome) {
         event.preventDefault();
         event.stopPropagation();
         
@@ -9271,13 +9295,6 @@ if (loginAdminBtn) {
             );
         });
         
-        deleteOption.addEventListener('mouseenter', () => {
-            deleteOption.style.background = 'rgba(255,255,255,0.1)';
-        });
-        deleteOption.addEventListener('mouseleave', () => {
-            deleteOption.style.background = 'transparent';
-        });
-        
         document.body.appendChild(menu);
         
         const closeMenu = (e) => {
@@ -9298,17 +9315,14 @@ if (loginAdminBtn) {
     function adicionarEventosMensagem(elemento, chatId, messageId, isOwner) {
         if (!isOwner) return;
         
-        // Botão de exclusão visível (Desktop)
         adicionarBotaoExcluirMensagem(elemento, chatId, messageId);
         
-        // Clique direito (Desktop)
         elemento.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             e.stopPropagation();
             showContextMenu(e, chatId, messageId, elemento);
         });
         
-        // Swipe para Mobile
         let touchStartX = 0;
         let touchStartY = 0;
         let isSwiping = false;
@@ -9357,20 +9371,18 @@ if (loginAdminBtn) {
         });
     }
 
-    // ========== ADICIONAR EVENTOS NA CONVERSA (DESKTOP) ==========
+    // ========== ADICIONAR EVENTOS NA CONVERSA ==========
     function adicionarEventosConversa(elemento, chatId, conv) {
-        // Clique direito para excluir conversa
         elemento.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             e.stopPropagation();
             if (chatId !== 'geral') {
-                showContextMenuConversa(e, chatId, conv.nome, elemento);
+                showContextMenuConversa(e, chatId, conv.nome);
             } else {
                 showToast('O chat Geral não pode ser excluído');
             }
         });
         
-        // Swipe para Mobile
         let touchStartX = 0;
         let touchStartY = 0;
         let isSwiping = false;
@@ -9415,7 +9427,6 @@ if (loginAdminBtn) {
         });
     }
 
-    // ========== CRIAR ÍCONE DE LIXO FLUTUANTE (MOBILE) ==========
     function criarBotaoDeleteFlutuante(elemento, chatId, chatNome) {
         if (floatingDeleteBtn) floatingDeleteBtn.remove();
         
@@ -9471,7 +9482,6 @@ if (loginAdminBtn) {
         }, 5000);
     }
 
-    // ========== EXCLUIR CONVERSA ==========
     async function excluirConversa(chatId, chatNome) {
         try {
             const db = firebase.database();
@@ -9495,7 +9505,7 @@ if (loginAdminBtn) {
         }
     }
 
-    // ========== MARCAR COMO DELIVERED ==========
+    // ========== DEMAIS FUNÇÕES DO CHAT ==========
     async function marcarComoEntregue(chatId, messageId, senderId) {
         if (!estado.user || senderId === estado.user.uid) return;
         const db = firebase.database();
@@ -9608,7 +9618,6 @@ if (loginAdminBtn) {
         }
     }
 
-    // ========== CARREGAR MENSAGENS ==========
     function carregarMensagens(chatId, outroId) {
         if (!chatBoxEl) return;
         if (estado.listenerMsg) estado.listenerMsg();
@@ -9665,7 +9674,6 @@ if (loginAdminBtn) {
         estado.listenerMsg = () => ref.off('value', msgCallback);
     }
 
-    // ========== ABRIR CONVERSA ==========
     async function abrirConversa(chatId, conv) {
         estado.chatAtual = chatId;
         estado.chatUsuario = conv.userId;
@@ -9691,7 +9699,6 @@ if (loginAdminBtn) {
         carregarMensagens(chatId, conv.userId);
     }
 
-    // ========== ENVIAR MENSAGEM ==========
     async function enviarMensagem() {
         if (!inputEl) return;
         const texto = inputEl.value.trim();
@@ -9716,7 +9723,6 @@ if (loginAdminBtn) {
         setTimeout(() => scrollToBottomChat(), 100);
     }
 
-    // ========== CARREGAR CONVERSAS ==========
     async function carregarConversas() {
         if (!estado.user) return;
         const db = firebase.database();
@@ -9747,7 +9753,6 @@ if (loginAdminBtn) {
         atualizarBadgeMenu();
     }
 
-    // ========== BOTÃO + (LISTA DE USUÁRIOS SEGUIDOS) ==========
     async function abrirListaUsuariosSeguidos() {
         if (!estado.user) {
             showToast('Faça login para ver quem você segue');
@@ -9905,7 +9910,6 @@ if (loginAdminBtn) {
         abrirConversa(chatId, conv);
     }
 
-    // ========== ADICIONAR BOTÃO + ==========
     function adicionarBotaoMais() {
         const addBtn = document.querySelector('.add-chat-btn');
         if (addBtn) {
@@ -9918,7 +9922,6 @@ if (loginAdminBtn) {
         }
     }
 
-    // ========== LISTENERS EM TEMPO REAL ==========
     function setupRealTimeListeners() {
         if (!estado.user) return;
         const db = firebase.database();
@@ -9935,8 +9938,10 @@ if (loginAdminBtn) {
         db.ref('private_messages').on('child_changed', atualizarBadge);
     }
 
-    // ========== INICIALIZAR ==========
     function inicializar() {
+        // LIMPAR MODAIS PRESOS ANTES DE TUDO
+        limparModaisPresos();
+        
         sidebarEl = document.getElementById('chatSidebarNovo');
         mainEl = document.getElementById('chatMainNovo');
         usersListEl = document.getElementById('chatUsersListNovo');
@@ -9958,11 +9963,14 @@ if (loginAdminBtn) {
                     await carregarConversas();
                     setupRealTimeListeners();
                     adicionarBotaoMais();
-                    console.log('✅ Chat inicializado com sucesso! (Desktop + Mobile)');
+                    console.log('✅ Chat inicializado com sucesso!');
                 }
             });
         }
     }
+    
+    // Executar limpeza imediatamente
+    limparModaisPresos();
     
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', inicializar);
     else inicializar();
@@ -9986,7 +9994,6 @@ if (loginAdminBtn) {
         .menu-badge-chat { box-shadow: 0 0 0 2px #1e1e2a; }
         .message-status i { vertical-align: middle; }
         .swipe-delete-btn-flutuante:hover { transform: scale(1.1); }
-        .seguido-item:active { transform: scale(0.98); }
         .message {
             transition: transform 0.2s ease;
             position: relative;
@@ -10005,7 +10012,6 @@ if (loginAdminBtn) {
         .chat-user:hover {
             background: rgba(255,255,255,0.08);
         }
-        /* Estilo para o botão de excluir no Desktop */
         .msg-delete-btn-desktop {
             position: absolute;
             right: -40px;
@@ -10029,7 +10035,6 @@ if (loginAdminBtn) {
             transform: translateY(-50%) scale(1.1);
             background: #ff3333;
         }
-        /* Para mensagens enviadas (lado direito) */
         .message.sent .msg-delete-btn-desktop {
             right: auto;
             left: -40px;
@@ -10045,7 +10050,6 @@ if (loginAdminBtn) {
     `;
     document.head.appendChild(styleAnim);
 
-    // Expor funções globalmente
     window.enviarMensagemNova = enviarMensagem;
     window.handleChatKeyPressNovo = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarMensagem(); } };
     window.autoResizeChat = (t) => { t.style.height = 'auto'; t.style.height = (t.scrollHeight) + 'px'; };
@@ -10062,8 +10066,11 @@ if (loginAdminBtn) {
     window.buscarUsuariosLista = () => {};
     window.iniciarConversaCom = iniciarOuAbrirConversa;
     
-    console.log('✅ Chat versão Desktop: Botão de exclusão visível ao passar o mouse!');
-})();
+    console.log('✅ Chat corrigido - Modal não fica mais preso na tela!');
+})();     
+        
+        
+    
 
 
 
