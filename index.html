@@ -8931,13 +8931,14 @@ if (loginAdminBtn) {
         
     
 // =====================================================
-// CHAT COMPLETO - VERSÃO FINAL CORRIGIDA
+// CHAT COMPLETO - VERSÃO FINAL COM SUPORTE DESKTOP
+// + EXCLUSÃO COM CLICK DIREITO (BOTÃO DIREITO DO MOUSE)
 // + FOTOS DE PERFIL CORRETAS
 // + ORDEM CRONOLÓGICA DAS MENSAGENS
-// + ROLAGEM AUTOMÁTICA PARA MENSAGEM MAIS RECENTE
+// + ROLAGEM AUTOMÁTICA
 // =====================================================
 (function() {
-    console.log('🚀 CHAT VERSÃO FINAL - Fotos, ordem cronológica e rolagem corrigidas');
+    console.log('🚀 CHAT VERSÃO FINAL - Com suporte para Desktop (clique direito)');
 
     let estado = {
         user: null,
@@ -8949,13 +8950,16 @@ if (loginAdminBtn) {
 
     let conversasCache = new Map();
     let leiturasCache = new Map();
-    let cacheAvatares = new Map(); // Cache de URLs de avatares
+    let cacheAvatares = new Map();
 
     let sidebarEl, mainEl, usersListEl, chatBoxEl, inputEl, headerNameEl, headerAvatarEl, totalBadgeEl;
     let floatingDeleteBtn = null;
     let pendingDeleteChatId = null;
     let pendingDeleteChatNome = null;
     let modalSeguidosAtivo = null;
+    let contextMenuMsgElement = null;
+    let contextMenuMsgChatId = null;
+    let contextMenuMsgId = null;
 
     // ========== FUNÇÃO PARA BUSCAR AVATAR COM CACHE ==========
     async function getAvatarUrl(userId) {
@@ -9078,7 +9082,6 @@ if (loginAdminBtn) {
             }
             showToast('Mensagem excluída');
             
-            // Atualiza a lista de conversas lateral
             const conv = conversasCache.get(chatId);
             if (conv) {
                 const db2 = firebase.database();
@@ -9095,7 +9098,6 @@ if (loginAdminBtn) {
                 renderizarLista();
             }
             
-            // Rolar para o final após excluir (se houver mensagens restantes)
             setTimeout(() => scrollToBottomChat(), 100);
         } catch (error) {
             console.error(error);
@@ -9103,10 +9105,154 @@ if (loginAdminBtn) {
         }
     }
 
-    // ========== SWIPE NA MENSAGEM INDIVIDUAL ==========
+    // ========== MENU DE CONTEXTO PARA DESKTOP (CLICK DIREITO) ==========
+    function showContextMenu(event, chatId, messageId, elementoMsg) {
+        event.preventDefault();
+        
+        const existingMenu = document.querySelector('.chat-context-menu');
+        if (existingMenu) existingMenu.remove();
+        
+        const menu = document.createElement('div');
+        menu.className = 'chat-context-menu';
+        menu.style.cssText = `
+            position: fixed;
+            top: ${event.clientY}px;
+            left: ${event.clientX}px;
+            background: rgba(25,25,45,0.98);
+            backdrop-filter: blur(24px);
+            border-radius: 12px;
+            padding: 8px 0;
+            min-width: 180px;
+            z-index: 100001;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        `;
+        
+        menu.innerHTML = `
+            <div class="context-menu-item" style="display:flex; align-items:center; gap:12px; padding:12px 16px; cursor:pointer; transition:background 0.2s; color:#ff4757;">
+                <i class="fas fa-trash-alt"></i>
+                <span>Excluir mensagem</span>
+            </div>
+        `;
+        
+        const deleteOption = menu.querySelector('.context-menu-item');
+        deleteOption.addEventListener('click', async () => {
+            menu.remove();
+            showConfirmPopup(
+                `Deseja excluir esta mensagem? Esta ação não pode ser desfeita.`,
+                async () => {
+                    await excluirMensagemSemReload(chatId, messageId, elementoMsg);
+                },
+                () => {
+                    showToast('Exclusão cancelada');
+                }
+            );
+        });
+        
+        deleteOption.addEventListener('mouseenter', () => {
+            deleteOption.style.background = 'rgba(255,255,255,0.1)';
+        });
+        deleteOption.addEventListener('mouseleave', () => {
+            deleteOption.style.background = 'transparent';
+        });
+        
+        document.body.appendChild(menu);
+        
+        const closeMenu = (e) => {
+            if (!menu.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+                document.removeEventListener('contextmenu', closeMenu);
+            }
+        };
+        
+        setTimeout(() => {
+            document.addEventListener('click', closeMenu);
+            document.addEventListener('contextmenu', closeMenu);
+        }, 100);
+    }
+
+    // ========== MENU DE CONTEXTO PARA CONVERSA (DESKTOP) ==========
+    function showContextMenuConversa(event, chatId, chatNome, elementoConv) {
+        event.preventDefault();
+        
+        const existingMenu = document.querySelector('.chat-context-menu');
+        if (existingMenu) existingMenu.remove();
+        
+        const menu = document.createElement('div');
+        menu.className = 'chat-context-menu';
+        menu.style.cssText = `
+            position: fixed;
+            top: ${event.clientY}px;
+            left: ${event.clientX}px;
+            background: rgba(25,25,45,0.98);
+            backdrop-filter: blur(24px);
+            border-radius: 12px;
+            padding: 8px 0;
+            min-width: 200px;
+            z-index: 100001;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        `;
+        
+        menu.innerHTML = `
+            <div class="context-menu-item" style="display:flex; align-items:center; gap:12px; padding:12px 16px; cursor:pointer; transition:background 0.2s; color:#ff4757;">
+                <i class="fas fa-trash-alt"></i>
+                <span>Excluir conversa</span>
+            </div>
+        `;
+        
+        const deleteOption = menu.querySelector('.context-menu-item');
+        deleteOption.addEventListener('click', async () => {
+            menu.remove();
+            showConfirmPopup(
+                `Tem certeza que deseja excluir toda a conversa com "${chatNome}"? Esta ação não pode ser desfeita.`,
+                async () => {
+                    await excluirConversa(chatId, chatNome);
+                },
+                () => {
+                    showToast('Exclusão cancelada');
+                }
+            );
+        });
+        
+        deleteOption.addEventListener('mouseenter', () => {
+            deleteOption.style.background = 'rgba(255,255,255,0.1)';
+        });
+        deleteOption.addEventListener('mouseleave', () => {
+            deleteOption.style.background = 'transparent';
+        });
+        
+        document.body.appendChild(menu);
+        
+        const closeMenu = (e) => {
+            if (!menu.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+                document.removeEventListener('contextmenu', closeMenu);
+            }
+        };
+        
+        setTimeout(() => {
+            document.addEventListener('click', closeMenu);
+            document.addEventListener('contextmenu', closeMenu);
+        }, 100);
+    }
+
+    // ========== SWIPE NA MENSAGEM INDIVIDUAL (MOBILE) ==========
     function adicionarSwipeMensagem(elemento, chatId, messageId, isOwner) {
         if (!isOwner) return;
         
+        // Para Desktop: adicionar evento de contexto (clique direito)
+        elemento.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (isOwner) {
+                showContextMenu(e, chatId, messageId, elemento);
+            }
+        });
+        
+        // Para Mobile: swipe
         let touchStartX = 0;
         let touchStartY = 0;
         let isSwiping = false;
@@ -9155,8 +9301,20 @@ if (loginAdminBtn) {
         });
     }
 
-    // ========== SWIPE NA LISTA DE CONVERSAS ==========
+    // ========== SWIPE NA LISTA DE CONVERSAS (MOBILE) + CONTEXTO (DESKTOP) ==========
     function adicionarSwipeConversa(elemento, chatId, conv) {
+        // Para Desktop: clique direito
+        elemento.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (chatId !== 'geral') {
+                showContextMenuConversa(e, chatId, conv.nome, elemento);
+            } else {
+                showToast('O chat Geral não pode ser excluído');
+            }
+        });
+        
+        // Para Mobile: swipe
         let touchStartX = 0;
         let touchStartY = 0;
         let isSwiping = false;
@@ -9189,7 +9347,11 @@ if (loginAdminBtn) {
             
             if (diffX > 50 && isSwiping) {
                 e.preventDefault();
-                criarBotaoDeleteFlutuante(elemento, chatId, conv.nome);
+                if (chatId !== 'geral') {
+                    criarBotaoDeleteFlutuante(elemento, chatId, conv.nome);
+                } else {
+                    showToast('O chat Geral não pode ser excluído');
+                }
             }
             
             touchStartX = 0;
@@ -9405,7 +9567,6 @@ if (loginAdminBtn) {
                 return; 
             }
             
-            // ORDEM CRONOLÓGICA CORRETA: mais antigas primeiro (timestamp crescente)
             const lista = Object.entries(msgs).map(([id, m]) => ({ id, ...m })).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
             
             chatBoxEl.innerHTML = '';
@@ -9414,14 +9575,11 @@ if (loginAdminBtn) {
                 const isOwner = estado.user && msg.senderId === estado.user.uid;
                 const senderId = msg.senderId;
                 
-                // Buscar avatar do remetente
                 let avatarUrl = avatarPadrao();
                 if (senderId) {
                     if (isOwner && estado.user) {
-                        // É o próprio usuário, busca avatar do usuário logado
                         avatarUrl = await getAvatarUrl(estado.user.uid);
                     } else {
-                        // É outro usuário
                         avatarUrl = await getAvatarUrl(senderId);
                     }
                 }
@@ -9444,7 +9602,6 @@ if (loginAdminBtn) {
                 chatBoxEl.appendChild(div);
             }
             
-            // Rolar para o final (mensagem mais recente)
             scrollToBottomChat();
         };
         
@@ -9458,7 +9615,6 @@ if (loginAdminBtn) {
         estado.chatUsuario = conv.userId;
         if (headerNameEl) headerNameEl.innerText = conv.nome;
         
-        // Avatar do cabeçalho
         if (headerAvatarEl) {
             if (conv.avatarUrl && conv.avatarUrl !== avatarPadrao()) {
                 headerAvatarEl.innerHTML = `<img src="${conv.avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='${avatarPadrao()}'">`;
@@ -9740,14 +9896,13 @@ if (loginAdminBtn) {
             auth.onAuthStateChanged(async (user) => {
                 if (user) {
                     estado.user = user;
-                    // Pré-carregar avatar do próprio usuário
                     const userAvatar = await getAvatarUrl(user.uid);
                     cacheAvatares.set(user.uid, userAvatar);
                     carregarLeituras();
                     await carregarConversas();
                     setupRealTimeListeners();
                     adicionarBotaoMais();
-                    console.log('✅ Chat inicializado com sucesso!');
+                    console.log('✅ Chat inicializado com sucesso! (Desktop + Mobile)');
                 }
             });
         }
@@ -9779,6 +9934,20 @@ if (loginAdminBtn) {
         .message {
             transition: transform 0.2s ease;
         }
+        .chat-context-menu {
+            animation: fadeInScale 0.2s ease;
+        }
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .chat-user {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .chat-user:hover {
+            background: rgba(255,255,255,0.08);
+        }
     `;
     document.head.appendChild(styleAnim);
 
@@ -9799,7 +9968,7 @@ if (loginAdminBtn) {
     window.buscarUsuariosLista = () => {};
     window.iniciarConversaCom = iniciarOuAbrirConversa;
     
-    console.log('✅ Chat VERSÃO FINAL: Fotos de perfil, ordem cronológica e rolagem corrigidas!');
+    console.log('✅ Chat VERSÃO FINAL COM DESKTOP: Exclusão via clique direito!');
 })();
 
 
