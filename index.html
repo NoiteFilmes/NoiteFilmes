@@ -8929,12 +8929,13 @@ if (loginAdminBtn) {
         
         
         
-   
+    
+
 // =====================================================
-// CHAT COMPLETO - TODAS AS FUNÇÕES + ÁUDIO FUNCIONANDO
+// CHAT COMPLETO - ÁUDIO CORRIGIDO (MOBILE + DUPLICAÇÃO)
 // =====================================================
 (function() {
-    console.log('🚀 CHAT COMPLETO COM ÁUDIO - INICIANDO...');
+    console.log('🚀 CHAT COM ÁUDIO CORRIGIDO - Mobile e sem duplicação');
 
     // ========== LIMPAR MODAIS PRESOS ==========
     function limparModaisPresos() {
@@ -8970,6 +8971,7 @@ if (loginAdminBtn) {
     let recordingTimer = null;
     let recordingSeconds = 0;
     let currentAudio = null;
+    let isSendingAudio = false; // CONTROLE PARA EVITAR ENVIO DUPLICADO
 
     // ========== FUNÇÕES DE ÁUDIO ==========
     async function iniciarGravacaoAudio() {
@@ -8987,6 +8989,7 @@ if (loginAdminBtn) {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             mediaRecorder = new MediaRecorder(stream);
             audioChunks = [];
+            isSendingAudio = false;
             
             mediaRecorder.ondataavailable = (event) => {
                 if (event.data.size > 0) {
@@ -8995,6 +8998,10 @@ if (loginAdminBtn) {
             };
             
             mediaRecorder.onstop = async () => {
+                // Evitar envio duplicado
+                if (isSendingAudio) return;
+                isSendingAudio = true;
+                
                 const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                 stream.getTracks().forEach(track => track.stop());
                 await enviarAudioMessage(audioBlob);
@@ -9006,6 +9013,8 @@ if (loginAdminBtn) {
                     audioBtn.classList.remove('recording');
                     audioBtn.style.background = '';
                 }
+                
+                isSendingAudio = false;
             };
             
             mediaRecorder.start(100);
@@ -9020,6 +9029,7 @@ if (loginAdminBtn) {
             
             mostrarIndicadorGravacao();
             
+            // Limite de 60 segundos
             setTimeout(() => {
                 if (isRecording) {
                     pararGravacaoAudio();
@@ -9100,30 +9110,38 @@ if (loginAdminBtn) {
         showToast('Enviando áudio...');
         
         try {
+            // Obter duração real do áudio
+            let duration = 5;
+            const audioElement = new Audio();
+            const audioUrl = URL.createObjectURL(audioBlob);
+            audioElement.src = audioUrl;
+            
+            await new Promise((resolve) => {
+                audioElement.addEventListener('loadedmetadata', () => {
+                    duration = Math.round(audioElement.duration);
+                    resolve();
+                });
+                audioElement.addEventListener('error', () => {
+                    duration = Math.round(audioBlob.size / 16000);
+                    resolve();
+                });
+                setTimeout(() => resolve(), 1000);
+            });
+            
+            URL.revokeObjectURL(audioUrl);
+            
+            // Converter para Base64
             const reader = new FileReader();
             reader.readAsDataURL(audioBlob);
             
             reader.onloadend = async () => {
                 const base64Audio = reader.result.split(',')[1];
-                let duration = Math.round(audioBlob.size / 16000);
-                
-                const audioTest = new Audio();
-                audioTest.src = URL.createObjectURL(audioBlob);
-                audioTest.onloadedmetadata = () => {
-                    const realDuration = Math.round(audioTest.duration);
-                    enviarMensagemAudio(base64Audio, realDuration);
-                };
-                audioTest.onerror = () => {
-                    enviarMensagemAudio(base64Audio, duration || 5);
-                };
-                
-                setTimeout(() => {
-                    enviarMensagemAudio(base64Audio, duration || 5);
-                }, 1000);
+                await enviarMensagemAudio(base64Audio, duration);
             };
         } catch (error) {
             console.error('Erro ao enviar áudio:', error);
             showToast('Erro ao enviar áudio');
+            isSendingAudio = false;
         }
     }
     
@@ -9148,6 +9166,7 @@ if (loginAdminBtn) {
         setTimeout(() => scrollToBottomChat(), 100);
     }
 
+    // ========== PLAYER DE ÁUDIO CORRIGIDO PARA MOBILE ==========
     function criarPlayerAudio(audioBase64, duration, isOwner) {
         const container = document.createElement('div');
         container.className = 'audio-player-container';
@@ -9168,6 +9187,7 @@ if (loginAdminBtn) {
             align-items: center;
             justify-content: center;
             transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
         `;
         
         const waveContainer = document.createElement('div');
@@ -9205,44 +9225,71 @@ if (loginAdminBtn) {
         let audio = null;
         let isPlaying = false;
         
+        // Função para parar todos os áudios
+        function stopAllAudios() {
+            if (currentAudio && currentAudio !== audio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+                const otherBtn = document.querySelector('.audio-play-btn.playing');
+                if (otherBtn) {
+                    otherBtn.innerHTML = '<i class="fas fa-play"></i>';
+                    otherBtn.classList.remove('playing');
+                }
+                const otherProgress = otherBtn?.closest('.audio-player-container')?.querySelector('.audio-progress-bar');
+                if (otherProgress) otherProgress.style.width = '0%';
+            }
+        }
+        
         const playAudio = () => {
             if (audio && isPlaying) {
+                // Pausar
                 audio.pause();
-                audio.currentTime = 0;
                 playBtn.innerHTML = '<i class="fas fa-play"></i>';
                 isPlaying = false;
-                progressBar.style.width = '0%';
-                if (currentAudio && currentAudio !== audio) {
-                    if (currentAudio) currentAudio.pause();
-                }
-                currentAudio = null;
+                playBtn.classList.remove('playing');
             } else {
-                if (currentAudio && currentAudio !== audio) {
-                    currentAudio.pause();
-                    const otherBtn = document.querySelector('.audio-play-btn.playing');
-                    if (otherBtn) {
-                        otherBtn.innerHTML = '<i class="fas fa-play"></i>';
-                        otherBtn.classList.remove('playing');
-                    }
-                }
+                // Parar outros áudios primeiro
+                stopAllAudios();
+                
                 if (audio) {
-                    audio.play();
+                    audio.play().catch(e => console.log('Erro ao reproduzir:', e));
                 } else {
+                    // Criar novo áudio para mobile
                     audio = new Audio('data:audio/webm;base64,' + audioBase64);
+                    audio.preload = 'auto';
+                    
+                    audio.addEventListener('loadedmetadata', () => {
+                        console.log('Áudio carregado, duração:', audio.duration);
+                    });
+                    
                     audio.addEventListener('timeupdate', () => {
-                        if (audio.duration) {
+                        if (audio.duration && !isNaN(audio.duration)) {
                             const percent = (audio.currentTime / audio.duration) * 100;
                             progressBar.style.width = percent + '%';
                         }
                     });
+                    
                     audio.addEventListener('ended', () => {
                         playBtn.innerHTML = '<i class="fas fa-play"></i>';
                         playBtn.classList.remove('playing');
                         isPlaying = false;
                         progressBar.style.width = '0%';
-                        currentAudio = null;
+                        if (currentAudio === audio) currentAudio = null;
                     });
-                    audio.play();
+                    
+                    audio.addEventListener('error', (e) => {
+                        console.error('Erro no áudio:', e);
+                        showToast('Erro ao reproduzir áudio');
+                        playBtn.innerHTML = '<i class="fas fa-play"></i>';
+                        playBtn.classList.remove('playing');
+                        isPlaying = false;
+                    });
+                    
+                    audio.play().catch(e => {
+                        console.error('Erro ao reproduzir:', e);
+                        showToast('Toque novamente para reproduzir');
+                        playBtn.innerHTML = '<i class="fas fa-play"></i>';
+                    });
                 }
                 playBtn.innerHTML = '<i class="fas fa-pause"></i>';
                 playBtn.classList.add('playing');
@@ -9251,17 +9298,19 @@ if (loginAdminBtn) {
             }
         };
         
+        // Evento de clique (funciona tanto em desktop quanto mobile)
         playBtn.onclick = (e) => {
             e.stopPropagation();
+            e.preventDefault();
             playAudio();
         };
         
         waveContainer.onclick = (e) => {
             e.stopPropagation();
-            if (audio && audio.duration) {
+            if (audio && audio.duration && !isNaN(audio.duration)) {
                 const rect = waveContainer.getBoundingClientRect();
                 const x = e.clientX - rect.left;
-                const percent = x / rect.width;
+                const percent = Math.max(0, Math.min(1, x / rect.width));
                 audio.currentTime = percent * audio.duration;
             }
         };
@@ -9964,91 +10013,6 @@ if (loginAdminBtn) {
                 
                 adicionarEventosMensagem(div, chatId, msg.id, isOwner);
                 chatBoxEl.appendChild(div);
-                
-                // Reconfigurar eventos do player de áudio
-                if (msg.isAudio && msg.audioUrl) {
-                    const audioContainerDiv = div.querySelector('.audio-player-container');
-                    if (audioContainerDiv) {
-                        const playBtn = audioContainerDiv.querySelector('.audio-play-btn');
-                        const waveContainer = audioContainerDiv.querySelector('.audio-wave-container');
-                        const progressBar = audioContainerDiv.querySelector('.audio-progress-bar');
-                        
-                        let audio = null;
-                        let isPlaying = false;
-                        
-                        const newPlayBtn = playBtn.cloneNode(true);
-                        if (playBtn && playBtn.parentNode) {
-                            playBtn.parentNode.replaceChild(newPlayBtn, playBtn);
-                        }
-                        
-                        const playAudio = () => {
-                            if (audio && isPlaying) {
-                                audio.pause();
-                                audio.currentTime = 0;
-                                newPlayBtn.innerHTML = '<i class="fas fa-play"></i>';
-                                isPlaying = false;
-                                progressBar.style.width = '0%';
-                                if (currentAudio && currentAudio !== audio) {
-                                    if (currentAudio) currentAudio.pause();
-                                }
-                                currentAudio = null;
-                            } else {
-                                if (currentAudio && currentAudio !== audio) {
-                                    currentAudio.pause();
-                                    const otherBtn = document.querySelector('.audio-play-btn.playing');
-                                    if (otherBtn) {
-                                        otherBtn.innerHTML = '<i class="fas fa-play"></i>';
-                                        otherBtn.classList.remove('playing');
-                                    }
-                                }
-                                if (audio) {
-                                    audio.play();
-                                } else {
-                                    audio = new Audio('data:audio/webm;base64,' + msg.audioUrl);
-                                    audio.addEventListener('timeupdate', () => {
-                                        if (audio.duration) {
-                                            const percent = (audio.currentTime / audio.duration) * 100;
-                                            if (progressBar) progressBar.style.width = percent + '%';
-                                        }
-                                    });
-                                    audio.addEventListener('ended', () => {
-                                        newPlayBtn.innerHTML = '<i class="fas fa-play"></i>';
-                                        newPlayBtn.classList.remove('playing');
-                                        isPlaying = false;
-                                        if (progressBar) progressBar.style.width = '0%';
-                                        currentAudio = null;
-                                    });
-                                    audio.play();
-                                }
-                                newPlayBtn.innerHTML = '<i class="fas fa-pause"></i>';
-                                newPlayBtn.classList.add('playing');
-                                isPlaying = true;
-                                currentAudio = audio;
-                            }
-                        };
-                        
-                        newPlayBtn.onclick = (e) => {
-                            e.stopPropagation();
-                            playAudio();
-                        };
-                        
-                        if (waveContainer) {
-                            const newWaveContainer = waveContainer.cloneNode(true);
-                            if (waveContainer.parentNode) {
-                                waveContainer.parentNode.replaceChild(newWaveContainer, waveContainer);
-                            }
-                            newWaveContainer.onclick = (e) => {
-                                e.stopPropagation();
-                                if (audio && audio.duration) {
-                                    const rect = newWaveContainer.getBoundingClientRect();
-                                    const x = e.clientX - rect.left;
-                                    const percent = x / rect.width;
-                                    audio.currentTime = percent * audio.duration;
-                                }
-                            };
-                        }
-                    }
-                }
             }
             scrollToBottomChat();
         };
@@ -10514,7 +10478,7 @@ if (loginAdminBtn) {
     window.buscarUsuariosLista = () => {};
     window.iniciarConversaCom = iniciarOuAbrirConversa;
     
-    console.log('✅ Chat COMPLETO com ÁUDIO funcionando!');
+    console.log('✅ Chat COMPLETO com ÁUDIO CORRIGIDO! (Mobile funciona, sem duplicação)');
 })();
 
 
