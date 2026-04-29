@@ -8930,12 +8930,11 @@ if (loginAdminBtn) {
         
         
     
-
 // =====================================================
-// CHAT COMPLETO - ÁUDIO CORRIGIDO (FUNCIONA EM TODOS)
+// CHAT COMPLETO - SOMENTE REPRODUÇÃO CORRIGIDA
 // =====================================================
 (function() {
-    console.log('🚀 CHAT COM ÁUDIO - VERSÃO FINAL FUNCIONAL');
+    console.log('🚀 CHAT COM ÁUDIO - VERSÃO ESTÁVEL');
 
     function limparModaisPresos() {
         const modais = document.querySelectorAll('.confirm-modal-overlay-custom, .confirm-modal-overlay');
@@ -8970,9 +8969,8 @@ if (loginAdminBtn) {
     let recordingTimer = null;
     let recordingSeconds = 0;
     let currentAudio = null;
-    let isSendingAudio = false;
 
-    // ========== FUNÇÕES DE ÁUDIO (VERSÃO SIMPLIFICADA E FUNCIONAL) ==========
+    // ========== FUNÇÕES DE ÁUDIO (VERSÃO QUE FUNCIONAVA) ==========
     async function iniciarGravacaoAudio() {
         if (!estado.user) {
             showToast('Faça login para enviar áudio');
@@ -8985,11 +8983,9 @@ if (loginAdminBtn) {
         }
 
         try {
-            // Usar formato MP4 para melhor compatibilidade
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+            mediaRecorder = new MediaRecorder(stream);
             audioChunks = [];
-            isSendingAudio = false;
             
             mediaRecorder.ondataavailable = (event) => {
                 if (event.data.size > 0) {
@@ -8998,9 +8994,6 @@ if (loginAdminBtn) {
             };
             
             mediaRecorder.onstop = async () => {
-                if (isSendingAudio) return;
-                isSendingAudio = true;
-                
                 const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                 stream.getTracks().forEach(track => track.stop());
                 await enviarAudioMessage(audioBlob);
@@ -9012,11 +9005,9 @@ if (loginAdminBtn) {
                     audioBtn.classList.remove('recording');
                     audioBtn.style.background = '';
                 }
-                
-                isSendingAudio = false;
             };
             
-            mediaRecorder.start(1000);
+            mediaRecorder.start(100);
             isRecording = true;
             
             const audioBtn = document.getElementById('audioRecordBtn');
@@ -9036,17 +9027,13 @@ if (loginAdminBtn) {
             
         } catch (error) {
             console.error('Erro ao acessar microfone:', error);
-            showToast('⚠️ Permita o acesso ao microfone nas configurações do navegador');
+            showToast('Não foi possível acessar o microfone. Verifique as permissões.');
         }
     }
 
     function pararGravacaoAudio() {
-        if (mediaRecorder && isRecording && mediaRecorder.state !== 'inactive') {
-            try {
-                mediaRecorder.stop();
-            } catch(e) {
-                console.log('Erro ao parar gravação:', e);
-            }
+        if (mediaRecorder && isRecording) {
+            mediaRecorder.stop();
             isRecording = false;
             if (recordingTimer) clearInterval(recordingTimer);
             recordingSeconds = 0;
@@ -9075,11 +9062,14 @@ if (loginAdminBtn) {
             font-size: 14px;
             font-weight: bold;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            animation: pulseAudio 1s infinite;
         `;
         indicator.innerHTML = `
             <i class="fas fa-microphone"></i>
-            <span>Gravando... <span id="recordingTimer">0</span>s</span>
-            <button id="stopRecordingBtn" style="background: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; color: #e50914; font-weight: bold;">⏹️</button>
+            <span>Gravando áudio... <span id="recordingTimer">0</span>s</span>
+            <button id="stopRecordingBtn" style="background: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; color: #e50914;">
+                <i class="fas fa-stop"></i>
+            </button>
         `;
         document.body.appendChild(indicator);
         
@@ -9106,41 +9096,20 @@ if (loginAdminBtn) {
     async function enviarAudioMessage(audioBlob) {
         if (!estado.user || !estado.chatAtual) return;
         
-        showToast('📤 Enviando áudio...');
+        showToast('Enviando áudio...');
         
         try {
-            // Obter duração
-            let duration = 3;
-            const audioUrl = URL.createObjectURL(audioBlob);
-            const tempAudio = new Audio();
-            tempAudio.src = audioUrl;
-            
-            await new Promise((resolve) => {
-                tempAudio.addEventListener('loadedmetadata', () => {
-                    duration = Math.ceil(tempAudio.duration);
-                    resolve();
-                });
-                tempAudio.addEventListener('error', () => {
-                    duration = Math.ceil(audioBlob.size / 16000);
-                    resolve();
-                });
-                setTimeout(() => resolve(), 500);
-            });
-            
-            URL.revokeObjectURL(audioUrl);
-            
-            // Converter para Base64
+            let duration = Math.round(audioBlob.size / 16000);
             const reader = new FileReader();
             reader.readAsDataURL(audioBlob);
             
             reader.onloadend = async () => {
-                const base64Audio = reader.result;
+                const base64Audio = reader.result.split(',')[1];
                 await enviarMensagemAudio(base64Audio, duration);
             };
         } catch (error) {
-            console.error('Erro:', error);
+            console.error('Erro ao enviar áudio:', error);
             showToast('Erro ao enviar áudio');
-            isSendingAudio = false;
         }
     }
     
@@ -9160,23 +9129,23 @@ if (loginAdminBtn) {
         let ref = estado.chatAtual === 'geral' ? db.ref('chat_messages') : db.ref(`private_messages/${estado.chatAtual}`);
         await ref.push(msgData);
         
-        showToast('✅ Áudio enviado!');
+        showToast('Áudio enviado!');
         carregarConversas();
         setTimeout(() => scrollToBottomChat(), 100);
     }
 
-    // ========== PLAYER DE ÁUDIO SIMPLIFICADO E FUNCIONAL ==========
+    // ========== PLAYER DE ÁUDIO SIMPLES E FUNCIONAL ==========
     function criarPlayerAudio(audioBase64, duration, isOwner) {
         const container = document.createElement('div');
         container.className = 'audio-player-container';
-        container.style.cssText = 'display: flex; align-items: center; gap: 8px; min-width: 180px; flex-wrap: wrap;';
+        container.style.cssText = 'display: flex; align-items: center; gap: 8px;';
         
         const playBtn = document.createElement('button');
         playBtn.className = 'audio-play-btn';
         playBtn.innerHTML = '<i class="fas fa-play"></i>';
         playBtn.style.cssText = `
-            width: 36px;
-            height: 36px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             background: ${isOwner ? '#e50914' : '#4CAF50'};
             border: none;
@@ -9186,43 +9155,33 @@ if (loginAdminBtn) {
             align-items: center;
             justify-content: center;
             transition: all 0.2s;
-            font-size: 14px;
         `;
         
         const durationSpan = document.createElement('span');
         durationSpan.className = 'audio-duration';
         durationSpan.textContent = `${duration}s`;
-        durationSpan.style.cssText = 'font-size: 12px; color: #888; min-width: 40px;';
-        
-        const statusSpan = document.createElement('span');
-        statusSpan.className = 'audio-status';
-        statusSpan.textContent = '';
-        statusSpan.style.cssText = 'font-size: 11px; color: #666;';
+        durationSpan.style.cssText = 'font-size: 11px; color: #ccc;';
         
         container.appendChild(playBtn);
         container.appendChild(durationSpan);
-        container.appendChild(statusSpan);
         
         let audio = null;
         let isPlaying = false;
         
-        const playAudio = () => {
+        playBtn.onclick = (e) => {
+            e.stopPropagation();
+            
             if (audio && isPlaying) {
-                // Pausar
                 audio.pause();
                 playBtn.innerHTML = '<i class="fas fa-play"></i>';
                 isPlaying = false;
-                statusSpan.textContent = '';
             } else {
-                // Parar outros áudios
                 if (currentAudio && currentAudio !== audio) {
                     currentAudio.pause();
                     const otherBtn = document.querySelector('.audio-play-btn.playing');
                     if (otherBtn) {
                         otherBtn.innerHTML = '<i class="fas fa-play"></i>';
                         otherBtn.classList.remove('playing');
-                        const otherStatus = otherBtn.parentElement?.querySelector('.audio-status');
-                        if (otherStatus) otherStatus.textContent = '';
                     }
                 }
                 
@@ -9230,41 +9189,24 @@ if (loginAdminBtn) {
                     audio.currentTime = 0;
                     audio.play().catch(e => console.log('Erro:', e));
                 } else {
-                    // Criar novo áudio a partir do Base64
-                    audio = new Audio(audioBase64);
-                    audio.preload = 'auto';
-                    
-                    audio.addEventListener('canplaythrough', () => {
-                        console.log('Áudio pronto para reproduzir');
-                    });
-                    
-                    audio.addEventListener('timeupdate', () => {
-                        if (audio.duration) {
-                            const remaining = Math.ceil(audio.duration - audio.currentTime);
-                            statusSpan.textContent = `${remaining}s restante`;
-                        }
-                    });
-                    
+                    // CRIAR ÁUDIO A PARTIR DO BASE64
+                    audio = new Audio('data:audio/webm;base64,' + audioBase64);
                     audio.addEventListener('ended', () => {
                         playBtn.innerHTML = '<i class="fas fa-play"></i>';
                         playBtn.classList.remove('playing');
                         isPlaying = false;
-                        statusSpan.textContent = '';
                         if (currentAudio === audio) currentAudio = null;
                     });
-                    
                     audio.addEventListener('error', (e) => {
                         console.error('Erro no áudio:', e);
-                        statusSpan.textContent = 'Erro ao carregar';
+                        showToast('Erro ao carregar áudio');
                         playBtn.innerHTML = '<i class="fas fa-play"></i>';
                         playBtn.classList.remove('playing');
                         isPlaying = false;
                     });
-                    
                     audio.play().catch(e => {
-                        console.error('Erro ao reproduzir:', e);
-                        statusSpan.textContent = 'Clique para tocar';
-                        playBtn.innerHTML = '<i class="fas fa-play"></i>';
+                        console.error('Erro:', e);
+                        showToast('Toque novamente para reproduzir');
                     });
                 }
                 playBtn.innerHTML = '<i class="fas fa-pause"></i>';
@@ -9274,19 +9216,13 @@ if (loginAdminBtn) {
             }
         };
         
-        playBtn.onclick = (e) => {
-            e.stopPropagation();
-            playAudio();
-        };
-        
         return container;
     }
 
-    // ========== FUNÇÕES AUXILIARES ==========
+    // ========== FUNÇÕES AUXILIARES (MANTIDAS IGUAIS) ==========
     async function getAvatarUrl(userId) {
         if (!userId) return avatarPadrao();
         if (cacheAvatares.has(userId)) return cacheAvatares.get(userId);
-        
         try {
             const db = firebase.database();
             const snap = await db.ref(`usuarios/${userId}/avatarUrl`).once('value');
@@ -9401,7 +9337,6 @@ if (loginAdminBtn) {
             } else {
                 await db.ref(`private_messages/${chatId}/${messageId}`).remove();
             }
-            
             if (elementoMsg && elementoMsg.parentNode) {
                 elementoMsg.remove();
             }
@@ -9422,7 +9357,6 @@ if (loginAdminBtn) {
                 }
                 renderizarLista();
             }
-            
             setTimeout(() => scrollToBottomChat(), 100);
         } catch (error) {
             console.error(error);
@@ -9917,7 +9851,6 @@ if (loginAdminBtn) {
         }
     }
 
-    // ========== CARREGAR MENSAGENS ==========
     function carregarMensagens(chatId, outroId) {
         if (!chatBoxEl) return;
         if (estado.listenerMsg) estado.listenerMsg();
@@ -9982,7 +9915,6 @@ if (loginAdminBtn) {
         estado.listenerMsg = () => ref.off('value', msgCallback);
     }
 
-    // ========== ABRIR CONVERSA ==========
     async function abrirConversa(chatId, conv) {
         estado.chatAtual = chatId;
         estado.chatUsuario = conv.userId;
@@ -10009,7 +9941,6 @@ if (loginAdminBtn) {
         setTimeout(() => adicionarBotaoAudioNaBarra(), 200);
     }
 
-    // ========== ENVIAR MENSAGEM TEXTO ==========
     async function enviarMensagem() {
         if (!inputEl) return;
         const texto = inputEl.value.trim();
@@ -10024,7 +9955,6 @@ if (loginAdminBtn) {
         setTimeout(() => scrollToBottomChat(), 100);
     }
 
-    // ========== CARREGAR CONVERSAS ==========
     async function carregarConversas() {
         if (!estado.user) return;
         const db = firebase.database();
@@ -10055,7 +9985,6 @@ if (loginAdminBtn) {
         atualizarBadgeMenu();
     }
 
-    // ========== BOTÃO + (LISTA DE USUÁRIOS SEGUIDOS) ==========
     async function abrirListaUsuariosSeguidos() {
         if (!estado.user) {
             showToast('Faça login para ver quem você segue');
@@ -10213,7 +10142,6 @@ if (loginAdminBtn) {
         abrirConversa(chatId, conv);
     }
 
-    // ========== BOTÃO DE ÁUDIO NA BARRA ==========
     function adicionarBotaoAudioNaBarra() {
         const messageBar = document.querySelector('#chatMainNovo .message-bar');
         if (!messageBar) {
@@ -10249,7 +10177,6 @@ if (loginAdminBtn) {
         console.log('✅ Botão de áudio adicionado!');
     }
 
-    // ========== ADICIONAR BOTÃO + ==========
     function adicionarBotaoMais() {
         const addBtn = document.querySelector('.add-chat-btn');
         if (addBtn) {
@@ -10262,7 +10189,6 @@ if (loginAdminBtn) {
         }
     }
 
-    // ========== LISTENERS EM TEMPO REAL ==========
     function setupRealTimeListeners() {
         if (!estado.user) return;
         const db = firebase.database();
@@ -10279,7 +10205,6 @@ if (loginAdminBtn) {
         db.ref('private_messages').on('child_changed', atualizarBadge);
     }
 
-    // ========== INICIALIZAR ==========
     function inicializar() {
         limparModaisPresos();
         
@@ -10332,7 +10257,6 @@ if (loginAdminBtn) {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', inicializar);
     else inicializar();
 
-    // ========== ESTILOS ==========
     const styleAnim = document.createElement('style');
     styleAnim.textContent = `
         @keyframes fadeOutToast {
@@ -10340,6 +10264,10 @@ if (loginAdminBtn) {
             15% { opacity: 1; transform: translateX(-50%) translateY(0); }
             85% { opacity: 1; transform: translateX(-50%) translateY(0); }
             100% { opacity: 0; transform: translateX(-50%) translateY(-10px); visibility: hidden; }
+        }
+        @keyframes pulseAudio {
+            0%, 100% { opacity: 0.8; transform: translateX(-50%) scale(1); }
+            50% { opacity: 1; transform: translateX(-50%) scale(1.02); }
         }
         .chat-user.unread { background: rgba(229,57,53,0.08) !important; border-left: 3px solid #e53935 !important; }
         .chat-user.active { background: rgba(0,168,255,0.1) !important; border-left: 3px solid #00a8ff !important; }
@@ -10393,17 +10321,11 @@ if (loginAdminBtn) {
         }
         #audioRecordBtn.recording {
             background: #e50914 !important;
-        }
-        .audio-play-btn.playing {
-            background: #ff5722 !important;
-        }
-        .audio-play-btn:hover {
-            transform: scale(1.05);
+            animation: pulseAudio 1.5s infinite;
         }
     `;
     document.head.appendChild(styleAnim);
 
-    // ========== EXPOR FUNÇÕES GLOBAIS ==========
     window.enviarMensagemNova = enviarMensagem;
     window.handleChatKeyPressNovo = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarMensagem(); } };
     window.autoResizeChat = (t) => { t.style.height = 'auto'; t.style.height = (t.scrollHeight) + 'px'; };
@@ -10419,8 +10341,9 @@ if (loginAdminBtn) {
     };
     window.iniciarConversaCom = iniciarOuAbrirConversa;
     
-    console.log('✅ Chat com ÁUDIO FUNCIONAL!');
+    console.log('✅ Chat com ÁUDIO - Versão estável!');
 })();
+
 
 
 
