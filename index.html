@@ -8930,722 +8930,410 @@ if (loginAdminBtn) {
         
         
     // =====================================================
-// CHAT COM SWIPE FUNCIONAL E EXCLUSÃO DEFINITIVA
-// =====================================================
-(function() {
-    console.log('🚀 CHAT COM SWIPE CORRIGIDO');
+    // SCRIPT CORRIGIDO: SWIPE PARA DELETAR CONVERSA + POPUP + BOTÃO +
+    // + NOVA CONVERSA COM USUÁRIOS SEGUIDOS
+    // =====================================================
 
-    let estado = {
-        user: null,
-        chatAtual: null,
-        chatUsuario: null,
-        listenerMsg: null,
-        listenerStatus: null
-    };
+    (function() {
+        console.log('🚀 Script corrigido com swipe delete e + para seguir');
 
-    let conversasCache = new Map();
-    let leiturasCache = new Map();
-    let currentSwipeElement = null; // Controla o elemento em swipe
+        let currentUser = null;
+        let followingList = []; // Lista de usuários que o perfil segue
 
-    let sidebarEl, mainEl, usersListEl, chatBoxEl, inputEl, headerNameEl, headerAvatarEl, totalBadgeEl;
+        // Referências do chat (IDs do HTML original)
+        let sidebarEl, mainEl, usersListEl, chatBoxEl, inputEl, headerNameEl, headerAvatarEl, totalBadgeEl;
 
-    // ========== POPUP PERSONALIZADO ==========
-    function mostrarPopupConfirmacao(mensagem, aoConfirmar, aoCancelar) {
-        const popupExistente = document.querySelector('.custom-popup-overlay');
-        if (popupExistente) popupExistente.remove();
-
-        const overlay = document.createElement('div');
-        overlay.className = 'custom-popup-overlay';
-        overlay.innerHTML = `
-            <div class="custom-popup">
-                <div class="custom-popup-icon">
-                    <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #ff9800;"></i>
-                </div>
-                <div class="custom-popup-message">${mensagem}</div>
-                <div class="custom-popup-buttons">
-                    <button class="custom-popup-btn cancel-btn">NÃO</button>
-                    <button class="custom-popup-btn confirm-btn">SIM</button>
-                </div>
-            </div>
-        `;
-
-        document.body.appendChild(overlay);
-
-        const btnSim = overlay.querySelector('.confirm-btn');
-        const btnNao = overlay.querySelector('.cancel-btn');
-
-        btnSim.onclick = () => {
-            overlay.remove();
-            if (aoConfirmar) aoConfirmar();
-        };
-
-        btnNao.onclick = () => {
-            overlay.remove();
-            if (aoCancelar) aoCancelar();
-        };
-    }
-
-    function tempoAgo(timestamp) {
-        if (!timestamp) return '';
-        const seg = Math.floor((Date.now() - timestamp) / 1000);
-        if (seg < 60) return 'agora';
-        const min = Math.floor(seg / 60);
-        if (min < 60) return `${min} min`;
-        const hrs = Math.floor(min / 60);
-        if (hrs < 60) return `${hrs} h`;
-        const dias = Math.floor(hrs / 24);
-        if (dias === 1) return 'ontem';
-        return `${dias} d`;
-    }
-
-    function escapeHtml(t) {
-        if (!t) return '';
-        const div = document.createElement('div');
-        div.textContent = t;
-        return div.innerHTML;
-    }
-
-    function avatarPadrao() {
-        return 'https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png';
-    }
-
-    function getStatusIcon(status) {
-        if (status === 'sent') return '<i class="fas fa-check" style="font-size: 10px; color: #b0b0b0;"></i>';
-        if (status === 'delivered') return '<i class="fas fa-check-double" style="font-size: 10px; color: #9e9e9e;"></i>';
-        if (status === 'read') return '<i class="fas fa-check-double" style="font-size: 10px; color: #00a8ff;"></i>';
-        return '<i class="fas fa-clock" style="font-size: 10px; color: #b0b0b0;"></i>';
-    }
-
-    // ========== EXCLUIR MENSAGEM DO BANCO ==========
-    async function excluirMensagem(chatId, messageId) {
-        if (!chatId || !messageId) return false;
-        const db = firebase.database();
-        try {
-            if (chatId === 'geral') {
-                await db.ref(`chat_messages/${messageId}`).remove();
-            } else {
-                await db.ref(`private_messages/${chatId}/${messageId}`).remove();
-            }
-            console.log('✅ Mensagem excluída permanentemente:', messageId);
-            return true;
-        } catch (error) {
-            console.error('❌ Erro ao excluir:', error);
-            return false;
+        // ========== FUNÇÕES AUXILIARES ==========
+        function showToast(msg) {
+            let toast = document.createElement('div');
+            toast.className = 'toast-notificacao';
+            toast.innerHTML = `<i class="fas fa-info-circle"></i> ${msg}`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
         }
-    }
 
-    // ========== EXCLUIR CONVERSA COMPLETA ==========
-    async function excluirConversa(chatId, convNome) {
-        if (!chatId) return false;
-        const db = firebase.database();
-        try {
-            if (chatId === 'geral') {
-                await db.ref('chat_messages').remove();
-            } else {
-                await db.ref(`private_messages/${chatId}`).remove();
-                await db.ref(`private_chats/${chatId}`).remove();
-            }
-            console.log('✅ Conversa excluída permanentemente:', chatId);
-            
-            // Fecha o chat se estiver aberto
-            if (estado.chatAtual === chatId) {
-                if (sidebarEl) sidebarEl.classList.remove('hidden');
-                if (mainEl) mainEl.classList.add('hidden');
-                estado.chatAtual = null;
-            }
-            
-            await carregarConversas();
-            return true;
-        } catch (error) {
-            console.error('❌ Erro ao excluir conversa:', error);
-            return false;
+        function escapeHtml(t) {
+            if (!t) return '';
+            let div = document.createElement('div');
+            div.textContent = t;
+            return div.innerHTML;
         }
-    }
 
-    // ========== SWIPE CORRETO NAS CONVERSAS ==========
-    function setupSwipeConversa(elemento, chatId, conv) {
-        let touchStartX = 0;
-        let touchStartY = 0;
-        let isSwiping = false;
-        
-        elemento.addEventListener('touchstart', (e) => {
-            touchStartX = e.touches[0].clientX;
-            touchStartY = e.touches[0].clientY;
-            isSwiping = false;
-            
-            // Remove botão existente
-            const existingBtn = elemento.querySelector('.conversa-delete-btn');
-            if (existingBtn) existingBtn.remove();
-            elemento.style.transform = '';
-        });
-        
-        elemento.addEventListener('touchmove', (e) => {
-            const currentX = e.touches[0].clientX;
-            const currentY = e.touches[0].clientY;
-            const diffX = touchStartX - currentX;
-            const diffY = Math.abs(touchStartY - currentY);
-            
-            if (diffX > 15 && diffY < 30) {
-                e.preventDefault();
-                isSwiping = true;
-                const translateX = Math.min(diffX, 80);
-                elemento.style.transform = `translateX(-${translateX}px)`;
-                elemento.style.transition = 'none';
-            }
-        });
-        
-        elemento.addEventListener('touchend', async (e) => {
-            if (isSwiping) {
-                const finalTranslate = elemento.style.transform;
-                const match = finalTranslate.match(/translateX\(-(\d+)px\)/);
-                const diff = match ? parseInt(match[1]) : 0;
-                
-                if (diff > 50) {
-                    // Mostra o botão fixo
-                    elemento.style.transform = 'translateX(-80px)';
-                    mostrarBotaoLixoConversaFixo(elemento, chatId, conv);
-                } else {
-                    elemento.style.transform = '';
-                    elemento.style.transition = 'transform 0.3s ease';
-                }
-            }
-            isSwiping = false;
-        });
-    }
-    
-    function mostrarBotaoLixoConversaFixo(elemento, chatId, conv) {
-        const existingBtn = elemento.querySelector('.conversa-delete-btn');
-        if (existingBtn) existingBtn.remove();
-        
-        const deleteDiv = document.createElement('div');
-        deleteDiv.className = 'conversa-delete-btn';
-        deleteDiv.innerHTML = '<i class="fas fa-trash-alt"></i>';
-        deleteDiv.onclick = (e) => {
-            e.stopPropagation();
-            mostrarPopupConfirmacao(
-                `⚠️ ATENÇÃO!\n\nExcluir conversa com ${conv.nome}?\n\nTodas as mensagens serão perdidas.\n\nEsta ação NÃO pode ser desfeita!`,
-                async () => {
-                    await excluirConversa(chatId, conv.nome);
-                    elemento.remove();
-                },
-                () => {
-                    // Cancelou - volta ao normal
-                    elemento.style.transform = '';
-                    deleteDiv.remove();
-                }
-            );
-        };
-        
-        elemento.style.position = 'relative';
-        elemento.style.overflow = 'hidden';
-        elemento.appendChild(deleteDiv);
-    }
-
-    // ========== SWIPE CORRETO NAS MENSAGENS ==========
-    function setupSwipeMensagem(elemento, chatId, messageId, isOwner, textoMsg) {
-        if (!isOwner) return;
-        
-        let touchStartX = 0;
-        let touchStartY = 0;
-        let isSwiping = false;
-        
-        elemento.addEventListener('touchstart', (e) => {
-            touchStartX = e.touches[0].clientX;
-            touchStartY = e.touches[0].clientY;
-            isSwiping = false;
-            
-            const existingBtn = elemento.querySelector('.msg-delete-btn');
-            if (existingBtn) existingBtn.remove();
-            elemento.style.transform = '';
-        });
-        
-        elemento.addEventListener('touchmove', (e) => {
-            const currentX = e.touches[0].clientX;
-            const currentY = e.touches[0].clientY;
-            const diffX = touchStartX - currentX;
-            const diffY = Math.abs(touchStartY - currentY);
-            
-            if (diffX > 15 && diffY < 30) {
-                e.preventDefault();
-                isSwiping = true;
-                const translateX = Math.min(diffX, 70);
-                elemento.style.transform = `translateX(-${translateX}px)`;
-                elemento.style.transition = 'none';
-            }
-        });
-        
-        elemento.addEventListener('touchend', async (e) => {
-            if (isSwiping) {
-                const finalTranslate = elemento.style.transform;
-                const match = finalTranslate.match(/translateX\(-(\d+)px\)/);
-                const diff = match ? parseInt(match[1]) : 0;
-                
-                if (diff > 40) {
-                    elemento.style.transform = 'translateX(-70px)';
-                    mostrarBotaoLixoMensagemFixo(elemento, chatId, messageId, textoMsg);
-                } else {
-                    elemento.style.transform = '';
-                    elemento.style.transition = 'transform 0.3s ease';
-                }
-            }
-            isSwiping = false;
-        });
-    }
-    
-    function mostrarBotaoLixoMensagemFixo(elemento, chatId, messageId, textoMsg) {
-        const existingBtn = elemento.querySelector('.msg-delete-btn');
-        if (existingBtn) existingBtn.remove();
-        
-        const deleteDiv = document.createElement('div');
-        deleteDiv.className = 'msg-delete-btn';
-        deleteDiv.innerHTML = '<i class="fas fa-trash-alt"></i>';
-        deleteDiv.onclick = (e) => {
-            e.stopPropagation();
-            mostrarPopupConfirmacao(
-                `⚠️ ATENÇÃO!\n\nExcluir esta mensagem?\n\n"${textoMsg.substring(0, 50)}${textoMsg.length > 50 ? '...' : ''}"\n\nEsta ação NÃO pode ser desfeita!`,
-                async () => {
-                    const excluido = await excluirMensagem(chatId, messageId);
-                    if (excluido) {
-                        // Remove do DOM imediatamente
-                        elemento.remove();
-                        console.log('✅ Mensagem removida da interface');
-                    }
-                },
-                () => {
-                    // Cancelou - volta ao normal
-                    elemento.style.transform = '';
-                    deleteDiv.remove();
-                }
-            );
-        };
-        
-        elemento.style.position = 'relative';
-        elemento.style.overflow = 'hidden';
-        elemento.appendChild(deleteDiv);
-    }
-
-    // ========== MARCAR COMO DELIVERED ==========
-    async function marcarComoEntregue(chatId, messageId, senderId) {
-        if (!estado.user || senderId === estado.user.uid) return;
-        const db = firebase.database();
-        const msgRef = chatId === 'geral' ? db.ref(`chat_messages/${messageId}`) : db.ref(`private_messages/${chatId}/${messageId}`);
-        const snap = await msgRef.once('value');
-        const msg = snap.val();
-        if (msg && msg.status === 'sent') {
-            const statusRef = chatId === 'geral' ? db.ref(`chat_messages/${messageId}/status`) : db.ref(`private_messages/${chatId}/${messageId}/status`);
-            await statusRef.set('delivered');
+        function avatarPadrao() {
+            return "https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png";
         }
-    }
 
-    function marcarTodasComoLidas(chatId) {
-        if (!estado.user || !chatId) return;
-        const db = firebase.database();
-        let ref = chatId === 'geral' ? db.ref('chat_messages') : db.ref(`private_messages/${chatId}`);
-        ref.once('value', (snapshot) => {
-            const msgs = snapshot.val();
-            if (!msgs) return;
-            for (const [msgId, msg] of Object.entries(msgs)) {
-                if (msg.senderId !== estado.user.uid && msg.status !== 'read') {
-                    const statusRef = chatId === 'geral' ? db.ref(`chat_messages/${msgId}/status`) : db.ref(`private_messages/${chatId}/${msgId}/status`);
-                    statusRef.set('read');
-                }
-            }
-        });
-    }
-
-    function salvarLeitura(chatId) {
-        if (!estado.user) return;
-        leiturasCache.set(chatId, Date.now());
-        const obj = {};
-        leiturasCache.forEach((v, k) => obj[k] = v);
-        localStorage.setItem(`chat_leitura_${estado.user.uid}`, JSON.stringify(obj));
-        marcarTodasComoLidas(chatId);
-        if (conversasCache.has(chatId)) conversasCache.get(chatId).naoLidas = 0;
-        renderizarLista();
-        atualizarBadgeMenu();
-    }
-
-    function carregarLeituras() {
-        if (!estado.user) return;
-        const salvo = localStorage.getItem(`chat_leitura_${estado.user.uid}`);
-        if (salvo) {
-            const obj = JSON.parse(salvo);
-            for (const [id, time] of Object.entries(obj)) leiturasCache.set(id, time);
+        function tempoAgo(timestamp) {
+            if (!timestamp) return '';
+            let seg = Math.floor((Date.now() - timestamp) / 1000);
+            if (seg < 60) return 'agora';
+            let min = Math.floor(seg / 60);
+            if (min < 60) return `${min} min`;
+            let hrs = Math.floor(min / 60);
+            if (hrs < 24) return `${hrs} h`;
+            let dias = Math.floor(hrs / 24);
+            if (dias === 1) return 'ontem';
+            return `${dias} d`;
         }
-    }
 
-    function contarNaoLidas(mensagens, chatId) {
-        if (!mensagens || !estado.user) return 0;
-        const ultimaLeitura = leiturasCache.get(chatId) || 0;
-        return mensagens.filter(m => m.senderId !== estado.user.uid && (m.timestamp || 0) > ultimaLeitura && m.status !== 'read').length;
-    }
+        // ========== 1. POPUP DE CONFIRMAÇÃO ==========
+        function showConfirmPopup(message, onConfirm, onCancel) {
+            // Remove popup anterior se existir
+            let oldPopup = document.querySelector('.confirm-modal-overlay');
+            if (oldPopup) oldPopup.remove();
 
-    function atualizarBadgeMenu() {
-        let total = 0;
-        conversasCache.forEach(c => { total += c.naoLidas || 0; });
-        const menuChat = document.querySelector('.bottom-nav-item[data-section="chat"], .bottom-nav-item:has(.fa-comment-dots)');
-        if (menuChat) {
-            const old = menuChat.querySelector('.menu-badge-chat');
-            if (old) old.remove();
-            if (total > 0) {
-                const badge = document.createElement('span');
-                badge.className = 'menu-badge-chat';
-                badge.textContent = total > 99 ? '99+' : total;
-                badge.style.cssText = `position:absolute; top:4px; right:6px; background:#e53935; color:white; font-size:10px; font-weight:bold; min-width:15px; height:15px; border-radius:50%; display:flex; align-items:center; justify-content:center; padding:0 4px; box-shadow:0 0 0 2px #1e1e2a; z-index:100;`;
-                menuChat.style.position = 'relative';
-                menuChat.appendChild(badge);
-            }
-        }
-        if (totalBadgeEl) {
-            totalBadgeEl.style.display = total > 0 ? 'inline-flex' : 'none';
-            if (total > 0) totalBadgeEl.textContent = total;
-        }
-    }
-
-    // ========== RENDERIZAR LISTA DE CONVERSAS ==========
-    function renderizarLista() {
-        if (!usersListEl) return;
-        if (conversasCache.size === 0) {
-            usersListEl.innerHTML = '<li class="chat-user" style="justify-content:center;">Nenhuma conversa</li>';
-            return;
-        }
-        const ordenadas = Array.from(conversasCache.values()).sort((a, b) => (b.ultimoTempo || 0) - (a.ultimoTempo || 0));
-        usersListEl.innerHTML = '';
-        for (const conv of ordenadas) {
-            const ativa = estado.chatAtual === conv.id;
-            const naoLidas = conv.naoLidas || 0;
-            const li = document.createElement('li');
-            li.className = `chat-user ${naoLidas > 0 ? 'unread' : ''} ${ativa ? 'active' : ''}`;
-            li.setAttribute('data-id', conv.id);
-            li.innerHTML = `
-                <div class="chat-user-avatar" style="position:relative;">
-                    ${conv.avatarUrl ? `<img src="${conv.avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='${avatarPadrao()}'">` : `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#e50914,#b20710); border-radius:50%; font-weight:bold; font-size:18px;">${conv.avatar}</div>`}
-                    ${naoLidas > 0 ? `<span class="unread-count-badge" style="position:absolute; top:-5px; right:-5px; background:#e53935; color:white; font-size:10px; font-weight:bold; min-width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; padding:0 5px; border:2px solid #202c33; z-index:10;">${naoLidas > 99 ? '99+' : naoLidas}</span>` : ''}
-                </div>
-                <div class="chat-user-info" style="flex:1;">
-                    <div style="display:flex; justify-content:space-between; align-items:baseline;">
-                        <strong>${escapeHtml(conv.nome)}</strong>
-                        <span style="font-size:10px; color:#8696a0;">${tempoAgo(conv.ultimoTempo)}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-                        <span style="font-size:12px; ${naoLidas > 0 ? 'color:#e9edef; font-weight:500;' : 'color:#8696a0;'}">${naoLidas > 0 ? '📩 ' : ''}${escapeHtml((conv.ultimaMsg || 'Nenhuma mensagem').substring(0, 35))}</span>
+            let overlay = document.createElement('div');
+            overlay.className = 'confirm-modal-overlay';
+            overlay.innerHTML = `
+                <div class="confirm-modal">
+                    <h3>⚠️ Atenção</h3>
+                    <p>${escapeHtml(message)}</p>
+                    <div class="confirm-modal-actions">
+                        <button class="confirm-modal-btn cancel" id="confirmNoBtn">Não</button>
+                        <button class="confirm-modal-btn delete" id="confirmYesBtn">Sim</button>
                     </div>
                 </div>
             `;
-            li.onclick = (e) => { 
-                if (!e.target.closest('.conversa-delete-btn')) {
-                    abrirConversa(conv.id, conv);
-                }
+            document.body.appendChild(overlay);
+
+            let yesBtn = overlay.querySelector('#confirmYesBtn');
+            let noBtn = overlay.querySelector('#confirmNoBtn');
+
+            const close = () => overlay.remove();
+
+            yesBtn.onclick = () => {
+                if (onConfirm) onConfirm();
+                close();
             };
-            setupSwipeConversa(li, conv.id, conv);
-            usersListEl.appendChild(li);
+            noBtn.onclick = () => {
+                if (onCancel) onCancel();
+                close();
+            };
+            overlay.onclick = (e) => {
+                if (e.target === overlay) close();
+            };
         }
-    }
 
-    // ========== CARREGAR MENSAGENS ==========
-    function carregarMensagens(chatId, outroId) {
-        if (!chatBoxEl) return;
-        if (estado.listenerMsg) estado.listenerMsg();
-        const db = firebase.database();
-        let ref = chatId === 'geral' ? db.ref('chat_messages') : db.ref(`private_messages/${chatId}`);
+        // ========== 2. SWIPE PARA DELETAR CONVERSA ==========
+        function addSwipeToChatItem(element, chatId, convNome) {
+            let touchStartX = 0;
+            let touchStartY = 0;
 
-        const msgCallback = async (snapshot) => {
-            const msgs = snapshot.val();
-            if (!msgs) { 
-                chatBoxEl.innerHTML = '<div style="text-align:center; padding:40px;">Nenhuma mensagem</div>'; 
-                return; 
-            }
-            const lista = Object.entries(msgs).map(([id, m]) => ({ id, ...m })).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-            chatBoxEl.innerHTML = '';
-            for (const msg of lista) {
-                const isOwner = estado.user && msg.senderId === estado.user.uid;
-                let avatar = avatarPadrao();
-                if (!isOwner && msg.senderId) {
-                    const snap = await db.ref(`usuarios/${msg.senderId}/avatarUrl`).once('value');
-                    if (snap.val()) avatar = snap.val();
-                }
-                const statusIcon = isOwner ? getStatusIcon(msg.status) : '';
-                const div = document.createElement('div');
-                div.className = `message ${isOwner ? 'sent' : 'received'}`;
-                div.setAttribute('data-msg-id', msg.id);
-                div.innerHTML = `
-                    <div class="message-avatar"><img src="${avatar}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='${avatarPadrao()}'"></div>
-                    <div class="message-content">
-                        <p>${escapeHtml(msg.text || '')}</p>
-                        <div style="display:flex; justify-content:flex-end; align-items:center; gap:4px; margin-top:4px;">
-                            <span class="message-time" style="font-size:10px; opacity:0.7;">${tempoAgo(msg.timestamp)}</span>
-                            ${statusIcon ? `<span class="message-status">${statusIcon}</span>` : ''}
-                        </div>
-                    </div>
-                `;
-                setupSwipeMensagem(div, chatId, msg.id, isOwner, msg.text);
-                chatBoxEl.appendChild(div);
-            }
-            chatBoxEl.scrollTop = chatBoxEl.scrollHeight;
-        };
-        ref.on('value', msgCallback);
-        estado.listenerMsg = () => ref.off('value', msgCallback);
-    }
+            element.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+                touchStartY = e.changedTouches[0].screenY;
+            });
 
-    // ========== ABRIR CONVERSA ==========
-    async function abrirConversa(chatId, conv) {
-        estado.chatAtual = chatId;
-        estado.chatUsuario = conv.userId;
-        if (headerNameEl) headerNameEl.innerText = conv.nome;
-        if (headerAvatarEl) {
-            if (conv.avatarUrl) headerAvatarEl.innerHTML = `<img src="${conv.avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
-            else { headerAvatarEl.innerHTML = conv.avatar; headerAvatarEl.style.cssText = 'display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#e50914,#b20710); border-radius:50%; font-weight:bold; font-size:18px;'; }
-        }
-        salvarLeitura(chatId);
-        renderizarLista();
-        atualizarBadgeMenu();
-        if (sidebarEl) sidebarEl.classList.add('hidden');
-        if (mainEl) mainEl.classList.remove('hidden');
-        carregarMensagens(chatId, conv.userId);
-    }
+            element.addEventListener('touchend', async (e) => {
+                let touchEndX = e.changedTouches[0].screenX;
+                let touchEndY = e.changedTouches[0].screenY;
+                let diffX = touchStartX - touchEndX;
+                let diffY = Math.abs(touchStartY - touchEndY);
 
-    // ========== ENVIAR MENSAGEM ==========
-    async function enviarMensagem() {
-        if (!inputEl) return;
-        const texto = inputEl.value.trim();
-        if (!texto || !estado.user || !estado.chatAtual) return;
-        const msgData = { text: texto, senderId: estado.user.uid, senderName: window.currentUsername || 'Usuário', timestamp: Date.now(), status: 'sent' };
-        const db = firebase.database();
-        let ref = estado.chatAtual === 'geral' ? db.ref('chat_messages') : db.ref(`private_messages/${estado.chatAtual}`);
-        await ref.push(msgData);
-        inputEl.value = '';
-        inputEl.style.height = 'auto';
-        carregarConversas();
-    }
-
-    // ========== CARREGAR CONVERSAS ==========
-    async function carregarConversas() {
-        if (!estado.user) return;
-        const db = firebase.database();
-        conversasCache.clear();
-        
-        const geralSnap = await db.ref('chat_messages').once('value');
-        const geralMsgs = geralSnap.val();
-        const geralLista = geralMsgs ? Object.values(geralMsgs) : [];
-        geralLista.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-        conversasCache.set('geral', { id: 'geral', nome: 'Chat Geral', avatar: 'G', avatarUrl: null, ultimaMsg: geralLista[0]?.text || 'Nenhuma mensagem', ultimoTempo: geralLista[0]?.timestamp || 0, naoLidas: contarNaoLidas(geralLista, 'geral'), userId: null });
-        
-        const privSnap = await db.ref('private_messages').once('value');
-        const privadas = privSnap.val() || {};
-        for (const [chatId, msgs] of Object.entries(privadas)) {
-            const msgLista = msgs ? Object.values(msgs) : [];
-            msgLista.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-            const partes = chatId.split('_');
-            const outroId = partes.find(id => id !== estado.user.uid);
-            if (outroId) {
-                const userSnap = await db.ref(`usuarios/${outroId}`).once('value');
-                const userData = userSnap.val() || {};
-                conversasCache.set(chatId, { id: chatId, nome: userData.displayName || userData.nickname || 'Usuário', avatar: (userData.displayName || userData.nickname || 'U').charAt(0).toUpperCase(), avatarUrl: userData.avatarUrl || null, ultimaMsg: msgLista[0]?.text || 'Nenhuma mensagem', ultimoTempo: msgLista[0]?.timestamp || 0, naoLidas: contarNaoLidas(msgLista, chatId), userId: outroId });
-            }
-        }
-        renderizarLista();
-        atualizarBadgeMenu();
-    }
-
-    function setupRealTimeListeners() {
-        if (!estado.user) return;
-        const db = firebase.database();
-        const atualizarBadge = async () => {
-            await carregarConversas();
-            if (estado.chatAtual) {
-                const conv = conversasCache.get(estado.chatAtual);
-                if (conv) carregarMensagens(estado.chatAtual, conv.userId);
-            }
-        };
-        db.ref('chat_messages').on('child_added', atualizarBadge);
-        db.ref('chat_messages').on('child_removed', atualizarBadge);
-        db.ref('private_messages').on('child_added', atualizarBadge);
-        db.ref('private_messages').on('child_removed', atualizarBadge);
-    }
-
-    window.enviarMensagemNova = enviarMensagem;
-    window.handleChatKeyPressNovo = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarMensagem(); } };
-    window.autoResizeChat = (t) => { t.style.height = 'auto'; t.style.height = (t.scrollHeight) + 'px'; };
-    window.fecharChatAberto = () => { if (sidebarEl) sidebarEl.classList.remove('hidden'); if (mainEl) mainEl.classList.add('hidden'); renderizarLista(); };
-
-    function inicializar() {
-        sidebarEl = document.getElementById('chatSidebarNovo');
-        mainEl = document.getElementById('chatMainNovo');
-        usersListEl = document.getElementById('chatUsersListNovo');
-        chatBoxEl = document.getElementById('chatBoxNovo');
-        inputEl = document.getElementById('chatInputNovo');
-        headerNameEl = document.getElementById('chatHeaderNameNovo');
-        headerAvatarEl = document.getElementById('chatHeaderAvatarNovo');
-        totalBadgeEl = document.getElementById('unreadTotalNovo');
-        if (!sidebarEl) { setTimeout(inicializar, 200); return; }
-        if (typeof auth !== 'undefined') {
-            auth.onAuthStateChanged(async (user) => {
-                if (user) {
-                    estado.user = user;
-                    carregarLeituras();
-                    await carregarConversas();
-                    setupRealTimeListeners();
-                    console.log('✅ Chat com swipe FUNCIONAL!');
+                // Deslizou da direita para a esquerda (diffX > 0) e não foi diagonal
+                if (diffX > 50 && diffY < 50) {
+                    e.preventDefault();
+                    // Mostra o popup de confirmação antes de deletar
+                    showConfirmPopup(
+                        `Tem certeza que deseja excluir a conversa "${convNome}"? Esta ação não pode ser desfeita.`,
+                        async () => {
+                            // DELETAR CONVERSA
+                            try {
+                                const db = firebase.database();
+                                if (chatId === 'geral') {
+                                    await db.ref('chat_messages').remove();
+                                } else {
+                                    await db.ref(`private_messages/${chatId}`).remove();
+                                    await db.ref(`private_chats/${chatId}`).remove();
+                                }
+                                showToast(`✅ Conversa com ${convNome} excluída!`);
+                                // Recarregar lista de conversas
+                                if (typeof carregarConversasChat === 'function') {
+                                    await carregarConversasChat();
+                                }
+                                // Se a conversa excluída estava aberta, fechar
+                                if (window.currentChatId === chatId && typeof window.fecharChatAberto === 'function') {
+                                    window.fecharChatAberto();
+                                }
+                            } catch (error) {
+                                console.error(error);
+                                showToast('Erro ao excluir conversa');
+                            }
+                        },
+                        () => {
+                            showToast('Exclusão cancelada');
+                        }
+                    );
                 }
             });
         }
-    }
-    
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', inicializar);
-    else inicializar();
 
-    // ========== ESTILOS CORRIGIDOS ==========
-    const style = document.createElement('style');
-    style.textContent = `
-        .chat-user.unread { background: rgba(229,57,53,0.08) !important; border-left: 3px solid #e53935 !important; }
-        .chat-user.active { background: rgba(0,168,255,0.1) !important; border-left: 3px solid #00a8ff !important; }
-        
-        /* Botão de lixo para conversas */
-        .conversa-delete-btn {
-            position: absolute;
-            right: 0;
-            top: 0;
-            bottom: 0;
-            width: 80px;
-            background: linear-gradient(135deg, #e53935, #c62828);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 100;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            border-radius: 12px;
-        }
-        
-        .conversa-delete-btn i {
-            font-size: 28px;
-            color: white;
-            background: rgba(255,255,255,0.2);
-            padding: 12px;
-            border-radius: 50%;
-        }
-        
-        .conversa-delete-btn:active {
-            transform: scale(0.95);
-        }
-        
-        /* Botão de lixo para mensagens */
-        .msg-delete-btn {
-            position: absolute;
-            right: 0;
-            top: 0;
-            bottom: 0;
-            width: 70px;
-            background: linear-gradient(135deg, #e53935, #c62828);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 100;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            border-radius: 20px;
-        }
-        
-        .msg-delete-btn i {
-            font-size: 24px;
-            color: white;
-            background: rgba(255,255,255,0.2);
-            padding: 10px;
-            border-radius: 50%;
-        }
-        
-        .msg-delete-btn:active {
-            transform: scale(0.95);
-        }
-        
-        /* Popup */
-        .custom-popup-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.8);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10000;
-            backdrop-filter: blur(5px);
-        }
-        
-        .custom-popup {
-            background: #2a2a35;
-            border-radius: 20px;
-            padding: 25px;
-            max-width: 320px;
-            width: 85%;
-            text-align: center;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            animation: slideUp 0.3s ease;
-        }
-        
-        .custom-popup-message {
-            color: #e9edef;
-            font-size: 16px;
-            margin: 20px 0;
-            line-height: 1.5;
-            white-space: pre-line;
-        }
-        
-        .custom-popup-buttons {
-            display: flex;
-            gap: 12px;
-            justify-content: center;
-            margin-top: 20px;
-        }
-        
-        .custom-popup-btn {
-            padding: 10px 24px;
-            border: none;
-            border-radius: 25px;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        
-        .custom-popup-btn.confirm-btn {
-            background: #e53935;
-            color: white;
-        }
-        
-        .custom-popup-btn.cancel-btn {
-            background: #3a3a45;
-            color: #e9edef;
-        }
-        
-        .custom-popup-btn:active {
-            transform: scale(0.95);
-        }
-        
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
+        // ========== 3. BOTÃO + (ABRIR LISTA DE QUEM O PERFIL SEGUE) ==========
+        async function abrirListaUsuariosSeguidos() {
+            if (!currentUser) {
+                showToast('Faça login para ver quem você segue');
+                return;
             }
-            to {
-                opacity: 1;
-                transform: translateY(0);
+
+            // Buscar lista de seguidos do usuário atual
+            const db = firebase.database();
+            const followingSnapshot = await db.ref(`following/${currentUser.uid}`).once('value');
+            const following = followingSnapshot.val() || {};
+
+            const seguidosIds = Object.keys(following);
+            if (seguidosIds.length === 0) {
+                showToast('Você ainda não segue ninguém. Siga outros usuários para conversar!');
+                return;
+            }
+
+            // Buscar dados dos usuários seguidos
+            const usuariosPromises = seguidosIds.map(uid => db.ref(`usuarios/${uid}`).once('value'));
+            const usuariosSnapshots = await Promise.all(usuariosPromises);
+
+            let seguidos = [];
+            for (let i = 0; i < seguidosIds.length; i++) {
+                const snap = usuariosSnapshots[i];
+                if (snap.exists()) {
+                    const userData = snap.val();
+                    seguidos.push({
+                        uid: seguidosIds[i],
+                        nickname: userData.nickname || 'usuário',
+                        displayName: userData.displayName || userData.nickname || 'Usuário',
+                        avatarUrl: userData.avatarUrl || avatarPadrao()
+                    });
+                }
+            }
+
+            if (seguidos.length === 0) {
+                showToast('Nenhum usuário encontrado');
+                return;
+            }
+
+            // Ordenar por nome
+            seguidos.sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+            // Criar modal para exibir a lista
+            let modal = document.querySelector('.user-search-modal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.className = 'user-search-modal hidden';
+                modal.innerHTML = `
+                    <div class="user-search-content">
+                        <h3>Nova conversa <button class="close-modal-btn">✕</button></h3>
+                        <input type="text" class="user-search-input" placeholder="Filtrar..." id="seguidosFilterInput">
+                        <ul class="user-search-list" id="seguidosList"></ul>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+
+            const closeBtn = modal.querySelector('.close-modal-btn');
+            const filterInput = modal.querySelector('#seguidosFilterInput');
+            const listContainer = modal.querySelector('#seguidosList');
+
+            const renderList = (filterText = '') => {
+                const filtered = seguidos.filter(u => 
+                    u.displayName.toLowerCase().includes(filterText.toLowerCase()) ||
+                    u.nickname.toLowerCase().includes(filterText.toLowerCase())
+                );
+                if (filtered.length === 0) {
+                    listContainer.innerHTML = '<li class="no-users-found">Nenhum usuário encontrado</li>';
+                    return;
+                }
+                listContainer.innerHTML = filtered.map(u => `
+                    <li class="user-search-item" data-uid="${u.uid}" data-name="${escapeHtml(u.displayName)}" data-avatar="${u.avatarUrl}">
+                        <div class="user-search-avatar"><img src="${u.avatarUrl}" onerror="this.src='${avatarPadrao()}'"></div>
+                        <div class="user-search-info">
+                            <strong>${escapeHtml(u.displayName)}</strong>
+                            <span>@${escapeHtml(u.nickname)}</span>
+                        </div>
+                    </li>
+                `).join('');
+
+                // Adicionar eventos aos itens
+                listContainer.querySelectorAll('.user-search-item').forEach(item => {
+                    item.addEventListener('click', async () => {
+                        const uid = item.getAttribute('data-uid');
+                        const name = item.getAttribute('data-name');
+                        const avatarUrl = item.getAttribute('data-avatar');
+                        modal.classList.add('hidden');
+                        
+                        // Iniciar ou abrir conversa
+                        await iniciarOuAbrirConversa(uid, name, avatarUrl);
+                    });
+                });
+            };
+
+            filterInput.oninput = (e) => renderList(e.target.value);
+            closeBtn.onclick = () => modal.classList.add('hidden');
+            
+            renderList();
+            modal.classList.remove('hidden');
+        }
+
+        // Função para iniciar nova conversa ou abrir existente
+        async function iniciarOuAbrirConversa(outroUserId, nome, avatarUrl) {
+            if (!currentUser) return;
+            
+            const chatId = `private_${[currentUser.uid, outroUserId].sort().join('_')}`;
+            
+            // Verificar se já existe uma conversa (apenas para garantir)
+            const db = firebase.database();
+            const existingChat = await db.ref(`private_messages/${chatId}`).once('value');
+            
+            if (!existingChat.exists()) {
+                // Criar uma entrada vazia para a conversa
+                await db.ref(`private_chats/${chatId}`).set({
+                    participants: { [currentUser.uid]: true, [outroUserId]: true },
+                    createdAt: Date.now()
+                });
+                showToast(`Nova conversa iniciada com ${nome}`);
+            }
+            
+            // Abrir a conversa
+            if (typeof window.abrirConversaEspecifica === 'function') {
+                window.abrirConversaEspecifica(chatId, nome, outroUserId, avatarUrl);
+            } else {
+                // Fallback: tentar usar função existente do chat
+                if (typeof window.selectChat === 'function') {
+                    window.selectChat(chatId, nome, nome.charAt(0).toUpperCase(), outroUserId);
+                }
+                // Fechar sidebar e mostrar chat
+                if (typeof window.fecharChatAberto === 'function') {
+                    // Simular clique no item da lista
+                    const chatItem = document.querySelector(`.chat-user[data-id="${chatId}"]`);
+                    if (chatItem) chatItem.click();
+                }
+            }
+            
+            // Atualizar badge se necessário
+            if (typeof atualizarBadgeMenuChat === 'function') atualizarBadgeMenuChat();
+        }
+
+        // ========== 4. INJETAR BOTÃO + NO CHAT ==========
+        function adicionarBotaoMaisNoChat() {
+            const addBtn = document.querySelector('.add-chat-btn');
+            if (addBtn) {
+                // Remove eventos antigos
+                const newBtn = addBtn.cloneNode(true);
+                addBtn.parentNode.replaceChild(newBtn, addBtn);
+                newBtn.onclick = (e) => {
+                    e.preventDefault();
+                    abrirListaUsuariosSeguidos();
+                };
             }
         }
-        
-        .chat-user, .message {
-            transition: transform 0.2s ease;
-            position: relative;
+
+        // ========== 5. OBSERVAR LOGIN PARA ATUALIZAR LISTA DE SEGUIDOS ==========
+        function observarLoginChat() {
+            if (typeof auth !== 'undefined') {
+                auth.onAuthStateChanged((user) => {
+                    currentUser = user;
+                    if (user) {
+                        // Atualizar followingList sempre que abrir o modal
+                        console.log('Usuário logado no chat, botão + pronto');
+                        adicionarBotaoMaisNoChat();
+                    }
+                });
+            }
         }
-        
-        .message {
-            max-width: 80%;
-            margin: 8px 0;
+
+        // ========== 6. ADICIONAR SWIPE AOS ITENS DA LISTA ==========
+        function adicionarSwipeAosItensDaLista() {
+            const items = document.querySelectorAll('#chatUsersListNovo .chat-user');
+            items.forEach(item => {
+                const chatId = item.getAttribute('data-id');
+                const nomeEl = item.querySelector('.chat-user-info strong');
+                const nome = nomeEl ? nomeEl.innerText : 'Conversa';
+                if (chatId && chatId !== 'geral') { // Não permite deletar o chat geral
+                    addSwipeToChatItem(item, chatId, nome);
+                }
+            });
         }
-    `;
-    document.head.appendChild(style);
-})();
+
+        // ========== 7. OBSERVAR MUDANÇAS NA LISTA PARA APLICAR SWIPE ==========
+        function observarListaChat() {
+            const lista = document.getElementById('chatUsersListNovo');
+            if (!lista) return;
+            
+            const observer = new MutationObserver(() => {
+                adicionarSwipeAosItensDaLista();
+            });
+            observer.observe(lista, { childList: true, subtree: true });
+            adicionarSwipeAosItensDaLista();
+        }
+
+        // ========== 8. FUNÇÃO DE FECHAR CHAT GLOBAL ==========
+        window.fecharChatAberto = function() {
+            const sidebar = document.getElementById('chatSidebarNovo');
+            const main = document.getElementById('chatMainNovo');
+            if (sidebar) sidebar.classList.remove('hidden');
+            if (main) main.classList.add('hidden');
+        };
+
+        // ========== 9. FUNÇÃO PARA ABRIR CONVERSA ESPECÍFICA ==========
+        window.abrirConversaEspecifica = async function(chatId, nome, userId, avatarUrl) {
+            const sidebar = document.getElementById('chatSidebarNovo');
+            const main = document.getElementById('chatMainNovo');
+            const headerName = document.getElementById('chatHeaderNameNovo');
+            const headerAvatar = document.getElementById('chatHeaderAvatarNovo');
+            
+            if (sidebar) sidebar.classList.add('hidden');
+            if (main) main.classList.remove('hidden');
+            if (headerName) headerName.innerText = nome;
+            if (headerAvatar) {
+                if (avatarUrl) {
+                    headerAvatar.innerHTML = `<img src="${avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='${avatarPadrao()}'">`;
+                } else {
+                    headerAvatar.innerHTML = nome.charAt(0).toUpperCase();
+                    headerAvatar.style.cssText = 'display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#e50914,#b20710); border-radius:50%; font-weight:bold; font-size:18px;';
+                }
+            }
+            
+            // Atualizar variáveis globais do chat
+            window.currentChatId = chatId;
+            window.currentChatUser = userId;
+            window.currentChatUserName = nome;
+            
+            // Tentar carregar mensagens se a função existir
+            if (typeof window.carregarMensagensChat === 'function') {
+                window.carregarMensagensChat(chatId, userId);
+            } else if (typeof window.loadChat === 'function') {
+                window.loadChat(chatId, userId);
+            }
+            
+            // Marcar como lido
+            if (typeof window.marcarConversaComoLida === 'function') {
+                window.marcarConversaComoLida(chatId);
+            }
+        };
+
+        // ========== INICIALIZAR ==========
+        function inicializarChatCorrigido() {
+            console.log('🔧 Inicializando correções do chat...');
+            adicionarBotaoMaisNoChat();
+            observarListaChat();
+            observarLoginChat();
+            
+            // Tentar novamente após alguns segundos (para caso o chat carregue depois)
+            setTimeout(() => {
+                adicionarBotaoMaisNoChat();
+                adicionarSwipeAosItensDaLista();
+            }, 2000);
+            
+            setTimeout(() => {
+                adicionarBotaoMaisNoChat();
+                adicionarSwipeAosItensDaLista();
+            }, 5000);
+        }
+
+        // Executar quando o DOM estiver pronto
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', inicializarChatCorrigido);
+        } else {
+            inicializarChatCorrigido();
+        }
+    })();
 
 
 
