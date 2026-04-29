@@ -10077,191 +10077,180 @@ if (loginAdminBtn) {
 
 
 
-                <!-- SCRIPT DE CORREÇÃO DE TAMANHO E PROPORÇÃO DAS IMAGENS (VERSÃO FINAL) -->
-
+// =====================================================
+// SCRIPT DE CORREÇÃO DO FEED - EXIBIÇÃO COMPLETA DAS MÍDIAS
+// =====================================================
 (function() {
-    console.log('🎯 [CORREÇÃO ATIVADA] Ajustando proporções e centralização das imagens...');
+    console.log('🎬 [FEED CORRIGIDO] Ajustando apenas as publicações do feed...');
 
-    // Estilos CSS que serão injetados para corrigir a exibição
+    // Estilos CSS APENAS para o feed (não afeta outros elementos)
     const style = document.createElement('style');
     style.textContent = `
-        /* --- CORREÇÃO PARA O FEED (PUBLICAÇÕES) --- */
-        /* Garante que o container da mídia tenha a proporção correta (4:5 para desktop, flexível para mobile) */
-        .feed-post {
-            background: rgba(20, 25, 45, 0.6);
-            backdrop-filter: blur(14px);
-            border-radius: 16px;
-            margin-bottom: 20px;
-            overflow: hidden;
-        }
-
-        /* Container da mídia (imagem/vídeo) dentro do post */
-        .feed-post-media, .feed-post-video {
+        /* --- CORREÇÃO EXCLUSIVA PARA O FEED (PUBLICAÇÕES) --- */
+        
+        /* Container das mídias do feed */
+        .feed-post img.feed-post-media,
+        .feed-post video.feed-post-video {
             display: block;
             width: 100%;
-            /* Altura automática para manter a proporção original */
             height: auto;
-            /* CORREÇÃO PRINCIPAL: object-fit: contain mostra a imagem por completo */
-            object-fit: contain;
-            background-color: #000; /* Fundo preto para vídeos e imagens menores */
-            max-height: 70vh; /* Altura máxima para não ocupar a tela inteira em desktop */
-            margin: 0 auto; /* Centraliza a mídia */
+            /* CRUCIAL: object-fit: contain mostra a imagem/vídeo por completo */
+            object-fit: contain !important;
+            background-color: #000;
+            margin: 0 auto;
         }
-
-        /* Proporção 4:5 para o container do post em DESKTOP (Instagram 2026) */
+        
+        /* Em DESKTOP: limita altura e centraliza */
         @media (min-width: 768px) {
-            .feed-post {
-                max-width: 600px;
-                margin-left: auto;
-                margin-right: auto;
-            }
-            /* Aplica uma altura máxima inteligente para manter a proporção */
-            .feed-post .feed-post-media,
-            .feed-post .feed-post-video {
-                max-height: 500px;
+            .feed-post img.feed-post-media,
+            .feed-post video.feed-post-video {
+                max-height: 600px;
                 width: auto;
                 max-width: 100%;
             }
         }
-
-        /* Em mobile, mantém o layout fluido que já funcionava */
+        
+        /* Em MOBILE: mantém o comportamento original que já funciona */
         @media (max-width: 767px) {
-            .feed-post-media, .feed-post-video {
-                max-height: 60vh;
+            .feed-post img.feed-post-media,
+            .feed-post video.feed-post-video {
+                max-height: 70vh;
                 width: 100%;
-                object-fit: contain;
+                object-fit: contain !important;
             }
-        }
-
-        /* --- CORREÇÃO PARA OS CARDS DE FILMES, SÉRIES E CANAIS (GRID) --- */
-        /* Garante que todos os cards tenham a proporção 2:3 (padrão de pôster) */
-        #contentGrid > div {
-            background: linear-gradient(135deg, rgba(35, 35, 65, 0.55), rgba(25, 25, 55, 0.65));
-            backdrop-filter: blur(18px);
-            border-radius: 12px;
-            overflow: hidden;
-            transition: transform 0.2s ease;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-        }
-
-        /* A imagem dentro do card deve ocupar o espaço e ter proporção 2:3 */
-        #contentGrid > div img {
-            width: 100%;
-            aspect-ratio: 2 / 3; /* PROPORÇÃO 2:3 (PADRÃO CARTAZ) */
-            object-fit: cover; /* Aqui o cover é bom para preencher o pôster, sem distorcer */
-            display: block;
-            background-color: #1a1a1a;
-        }
-
-        /* Ajusta o conteúdo de texto do card */
-        #contentGrid > div .p-1 {
-            padding: 8px;
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
-        /* Para dispositivos muito pequenos, ajusta o tamanho da fonte */
-        @media (max-width: 480px) {
-            #contentGrid > div .p-1 h3 {
-                font-size: 11px;
-            }
-            #contentGrid > div .p-1 p {
-                font-size: 8px;
-            }
-        }
-
-        /* --- CORREÇÃO ADICIONAL PARA O PLAYER FLUTUANTE (Caso a imagem de thumbnail apareça) --- */
-        .player-wrapper img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            background: #000;
         }
         
-        /* Centralização e proporção para o preview de criação de posts */
-        .preview-image, .preview-video {
-            max-width: 100%;
-            max-height: 400px;
-            object-fit: contain;
-            border-radius: 12px;
-            background: #1a1a1a;
-            display: block;
-            margin: 0 auto;
+        /* Garante que o container do post não quebre o layout */
+        .feed-post {
+            overflow: hidden;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        /* Ajuste para o container de estatísticas e ações */
+        .feed-post-stats,
+        .feed-post-actions,
+        .feed-post-comments,
+        .feed-post-caption {
+            padding-left: 16px;
+            padding-right: 16px;
         }
     `;
     document.head.appendChild(style);
 
-    // Função para forçar a correção em elementos que foram carregados dinamicamente
-    function applyCorrectionToDynamicElements() {
-        // Corrigir imagens dos cards de conteúdo (filmes, séries, canais)
-        const gridImages = document.querySelectorAll('#contentGrid img');
-        gridImages.forEach(img => {
-            if (!img.style.aspectRatio && img.closest('#contentGrid')) {
-                img.style.aspectRatio = '2/3';
-                img.style.objectFit = 'cover';
-                img.style.width = '100%';
-                img.style.height = 'auto';
-            }
-        });
-
-        // Corrigir imagens e vídeos do feed
-        const feedMedia = document.querySelectorAll('.feed-post-media, .feed-post-video');
-        feedMedia.forEach(media => {
-            media.style.objectFit = 'contain';
-            media.style.maxHeight = '500px';
-            media.style.width = '100%';
-            if (media.tagName === 'VIDEO') {
-                media.style.backgroundColor = '#000';
-            }
-        });
+    // Função que corrige APENAS os elementos do feed
+    function corrigirApenasFeed() {
+        // Seleciona todas as imagens e vídeos dentro dos posts do feed
+        const todasMidiasFeed = document.querySelectorAll('.feed-post img.feed-post-media, .feed-post video.feed-post-video');
+        
+        if (todasMidiasFeed.length > 0) {
+            console.log(`📸 [FEED] Corrigindo ${todasMidiasFeed.length} mídias do feed...`);
+            
+            todasMidiasFeed.forEach(midia => {
+                // Aplica as correções CSS diretamente nos elementos
+                midia.style.objectFit = 'contain';
+                midia.style.width = '100%';
+                midia.style.height = 'auto';
+                midia.style.backgroundColor = '#000';
+                midia.style.display = 'block';
+                midia.style.margin = '0 auto';
+                
+                // Para desktop, aplica altura máxima
+                if (window.innerWidth >= 768) {
+                    midia.style.maxHeight = '600px';
+                    midia.style.width = 'auto';
+                    midia.style.maxWidth = '100%';
+                } else {
+                    // Para mobile, mantém responsivo
+                    midia.style.maxHeight = '70vh';
+                    midia.style.width = '100%';
+                }
+                
+                // Se for vídeo, garante que tenha controles visíveis
+                if (midia.tagName === 'VIDEO') {
+                    midia.setAttribute('controls', 'true');
+                    midia.setAttribute('preload', 'metadata');
+                }
+            });
+        }
     }
 
-    // Observa mudanças no DOM para aplicar as correções em novos elementos
+    // ========== SOBRESCREVE APENAS A FUNÇÃO DE RENDERIZAÇÃO DO FEED ==========
+    // Salva a função original do renderFeed
+    const renderFeedOriginal = window.renderFeed;
+    
+    if (renderFeedOriginal) {
+        // Cria uma nova função que mantém a original e depois aplica a correção
+        window.renderFeed = async function() {
+            // Executa a função original primeiro
+            await renderFeedOriginal();
+            
+            // Aguarda um momento para o DOM ser atualizado
+            setTimeout(() => {
+                corrigirApenasFeed();
+            }, 150);
+        };
+        console.log('✅ [FEED] Função renderFeed foi estendida com sucesso!');
+    } else {
+        // Se a função não existir ainda, tenta novamente em alguns segundos
+        setTimeout(() => {
+            if (window.renderFeed) {
+                const original = window.renderFeed;
+                window.renderFeed = async function() {
+                    await original();
+                    setTimeout(() => corrigirApenasFeed(), 150);
+                };
+                console.log('✅ [FEED] Função renderFeed foi capturada e estendida!');
+            }
+        }, 1000);
+    }
+
+    // ========== OBSERVA MUDANÇAS NO FEED (para posts carregados dinamicamente) ==========
     const observer = new MutationObserver(function(mutations) {
-        let needsUpdate = false;
+        let precisaCorrigir = false;
+        
         mutations.forEach(mutation => {
+            // Verifica se algum nó adicionado é um post do feed
             if (mutation.addedNodes.length) {
-                needsUpdate = true;
+                mutation.addedNodes.forEach(node => {
+                    if (node.nodeType === 1) { // Elemento HTML
+                        if (node.classList && (node.classList.contains('feed-post') || node.querySelector('.feed-post'))) {
+                            precisaCorrigir = true;
+                        }
+                    }
+                });
             }
         });
-        if (needsUpdate) {
-            setTimeout(applyCorrectionToDynamicElements, 100);
+        
+        if (precisaCorrigir) {
+            setTimeout(corrigirApenasFeed, 100);
         }
     });
 
-    // Inicia o observer quando a página estiver carregada
+    // Inicia o observer quando o DOM estiver pronto
     if (document.body) {
-        observer.observe(document.body, { childList: true, subtree: true });
+        observer.observe(document.body, { 
+            childList: true, 
+            subtree: true 
+        });
     }
 
-    // Aplica a correção inicial quando a página carregar
+    // Aplica correção inicial quando a página carregar completamente
     window.addEventListener('load', function() {
-        applyCorrectionToDynamicElements();
-        console.log('✅ [CORREÇÃO FINALIZADA] Tamanhos e proporções ajustados com sucesso!');
+        setTimeout(corrigirApenasFeed, 200);
+        console.log('🎯 [FEED] Correção inicial aplicada!');
     });
 
-    // Aplica a correção também quando o feed for renderizado pela sua lógica
-    const originalRenderFeed = window.renderFeed;
-    if (originalRenderFeed) {
-        window.renderFeed = async function() {
-            await originalRenderFeed();
-            setTimeout(applyCorrectionToDynamicElements, 150);
-        };
-    }
+    // Também corrige quando a janela for redimensionada (mobile <-> desktop)
+    window.addEventListener('resize', function() {
+        setTimeout(corrigirApenasFeed, 100);
+    });
 
-    // Aplica a correção quando a grid de conteúdo for renderizada
-    const originalRenderGrid = window.renderGrid;
-    if (originalRenderGrid) {
-        window.renderGrid = function() {
-            originalRenderGrid();
-            setTimeout(applyCorrectionToDynamicElements, 50);
-        };
-    }
+    // EXPORTA FUNÇÃO GLOBAL PARA DEBUG (opcional)
+    window.corrigirFeed = corrigirApenasFeed;
+    
+    console.log('🚀 [FEED] Script de correção carregado - Apenas as publicações serão ajustadas!');
 })();
 
 
