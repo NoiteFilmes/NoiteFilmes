@@ -8930,18 +8930,18 @@ if (loginAdminBtn) {
         
         
     
-    // =====================================================
-// CHAT COM SEGUNDO CHECK AUTOMÁTICO (SIMULA ENTREGA)
+// =====================================================
+// CHAT COMPLETO - EXCLUSÃO COM POPUP ESTILIZADO
 // =====================================================
 (function() {
-    console.log('🚀 CHAT COM ENTREGA AUTOMÁTICA');
+    console.log('🚀 CHAT COM POPUP DE EXCLUSÃO');
 
     let estado = {
         user: null,
         chatAtual: null,
         chatUsuario: null,
-        listenerMsg: null,
-        listenerStatus: null
+        msgListener: null,
+        statusListener: null
     };
 
     let conversasCache = new Map();
@@ -8949,6 +8949,50 @@ if (loginAdminBtn) {
 
     let sidebarEl, mainEl, usersListEl, chatBoxEl, inputEl, headerNameEl, headerAvatarEl, totalBadgeEl;
 
+    // ========== POPUP DE CONFIRMAÇÃO ESTILIZADO ==========
+    function mostrarPopupConfirmacao(titulo, mensagem, aoConfirmar, aoCancelar) {
+        // Remove popup existente
+        const popupExistente = document.querySelector('.confirm-popup-chat');
+        if (popupExistente) popupExistente.remove();
+
+        const popup = document.createElement('div');
+        popup.className = 'confirm-popup-chat';
+        popup.innerHTML = `
+            <div class="confirm-popup-content">
+                <div class="confirm-popup-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3>${titulo}</h3>
+                <p>${mensagem}</p>
+                <div class="confirm-popup-buttons">
+                    <button class="confirm-popup-btn cancel">Não</button>
+                    <button class="confirm-popup-btn confirm">Sim</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(popup);
+        
+        const btnSim = popup.querySelector('.confirm');
+        const btnNao = popup.querySelector('.cancel');
+        
+        btnSim.onclick = () => {
+            if (aoConfirmar) aoConfirmar();
+            popup.remove();
+        };
+        
+        btnNao.onclick = () => {
+            if (aoCancelar) aoCancelar();
+            popup.remove();
+        };
+        
+        // Fechar ao clicar fora
+        popup.onclick = (e) => {
+            if (e.target === popup) popup.remove();
+        };
+    }
+
+    // ========== AUXILIARES ==========
     function tempoAgo(timestamp) {
         if (!timestamp) return '';
         const seg = Math.floor((Date.now() - timestamp) / 1000);
@@ -8980,24 +9024,28 @@ if (loginAdminBtn) {
         return '<i class="fas fa-clock" style="font-size: 10px; color: #b0b0b0;"></i>';
     }
 
-    // ========== MARCAR COMO DELIVERED (AUTOMÁTICO APÓS ENVIO) ==========
-    async function marcarComoEntregue(chatId, messageId, senderId) {
-        if (!estado.user || senderId === estado.user.uid) return;
+    // ========== MARCAR COMO DELIVERED ==========
+    async function marcarComoEntregue(chatId, messageId) {
+        if (!estado.user) return;
         const db = firebase.database();
         const msgRef = chatId === 'geral' ? db.ref(`chat_messages/${messageId}`) : db.ref(`private_messages/${chatId}/${messageId}`);
         const snap = await msgRef.once('value');
         const msg = snap.val();
-        if (msg && msg.status === 'sent') {
+        if (msg && msg.senderId !== estado.user.uid && msg.status === 'sent') {
             const statusRef = chatId === 'geral' ? db.ref(`chat_messages/${messageId}/status`) : db.ref(`private_messages/${chatId}/${messageId}/status`);
             await statusRef.set('delivered');
-            if (estado.chatAtual === chatId) {
-                const conv = conversasCache.get(chatId);
-                if (conv) carregarMensagens(chatId, conv.userId);
-            }
+            atualizarIconeMensagem(chatId, messageId, 'delivered');
         }
     }
 
-    // Marcar todas como lidas (quando abre a conversa)
+    function atualizarIconeMensagem(chatId, messageId, novoStatus) {
+        const msgDiv = document.getElementById(`msg-${chatId}-${messageId}`);
+        if (msgDiv) {
+            const statusSpan = msgDiv.querySelector('.message-status');
+            if (statusSpan) statusSpan.innerHTML = getStatusIcon(novoStatus);
+        }
+    }
+
     function marcarTodasComoLidas(chatId) {
         if (!estado.user || !chatId) return;
         const db = firebase.database();
@@ -9009,12 +9057,12 @@ if (loginAdminBtn) {
                 if (msg.senderId !== estado.user.uid && msg.status !== 'read') {
                     const statusRef = chatId === 'geral' ? db.ref(`chat_messages/${msgId}/status`) : db.ref(`private_messages/${chatId}/${msgId}/status`);
                     statusRef.set('read');
+                    atualizarIconeMensagem(chatId, msgId, 'read');
                 }
             }
         });
     }
 
-    // Salvar leitura (abriu a conversa)
     function salvarLeitura(chatId) {
         if (!estado.user) return;
         leiturasCache.set(chatId, Date.now());
@@ -9042,7 +9090,7 @@ if (loginAdminBtn) {
         return mensagens.filter(m => m.senderId !== estado.user.uid && (m.timestamp || 0) > ultimaLeitura && m.status !== 'read').length;
     }
 
-    // ========== BADGE MENU (CSS ATUALIZADO) ==========
+    // ========== BADGE MENU ==========
     function atualizarBadgeMenu() {
         let total = 0;
         conversasCache.forEach(c => { total += c.naoLidas || 0; });
@@ -9065,25 +9113,73 @@ if (loginAdminBtn) {
         }
     }
 
-    // ========== SWIPE NA LISTA DE CONVERSAS ==========
+    // ========== SWIPE EXCLUIR CONVERSA (COM ÍCONE CÍRCULO E POPUP) ==========
     function adicionarSwipeConversa(elemento, chatId, conv) {
         let touchStartX = 0;
-        elemento.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
-        elemento.addEventListener('touchend', async (e) => {
-            const touchEndX = e.changedTouches[0].screenX;
-            if (touchStartX - touchEndX > 80) {
-                if (confirm(`Excluir toda a conversa com ${conv.nome}?`)) {
-                    const db = firebase.database();
-                    if (chatId === 'geral') await db.ref('chat_messages').remove();
-                    else {
-                        await db.ref(`private_messages/${chatId}`).remove();
-                        await db.ref(`private_chats/${chatId}`).remove();
-                    }
-                    await carregarConversas();
-                    if (estado.chatAtual === chatId) window.fecharChatAberto();
-                    alert('Conversa excluída');
-                }
+        let deleteBtn = null;
+
+        const removerBotao = () => {
+            if (deleteBtn && deleteBtn.parentNode) deleteBtn.remove();
+            deleteBtn = null;
+            elemento.style.transform = '';
+            elemento.style.overflow = '';
+        };
+
+        elemento.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            removerBotao();
+        });
+
+        elemento.addEventListener('touchmove', (e) => {
+            const diff = e.touches[0].clientX - touchStartX;
+            if (diff < -30) {
+                elemento.style.transform = `translateX(${diff}px)`;
+                e.preventDefault();
             }
+        });
+
+        elemento.addEventListener('touchend', (e) => {
+            const diff = touchStartX - e.changedTouches[0].clientX;
+            if (diff > 50) {
+                if (!deleteBtn) {
+                    deleteBtn = document.createElement('div');
+                    deleteBtn.className = 'swipe-delete-conv';
+                    deleteBtn.innerHTML = '<div class="delete-circle"><i class="fas fa-trash-alt"></i></div>';
+                    deleteBtn.style.cssText = `position:absolute; right:10px; top:50%; transform:translateY(-50%); width:50px; height:50px; display:flex; align-items:center; justify-content:center; z-index:200; cursor:pointer;`;
+                    
+                    const circle = deleteBtn.querySelector('.delete-circle');
+                    if (circle) {
+                        circle.style.cssText = `width:44px; height:44px; background:#e53935; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:20px; box-shadow:0 2px 8px rgba(0,0,0,0.3); transition:transform 0.2s;`;
+                    }
+                    
+                    deleteBtn.onclick = (ev) => {
+                        ev.stopPropagation();
+                        mostrarPopupConfirmacao(
+                            'Excluir conversa',
+                            `Tem certeza que deseja excluir toda a conversa com ${conv.nome}? Essa ação não pode ser desfeita.`,
+                            async () => {
+                                const db = firebase.database();
+                                if (chatId === 'geral') await db.ref('chat_messages').remove();
+                                else {
+                                    await db.ref(`private_messages/${chatId}`).remove();
+                                    await db.ref(`private_chats/${chatId}`).remove();
+                                }
+                                await carregarConversas();
+                                if (estado.chatAtual === chatId) window.fecharChatAberto();
+                            },
+                            () => {}
+                        );
+                        removerBotao();
+                    };
+                    elemento.style.position = 'relative';
+                    elemento.style.overflow = 'visible';
+                    elemento.appendChild(deleteBtn);
+                    setTimeout(() => removerBotao(), 3000);
+                }
+            } else {
+                removerBotao();
+            }
+            elemento.style.transform = '';
         });
     }
 
@@ -9102,71 +9198,129 @@ if (loginAdminBtn) {
             const li = document.createElement('li');
             li.className = `chat-user ${naoLidas > 0 ? 'unread' : ''} ${ativa ? 'active' : ''}`;
             li.setAttribute('data-id', conv.id);
+            li.style.position = 'relative';
+            li.style.overflow = 'hidden';
+            li.style.transition = 'transform 0.2s';
             li.innerHTML = `
-                <div class="chat-user-avatar" style="position:relative;">
-                    ${conv.avatarUrl ? `<img src="${conv.avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='${avatarPadrao()}'">` : `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#e50914,#b20710); border-radius:50%; font-weight:bold; font-size:18px;">${conv.avatar}</div>`}
-                    ${naoLidas > 0 ? `<span class="unread-count-badge" style="position:absolute; top:-5px; right:-5px; background:#e53935; color:white; font-size:10px; font-weight:bold; min-width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; padding:0 5px; border:2px solid #202c33; z-index:10;">${naoLidas > 99 ? '99+' : naoLidas}</span>` : ''}
-                </div>
-                <div class="chat-user-info" style="flex:1;">
-                    <div style="display:flex; justify-content:space-between; align-items:baseline;">
-                        <strong>${escapeHtml(conv.nome)}</strong>
-                        <span style="font-size:10px; color:#8696a0;">${tempoAgo(conv.ultimoTempo)}</span>
+                <div style="display:flex; align-items:center; gap:12px; width:100%;">
+                    <div class="chat-user-avatar" style="position:relative; width:50px; height:50px; flex-shrink:0;">
+                        ${conv.avatarUrl ? `<img src="${conv.avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='${avatarPadrao()}'">` : `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#e50914,#b20710); border-radius:50%; font-weight:bold; font-size:18px;">${conv.avatar}</div>`}
+                        ${naoLidas > 0 ? `<span class="unread-count-badge" style="position:absolute; top:-5px; right:-5px; background:#e53935; color:white; font-size:10px; font-weight:bold; min-width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; padding:0 5px; border:2px solid #202c33; z-index:10;">${naoLidas > 99 ? '99+' : naoLidas}</span>` : ''}
                     </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-                        <span style="font-size:12px; ${naoLidas > 0 ? 'color:#e9edef; font-weight:500;' : 'color:#8696a0;'}">${naoLidas > 0 ? '📩 ' : ''}${escapeHtml((conv.ultimaMsg || 'Nenhuma mensagem').substring(0, 35))}</span>
-                        ${naoLidas > 0 ? `<span style="background:#e53935; color:white; font-size:10px; font-weight:bold; padding:2px 8px; border-radius:20px;">${naoLidas}</span>` : ''}
+                    <div class="chat-user-info" style="flex:1;">
+                        <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                            <strong>${escapeHtml(conv.nome)}</strong>
+                            <span style="font-size:10px; color:#8696a0;">${tempoAgo(conv.ultimoTempo)}</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                            <span style="font-size:12px; ${naoLidas > 0 ? 'color:#e9edef; font-weight:500;' : 'color:#8696a0;'}">${naoLidas > 0 ? '📩 ' : ''}${escapeHtml((conv.ultimaMsg || 'Nenhuma mensagem').substring(0, 35))}</span>
+                            ${naoLidas > 0 ? `<span style="background:#e53935; color:white; font-size:10px; font-weight:bold; padding:2px 8px; border-radius:20px;">${naoLidas}</span>` : ''}
+                        </div>
                     </div>
                 </div>
             `;
-            li.onclick = (e) => { e.stopPropagation(); abrirConversa(conv.id, conv); };
+            li.onclick = (e) => { if (!e.target.closest('.swipe-delete-conv')) abrirConversa(conv.id, conv); };
             adicionarSwipeConversa(li, conv.id, conv);
             usersListEl.appendChild(li);
         }
     }
 
-    // ========== SWIPE NA MENSAGEM INDIVIDUAL ==========
+    // ========== SWIPE EXCLUIR MENSAGEM (COM ÍCONE CÍRCULO E POPUP) ==========
     function adicionarSwipeMensagem(elemento, chatId, messageId, isOwner) {
         if (!isOwner) return;
         let touchStartX = 0;
-        elemento.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
-        elemento.addEventListener('touchend', async (e) => {
-            const touchEndX = e.changedTouches[0].screenX;
-            if (touchStartX - touchEndX > 80) {
-                if (confirm('Excluir esta mensagem?')) {
-                    const db = firebase.database();
-                    if (chatId === 'geral') await db.ref(`chat_messages/${messageId}`).remove();
-                    else await db.ref(`private_messages/${chatId}/${messageId}`).remove();
-                    elemento.remove();
-                }
+        let deleteBtn = null;
+
+        const removerBotao = () => {
+            if (deleteBtn && deleteBtn.parentNode) deleteBtn.remove();
+            deleteBtn = null;
+            elemento.style.transform = '';
+            elemento.style.overflow = '';
+        };
+
+        elemento.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            removerBotao();
+            e.stopPropagation();
+        });
+
+        elemento.addEventListener('touchmove', (e) => {
+            const diff = e.touches[0].clientX - touchStartX;
+            if (diff < -30) {
+                elemento.style.transform = `translateX(${diff}px)`;
+                e.preventDefault();
             }
+        });
+
+        elemento.addEventListener('touchend', (e) => {
+            const diff = touchStartX - e.changedTouches[0].clientX;
+            if (diff > 50) {
+                if (!deleteBtn) {
+                    deleteBtn = document.createElement('div');
+                    deleteBtn.className = 'swipe-delete-msg';
+                    deleteBtn.innerHTML = '<div class="delete-circle"><i class="fas fa-trash-alt"></i></div>';
+                    deleteBtn.style.cssText = `position:absolute; right:10px; top:50%; transform:translateY(-50%); width:50px; height:50px; display:flex; align-items:center; justify-content:center; z-index:200; cursor:pointer;`;
+                    
+                    const circle = deleteBtn.querySelector('.delete-circle');
+                    if (circle) {
+                        circle.style.cssText = `width:40px; height:40px; background:#e53935; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:18px; box-shadow:0 2px 8px rgba(0,0,0,0.3); transition:transform 0.2s;`;
+                    }
+                    
+                    deleteBtn.onclick = (ev) => {
+                        ev.stopPropagation();
+                        mostrarPopupConfirmacao(
+                            'Excluir mensagem',
+                            'Tem certeza que deseja excluir esta mensagem? Essa ação não pode ser desfeita.',
+                            async () => {
+                                const db = firebase.database();
+                                if (chatId === 'geral') await db.ref(`chat_messages/${messageId}`).remove();
+                                else await db.ref(`private_messages/${chatId}/${messageId}`).remove();
+                                elemento.remove();
+                            },
+                            () => {}
+                        );
+                        removerBotao();
+                    };
+                    elemento.style.position = 'relative';
+                    elemento.style.overflow = 'visible';
+                    elemento.appendChild(deleteBtn);
+                    setTimeout(() => removerBotao(), 3000);
+                }
+            } else {
+                removerBotao();
+            }
+            elemento.style.transform = '';
         });
     }
 
-    // ========== CARREGAR MENSAGENS (COM ROLAGEM AUTOMÁTICA) ==========
-    function carregarMensagens(chatId, outroId) {
+    // ========== CARREGAR MENSAGENS ==========
+    async function carregarMensagensIniciais(chatId, outroId) {
         if (!chatBoxEl) return;
-        if (estado.listenerMsg) estado.listenerMsg();
-        if (estado.listenerStatus) estado.listenerStatus();
+        if (estado.msgListener) estado.msgListener();
+        if (estado.statusListener) estado.statusListener();
+        chatBoxEl.innerHTML = '<div style="text-align:center; padding:40px;">Carregando...</div>';
+        
         const db = firebase.database();
         let ref = chatId === 'geral' ? db.ref('chat_messages') : db.ref(`private_messages/${chatId}`);
-
-        const msgCallback = async (snapshot) => {
-            const msgs = snapshot.val();
-            if (!msgs) { chatBoxEl.innerHTML = '<div style="text-align:center; padding:40px;">Nenhuma mensagem</div>'; return; }
+        
+        const snapshot = await ref.once('value');
+        const msgs = snapshot.val();
+        chatBoxEl.innerHTML = '';
+        
+        if (!msgs) {
+            chatBoxEl.innerHTML = '<div style="text-align:center; padding:40px;">Nenhuma mensagem</div>';
+        } else {
             const lista = Object.entries(msgs).map(([id, m]) => ({ id, ...m })).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-            chatBoxEl.innerHTML = '';
+            const fragment = document.createDocumentFragment();
             for (const msg of lista) {
                 const isOwner = estado.user && msg.senderId === estado.user.uid;
-                let avatar = avatarPadrao();
-                if (!isOwner && msg.senderId) {
-                    const snap = await db.ref(`usuarios/${msg.senderId}/avatarUrl`).once('value');
-                    if (snap.val()) avatar = snap.val();
-                }
+                const avatarHtml = `<div class="message-avatar" style="background:linear-gradient(135deg,#e50914,#b20710); display:flex; align-items:center; justify-content:center; border-radius:50%; font-weight:bold; font-size:14px; width:40px; height:40px;">${isOwner ? 'V' : '?'}</div>`;
                 const statusIcon = isOwner ? getStatusIcon(msg.status) : '';
                 const div = document.createElement('div');
                 div.className = `message ${isOwner ? 'sent' : 'received'}`;
+                div.id = `msg-${chatId}-${msg.id}`;
                 div.innerHTML = `
-                    <div class="message-avatar"><img src="${avatar}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='${avatarPadrao()}'"></div>
+                    ${avatarHtml}
                     <div class="message-content">
                         <p>${escapeHtml(msg.text || '')}</p>
                         <div style="display:flex; justify-content:flex-end; align-items:center; gap:4px; margin-top:4px;">
@@ -9176,13 +9330,76 @@ if (loginAdminBtn) {
                     </div>
                 `;
                 adicionarSwipeMensagem(div, chatId, msg.id, isOwner);
-                chatBoxEl.appendChild(div);
+                fragment.appendChild(div);
+                
+                if (!isOwner && msg.senderId) {
+                    db.ref(`usuarios/${msg.senderId}/avatarUrl`).once('value').then(snap => {
+                        const avatarDiv = div.querySelector('.message-avatar');
+                        if (avatarDiv && snap.val()) avatarDiv.innerHTML = `<img src="${snap.val()}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='${avatarPadrao()}'">`;
+                    });
+                } else if (isOwner) {
+                    db.ref(`usuarios/${estado.user.uid}/avatarUrl`).once('value').then(snap => {
+                        const avatarDiv = div.querySelector('.message-avatar');
+                        if (avatarDiv && snap.val()) avatarDiv.innerHTML = `<img src="${snap.val()}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='${avatarPadrao()}'">`;
+                    });
+                }
             }
-            chatBoxEl.scrollTop = chatBoxEl.scrollHeight; // Rola para o final
+            chatBoxEl.appendChild(fragment);
+            chatBoxEl.scrollTop = chatBoxEl.scrollHeight;
+        }
+
+        const onNewMessage = async (snap) => {
+            const msg = snap.val();
+            if (!msg) return;
+            if (document.getElementById(`msg-${chatId}-${snap.key}`)) return;
+            
+            const isOwner = estado.user && msg.senderId === estado.user.uid;
+            const avatarHtml = `<div class="message-avatar" style="background:linear-gradient(135deg,#e50914,#b20710); display:flex; align-items:center; justify-content:center; border-radius:50%; font-weight:bold; font-size:14px; width:40px; height:40px;">${isOwner ? 'V' : '?'}</div>`;
+            const statusIcon = isOwner ? getStatusIcon(msg.status) : '';
+            const div = document.createElement('div');
+            div.className = `message ${isOwner ? 'sent' : 'received'}`;
+            div.id = `msg-${chatId}-${snap.key}`;
+            div.innerHTML = `
+                ${avatarHtml}
+                <div class="message-content">
+                    <p>${escapeHtml(msg.text || '')}</p>
+                    <div style="display:flex; justify-content:flex-end; align-items:center; gap:4px; margin-top:4px;">
+                        <span class="message-time" style="font-size:10px; opacity:0.7;">${tempoAgo(msg.timestamp)}</span>
+                        ${statusIcon ? `<span class="message-status">${statusIcon}</span>` : ''}
+                    </div>
+                </div>
+            `;
+            adicionarSwipeMensagem(div, chatId, snap.key, isOwner);
+            chatBoxEl.appendChild(div);
+            chatBoxEl.scrollTop = chatBoxEl.scrollHeight;
+            
+            if (!isOwner && msg.senderId) {
+                db.ref(`usuarios/${msg.senderId}/avatarUrl`).once('value').then(snapUser => {
+                    const avatarDiv = div.querySelector('.message-avatar');
+                    if (avatarDiv && snapUser.val()) avatarDiv.innerHTML = `<img src="${snapUser.val()}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='${avatarPadrao()}'">`;
+                });
+            } else if (isOwner) {
+                db.ref(`usuarios/${estado.user.uid}/avatarUrl`).once('value').then(snapUser => {
+                    const avatarDiv = div.querySelector('.message-avatar');
+                    if (avatarDiv && snapUser.val()) avatarDiv.innerHTML = `<img src="${snapUser.val()}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='${avatarPadrao()}'">`;
+                });
+            }
+            
+            if (msg.senderId !== estado.user.uid && msg.status === 'sent') {
+                marcarComoEntregue(chatId, snap.key);
+            }
+            carregarConversas();
         };
-        ref.on('value', msgCallback);
-        ref.on('child_changed', () => ref.once('value', msgCallback));
-        estado.listenerMsg = () => ref.off('value', msgCallback);
+
+        const onStatusChange = (snap) => {
+            const msg = snap.val();
+            if (msg && msg.status) atualizarIconeMensagem(chatId, snap.key, msg.status);
+        };
+
+        ref.on('child_added', onNewMessage);
+        ref.on('child_changed', onStatusChange);
+        estado.msgListener = () => ref.off('child_added', onNewMessage);
+        estado.statusListener = () => ref.off('child_changed', onStatusChange);
     }
 
     // ========== ABRIR CONVERSA ==========
@@ -9199,10 +9416,10 @@ if (loginAdminBtn) {
         atualizarBadgeMenu();
         if (sidebarEl) sidebarEl.classList.add('hidden');
         if (mainEl) mainEl.classList.remove('hidden');
-        carregarMensagens(chatId, conv.userId);
+        await carregarMensagensIniciais(chatId, conv.userId);
     }
 
-    // ========== ENVIAR MENSAGEM + SEGUNDO CHECK AUTOMÁTICO ==========
+    // ========== ENVIAR MENSAGEM ==========
     async function enviarMensagem() {
         if (!inputEl) return;
         const texto = inputEl.value.trim();
@@ -9213,23 +9430,16 @@ if (loginAdminBtn) {
         const newMsgRef = await ref.push(msgData);
         inputEl.value = '';
         inputEl.style.height = 'auto';
-        
-        // SIMULAÇÃO DE ENTREGA: após 1.5 segundos, marca como 'delivered'
         setTimeout(async () => {
             const snap = await newMsgRef.once('value');
             const msg = snap.val();
             if (msg && msg.status === 'sent') {
                 const statusRef = estado.chatAtual === 'geral' ? db.ref(`chat_messages/${newMsgRef.key}/status`) : db.ref(`private_messages/${estado.chatAtual}/${newMsgRef.key}/status`);
                 await statusRef.set('delivered');
-                // Atualiza a interface se a conversa ainda estiver aberta
-                if (estado.chatAtual === estado.chatAtual) {
-                    carregarMensagens(estado.chatAtual, estado.chatUsuario);
-                }
+                atualizarIconeMensagem(estado.chatAtual, newMsgRef.key, 'delivered');
             }
         }, 1500);
-        
-        carregarConversas(); // atualiza última mensagem na lista
-        setTimeout(() => { if (chatBoxEl) chatBoxEl.scrollTop = chatBoxEl.scrollHeight; }, 100);
+        carregarConversas();
     }
 
     // ========== CARREGAR CONVERSAS ==========
@@ -9237,13 +9447,13 @@ if (loginAdminBtn) {
         if (!estado.user) return;
         const db = firebase.database();
         conversasCache.clear();
-        // Geral
+
         const geralSnap = await db.ref('chat_messages').once('value');
         const geralMsgs = geralSnap.val();
         const geralLista = geralMsgs ? Object.values(geralMsgs) : [];
         geralLista.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
         conversasCache.set('geral', { id: 'geral', nome: 'Geral', avatar: 'G', avatarUrl: null, ultimaMsg: geralLista[0]?.text || 'Nenhuma mensagem', ultimoTempo: geralLista[0]?.timestamp || 0, naoLidas: contarNaoLidas(geralLista, 'geral'), userId: null });
-        // Privadas
+
         const privSnap = await db.ref('private_messages').once('value');
         const privadas = privSnap.val() || {};
         for (const [chatId, msgs] of Object.entries(privadas)) {
@@ -9261,17 +9471,104 @@ if (loginAdminBtn) {
         atualizarBadgeMenu();
     }
 
-    // ========== LISTENERS EM TEMPO REAL (BADGE E DELIVERED DE TERCEIROS) ==========
-    function setupRealTimeListeners() {
+    // ========== BUSCAR USUÁRIOS ==========
+    let modalBusca = null;
+    function criarModalBusca() {
+        if (document.getElementById('chatBuscarModal')) return;
+        modalBusca = document.createElement('div');
+        modalBusca.id = 'chatBuscarModal';
+        modalBusca.className = 'user-search-modal hidden';
+        modalBusca.innerHTML = `
+            <div class="user-search-content">
+                <h3>
+                    Nova conversa
+                    <button class="close-modal-btn" onclick="fecharModalBuscaChat()">✕</button>
+                </h3>
+                <input type="text" id="chatBuscarInput" class="user-search-input" placeholder="Buscar @usuario..." autocomplete="off">
+                <ul class="user-search-list" id="chatBuscarLista"></ul>
+            </div>
+        `;
+        document.body.appendChild(modalBusca);
+        
+        const inputBusca = document.getElementById('chatBuscarInput');
+        if (inputBusca) inputBusca.addEventListener('input', () => buscarUsuariosChat());
+    }
+    
+    window.abrirBuscarUsuariosChat = function() {
+        criarModalBusca();
+        const modal = document.getElementById('chatBuscarModal');
+        if (modal) modal.classList.remove('hidden');
+        const input = document.getElementById('chatBuscarInput');
+        if (input) {
+            input.value = '';
+            input.focus();
+        }
+        buscarUsuariosChat();
+    };
+    
+    window.fecharModalBuscaChat = function() {
+        const modal = document.getElementById('chatBuscarModal');
+        if (modal) modal.classList.add('hidden');
+    };
+    
+    async function buscarUsuariosChat() {
+        const termo = document.getElementById('chatBuscarInput')?.value.toLowerCase() || '';
+        const listaEl = document.getElementById('chatBuscarLista');
+        if (!listaEl) return;
+        if (!estado.user) return;
+        
+        const db = firebase.database();
+        const snapshot = await db.ref('usuarios').once('value');
+        const usuarios = snapshot.val() || {};
+        
+        const resultados = [];
+        for (const [id, data] of Object.entries(usuarios)) {
+            if (id === estado.user.uid) continue;
+            const nickname = data.nickname || '';
+            const nome = data.displayName || nickname;
+            if (nickname.toLowerCase().includes(termo) || nome.toLowerCase().includes(termo)) {
+                resultados.push({ id, nickname, nome, avatar: data.avatarUrl });
+            }
+        }
+        
+        if (resultados.length === 0) {
+            listaEl.innerHTML = '<li class="no-users-found">Nenhum usuário encontrado</li>';
+            return;
+        }
+        
+        listaEl.innerHTML = resultados.map(u => `
+            <li class="user-search-item" onclick="iniciarConversaComUsuario('${u.id}', '${escapeHtml(u.nome)}', '${u.avatar || ''}')">
+                <div class="user-search-avatar">
+                    <img src="${u.avatar || avatarPadrao()}" onerror="this.src='${avatarPadrao()}'" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">
+                </div>
+                <div class="user-search-info">
+                    <strong>${escapeHtml(u.nome)}</strong>
+                    <span>@${escapeHtml(u.nickname)}</span>
+                </div>
+            </li>
+        `).join('');
+    }
+    
+    window.iniciarConversaComUsuario = async function(userId, nome, avatarUrl) {
+        fecharModalBuscaChat();
+        const chatId = `private_${[estado.user.uid, userId].sort().join('_')}`;
+        const novaConv = {
+            id: chatId, nome: nome, avatar: nome.charAt(0).toUpperCase(),
+            avatarUrl: avatarUrl || null, ultimaMsg: 'Nova conversa',
+            ultimoTempo: Date.now(), naoLidas: 0, userId: userId
+        };
+        if (!conversasCache.has(chatId)) {
+            conversasCache.set(chatId, novaConv);
+            renderizarLista();
+        }
+        abrirConversa(chatId, novaConv);
+    };
+
+    // ========== LISTENERS GLOBAIS ==========
+    function setupGlobalListeners() {
         if (!estado.user) return;
         const db = firebase.database();
-        const atualizarBadge = async () => {
-            await carregarConversas();
-            if (estado.chatAtual) {
-                const conv = conversasCache.get(estado.chatAtual);
-                if (conv) carregarMensagens(estado.chatAtual, conv.userId);
-            }
-        };
+        const atualizarBadge = () => carregarConversas();
         db.ref('chat_messages').on('child_added', atualizarBadge);
         db.ref('chat_messages').on('child_changed', atualizarBadge);
         db.ref('private_messages').on('child_added', atualizarBadge);
@@ -9283,10 +9580,7 @@ if (loginAdminBtn) {
     window.handleChatKeyPressNovo = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarMensagem(); } };
     window.autoResizeChat = (t) => { t.style.height = 'auto'; t.style.height = (t.scrollHeight) + 'px'; };
     window.fecharChatAberto = () => { if (sidebarEl) sidebarEl.classList.remove('hidden'); if (mainEl) mainEl.classList.add('hidden'); renderizarLista(); };
-    window.abrirBuscarUsuarios = () => alert('Função de busca disponível');
-    window.fecharBuscarUsuarios = () => {};
-    window.buscarUsuariosLista = () => {};
-    window.iniciarConversaCom = () => {};
+    window.abrirBuscarUsuarios = window.abrirBuscarUsuariosChat;
 
     // ========== INICIALIZAR ==========
     function inicializar() {
@@ -9298,6 +9592,7 @@ if (loginAdminBtn) {
         headerNameEl = document.getElementById('chatHeaderNameNovo');
         headerAvatarEl = document.getElementById('chatHeaderAvatarNovo');
         totalBadgeEl = document.getElementById('unreadTotalNovo');
+        
         if (!sidebarEl) { setTimeout(inicializar, 200); return; }
         if (typeof auth !== 'undefined') {
             auth.onAuthStateChanged(async (user) => {
@@ -9305,8 +9600,8 @@ if (loginAdminBtn) {
                     estado.user = user;
                     carregarLeituras();
                     await carregarConversas();
-                    setupRealTimeListeners();
-                    console.log('✅ Chat com segundo check automático funcionando');
+                    setupGlobalListeners();
+                    console.log('✅ Chat com popup de exclusão pronto!');
                 }
             });
         }
@@ -9314,12 +9609,40 @@ if (loginAdminBtn) {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', inicializar);
     else inicializar();
 
-    // Estilos
     const style = document.createElement('style');
-    style.textContent = `.chat-user.unread { background: rgba(229,57,53,0.08) !important; border-left: 3px solid #e53935 !important; }
+    style.textContent = `
+        .chat-user.unread { background: rgba(229,57,53,0.08) !important; border-left: 3px solid #e53935 !important; }
         .chat-user.active { background: rgba(0,168,255,0.1) !important; border-left: 3px solid #00a8ff !important; }
-        .unread-count-badge { box-shadow: 0 0 0 2px #202c33; } .menu-badge-chat { box-shadow: 0 0 0 2px #1e1e2a; }
-        .message-status i { vertical-align: middle; }`;
+        .unread-count-badge { box-shadow: 0 0 0 2px #202c33; }
+        .menu-badge-chat { box-shadow: 0 0 0 2px #1e1e2a; }
+        .message-status i { vertical-align: middle; }
+        .message, .chat-user { transition: transform 0.2s ease; overflow: visible; position: relative; }
+        .swipe-delete-conv, .swipe-delete-msg { cursor: pointer; }
+        
+        .confirm-popup-chat { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(5px); display:flex; align-items:center; justify-content:center; z-index:10000; animation:fadeIn 0.2s ease; }
+        .confirm-popup-content { background:#2a2a2a; border-radius:28px; padding:24px; width:85%; max-width:320px; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.1); }
+        .confirm-popup-icon { width:70px; height:70px; background:#e53935; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; }
+        .confirm-popup-icon i { font-size:32px; color:white; }
+        .confirm-popup-content h3 { color:#fff; font-size:20px; margin-bottom:12px; font-weight:600; }
+        .confirm-popup-content p { color:#b0b0b0; font-size:14px; margin-bottom:24px; line-height:1.4; }
+        .confirm-popup-buttons { display:flex; gap:12px; }
+        .confirm-popup-btn { flex:1; padding:12px; border-radius:30px; font-size:16px; font-weight:600; cursor:pointer; transition:0.2s; border:none; }
+        .confirm-popup-btn.cancel { background:#3a3a3a; color:#fff; }
+        .confirm-popup-btn.cancel:hover { background:#4a4a4a; }
+        .confirm-popup-btn.confirm { background:#e53935; color:#fff; }
+        .confirm-popup-btn.confirm:hover { background:#c62828; }
+        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+        
+        .user-search-modal { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(20px); display:flex; align-items:center; justify-content:center; z-index:3000; }
+        .user-search-content { background:rgba(25,25,45,0.95); border-radius:25px; padding:20px; width:90%; max-width:400px; max-height:80vh; overflow-y:auto; border:1px solid rgba(255,255,255,0.2); }
+        .user-search-content h3 { font-size:20px; margin-bottom:15px; display:flex; justify-content:space-between; color:white; }
+        .user-search-input { width:100%; padding:12px; border:2px solid rgba(255,255,255,0.2); border-radius:15px; background:rgba(255,255,255,0.1); color:white; margin-bottom:15px; }
+        .user-search-list { list-style:none; max-height:300px; overflow-y:auto; }
+        .user-search-item { display:flex; align-items:center; gap:12px; padding:12px; border-radius:12px; cursor:pointer; margin-bottom:8px; background:rgba(255,255,255,0.05); transition:0.2s; }
+        .user-search-item:hover { background:rgba(255,255,255,0.15); }
+        .user-search-avatar { width:45px; height:45px; border-radius:50%; overflow:hidden; background:linear-gradient(135deg,#e50914,#b20710); flex-shrink:0; }
+        .close-modal-btn { background:none; border:none; color:white; font-size:24px; cursor:pointer; }
+    `;
     document.head.appendChild(style);
 })();
 
