@@ -8930,11 +8930,12 @@ if (loginAdminBtn) {
         
         
     
+
 // =====================================================
-// CHAT COMPLETO - SOMENTE REPRODUÇÃO CORRIGIDA
+// CHAT COMPLETO - ÁUDIO COMPATÍVEL COM IPHONE/SAFARI
 // =====================================================
 (function() {
-    console.log('🚀 CHAT COM ÁUDIO - VERSÃO ESTÁVEL');
+    console.log('🚀 CHAT COM ÁUDIO COMPATÍVEL COM IPHONE');
 
     function limparModaisPresos() {
         const modais = document.querySelectorAll('.confirm-modal-overlay-custom, .confirm-modal-overlay');
@@ -8970,7 +8971,24 @@ if (loginAdminBtn) {
     let recordingSeconds = 0;
     let currentAudio = null;
 
-    // ========== FUNÇÕES DE ÁUDIO (VERSÃO QUE FUNCIONAVA) ==========
+    // ========== FUNÇÃO PARA CONVERTER WEBM PARA BASE64 COMPATÍVEL ==========
+    async function converterAudioParaBase64(audioBlob) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(audioBlob);
+            reader.onloadend = () => {
+                let base64 = reader.result;
+                // Garantir que o formato seja compatível
+                if (base64.startsWith('data:audio/webm')) {
+                    base64 = base64.replace('data:audio/webm', 'data:audio/mp4');
+                }
+                resolve(base64);
+            };
+            reader.onerror = reject;
+        });
+    }
+
+    // ========== FUNÇÕES DE ÁUDIO ==========
     async function iniciarGravacaoAudio() {
         if (!estado.user) {
             showToast('Faça login para enviar áudio');
@@ -8983,8 +9001,10 @@ if (loginAdminBtn) {
         }
 
         try {
+            // Configuração para melhor compatibilidade
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
+            const mimeType = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : 'audio/webm';
+            mediaRecorder = new MediaRecorder(stream, { mimeType: mimeType });
             audioChunks = [];
             
             mediaRecorder.ondataavailable = (event) => {
@@ -8994,7 +9014,7 @@ if (loginAdminBtn) {
             };
             
             mediaRecorder.onstop = async () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                const audioBlob = new Blob(audioChunks, { type: mimeType });
                 stream.getTracks().forEach(track => track.stop());
                 await enviarAudioMessage(audioBlob);
                 esconderIndicadorGravacao();
@@ -9027,13 +9047,15 @@ if (loginAdminBtn) {
             
         } catch (error) {
             console.error('Erro ao acessar microfone:', error);
-            showToast('Não foi possível acessar o microfone. Verifique as permissões.');
+            showToast('Permita o acesso ao microfone nas configurações');
         }
     }
 
     function pararGravacaoAudio() {
-        if (mediaRecorder && isRecording) {
-            mediaRecorder.stop();
+        if (mediaRecorder && isRecording && mediaRecorder.state !== 'inactive') {
+            try {
+                mediaRecorder.stop();
+            } catch(e) {}
             isRecording = false;
             if (recordingTimer) clearInterval(recordingTimer);
             recordingSeconds = 0;
@@ -9066,7 +9088,7 @@ if (loginAdminBtn) {
         `;
         indicator.innerHTML = `
             <i class="fas fa-microphone"></i>
-            <span>Gravando áudio... <span id="recordingTimer">0</span>s</span>
+            <span>Gravando... <span id="recordingTimer">0</span>s</span>
             <button id="stopRecordingBtn" style="background: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; color: #e50914;">
                 <i class="fas fa-stop"></i>
             </button>
@@ -9096,19 +9118,34 @@ if (loginAdminBtn) {
     async function enviarAudioMessage(audioBlob) {
         if (!estado.user || !estado.chatAtual) return;
         
-        showToast('Enviando áudio...');
+        showToast('📤 Enviando áudio...');
         
         try {
-            let duration = Math.round(audioBlob.size / 16000);
-            const reader = new FileReader();
-            reader.readAsDataURL(audioBlob);
+            // Obter duração
+            let duration = 3;
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const tempAudio = new Audio();
+            tempAudio.src = audioUrl;
             
-            reader.onloadend = async () => {
-                const base64Audio = reader.result.split(',')[1];
-                await enviarMensagemAudio(base64Audio, duration);
-            };
+            await new Promise((resolve) => {
+                tempAudio.addEventListener('loadedmetadata', () => {
+                    duration = Math.ceil(tempAudio.duration) || 3;
+                    resolve();
+                });
+                tempAudio.addEventListener('error', () => {
+                    duration = Math.ceil(audioBlob.size / 16000) || 3;
+                    resolve();
+                });
+                setTimeout(() => resolve(), 500);
+            });
+            
+            URL.revokeObjectURL(audioUrl);
+            
+            // Converter para Base64 compatível
+            const base64Audio = await converterAudioParaBase64(audioBlob);
+            await enviarMensagemAudio(base64Audio, duration);
         } catch (error) {
-            console.error('Erro ao enviar áudio:', error);
+            console.error('Erro:', error);
             showToast('Erro ao enviar áudio');
         }
     }
@@ -9129,23 +9166,23 @@ if (loginAdminBtn) {
         let ref = estado.chatAtual === 'geral' ? db.ref('chat_messages') : db.ref(`private_messages/${estado.chatAtual}`);
         await ref.push(msgData);
         
-        showToast('Áudio enviado!');
+        showToast('✅ Áudio enviado!');
         carregarConversas();
         setTimeout(() => scrollToBottomChat(), 100);
     }
 
-    // ========== PLAYER DE ÁUDIO SIMPLES E FUNCIONAL ==========
+    // ========== PLAYER DE ÁUDIO - COMPATÍVEL COM IPHONE ==========
     function criarPlayerAudio(audioBase64, duration, isOwner) {
         const container = document.createElement('div');
         container.className = 'audio-player-container';
-        container.style.cssText = 'display: flex; align-items: center; gap: 8px;';
+        container.style.cssText = 'display: flex; align-items: center; gap: 8px; flex-wrap: wrap;';
         
         const playBtn = document.createElement('button');
         playBtn.className = 'audio-play-btn';
         playBtn.innerHTML = '<i class="fas fa-play"></i>';
         playBtn.style.cssText = `
-            width: 32px;
-            height: 32px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             background: ${isOwner ? '#e50914' : '#4CAF50'};
             border: none;
@@ -9155,58 +9192,100 @@ if (loginAdminBtn) {
             align-items: center;
             justify-content: center;
             transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
         `;
         
         const durationSpan = document.createElement('span');
         durationSpan.className = 'audio-duration';
         durationSpan.textContent = `${duration}s`;
-        durationSpan.style.cssText = 'font-size: 11px; color: #ccc;';
+        durationSpan.style.cssText = 'font-size: 12px; color: #aaa; min-width: 40px;';
+        
+        const statusSpan = document.createElement('span');
+        statusSpan.className = 'audio-status';
+        statusSpan.textContent = '';
+        statusSpan.style.cssText = 'font-size: 10px; color: #888; max-width: 80px; overflow: hidden; white-space: nowrap;';
         
         container.appendChild(playBtn);
         container.appendChild(durationSpan);
+        container.appendChild(statusSpan);
         
         let audio = null;
         let isPlaying = false;
         
-        playBtn.onclick = (e) => {
-            e.stopPropagation();
-            
+        // Função para parar outros áudios
+        function stopOtherAudios() {
+            if (currentAudio && currentAudio !== audio) {
+                try {
+                    currentAudio.pause();
+                    currentAudio.currentTime = 0;
+                } catch(e) {}
+                const otherBtn = document.querySelector('.audio-play-btn.playing');
+                if (otherBtn && otherBtn !== playBtn) {
+                    otherBtn.innerHTML = '<i class="fas fa-play"></i>';
+                    otherBtn.classList.remove('playing');
+                    const otherStatus = otherBtn.parentElement?.querySelector('.audio-status');
+                    if (otherStatus) otherStatus.textContent = '';
+                }
+            }
+        }
+        
+        const playAudio = () => {
             if (audio && isPlaying) {
-                audio.pause();
+                // Pausar
+                try {
+                    audio.pause();
+                } catch(e) {}
                 playBtn.innerHTML = '<i class="fas fa-play"></i>';
                 isPlaying = false;
+                statusSpan.textContent = '';
             } else {
-                if (currentAudio && currentAudio !== audio) {
-                    currentAudio.pause();
-                    const otherBtn = document.querySelector('.audio-play-btn.playing');
-                    if (otherBtn) {
-                        otherBtn.innerHTML = '<i class="fas fa-play"></i>';
-                        otherBtn.classList.remove('playing');
-                    }
-                }
+                // Parar outros
+                stopOtherAudios();
                 
                 if (audio) {
-                    audio.currentTime = 0;
-                    audio.play().catch(e => console.log('Erro:', e));
+                    try {
+                        audio.currentTime = 0;
+                        audio.play().catch(e => console.log('Erro:', e));
+                    } catch(e) {}
                 } else {
-                    // CRIAR ÁUDIO A PARTIR DO BASE64
-                    audio = new Audio('data:audio/webm;base64,' + audioBase64);
+                    // Criar áudio para iPhone - IMPORTANTE: usar o base64 completo
+                    audio = new Audio(audioBase64);
+                    audio.preload = 'auto';
+                    
+                    audio.addEventListener('canplaythrough', () => {
+                        console.log('Áudio pronto');
+                    });
+                    
+                    audio.addEventListener('timeupdate', () => {
+                        if (audio.duration) {
+                            const remaining = Math.ceil(audio.duration - audio.currentTime);
+                            if (remaining > 0) {
+                                statusSpan.textContent = `${remaining}s`;
+                            }
+                        }
+                    });
+                    
                     audio.addEventListener('ended', () => {
                         playBtn.innerHTML = '<i class="fas fa-play"></i>';
                         playBtn.classList.remove('playing');
                         isPlaying = false;
+                        statusSpan.textContent = '';
                         if (currentAudio === audio) currentAudio = null;
                     });
+                    
                     audio.addEventListener('error', (e) => {
                         console.error('Erro no áudio:', e);
-                        showToast('Erro ao carregar áudio');
+                        statusSpan.textContent = 'Erro';
                         playBtn.innerHTML = '<i class="fas fa-play"></i>';
                         playBtn.classList.remove('playing');
                         isPlaying = false;
                     });
+                    
+                    // Tocar no iPhone precisa ser iniciado por interação do usuário
                     audio.play().catch(e => {
-                        console.error('Erro:', e);
-                        showToast('Toque novamente para reproduzir');
+                        console.log('Usuário precisa tocar novamente:', e);
+                        statusSpan.textContent = 'Toque para ouvir';
+                        playBtn.innerHTML = '<i class="fas fa-play"></i>';
                     });
                 }
                 playBtn.innerHTML = '<i class="fas fa-pause"></i>';
@@ -9216,10 +9295,16 @@ if (loginAdminBtn) {
             }
         };
         
+        playBtn.onclick = (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            playAudio();
+        };
+        
         return container;
     }
 
-    // ========== FUNÇÕES AUXILIARES (MANTIDAS IGUAIS) ==========
+    // ========== FUNÇÕES AUXILIARES ==========
     async function getAvatarUrl(userId) {
         if (!userId) return avatarPadrao();
         if (cacheAvatares.has(userId)) return cacheAvatares.get(userId);
@@ -10273,7 +10358,6 @@ if (loginAdminBtn) {
         .chat-user.active { background: rgba(0,168,255,0.1) !important; border-left: 3px solid #00a8ff !important; }
         .unread-count-badge { box-shadow: 0 0 0 2px #202c33; }
         .menu-badge-chat { box-shadow: 0 0 0 2px #1e1e2a; }
-        .message-status i { vertical-align: middle; }
         .message {
             transition: transform 0.2s ease;
             position: relative;
@@ -10323,6 +10407,9 @@ if (loginAdminBtn) {
             background: #e50914 !important;
             animation: pulseAudio 1.5s infinite;
         }
+        .audio-play-btn.playing {
+            animation: pulseAudio 1s infinite;
+        }
     `;
     document.head.appendChild(styleAnim);
 
@@ -10341,9 +10428,8 @@ if (loginAdminBtn) {
     };
     window.iniciarConversaCom = iniciarOuAbrirConversa;
     
-    console.log('✅ Chat com ÁUDIO - Versão estável!');
+    console.log('✅ Chat com ÁUDIO COMPATÍVEL COM IPHONE!');
 })();
-
 
 
 
