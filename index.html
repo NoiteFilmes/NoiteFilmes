@@ -8926,11 +8926,7 @@ if (loginAdminBtn) {
 
 
 
-        
-        
-        
-    ```javascript
-// =====================================================
+   // =====================================================
 // CHAT COMPLETO - VERSÃO CORRIGIDA (SEM MODAL PRESO)
 // + BOTÃO DE EXCLUSÃO VISÍVEL (DESKTOP)
 // + CLIQUE DIREITO TAMBÉM FUNCIONA
@@ -9641,9 +9637,6 @@ if (loginAdminBtn) {
             chatBoxEl.innerHTML = '';
             
             for (const msg of lista) {
-                // ===== VERIFICAR SE É MENSAGEM DE ÁUDIO =====
-                const isAudio = msg.type === 'audio' && msg.audioUrl;
-                
                 const isOwner = estado.user && msg.senderId === estado.user.uid;
                 const senderId = msg.senderId;
                 
@@ -9660,59 +9653,16 @@ if (loginAdminBtn) {
                 const div = document.createElement('div');
                 div.className = `message ${isOwner ? 'sent' : 'received'}`;
                 div.setAttribute('data-message-id', msg.id);
-                
-                // ===== RENDERIZAR ÁUDIO OU TEXTO =====
-                if (isAudio) {
-                    // Criar player de áudio estilo WhatsApp
-                    const audioId = `audio_${msg.id}_${Date.now()}`;
-                    div.innerHTML = `
-                        <div class="message-avatar"><img src="${avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='${avatarPadrao()}'"></div>
-                        <div class="message-content audio-message-content">
-                            <div class="audio-player-container" data-audio-id="${audioId}">
-                                <button class="audio-play-pause-btn" data-audio-id="${audioId}">
-                                    <i class="fas fa-play"></i>
-                                </button>
-                                <div class="audio-waveform-container">
-                                    <div class="audio-progress-bar" id="progress_${audioId}" style="width:0%"></div>
-                                    <div class="audio-waveform-placeholder">
-                                        <i class="fas fa-music"></i> Áudio
-                                    </div>
-                                </div>
-                                <span class="audio-duration-text" id="duration_${audioId}">${msg.duration ? formatDuration(msg.duration) : '00:00'}</span>
-                            </div>
-                            <div style="display:flex; justify-content:flex-end; align-items:center; gap:4px; margin-top:4px;">
-                                <span class="message-time" style="font-size:10px; opacity:0.7;">${tempoAgo(msg.timestamp)}</span>
-                                ${statusIcon ? `<span class="message-status">${statusIcon}</span>` : ''}
-                            </div>
+                div.innerHTML = `
+                    <div class="message-avatar"><img src="${avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='${avatarPadrao()}'"></div>
+                    <div class="message-content">
+                        <p>${escapeHtml(msg.text || '')}</p>
+                        <div style="display:flex; justify-content:flex-end; align-items:center; gap:4px; margin-top:4px;">
+                            <span class="message-time" style="font-size:10px; opacity:0.7;">${tempoAgo(msg.timestamp)}</span>
+                            ${statusIcon ? `<span class="message-status">${statusIcon}</span>` : ''}
                         </div>
-                    `;
-                    
-                    // Adicionar elemento de áudio escondido
-                    const audioElement = document.createElement('audio');
-                    audioElement.id = audioId;
-                    audioElement.src = msg.audioUrl;
-                    audioElement.preload = 'metadata';
-                    audioElement.style.display = 'none';
-                    div.appendChild(audioElement);
-                    
-                    // Configurar eventos do player de áudio
-                    setTimeout(() => {
-                        setupAudioPlayer(div, audioId, msg.audioUrl);
-                    }, 50);
-                } else {
-                    // Mensagem de texto normal
-                    div.innerHTML = `
-                        <div class="message-avatar"><img src="${avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='${avatarPadrao()}'"></div>
-                        <div class="message-content">
-                            <p>${escapeHtml(msg.text || '')}</p>
-                            <div style="display:flex; justify-content:flex-end; align-items:center; gap:4px; margin-top:4px;">
-                                <span class="message-time" style="font-size:10px; opacity:0.7;">${tempoAgo(msg.timestamp)}</span>
-                                ${statusIcon ? `<span class="message-status">${statusIcon}</span>` : ''}
-                            </div>
-                        </div>
-                    `;
-                }
-                
+                    </div>
+                `;
                 adicionarEventosMensagem(div, chatId, msg.id, isOwner);
                 chatBoxEl.appendChild(div);
             }
@@ -9722,311 +9672,6 @@ if (loginAdminBtn) {
         
         ref.on('value', msgCallback);
         estado.listenerMsg = () => ref.off('value', msgCallback);
-    }
-
-    // ===== FUNÇÕES DE ÁUDIO =====
-    function formatDuration(seconds) {
-        if (!seconds) return '00:00';
-        const mins = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-
-    function setupAudioPlayer(container, audioId, audioUrl) {
-        const audio = document.getElementById(audioId);
-        if (!audio) return;
-        
-        const playBtn = container.querySelector('.audio-play-pause-btn');
-        const progressBar = document.getElementById(`progress_${audioId}`);
-        const durationSpan = document.getElementById(`duration_${audioId}`);
-        
-        if (!playBtn) return;
-        
-        // Atualizar duração quando carregar
-        audio.addEventListener('loadedmetadata', () => {
-            if (durationSpan && audio.duration) {
-                durationSpan.textContent = formatDuration(audio.duration);
-            }
-        });
-        
-        // Atualizar barra de progresso
-        audio.addEventListener('timeupdate', () => {
-            if (progressBar && audio.duration) {
-                const percent = (audio.currentTime / audio.duration) * 100;
-                progressBar.style.width = percent + '%';
-            }
-        });
-        
-        // Quando terminar, resetar botão
-        audio.addEventListener('ended', () => {
-            if (playBtn) {
-                playBtn.innerHTML = '<i class="fas fa-play"></i>';
-                if (progressBar) progressBar.style.width = '0%';
-            }
-        });
-        
-        // Play/Pause
-        playBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (audio.paused) {
-                // Pausar outros áudios
-                document.querySelectorAll('audio').forEach(otherAudio => {
-                    if (otherAudio.id !== audioId && !otherAudio.paused) {
-                        otherAudio.pause();
-                        const otherContainer = otherAudio.closest('.message');
-                        if (otherContainer) {
-                            const otherBtn = otherContainer.querySelector('.audio-play-pause-btn');
-                            if (otherBtn) otherBtn.innerHTML = '<i class="fas fa-play"></i>';
-                            const otherProgress = otherContainer.querySelector('.audio-progress-bar');
-                            if (otherProgress) otherProgress.style.width = '0%';
-                        }
-                    }
-                });
-                audio.play();
-                playBtn.innerHTML = '<i class="fas fa-pause"></i>';
-            } else {
-                audio.pause();
-                playBtn.innerHTML = '<i class="fas fa-play"></i>';
-            }
-        });
-    }
-
-    // ===== FUNÇÃO PARA ENVIAR MENSAGEM DE ÁUDIO =====
-    let mediaRecorder = null;
-    let audioChunks = [];
-    let isRecording = false;
-    let recordingStartTime = null;
-    let recordingTimer = null;
-    let recordingBtn = null;
-    
-    async function startAudioRecording() {
-        if (!estado.user) {
-            showToast('Faça login para enviar áudio');
-            return;
-        }
-        if (!estado.chatAtual) {
-            showToast('Selecione uma conversa primeiro');
-            return;
-        }
-        
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-            audioChunks = [];
-            
-            mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    audioChunks.push(event.data);
-                }
-            };
-            
-            mediaRecorder.onstop = async () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                const reader = new FileReader();
-                reader.readAsDataURL(audioBlob);
-                reader.onloadend = async () => {
-                    const base64Audio = reader.result;
-                    const duration = recordingStartTime ? Math.round((Date.now() - recordingStartTime) / 1000) : 0;
-                    await enviarAudioMensagem(base64Audio, duration);
-                };
-                stream.getTracks().forEach(track => track.stop());
-                if (recordingTimer) clearInterval(recordingTimer);
-                if (recordingBtn) {
-                    recordingBtn.innerHTML = '<i class="fas fa-microphone"></i>';
-                    recordingBtn.classList.remove('recording-active');
-                }
-                isRecording = false;
-                recordingStartTime = null;
-            };
-            
-            mediaRecorder.start();
-            isRecording = true;
-            recordingStartTime = Date.now();
-            
-            if (recordingBtn) {
-                recordingBtn.innerHTML = '<i class="fas fa-stop"></i>';
-                recordingBtn.classList.add('recording-active');
-            }
-            
-            // Auto-parar após 60 segundos
-            setTimeout(() => {
-                if (isRecording && mediaRecorder && mediaRecorder.state === 'recording') {
-                    stopAudioRecording();
-                }
-            }, 60000);
-            
-            showToast('🎤 Gravando... Toque novamente para parar');
-            
-        } catch (error) {
-            console.error('Erro ao acessar microfone:', error);
-            showToast('Erro ao acessar microfone. Verifique as permissões.');
-        }
-    }
-    
-    function stopAudioRecording() {
-        if (mediaRecorder && mediaRecorder.state === 'recording') {
-            mediaRecorder.stop();
-        }
-    }
-    
-    function toggleAudioRecording() {
-        if (!isRecording) {
-            startAudioRecording();
-        } else {
-            stopAudioRecording();
-        }
-    }
-    
-    async function enviarAudioMensagem(base64Audio, duration) {
-        if (!estado.user || !estado.chatAtual) return;
-        
-        const msgData = {
-            type: 'audio',
-            audioUrl: base64Audio,
-            duration: duration,
-            text: '',
-            senderId: estado.user.uid,
-            senderName: window.currentUsername || 'Usuário',
-            timestamp: Date.now(),
-            status: 'sent'
-        };
-        
-        const db = firebase.database();
-        let ref = estado.chatAtual === 'geral' ? db.ref('chat_messages') : db.ref(`private_messages/${estado.chatAtual}`);
-        const newMsgRef = await ref.push(msgData);
-        
-        setTimeout(async () => {
-            const snap = await newMsgRef.once('value');
-            const msg = snap.val();
-            if (msg && msg.status === 'sent') {
-                const statusRef = estado.chatAtual === 'geral' ? db.ref(`chat_messages/${newMsgRef.key}/status`) : db.ref(`private_messages/${estado.chatAtual}/${newMsgRef.key}/status`);
-                await statusRef.set('delivered');
-            }
-        }, 1500);
-        
-        carregarConversas();
-        setTimeout(() => scrollToBottomChat(), 100);
-    }
-    
-    // ===== ADICIONAR BOTÃO DE ÁUDIO À BARRA DE MENSAGEM =====
-    function adicionarBotaoAudio() {
-        const messageBar = document.querySelector('.message-bar');
-        if (!messageBar) return;
-        
-        // Verificar se já existe o botão de áudio
-        if (document.querySelector('.audio-record-btn')) return;
-        
-        const audioBtn = document.createElement('button');
-        audioBtn.className = 'message-bar-button audio-record-btn';
-        audioBtn.innerHTML = '<i class="fas fa-microphone"></i>';
-        audioBtn.title = 'Gravar áudio';
-        recordingBtn = audioBtn;
-        
-        audioBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            toggleAudioRecording();
-        });
-        
-        // Inserir antes do botão de enviar
-        const sendBtn = messageBar.querySelector('.message-bar-button.primary');
-        if (sendBtn) {
-            messageBar.insertBefore(audioBtn, sendBtn);
-        } else {
-            messageBar.appendChild(audioBtn);
-        }
-    }
-    
-    // ===== CSS PARA PLAYER DE ÁUDIO =====
-    function adicionarEstilosAudio() {
-        if (document.getElementById('audio-chat-styles')) return;
-        
-        const style = document.createElement('style');
-        style.id = 'audio-chat-styles';
-        style.textContent = `
-            .audio-message-content {
-                padding: 8px 12px !important;
-                min-width: 200px;
-            }
-            .audio-player-container {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                min-width: 200px;
-            }
-            .audio-play-pause-btn {
-                width: 32px;
-                height: 32px;
-                border-radius: 50%;
-                background: rgba(255,255,255,0.2);
-                border: none;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                transition: all 0.2s ease;
-                flex-shrink: 0;
-            }
-            .message.sent .audio-play-pause-btn {
-                background: rgba(255,255,255,0.3);
-            }
-            .audio-play-pause-btn:hover {
-                transform: scale(1.05);
-                background: rgba(255,255,255,0.4);
-            }
-            .audio-waveform-container {
-                flex: 1;
-                height: 40px;
-                background: rgba(255,255,255,0.15);
-                border-radius: 20px;
-                position: relative;
-                overflow: hidden;
-                cursor: pointer;
-            }
-            .audio-progress-bar {
-                position: absolute;
-                top: 0;
-                left: 0;
-                height: 100%;
-                background: linear-gradient(90deg, #4CAF50, #8BC34A);
-                width: 0%;
-                transition: width 0.1s linear;
-                border-radius: 20px;
-                opacity: 0.7;
-            }
-            .message.sent .audio-progress-bar {
-                background: linear-gradient(90deg, #ffffff, #e0e0e0);
-            }
-            .audio-waveform-placeholder {
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 4px;
-                font-size: 12px;
-                color: rgba(255,255,255,0.7);
-                pointer-events: none;
-            }
-            .audio-duration-text {
-                font-size: 11px;
-                font-family: monospace;
-                min-width: 40px;
-                text-align: center;
-            }
-            .recording-active {
-                background: #e53935 !important;
-                animation: pulse-recording 1.5s infinite;
-            }
-            @keyframes pulse-recording {
-                0% { opacity: 1; transform: scale(1); }
-                50% { opacity: 0.7; transform: scale(1.05); }
-                100% { opacity: 1; transform: scale(1); }
-            }
-        `;
-        document.head.appendChild(style);
     }
 
     async function abrirConversa(chatId, conv) {
@@ -10052,9 +9697,6 @@ if (loginAdminBtn) {
         if (sidebarEl) sidebarEl.classList.add('hidden');
         if (mainEl) mainEl.classList.remove('hidden');
         carregarMensagens(chatId, conv.userId);
-        
-        // Adicionar botão de áudio quando abrir conversa
-        setTimeout(() => adicionarBotaoAudio(), 100);
     }
 
     async function enviarMensagem() {
@@ -10090,7 +9732,7 @@ if (loginAdminBtn) {
         const geralMsgs = geralSnap.val();
         const geralLista = geralMsgs ? Object.values(geralMsgs) : [];
         geralLista.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-        conversasCache.set('geral', { id: 'geral', nome: 'Geral', avatar: 'G', avatarUrl: null, ultimaMsg: geralLista[0]?.text || geralLista[0]?.type === 'audio' ? '🎤 Áudio' : 'Nenhuma mensagem', ultimoTempo: geralLista[0]?.timestamp || 0, naoLidas: contarNaoLidas(geralLista, 'geral'), userId: null });
+        conversasCache.set('geral', { id: 'geral', nome: 'Geral', avatar: 'G', avatarUrl: null, ultimaMsg: geralLista[0]?.text || 'Nenhuma mensagem', ultimoTempo: geralLista[0]?.timestamp || 0, naoLidas: contarNaoLidas(geralLista, 'geral'), userId: null });
         
         const privSnap = await db.ref('private_messages').once('value');
         const privadas = privSnap.val() || {};
@@ -10104,8 +9746,7 @@ if (loginAdminBtn) {
                 const userData = userSnap.val() || {};
                 let avatarUrl = userData.avatarUrl || null;
                 if (avatarUrl) cacheAvatares.set(outroId, avatarUrl);
-                const ultimaMsg = msgLista[0]?.text || (msgLista[0]?.type === 'audio' ? '🎤 Áudio' : 'Nenhuma mensagem');
-                conversasCache.set(chatId, { id: chatId, nome: userData.displayName || userData.nickname || 'Usuário', avatar: (userData.displayName || userData.nickname || 'U').charAt(0).toUpperCase(), avatarUrl: avatarUrl, ultimaMsg: ultimaMsg, ultimoTempo: msgLista[0]?.timestamp || 0, naoLidas: contarNaoLidas(msgLista, chatId), userId: outroId });
+                conversasCache.set(chatId, { id: chatId, nome: userData.displayName || userData.nickname || 'Usuário', avatar: (userData.displayName || userData.nickname || 'U').charAt(0).toUpperCase(), avatarUrl: avatarUrl, ultimaMsg: msgLista[0]?.text || 'Nenhuma mensagem', ultimoTempo: msgLista[0]?.timestamp || 0, naoLidas: contarNaoLidas(msgLista, chatId), userId: outroId });
             }
         }
         renderizarLista();
@@ -10312,9 +9953,6 @@ if (loginAdminBtn) {
         
         if (!sidebarEl) { setTimeout(inicializar, 200); return; }
         
-        // Adicionar estilos de áudio
-        adicionarEstilosAudio();
-        
         if (typeof auth !== 'undefined') {
             auth.onAuthStateChanged(async (user) => {
                 if (user) {
@@ -10325,9 +9963,7 @@ if (loginAdminBtn) {
                     await carregarConversas();
                     setupRealTimeListeners();
                     adicionarBotaoMais();
-                    // Adicionar botão de áudio após carregar
-                    setTimeout(() => adicionarBotaoAudio(), 500);
-                    console.log('✅ Chat inicializado com sucesso! (Incluindo áudio)');
+                    console.log('✅ Chat inicializado com sucesso!');
                 }
             });
         }
@@ -10339,7 +9975,7 @@ if (loginAdminBtn) {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', inicializar);
     else inicializar();
 
-    // Estilos e animações (mantidos originais + áudio)
+    // Estilos e animações
     const styleAnim = document.createElement('style');
     styleAnim.textContent = `
         @keyframes fadeInRight {
@@ -10431,9 +10067,10 @@ if (loginAdminBtn) {
     window.iniciarConversaCom = iniciarOuAbrirConversa;
     
     console.log('✅ Chat corrigido - Modal não fica mais preso na tela!');
-    console.log('✅ Áudio Messenger - Funcionalidade de áudio integrada!');
-})();
-
+})();     
+        
+        
+    
 
 
 
