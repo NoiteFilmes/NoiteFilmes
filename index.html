@@ -8931,12 +8931,13 @@ if (loginAdminBtn) {
         
     
 // =====================================================
-// CHAT COMPLETO - VERSÃO CORRIGIDA
-// + EXCLUSÃO DE MENSAGEM SEM RECARREGAR CHAT
-// + MODAL DE SEGUIDORES CONSISTENTE
+// CHAT COMPLETO - VERSÃO FINAL CORRIGIDA
+// + FOTOS DE PERFIL CORRETAS
+// + ORDEM CRONOLÓGICA DAS MENSAGENS
+// + ROLAGEM AUTOMÁTICA PARA MENSAGEM MAIS RECENTE
 // =====================================================
 (function() {
-    console.log('🚀 CHAT CORRIGIDO - Exclusão sem reload + Modal fixo');
+    console.log('🚀 CHAT VERSÃO FINAL - Fotos, ordem cronológica e rolagem corrigidas');
 
     let estado = {
         user: null,
@@ -8948,12 +8949,31 @@ if (loginAdminBtn) {
 
     let conversasCache = new Map();
     let leiturasCache = new Map();
+    let cacheAvatares = new Map(); // Cache de URLs de avatares
 
     let sidebarEl, mainEl, usersListEl, chatBoxEl, inputEl, headerNameEl, headerAvatarEl, totalBadgeEl;
     let floatingDeleteBtn = null;
     let pendingDeleteChatId = null;
     let pendingDeleteChatNome = null;
     let modalSeguidosAtivo = null;
+
+    // ========== FUNÇÃO PARA BUSCAR AVATAR COM CACHE ==========
+    async function getAvatarUrl(userId) {
+        if (!userId) return avatarPadrao();
+        if (cacheAvatares.has(userId)) return cacheAvatares.get(userId);
+        
+        try {
+            const db = firebase.database();
+            const snap = await db.ref(`usuarios/${userId}/avatarUrl`).once('value');
+            const url = snap.val();
+            const avatarUrl = (url && url.trim()) ? url : avatarPadrao();
+            cacheAvatares.set(userId, avatarUrl);
+            return avatarUrl;
+        } catch (error) {
+            console.error('Erro ao buscar avatar:', error);
+            return avatarPadrao();
+        }
+    }
 
     // ========== FUNÇÕES AUXILIARES ==========
     function tempoAgo(timestamp) {
@@ -8996,7 +9016,7 @@ if (loginAdminBtn) {
         return '<i class="fas fa-clock" style="font-size: 10px; color: #b0b0b0;"></i>';
     }
 
-    // ========== POPUP DE CONFIRMAÇÃO PERSONALIZADO ==========
+    // ========== POPUP DE CONFIRMAÇÃO ==========
     function showConfirmPopup(message, onConfirm, onCancel) {
         let oldPopup = document.querySelector('.confirm-modal-overlay-custom');
         if (oldPopup) oldPopup.remove();
@@ -9036,6 +9056,13 @@ if (loginAdminBtn) {
         };
     }
 
+    // ========== FUNÇÃO PARA ROLAR ATÉ O FINAL DO CHAT ==========
+    function scrollToBottomChat() {
+        if (chatBoxEl) {
+            chatBoxEl.scrollTop = chatBoxEl.scrollHeight;
+        }
+    }
+
     // ========== EXCLUIR MENSAGEM SEM RECARREGAR O CHAT ==========
     async function excluirMensagemSemReload(chatId, messageId, elementoMsg) {
         try {
@@ -9045,13 +9072,13 @@ if (loginAdminBtn) {
             } else {
                 await db.ref(`private_messages/${chatId}/${messageId}`).remove();
             }
-            // Remove apenas o elemento do DOM, sem recarregar tudo
+            
             if (elementoMsg && elementoMsg.parentNode) {
                 elementoMsg.remove();
             }
             showToast('Mensagem excluída');
             
-            // Atualiza a última mensagem na lista de conversas (opcional, sem recarregar tudo)
+            // Atualiza a lista de conversas lateral
             const conv = conversasCache.get(chatId);
             if (conv) {
                 const db2 = firebase.database();
@@ -9065,15 +9092,18 @@ if (loginAdminBtn) {
                 } else {
                     conv.ultimaMsg = 'Nenhuma mensagem';
                 }
-                renderizarLista(); // Atualiza só a lista lateral
+                renderizarLista();
             }
+            
+            // Rolar para o final após excluir (se houver mensagens restantes)
+            setTimeout(() => scrollToBottomChat(), 100);
         } catch (error) {
             console.error(error);
             showToast('Erro ao excluir mensagem');
         }
     }
 
-    // ========== SWIPE NA MENSAGEM INDIVIDUAL (VERSÃO CORRIGIDA) ==========
+    // ========== SWIPE NA MENSAGEM INDIVIDUAL ==========
     function adicionarSwipeMensagem(elemento, chatId, messageId, isOwner) {
         if (!isOwner) return;
         
@@ -9360,7 +9390,7 @@ if (loginAdminBtn) {
         }
     }
 
-    // ========== CARREGAR MENSAGENS (SEM RECARREGAR AO EXCLUIR) ==========
+    // ========== CARREGAR MENSAGENS EM ORDEM CRONOLÓGICA ==========
     function carregarMensagens(chatId, outroId) {
         if (!chatBoxEl) return;
         if (estado.listenerMsg) estado.listenerMsg();
@@ -9370,22 +9400,38 @@ if (loginAdminBtn) {
 
         const msgCallback = async (snapshot) => {
             const msgs = snapshot.val();
-            if (!msgs) { chatBoxEl.innerHTML = '<div style="text-align:center; padding:40px;">Nenhuma mensagem</div>'; return; }
+            if (!msgs) { 
+                chatBoxEl.innerHTML = '<div style="text-align:center; padding:40px;">Nenhuma mensagem</div>'; 
+                return; 
+            }
+            
+            // ORDEM CRONOLÓGICA CORRETA: mais antigas primeiro (timestamp crescente)
             const lista = Object.entries(msgs).map(([id, m]) => ({ id, ...m })).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+            
             chatBoxEl.innerHTML = '';
+            
             for (const msg of lista) {
                 const isOwner = estado.user && msg.senderId === estado.user.uid;
-                let avatar = avatarPadrao();
-                if (!isOwner && msg.senderId) {
-                    const snap = await db.ref(`usuarios/${msg.senderId}/avatarUrl`).once('value');
-                    if (snap.val()) avatar = snap.val();
+                const senderId = msg.senderId;
+                
+                // Buscar avatar do remetente
+                let avatarUrl = avatarPadrao();
+                if (senderId) {
+                    if (isOwner && estado.user) {
+                        // É o próprio usuário, busca avatar do usuário logado
+                        avatarUrl = await getAvatarUrl(estado.user.uid);
+                    } else {
+                        // É outro usuário
+                        avatarUrl = await getAvatarUrl(senderId);
+                    }
                 }
+                
                 const statusIcon = isOwner ? getStatusIcon(msg.status) : '';
                 const div = document.createElement('div');
                 div.className = `message ${isOwner ? 'sent' : 'received'}`;
                 div.setAttribute('data-message-id', msg.id);
                 div.innerHTML = `
-                    <div class="message-avatar"><img src="${avatar}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='${avatarPadrao()}'"></div>
+                    <div class="message-avatar"><img src="${avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='${avatarPadrao()}'"></div>
                     <div class="message-content">
                         <p>${escapeHtml(msg.text || '')}</p>
                         <div style="display:flex; justify-content:flex-end; align-items:center; gap:4px; margin-top:4px;">
@@ -9397,8 +9443,11 @@ if (loginAdminBtn) {
                 adicionarSwipeMensagem(div, chatId, msg.id, isOwner);
                 chatBoxEl.appendChild(div);
             }
-            chatBoxEl.scrollTop = chatBoxEl.scrollHeight;
+            
+            // Rolar para o final (mensagem mais recente)
+            scrollToBottomChat();
         };
+        
         ref.on('value', msgCallback);
         estado.listenerMsg = () => ref.off('value', msgCallback);
     }
@@ -9408,10 +9457,20 @@ if (loginAdminBtn) {
         estado.chatAtual = chatId;
         estado.chatUsuario = conv.userId;
         if (headerNameEl) headerNameEl.innerText = conv.nome;
+        
+        // Avatar do cabeçalho
         if (headerAvatarEl) {
-            if (conv.avatarUrl) headerAvatarEl.innerHTML = `<img src="${conv.avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
-            else { headerAvatarEl.innerHTML = conv.avatar; headerAvatarEl.style.cssText = 'display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#e50914,#b20710); border-radius:50%; font-weight:bold; font-size:18px;'; }
+            if (conv.avatarUrl && conv.avatarUrl !== avatarPadrao()) {
+                headerAvatarEl.innerHTML = `<img src="${conv.avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='${avatarPadrao()}'">`;
+            } else if (conv.userId) {
+                const avatar = await getAvatarUrl(conv.userId);
+                headerAvatarEl.innerHTML = `<img src="${avatar}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='${avatarPadrao()}'">`;
+            } else {
+                headerAvatarEl.innerHTML = conv.avatar;
+                headerAvatarEl.style.cssText = 'display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#e50914,#b20710); border-radius:50%; font-weight:bold; font-size:18px;';
+            }
         }
+        
         salvarLeitura(chatId);
         renderizarLista();
         atualizarBadgeMenu();
@@ -9442,7 +9501,7 @@ if (loginAdminBtn) {
         }, 1500);
         
         carregarConversas();
-        setTimeout(() => { if (chatBoxEl) chatBoxEl.scrollTop = chatBoxEl.scrollHeight; }, 100);
+        setTimeout(() => scrollToBottomChat(), 100);
     }
 
     // ========== CARREGAR CONVERSAS ==========
@@ -9467,14 +9526,16 @@ if (loginAdminBtn) {
             if (outroId) {
                 const userSnap = await db.ref(`usuarios/${outroId}`).once('value');
                 const userData = userSnap.val() || {};
-                conversasCache.set(chatId, { id: chatId, nome: userData.displayName || userData.nickname || 'Usuário', avatar: (userData.displayName || userData.nickname || 'U').charAt(0).toUpperCase(), avatarUrl: userData.avatarUrl || null, ultimaMsg: msgLista[0]?.text || 'Nenhuma mensagem', ultimoTempo: msgLista[0]?.timestamp || 0, naoLidas: contarNaoLidas(msgLista, chatId), userId: outroId });
+                let avatarUrl = userData.avatarUrl || null;
+                if (avatarUrl) cacheAvatares.set(outroId, avatarUrl);
+                conversasCache.set(chatId, { id: chatId, nome: userData.displayName || userData.nickname || 'Usuário', avatar: (userData.displayName || userData.nickname || 'U').charAt(0).toUpperCase(), avatarUrl: avatarUrl, ultimaMsg: msgLista[0]?.text || 'Nenhuma mensagem', ultimoTempo: msgLista[0]?.timestamp || 0, naoLidas: contarNaoLidas(msgLista, chatId), userId: outroId });
             }
         }
         renderizarLista();
         atualizarBadgeMenu();
     }
 
-    // ========== BOTÃO + (LISTA DE USUÁRIOS SEGUIDOS - VERSÃO CORRIGIDA) ==========
+    // ========== BOTÃO + (LISTA DE USUÁRIOS SEGUIDOS) ==========
     async function abrirListaUsuariosSeguidos() {
         if (!estado.user) {
             showToast('Faça login para ver quem você segue');
@@ -9501,11 +9562,13 @@ if (loginAdminBtn) {
             const snap = usuariosSnapshots[i];
             if (snap.exists()) {
                 const userData = snap.val();
+                let avatarUrl = userData.avatarUrl || avatarPadrao();
+                cacheAvatares.set(seguidosIds[i], avatarUrl);
                 seguidos.push({
                     uid: seguidosIds[i],
                     nickname: userData.nickname || 'usuário',
                     displayName: userData.displayName || userData.nickname || 'Usuário',
-                    avatarUrl: userData.avatarUrl || avatarPadrao()
+                    avatarUrl: avatarUrl
                 });
             }
         }
@@ -9517,7 +9580,6 @@ if (loginAdminBtn) {
         
         seguidos.sort((a, b) => a.displayName.localeCompare(b.displayName));
         
-        // Fechar modal anterior se existir
         if (modalSeguidosAtivo && modalSeguidosAtivo.parentNode) {
             modalSeguidosAtivo.remove();
         }
@@ -9571,13 +9633,11 @@ if (loginAdminBtn) {
                     const nome = item.getAttribute('data-nome');
                     const avatarUrl = item.getAttribute('data-avatar');
                     
-                    // Fecha o modal completamente
                     if (modalSeguidosAtivo && modalSeguidosAtivo.parentNode) {
                         modalSeguidosAtivo.remove();
                         modalSeguidosAtivo = null;
                     }
                     
-                    // Abre a conversa
                     await iniciarOuAbrirConversa(uid, nome, avatarUrl);
                 });
                 item.addEventListener('mouseenter', () => item.style.background = 'rgba(255,255,255,0.15)');
@@ -9615,6 +9675,8 @@ if (loginAdminBtn) {
             });
             showToast(`Nova conversa iniciada com ${nome}`);
         }
+        
+        if (avatarUrl) cacheAvatares.set(outroUserId, avatarUrl);
         
         const conv = {
             id: chatId,
@@ -9678,6 +9740,9 @@ if (loginAdminBtn) {
             auth.onAuthStateChanged(async (user) => {
                 if (user) {
                     estado.user = user;
+                    // Pré-carregar avatar do próprio usuário
+                    const userAvatar = await getAvatarUrl(user.uid);
+                    cacheAvatares.set(user.uid, userAvatar);
                     carregarLeituras();
                     await carregarConversas();
                     setupRealTimeListeners();
@@ -9711,6 +9776,9 @@ if (loginAdminBtn) {
         .message-status i { vertical-align: middle; }
         .swipe-delete-btn-flutuante:hover { transform: scale(1.1); }
         .seguido-item:active { transform: scale(0.98); }
+        .message {
+            transition: transform 0.2s ease;
+        }
     `;
     document.head.appendChild(styleAnim);
 
@@ -9731,7 +9799,7 @@ if (loginAdminBtn) {
     window.buscarUsuariosLista = () => {};
     window.iniciarConversaCom = iniciarOuAbrirConversa;
     
-    console.log('✅ Chat CORRIGIDO V2: exclusão sem reload + modal fixo!');
+    console.log('✅ Chat VERSÃO FINAL: Fotos de perfil, ordem cronológica e rolagem corrigidas!');
 })();
 
 
