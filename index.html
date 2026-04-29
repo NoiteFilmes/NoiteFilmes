@@ -10073,7 +10073,607 @@ if (loginAdminBtn) {
     window.iniciarConversaCom = iniciarOuAbrirConversa;
     
     console.log('✅ Chat corrigido - Modal não fica mais preso na tela!');
-})();
+};
+
+// =====================================================
+// SISTEMA DE MENSAGENS DE ÁUDIO - ADICIONADO AO CHAT
+// =====================================================
+
+// ========== NOVAS FUNÇÕES DE ÁUDIO ==========
+
+// Estado do gravador de áudio
+let audioRecorder = {
+    mediaRecorder: null,
+    audioChunks: [],
+    isRecording: false,
+    startTime: null,
+    timerInterval: null,
+    recordingButton: null,
+    recordingIndicator: null
+};
+
+// Função para solicitar permissão do microfone
+async function requestMicrophonePermission() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach(track => track.stop());
+        return true;
+    } catch (error) {
+        console.error('Permissão de microfone negada:', error);
+        showToast('🎤 Permissão de microfone necessária para enviar áudios');
+        return false;
+    }
+}
+
+// Função para formatar duração (segundos para mm:ss)
+function formatDuration(seconds) {
+    if (!seconds || isNaN(seconds)) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+// Função para criar player de áudio estilo WhatsApp
+function createAudioPlayer(audioUrl, duration, isOwner, messageId) {
+    const playerDiv = document.createElement('div');
+    playerDiv.className = `audio-player ${isOwner ? 'audio-player-sent' : 'audio-player-received'}`;
+    playerDiv.style.cssText = `
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 220px;
+        max-width: 280px;
+        padding: 8px 12px;
+        border-radius: 20px;
+        background: ${isOwner ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.2)'};
+    `;
+    
+    // Botão play/pause
+    const playBtn = document.createElement('button');
+    playBtn.className = 'audio-play-btn-whatsapp';
+    playBtn.innerHTML = '<i class="fas fa-play"></i>';
+    playBtn.style.cssText = `
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: ${isOwner ? '#e50914' : '#00a884'};
+        border: none;
+        color: white;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+    `;
+    
+    // Barra de progresso
+    const progressContainer = document.createElement('div');
+    progressContainer.style.cssText = `
+        flex: 1;
+        height: 4px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 2px;
+        cursor: pointer;
+        position: relative;
+    `;
+    
+    const progressBar = document.createElement('div');
+    progressBar.style.cssText = `
+        width: 0%;
+        height: 100%;
+        background: ${isOwner ? '#fff' : '#00a884'};
+        border-radius: 2px;
+        transition: width 0.1s linear;
+    `;
+    progressContainer.appendChild(progressBar);
+    
+    // Duração
+    const durationSpan = document.createElement('span');
+    durationSpan.className = 'audio-duration-whatsapp';
+    durationSpan.textContent = formatDuration(duration);
+    durationSpan.style.cssText = `
+        font-size: 11px;
+        opacity: 0.8;
+        min-width: 40px;
+        text-align: right;
+    `;
+    
+    playerDiv.appendChild(playBtn);
+    playerDiv.appendChild(progressContainer);
+    playerDiv.appendChild(durationSpan);
+    
+    // Criar elemento de áudio
+    const audio = new Audio(audioUrl);
+    let isPlaying = false;
+    
+    // Atualizar barra de progresso
+    audio.addEventListener('timeupdate', () => {
+        if (audio.duration) {
+            const percent = (audio.currentTime / audio.duration) * 100;
+            progressBar.style.width = `${percent}%`;
+            const remaining = Math.floor(audio.duration - audio.currentTime);
+            durationSpan.textContent = formatDuration(remaining > 0 ? remaining : duration);
+        }
+    });
+    
+    audio.addEventListener('ended', () => {
+        playBtn.innerHTML = '<i class="fas fa-play"></i>';
+        isPlaying = false;
+        progressBar.style.width = '0%';
+        durationSpan.textContent = formatDuration(duration);
+    });
+    
+    // Play/pause
+    playBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (isPlaying) {
+            audio.pause();
+            playBtn.innerHTML = '<i class="fas fa-play"></i>';
+            isPlaying = false;
+        } else {
+            // Parar outros áudios
+            document.querySelectorAll('.audio-play-btn-whatsapp').forEach(btn => {
+                if (btn !== playBtn) {
+                    btn.innerHTML = '<i class="fas fa-play"></i>';
+                    const otherAudio = btn.audioObject;
+                    if (otherAudio && !otherAudio.paused) {
+                        otherAudio.pause();
+                    }
+                }
+            });
+            audio.play().catch(e => console.log('Erro ao reproduzir:', e));
+            playBtn.innerHTML = '<i class="fas fa-pause"></i>';
+            isPlaying = true;
+        }
+    });
+    
+    // Armazenar referência do áudio no botão
+    playBtn.audioObject = audio;
+    
+    // Clique na barra de progresso para buscar
+    progressContainer.addEventListener('click', (e) => {
+        const rect = progressContainer.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const width = rect.width;
+        const percent = clickX / width;
+        if (audio.duration) {
+            audio.currentTime = percent * audio.duration;
+        }
+    });
+    
+    return { playerDiv, audio };
+}
+
+// Função para enviar mensagem de áudio
+async function enviarAudioMensagem(audioBlob, duration) {
+    if (!estado.user || !estado.chatAtual) {
+        showToast('Selecione uma conversa primeiro');
+        return;
+    }
+    
+    showToast('📤 Enviando áudio...');
+    
+    try {
+        // Upload para Firebase Storage
+        const fileName = `audio_${Date.now()}_${estado.user.uid}.webm`;
+        const storageRef = firebase.storage().ref(`chat_audios/${fileName}`);
+        
+        // Adicionar metadados
+        const metadata = {
+            contentType: 'audio/webm',
+            customMetadata: {
+                userId: estado.user.uid,
+                duration: duration.toString(),
+                chatId: estado.chatAtual
+            }
+        };
+        
+        const uploadTask = await storageRef.put(audioBlob, metadata);
+        const audioUrl = await uploadTask.ref.getDownloadURL();
+        
+        // Criar mensagem de áudio
+        const msgData = {
+            text: '',
+            audioUrl: audioUrl,
+            audioDuration: duration,
+            type: 'audio',
+            senderId: estado.user.uid,
+            senderName: window.currentUsername || 'Usuário',
+            timestamp: Date.now(),
+            status: 'sent'
+        };
+        
+        const db = firebase.database();
+        let ref = estado.chatAtual === 'geral' ? db.ref('chat_messages') : db.ref(`private_messages/${estado.chatAtual}`);
+        await ref.push(msgData);
+        
+        showToast('🎵 Áudio enviado!');
+        carregarConversas();
+        setTimeout(() => scrollToBottomChat(), 100);
+        
+    } catch (error) {
+        console.error('Erro ao enviar áudio:', error);
+        showToast('Erro ao enviar áudio. Tente novamente.');
+    }
+}
+
+// Função para iniciar gravação
+async function startAudioRecording(buttonElement) {
+    if (audioRecorder.isRecording) return;
+    
+    // Verificar permissão
+    const hasPermission = await requestMicrophonePermission();
+    if (!hasPermission) return;
+    
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        // Detectar formatos suportados
+        let mimeType = '';
+        const mimeTypes = ['audio/webm', 'audio/mp4', 'audio/ogg'];
+        for (const type of mimeTypes) {
+            if (MediaRecorder.isTypeSupported(type)) {
+                mimeType = type;
+                break;
+            }
+        }
+        
+        audioRecorder.mediaRecorder = new MediaRecorder(stream, { mimeType });
+        audioRecorder.audioChunks = [];
+        
+        audioRecorder.mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+                audioRecorder.audioChunks.push(event.data);
+            }
+        };
+        
+        audioRecorder.mediaRecorder.onstop = async () => {
+            const audioBlob = new Blob(audioRecorder.audioChunks, { type: mimeType || 'audio/webm' });
+            const duration = Math.round((Date.now() - audioRecorder.startTime) / 1000);
+            
+            if (duration >= 1) {
+                await enviarAudioMensagem(audioBlob, duration);
+            } else {
+                showToast('Áudio muito curto. Grave por pelo menos 1 segundo.');
+            }
+            
+            // Parar todas as tracks
+            stream.getTracks().forEach(track => track.stop());
+            cleanupRecording();
+        };
+        
+        audioRecorder.mediaRecorder.start(100);
+        audioRecorder.isRecording = true;
+        audioRecorder.startTime = Date.now();
+        audioRecorder.recordingButton = buttonElement;
+        
+        // Atualizar UI do botão
+        buttonElement.innerHTML = '<i class="fas fa-stop"></i>';
+        buttonElement.style.background = '#e53935';
+        buttonElement.classList.add('recording-active');
+        
+        // Criar indicador de gravação
+        const indicator = document.createElement('div');
+        indicator.className = 'recording-wave-indicator';
+        indicator.innerHTML = `
+            <div class="recording-wave">
+                <span></span><span></span><span></span><span></span>
+            </div>
+            <span class="recording-timer">0:00</span>
+            <button class="cancel-recording-btn">✕</button>
+        `;
+        indicator.style.cssText = `
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a1a2e;
+            backdrop-filter: blur(20px);
+            border-radius: 60px;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            z-index: 10002;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+        `;
+        
+        // Estilo das ondas
+        const waveStyle = document.createElement('style');
+        waveStyle.textContent = `
+            .recording-wave {
+                display: flex;
+                align-items: center;
+                gap: 3px;
+                height: 30px;
+            }
+            .recording-wave span {
+                width: 3px;
+                height: 100%;
+                background: #e50914;
+                border-radius: 2px;
+                animation: wave-animation 0.8s ease infinite alternate;
+            }
+            .recording-wave span:nth-child(1) { animation-delay: 0s; height: 15px; }
+            .recording-wave span:nth-child(2) { animation-delay: 0.2s; height: 25px; }
+            .recording-wave span:nth-child(3) { animation-delay: 0.4s; height: 20px; }
+            .recording-wave span:nth-child(4) { animation-delay: 0.6s; height: 30px; }
+            @keyframes wave-animation {
+                0% { height: 10px; }
+                100% { height: 35px; }
+            }
+            .recording-timer {
+                font-size: 14px;
+                font-weight: 600;
+                color: #e50914;
+                font-family: monospace;
+                min-width: 45px;
+            }
+            .cancel-recording-btn {
+                background: rgba(255,255,255,0.1);
+                border: none;
+                border-radius: 50%;
+                width: 28px;
+                height: 28px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                color: white;
+                transition: all 0.2s;
+            }
+            .cancel-recording-btn:hover {
+                background: rgba(255,255,255,0.2);
+                transform: scale(1.05);
+            }
+            .message.audio-message {
+                padding: 4px 0;
+            }
+        `;
+        document.head.appendChild(waveStyle);
+        
+        const timerSpan = indicator.querySelector('.recording-timer');
+        const cancelBtn = indicator.querySelector('.cancel-recording-btn');
+        
+        // Timer
+        audioRecorder.timerInterval = setInterval(() => {
+            if (audioRecorder.isRecording && audioRecorder.startTime) {
+                const elapsed = Math.floor((Date.now() - audioRecorder.startTime) / 1000);
+                timerSpan.textContent = formatDuration(elapsed);
+            }
+        }, 1000);
+        
+        cancelBtn.onclick = () => {
+            if (audioRecorder.isRecording) {
+                audioRecorder.mediaRecorder.stop();
+                cleanupRecording();
+                showToast('Gravação cancelada');
+            }
+        };
+        
+        document.body.appendChild(indicator);
+        audioRecorder.recordingIndicator = indicator;
+        
+    } catch (error) {
+        console.error('Erro ao iniciar gravação:', error);
+        showToast('Erro ao acessar o microfone. Verifique as permissões.');
+    }
+}
+
+function stopAudioRecording() {
+    if (audioRecorder.isRecording && audioRecorder.mediaRecorder) {
+        audioRecorder.mediaRecorder.stop();
+    }
+}
+
+function cleanupRecording() {
+    if (audioRecorder.timerInterval) {
+        clearInterval(audioRecorder.timerInterval);
+        audioRecorder.timerInterval = null;
+    }
+    if (audioRecorder.recordingIndicator && audioRecorder.recordingIndicator.parentNode) {
+        audioRecorder.recordingIndicator.remove();
+    }
+    if (audioRecorder.recordingButton) {
+        audioRecorder.recordingButton.innerHTML = '<i class="fas fa-microphone"></i>';
+        audioRecorder.recordingButton.style.background = '';
+        audioRecorder.recordingButton.classList.remove('recording-active');
+    }
+    audioRecorder.isRecording = false;
+    audioRecorder.mediaRecorder = null;
+    audioRecorder.audioChunks = [];
+    audioRecorder.startTime = null;
+    audioRecorder.recordingButton = null;
+    audioRecorder.recordingIndicator = null;
+}
+
+// ========== MODIFICAR A FUNÇÃO carregarMensagens PARA SUPORTAR ÁUDIO ==========
+// NOTA: Esta função é substituída para adicionar suporte a áudio SEM remover funcionalidades existentes
+
+// Salvar referência da função original
+const originalCarregarMensagens = carregarMensagens;
+
+// Nova função que estende a original
+carregarMensagens = async function(chatId, outroId) {
+    if (!chatBoxEl) return;
+    if (estado.listenerMsg) estado.listenerMsg();
+    if (estado.listenerStatus) estado.listenerStatus();
+    const db = firebase.database();
+    let ref = chatId === 'geral' ? db.ref('chat_messages') : db.ref(`private_messages/${chatId}`);
+
+    const msgCallback = async (snapshot) => {
+        const msgs = snapshot.val();
+        if (!msgs) { 
+            chatBoxEl.innerHTML = '<div style="text-align:center; padding:40px;">Nenhuma mensagem</div>'; 
+            return; 
+        }
+        
+        const lista = Object.entries(msgs).map(([id, m]) => ({ id, ...m })).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+        chatBoxEl.innerHTML = '';
+        
+        for (const msg of lista) {
+            const isOwner = estado.user && msg.senderId === estado.user.uid;
+            const senderId = msg.senderId;
+            
+            let avatarUrl = avatarPadrao();
+            if (senderId) {
+                if (isOwner && estado.user) {
+                    avatarUrl = await getAvatarUrl(estado.user.uid);
+                } else {
+                    avatarUrl = await getAvatarUrl(senderId);
+                }
+            }
+            
+            const statusIcon = isOwner ? getStatusIcon(msg.status) : '';
+            const div = document.createElement('div');
+            div.className = `message ${isOwner ? 'sent' : 'received'} ${msg.type === 'audio' ? 'audio-message' : ''}`;
+            div.setAttribute('data-message-id', msg.id);
+            
+            // VERIFICA SE É MENSAGEM DE ÁUDIO
+            if (msg.type === 'audio' && msg.audioUrl) {
+                // Criar player de áudio
+                const { playerDiv, audio } = createAudioPlayer(msg.audioUrl, msg.audioDuration || 0, isOwner, msg.id);
+                
+                div.innerHTML = `
+                    <div class="message-avatar"><img src="${avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='${avatarPadrao()}'"></div>
+                    <div class="message-content" style="padding: 4px 12px;">
+                        <div class="audio-container"></div>
+                        <div style="display:flex; justify-content:flex-end; align-items:center; gap:4px; margin-top:4px;">
+                            <span class="message-time" style="font-size:10px; opacity:0.7;">${tempoAgo(msg.timestamp)}</span>
+                            ${statusIcon ? `<span class="message-status">${statusIcon}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+                const audioContainer = div.querySelector('.audio-container');
+                audioContainer.appendChild(playerDiv);
+            } else {
+                // MENSAGEM DE TEXTO (comportamento original)
+                div.innerHTML = `
+                    <div class="message-avatar"><img src="${avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.src='${avatarPadrao()}'"></div>
+                    <div class="message-content">
+                        <p>${escapeHtml(msg.text || '')}</p>
+                        <div style="display:flex; justify-content:flex-end; align-items:center; gap:4px; margin-top:4px;">
+                            <span class="message-time" style="font-size:10px; opacity:0.7;">${tempoAgo(msg.timestamp)}</span>
+                            ${statusIcon ? `<span class="message-status">${statusIcon}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            adicionarEventosMensagem(div, chatId, msg.id, isOwner);
+            chatBoxEl.appendChild(div);
+        }
+        
+        scrollToBottomChat();
+    };
+    
+    ref.on('value', msgCallback);
+    estado.listenerMsg = () => ref.off('value', msgCallback);
+};
+
+// ========== ADICIONAR BOTÃO DE MICROFONE NA BARRA DE MENSAGEM ==========
+function adicionarBotaoMicrofone() {
+    const messageBarRight = document.querySelector('#chatMainNovo .message-bar-right');
+    if (!messageBarRight) return;
+    
+    // Verificar se já existe para não duplicar
+    if (messageBarRight.querySelector('.audio-record-btn')) return;
+    
+    // Criar botão de microfone
+    const micButton = document.createElement('button');
+    micButton.className = 'message-bar-button audio-record-btn';
+    micButton.innerHTML = '<i class="fas fa-microphone"></i>';
+    micButton.title = 'Gravar áudio (clique e segure para gravar)';
+    micButton.style.cssText = `
+        background: rgba(255,255,255,0.1);
+        transition: all 0.2s ease;
+    `;
+    
+    // Eventos para gravação (clique e segure)
+    let pressTimer = null;
+    let isLongPress = false;
+    
+    // Iniciar gravação ao pressionar (clique longo)
+    micButton.addEventListener('mousedown', () => {
+        pressTimer = setTimeout(() => {
+            isLongPress = true;
+            startAudioRecording(micButton);
+        }, 300);
+    });
+    
+    micButton.addEventListener('mouseup', () => {
+        clearTimeout(pressTimer);
+        if (isLongPress) {
+            isLongPress = false;
+            stopAudioRecording();
+        }
+    });
+    
+    micButton.addEventListener('mouseleave', () => {
+        clearTimeout(pressTimer);
+        if (isLongPress) {
+            isLongPress = false;
+            stopAudioRecording();
+        }
+    });
+    
+    // Touch events para mobile
+    micButton.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        pressTimer = setTimeout(() => {
+            isLongPress = true;
+            startAudioRecording(micButton);
+        }, 300);
+    });
+    
+    micButton.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        clearTimeout(pressTimer);
+        if (isLongPress) {
+            isLongPress = false;
+            stopAudioRecording();
+        }
+    });
+    
+    // Adicionar ao final da barra
+    messageBarRight.appendChild(micButton);
+}
+
+// ========== MODIFICAR A INICIALIZAÇÃO PARA ADICIONAR O BOTÃO ==========
+// Salvar referência da função original de inicialização
+const originalInicializar = inicializar;
+
+// Nova função que estende a original
+inicializar = function() {
+    // Chamar função original primeiro
+    originalInicializar();
+    
+    // Adicionar botão de microfone quando o chat estiver pronto
+    setTimeout(() => {
+        adicionarBotaoMicrofone();
+        
+        // Observer para quando o chat principal for exibido
+        const observer = new MutationObserver(() => {
+            adicionarBotaoMicrofone();
+        });
+        
+        const mainChat = document.getElementById('chatMainNovo');
+        if (mainChat) {
+            observer.observe(mainChat, { attributes: true, attributeFilter: ['class'] });
+        }
+    }, 1000);
+};
+
+// Garantir que o botão seja adicionado após cada abertura de conversa
+const originalAbrirConversa = abrirConversa;
+abrirConversa = async function(chatId, conv) {
+    await originalAbrirConversa(chatId, conv);
+    setTimeout(() => adicionarBotaoMicrofone(), 200);
+};
+
+console.log('✅ Sistema de áudio do WhatsApp adicionado com sucesso!')();
 
 
 
