@@ -10078,179 +10078,239 @@ if (loginAdminBtn) {
 
 
 // =====================================================
-// SCRIPT DE CORREÇÃO DO FEED - EXIBIÇÃO COMPLETA DAS MÍDIAS
+// SCRIPT DE CORREÇÃO DE VÍDEOS DO FEED - DESKTOP
 // =====================================================
 (function() {
-    console.log('🎬 [FEED CORRIGIDO] Ajustando apenas as publicações do feed...');
+    console.log('🎬 [VIDEO FIX] Corrigindo reprodução de vídeos no desktop...');
 
-    // Estilos CSS APENAS para o feed (não afeta outros elementos)
-    const style = document.createElement('style');
-    style.textContent = `
-        /* --- CORREÇÃO EXCLUSIVA PARA O FEED (PUBLICAÇÕES) --- */
+    // Função que verifica e corrige cada vídeo
+    function corrigirVideosDesktop() {
+        // Seleciona apenas vídeos dentro do feed
+        const videos = document.querySelectorAll('.feed-post video.feed-post-video');
         
-        /* Container das mídias do feed */
-        .feed-post img.feed-post-media,
-        .feed-post video.feed-post-video {
-            display: block;
-            width: 100%;
-            height: auto;
-            /* CRUCIAL: object-fit: contain mostra a imagem/vídeo por completo */
-            object-fit: contain !important;
-            background-color: #000;
-            margin: 0 auto;
-        }
+        if (videos.length === 0) return;
         
-        /* Em DESKTOP: limita altura e centraliza */
-        @media (min-width: 768px) {
-            .feed-post img.feed-post-media,
-            .feed-post video.feed-post-video {
-                max-height: 600px;
-                width: auto;
-                max-width: 100%;
-            }
-        }
+        console.log(`📹 [VIDEO FIX] Corrigindo ${videos.length} vídeo(s) do feed...`);
         
-        /* Em MOBILE: mantém o comportamento original que já funciona */
-        @media (max-width: 767px) {
-            .feed-post img.feed-post-media,
-            .feed-post video.feed-post-video {
-                max-height: 70vh;
-                width: 100%;
-                object-fit: contain !important;
-            }
-        }
-        
-        /* Garante que o container do post não quebre o layout */
-        .feed-post {
-            overflow: hidden;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        
-        /* Ajuste para o container de estatísticas e ações */
-        .feed-post-stats,
-        .feed-post-actions,
-        .feed-post-comments,
-        .feed-post-caption {
-            padding-left: 16px;
-            padding-right: 16px;
-        }
-    `;
-    document.head.appendChild(style);
-
-    // Função que corrige APENAS os elementos do feed
-    function corrigirApenasFeed() {
-        // Seleciona todas as imagens e vídeos dentro dos posts do feed
-        const todasMidiasFeed = document.querySelectorAll('.feed-post img.feed-post-media, .feed-post video.feed-post-video');
-        
-        if (todasMidiasFeed.length > 0) {
-            console.log(`📸 [FEED] Corrigindo ${todasMidiasFeed.length} mídias do feed...`);
+        videos.forEach(video => {
+            // Salva a URL original
+            const srcOriginal = video.src || video.querySelector('source')?.src;
+            if (!srcOriginal) return;
             
-            todasMidiasFeed.forEach(midia => {
-                // Aplica as correções CSS diretamente nos elementos
-                midia.style.objectFit = 'contain';
-                midia.style.width = '100%';
-                midia.style.height = 'auto';
-                midia.style.backgroundColor = '#000';
-                midia.style.display = 'block';
-                midia.style.margin = '0 auto';
-                
-                // Para desktop, aplica altura máxima
-                if (window.innerWidth >= 768) {
-                    midia.style.maxHeight = '600px';
-                    midia.style.width = 'auto';
-                    midia.style.maxWidth = '100%';
-                } else {
-                    // Para mobile, mantém responsivo
-                    midia.style.maxHeight = '70vh';
-                    midia.style.width = '100%';
-                }
-                
-                // Se for vídeo, garante que tenha controles visíveis
-                if (midia.tagName === 'VIDEO') {
-                    midia.setAttribute('controls', 'true');
-                    midia.setAttribute('preload', 'metadata');
-                }
+            // Remove qualquer evento anterior para evitar duplicação
+            video.removeEventListener('error', handleVideoError);
+            video.removeEventListener('loadedmetadata', ensureControls);
+            
+            // Adiciona eventos
+            video.addEventListener('error', () => handleVideoError(video, srcOriginal));
+            video.addEventListener('loadedmetadata', () => ensureControls(video));
+            
+            // Força atributos essenciais
+            video.setAttribute('controls', 'true');
+            video.setAttribute('playsinline', 'true');
+            video.setAttribute('preload', 'metadata');
+            
+            // Tenta reproduzir ou mostrar controles
+            ensurePlayback(video);
+        });
+    }
+    
+    // Função para garantir que os controles estejam visíveis
+    function ensureControls(video) {
+        video.controls = true;
+        video.setAttribute('controls', 'true');
+        
+        // Se o vídeo for muito grande ou codec problemático, mostra mensagem
+        if (video.videoWidth === 0 && video.readyState === 0) {
+            showFallbackMessage(video);
+        }
+    }
+    
+    // Lida com erro de codec não suportado
+    function handleVideoError(video, srcOriginal) {
+        console.warn(`⚠️ Erro no vídeo: ${srcOriginal}`);
+        
+        // Cria elemento de mensagem amigável
+        const parent = video.parentElement;
+        if (!parent.querySelector('.video-fallback-message')) {
+            const fallbackDiv = document.createElement('div');
+            fallbackDiv.className = 'video-fallback-message';
+            fallbackDiv.innerHTML = `
+                <div style="
+                    background: rgba(0,0,0,0.8);
+                    padding: 20px;
+                    text-align: center;
+                    border-radius: 12px;
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    z-index: 10;
+                    width: 80%;
+                ">
+                    <i class="fas fa-exclamation-triangle" style="color: #e50914; font-size: 32px; margin-bottom: 12px; display: block;"></i>
+                    <p style="color: white; font-size: 13px; margin-bottom: 12px;">
+                        ⚠️ Este vídeo usa um formato não compatível com seu navegador.
+                    </p>
+                    <a href="${video.src}" target="_blank" style="
+                        background: #e50914;
+                        color: white;
+                        padding: 8px 16px;
+                        border-radius: 40px;
+                        text-decoration: none;
+                        font-size: 12px;
+                        display: inline-block;
+                    ">
+                        <i class="fas fa-external-link-alt"></i> Abrir em nova aba
+                    </a>
+                </div>
+            `;
+            parent.style.position = 'relative';
+            parent.appendChild(fallbackDiv);
+            
+            // Esconde o vídeo com erro
+            video.style.opacity = '0.3';
+        }
+        
+        // Tenta recarregar com atributos diferentes
+        setTimeout(() => {
+            if (video.error) {
+                video.load();
+                setTimeout(() => {
+                    if (video.error) {
+                        console.error('❌ Vídeo ainda com erro após reload');
+                    }
+                }, 1000);
+            }
+        }, 500);
+    }
+    
+    // Tenta garantir a reprodução
+    function ensurePlayback(video) {
+        // Tenta dar play (se autoplay for permitido)
+        const playPromise = video.play();
+        
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                console.log('ℹ️ Autoplay bloqueado pelo navegador:', error);
+                // Mostra mensagem amigável para o usuário clicar
+                showClickToPlayMessage(video);
             });
         }
     }
-
-    // ========== SOBRESCREVE APENAS A FUNÇÃO DE RENDERIZAÇÃO DO FEED ==========
-    // Salva a função original do renderFeed
+    
+    // Mostra mensagem "Clique para reproduzir" (autoplay bloqueado)
+    function showClickToPlayMessage(video) {
+        if (video.parentElement.querySelector('.click-to-play-overlay')) return;
+        
+        const overlay = document.createElement('div');
+        overlay.className = 'click-to-play-overlay';
+        overlay.innerHTML = `
+            <div style="
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(0,0,0,0.7);
+                padding: 12px 20px;
+                border-radius: 40px;
+                cursor: pointer;
+                z-index: 5;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                pointer-events: auto;
+            ">
+                <i class="fas fa-play-circle" style="color: white; font-size: 20px;"></i>
+                <span style="color: white; font-size: 13px;">Clique para reproduzir</span>
+            </div>
+        `;
+        
+        video.parentElement.style.position = 'relative';
+        video.parentElement.appendChild(overlay);
+        
+        overlay.onclick = (e) => {
+            e.stopPropagation();
+            video.play().then(() => {
+                overlay.remove();
+                video.controls = true;
+            }).catch(err => {
+                console.log('Erro ao tentar reproduzir:', err);
+                overlay.querySelector('span').innerText = 'Clique nos controles para reproduzir';
+            });
+        };
+    }
+    
+    // Mostra fallback para codec não suportado
+    function showFallbackMessage(video) {
+        if (video.parentElement.querySelector('.codec-fallback')) return;
+        
+        const codecMsg = document.createElement('div');
+        codecMsg.className = 'codec-fallback';
+        codecMsg.innerHTML = `
+            <div style="
+                background: rgba(0,0,0,0.85);
+                padding: 15px;
+                text-align: center;
+                border-radius: 12px;
+                margin: 10px;
+                border: 1px solid #e50914;
+            ">
+                <i class="fas fa-video" style="color: #e50914; font-size: 24px; margin-bottom: 8px; display: block;"></i>
+                <p style="color: white; font-size: 12px; margin-bottom: 8px;">
+                    Formato de vídeo não suportado neste navegador.
+                </p>
+                <a href="${video.src}" target="_blank" style="color: #e50914; font-size: 11px; text-decoration: underline;">
+                    Baixar ou abrir vídeo
+                </a>
+            </div>
+        `;
+        video.parentElement.appendChild(codecMsg);
+        video.style.display = 'none';
+    }
+    
+    // ========== SOBRESCREVE APENAS O RENDER FEED ==========
     const renderFeedOriginal = window.renderFeed;
     
     if (renderFeedOriginal) {
-        // Cria uma nova função que mantém a original e depois aplica a correção
         window.renderFeed = async function() {
-            // Executa a função original primeiro
             await renderFeedOriginal();
-            
-            // Aguarda um momento para o DOM ser atualizado
             setTimeout(() => {
-                corrigirApenasFeed();
-            }, 150);
+                corrigirVideosDesktop();
+            }, 200);
         };
-        console.log('✅ [FEED] Função renderFeed foi estendida com sucesso!');
-    } else {
-        // Se a função não existir ainda, tenta novamente em alguns segundos
-        setTimeout(() => {
-            if (window.renderFeed) {
-                const original = window.renderFeed;
-                window.renderFeed = async function() {
-                    await original();
-                    setTimeout(() => corrigirApenasFeed(), 150);
-                };
-                console.log('✅ [FEED] Função renderFeed foi capturada e estendida!');
-            }
-        }, 1000);
+        console.log('✅ [VIDEO FIX] Função renderFeed estendida com correção de vídeos!');
     }
-
-    // ========== OBSERVA MUDANÇAS NO FEED (para posts carregados dinamicamente) ==========
-    const observer = new MutationObserver(function(mutations) {
+    
+    // Observa novos posts carregados
+    const observer = new MutationObserver((mutations) => {
         let precisaCorrigir = false;
         
         mutations.forEach(mutation => {
-            // Verifica se algum nó adicionado é um post do feed
             if (mutation.addedNodes.length) {
                 mutation.addedNodes.forEach(node => {
-                    if (node.nodeType === 1) { // Elemento HTML
-                        if (node.classList && (node.classList.contains('feed-post') || node.querySelector('.feed-post'))) {
-                            precisaCorrigir = true;
-                        }
+                    if (node.nodeType === 1 && node.querySelector && node.querySelector('video.feed-post-video')) {
+                        precisaCorrigir = true;
                     }
                 });
             }
         });
         
         if (precisaCorrigir) {
-            setTimeout(corrigirApenasFeed, 100);
+            setTimeout(corrigirVideosDesktop, 150);
         }
     });
-
-    // Inicia o observer quando o DOM estiver pronto
-    if (document.body) {
-        observer.observe(document.body, { 
-            childList: true, 
-            subtree: true 
-        });
-    }
-
-    // Aplica correção inicial quando a página carregar completamente
-    window.addEventListener('load', function() {
-        setTimeout(corrigirApenasFeed, 200);
-        console.log('🎯 [FEED] Correção inicial aplicada!');
-    });
-
-    // Também corrige quando a janela for redimensionada (mobile <-> desktop)
-    window.addEventListener('resize', function() {
-        setTimeout(corrigirApenasFeed, 100);
-    });
-
-    // EXPORTA FUNÇÃO GLOBAL PARA DEBUG (opcional)
-    window.corrigirFeed = corrigirApenasFeed;
     
-    console.log('🚀 [FEED] Script de correção carregado - Apenas as publicações serão ajustadas!');
+    if (document.body) {
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
+    
+    // Correção inicial
+    window.addEventListener('load', () => {
+        setTimeout(corrigirVideosDesktop, 300);
+    });
+    
+    console.log('🚀 [VIDEO FIX] Script carregado - Vídeos do feed serão corrigidos em desktop!');
 })();
 
 
