@@ -8929,16 +8929,13 @@ if (loginAdminBtn) {
         
         
         
-    
-// =====================================================
-// CHAT COMPLETO - VERSÃO FINAL COM SUPORTE DESKTOP
-// + EXCLUSÃO COM CLICK DIREITO (BOTÃO DIREITO DO MOUSE)
-// + FOTOS DE PERFIL CORRETAS
-// + ORDEM CRONOLÓGICA DAS MENSAGENS
-// + ROLAGEM AUTOMÁTICA
+    // =====================================================
+// CHAT COMPLETO - VERSÃO DESKTOP CORRIGIDA
+// + BOTÃO DE EXCLUSÃO VISÍVEL (DESKTOP)
+// + CLIQUE DIREITO TAMBÉM FUNCIONA
 // =====================================================
 (function() {
-    console.log('🚀 CHAT VERSÃO FINAL - Com suporte para Desktop (clique direito)');
+    console.log('🚀 CHAT VERSÃO DESKTOP - Com botão de exclusão visível');
 
     let estado = {
         user: null,
@@ -8957,9 +8954,6 @@ if (loginAdminBtn) {
     let pendingDeleteChatId = null;
     let pendingDeleteChatNome = null;
     let modalSeguidosAtivo = null;
-    let contextMenuMsgElement = null;
-    let contextMenuMsgChatId = null;
-    let contextMenuMsgId = null;
 
     // ========== FUNÇÃO PARA BUSCAR AVATAR COM CACHE ==========
     async function getAvatarUrl(userId) {
@@ -9105,9 +9099,67 @@ if (loginAdminBtn) {
         }
     }
 
+    // ========== ADICIONAR BOTÃO DE EXCLUSÃO NA MENSAGEM (DESKTOP) ==========
+    function adicionarBotaoExcluirMensagem(elemento, chatId, messageId) {
+        // Verificar se já tem o botão para não duplicar
+        if (elemento.querySelector('.msg-delete-btn-desktop')) return;
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'msg-delete-btn-desktop';
+        deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+        deleteBtn.title = 'Excluir mensagem';
+        deleteBtn.style.cssText = `
+            position: absolute;
+            right: -40px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #e50914;
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 10;
+        `;
+        
+        deleteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showConfirmPopup(
+                `Deseja excluir esta mensagem? Esta ação não pode ser desfeita.`,
+                async () => {
+                    await excluirMensagemSemReload(chatId, messageId, elemento);
+                },
+                () => {
+                    showToast('Exclusão cancelada');
+                }
+            );
+        });
+        
+        elemento.style.position = 'relative';
+        elemento.appendChild(deleteBtn);
+        
+        // Mostrar botão ao passar o mouse
+        elemento.addEventListener('mouseenter', () => {
+            deleteBtn.style.opacity = '1';
+            deleteBtn.style.right = '-45px';
+        });
+        
+        elemento.addEventListener('mouseleave', () => {
+            deleteBtn.style.opacity = '0';
+            deleteBtn.style.right = '-40px';
+        });
+    }
+
     // ========== MENU DE CONTEXTO PARA DESKTOP (CLICK DIREITO) ==========
     function showContextMenu(event, chatId, messageId, elementoMsg) {
         event.preventDefault();
+        event.stopPropagation();
         
         const existingMenu = document.querySelector('.chat-context-menu');
         if (existingMenu) existingMenu.remove();
@@ -9175,6 +9227,7 @@ if (loginAdminBtn) {
     // ========== MENU DE CONTEXTO PARA CONVERSA (DESKTOP) ==========
     function showContextMenuConversa(event, chatId, chatNome, elementoConv) {
         event.preventDefault();
+        event.stopPropagation();
         
         const existingMenu = document.querySelector('.chat-context-menu');
         if (existingMenu) existingMenu.remove();
@@ -9239,20 +9292,21 @@ if (loginAdminBtn) {
         }, 100);
     }
 
-    // ========== SWIPE NA MENSAGEM INDIVIDUAL (MOBILE) ==========
-    function adicionarSwipeMensagem(elemento, chatId, messageId, isOwner) {
+    // ========== ADICIONAR EVENTOS NA MENSAGEM ==========
+    function adicionarEventosMensagem(elemento, chatId, messageId, isOwner) {
         if (!isOwner) return;
         
-        // Para Desktop: adicionar evento de contexto (clique direito)
+        // Botão de exclusão visível (Desktop)
+        adicionarBotaoExcluirMensagem(elemento, chatId, messageId);
+        
+        // Clique direito (Desktop)
         elemento.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            if (isOwner) {
-                showContextMenu(e, chatId, messageId, elemento);
-            }
+            showContextMenu(e, chatId, messageId, elemento);
         });
         
-        // Para Mobile: swipe
+        // Swipe para Mobile
         let touchStartX = 0;
         let touchStartY = 0;
         let isSwiping = false;
@@ -9301,9 +9355,9 @@ if (loginAdminBtn) {
         });
     }
 
-    // ========== SWIPE NA LISTA DE CONVERSAS (MOBILE) + CONTEXTO (DESKTOP) ==========
-    function adicionarSwipeConversa(elemento, chatId, conv) {
-        // Para Desktop: clique direito
+    // ========== ADICIONAR EVENTOS NA CONVERSA (DESKTOP) ==========
+    function adicionarEventosConversa(elemento, chatId, conv) {
+        // Clique direito para excluir conversa
         elemento.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -9314,7 +9368,7 @@ if (loginAdminBtn) {
             }
         });
         
-        // Para Mobile: swipe
+        // Swipe para Mobile
         let touchStartX = 0;
         let touchStartY = 0;
         let isSwiping = false;
@@ -9359,7 +9413,7 @@ if (loginAdminBtn) {
         });
     }
 
-    // ========== CRIAR ÍCONE DE LIXO FLUTUANTE ==========
+    // ========== CRIAR ÍCONE DE LIXO FLUTUANTE (MOBILE) ==========
     function criarBotaoDeleteFlutuante(elemento, chatId, chatNome) {
         if (floatingDeleteBtn) floatingDeleteBtn.remove();
         
@@ -9547,12 +9601,12 @@ if (loginAdminBtn) {
                 </div>
             `;
             li.onclick = (e) => { e.stopPropagation(); abrirConversa(conv.id, conv); };
-            adicionarSwipeConversa(li, conv.id, conv);
+            adicionarEventosConversa(li, conv.id, conv);
             usersListEl.appendChild(li);
         }
     }
 
-    // ========== CARREGAR MENSAGENS EM ORDEM CRONOLÓGICA ==========
+    // ========== CARREGAR MENSAGENS ==========
     function carregarMensagens(chatId, outroId) {
         if (!chatBoxEl) return;
         if (estado.listenerMsg) estado.listenerMsg();
@@ -9598,7 +9652,7 @@ if (loginAdminBtn) {
                         </div>
                     </div>
                 `;
-                adicionarSwipeMensagem(div, chatId, msg.id, isOwner);
+                adicionarEventosMensagem(div, chatId, msg.id, isOwner);
                 chatBoxEl.appendChild(div);
             }
             
@@ -9933,6 +9987,7 @@ if (loginAdminBtn) {
         .seguido-item:active { transform: scale(0.98); }
         .message {
             transition: transform 0.2s ease;
+            position: relative;
         }
         .chat-context-menu {
             animation: fadeInScale 0.2s ease;
@@ -9947,6 +10002,43 @@ if (loginAdminBtn) {
         }
         .chat-user:hover {
             background: rgba(255,255,255,0.08);
+        }
+        /* Estilo para o botão de excluir no Desktop */
+        .msg-delete-btn-desktop {
+            position: absolute;
+            right: -40px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #e50914;
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+        .msg-delete-btn-desktop:hover {
+            transform: translateY(-50%) scale(1.1);
+            background: #ff3333;
+        }
+        /* Para mensagens enviadas (lado direito) */
+        .message.sent .msg-delete-btn-desktop {
+            right: auto;
+            left: -40px;
+        }
+        .message.sent:hover .msg-delete-btn-desktop {
+            left: -45px;
+            opacity: 1;
+        }
+        .message.received:hover .msg-delete-btn-desktop {
+            right: -45px;
+            opacity: 1;
         }
     `;
     document.head.appendChild(styleAnim);
@@ -9968,8 +10060,9 @@ if (loginAdminBtn) {
     window.buscarUsuariosLista = () => {};
     window.iniciarConversaCom = iniciarOuAbrirConversa;
     
-    console.log('✅ Chat VERSÃO FINAL COM DESKTOP: Exclusão via clique direito!');
+    console.log('✅ Chat versão Desktop: Botão de exclusão visível ao passar o mouse!');
 })();
+
 
 
                 
