@@ -10074,6 +10074,199 @@ if (loginAdminBtn) {
 
 
 
+
+
+
+<script>
+(function() {
+    // ==================== PATCH: SUPORTE A LINKS IMDB ====================
+    if (typeof window === 'undefined') return;
+
+    // 1. Detecção e extração do ID IMDb
+    function isImdbLink(url) {
+        if (!url) return false;
+        return /playimdb\.com\/.*\/title\/tt\d+/.test(url) || 
+               /streamimdb\.ru\/embed\/movie\/tt\d+/.test(url);
+    }
+
+    function extractImdbId(url) {
+        const match = url.match(/tt\d+/);
+        return match ? match[0] : null;
+    }
+
+    // 2. Substituir fetchVideoDataFromLink (original)
+    const originalFetchVideoData = window.fetchVideoDataFromLink;
+    window.fetchVideoDataFromLink = async function(link, mediaType) {
+        if (isImdbLink(link)) {
+            const imdbId = extractImdbId(link);
+            return {
+                title: `IMDb Filme ${imdbId}`,
+                description: `Assista este filme diretamente do IMDb. Link: ${link}`,
+                thumb: 'https://upload.wikimedia.org/wikipedia/commons/6/69/IMDB_Logo_2016.svg',
+                year: new Date().getFullYear().toString(),
+                genre: 'IMDb',
+                link: link
+            };
+        }
+        // Se não for IMDb, chama a função original
+        if (originalFetchVideoData) return originalFetchVideoData(link, mediaType);
+        return null;
+    };
+
+    // 3. Substituir autoFillFromLink (opcional, mas já aproveita a função acima)
+    const originalAutoFill = window.autoFillFromLink;
+    window.autoFillFromLink = async function() {
+        const link = document.getElementById('itemLink').value.trim();
+        if (isImdbLink(link)) {
+            const videoData = await window.fetchVideoDataFromLink(link, 'imdb');
+            if (videoData) {
+                if (videoData.title) document.getElementById('itemTitle').value = videoData.title;
+                if (videoData.thumb) document.getElementById('itemThumb').value = videoData.thumb;
+                if (videoData.year) document.getElementById('itemYear').value = videoData.year;
+                if (videoData.genre) document.getElementById('itemCategory').value = videoData.genre;
+                if (videoData.description) document.getElementById('itemDescription').value = videoData.description;
+                showToast('✅ IMDb preenchido automaticamente!');
+            } else {
+                showToast('❌ Falha ao obter dados do IMDb');
+            }
+            return;
+        }
+        if (originalAutoFill) originalAutoFill();
+    };
+
+    // 4. Substituir saveSingleItem para permitir salvamento com mediaType = 'imdb'
+    const originalSaveSingleItem = window.saveSingleItem;
+    window.saveSingleItem = async function() {
+        const link = document.getElementById('itemLink').value.trim();
+        let mediaTypeRadio = document.querySelector('input[name="mediaType"]:checked').value;
+        
+        // Se o link for IMDb, força mediaType = 'imdb'
+        if (isImdbLink(link)) {
+            mediaTypeRadio = 'imdb';
+        }
+        // Se o rádio não tiver opção 'imdb', criamos uma temporariamente (não altera o DOM)
+        let originalRadioValue = mediaTypeRadio;
+        if (isImdbLink(link) && mediaTypeRadio !== 'imdb') {
+            // Cria um radio virtual para os testes de validação
+            const fakeRadio = document.createElement('input');
+            fakeRadio.type = 'radio';
+            fakeRadio.name = 'mediaType';
+            fakeRadio.value = 'imdb';
+            fakeRadio.checked = true;
+            document.querySelector('.save-row .radio-group').appendChild(fakeRadio);
+            mediaTypeRadio = 'imdb';
+            // Executa a função original
+            if (originalSaveSingleItem) await originalSaveSingleItem();
+            fakeRadio.remove();
+            return;
+        }
+        if (originalSaveSingleItem) await originalSaveSingleItem();
+    };
+
+    // 5. Substituir playMedia para suportar iframe do IMDb
+    const originalPlayMedia = window.playMedia;
+    window.playMedia = async function(item, type) {
+        if (item && item.link && isImdbLink(item.link)) {
+            // Exibe o container do player normalmente
+            const container = document.getElementById('playerCommentsContainer');
+            const overlay = document.getElementById('floatingPlayerOverlay');
+            if (container) container.classList.remove('hidden');
+            if (overlay) overlay.classList.remove('hidden');
+            
+            // Atualiza informações do vídeo
+            const titleEl = document.getElementById('videoTitle');
+            if (titleEl) titleEl.innerText = item.title;
+            const yearEl = document.getElementById('videoYear');
+            if (yearEl) yearEl.innerHTML = item.year ? `📅 ${item.year}` : '';
+            const genreEl = document.getElementById('videoGenre');
+            if (genreEl) genreEl.innerHTML = item.category ? `🎭 ${item.category}` : '';
+            
+            // Descrição
+            let description = item.description || `Assista "${item.title}" via IMDb.`;
+            const descEl = document.getElementById('videoDescription');
+            if (descEl) descEl.innerText = description;
+            
+            // Ocultar elementos antigos do player
+            const youtubeDiv = document.getElementById('youtubePlayerDiv');
+            const hlsVideo = document.getElementById('hlsPlayer');
+            if (youtubeDiv) youtubeDiv.style.display = 'none';
+            if (hlsVideo) hlsVideo.style.display = 'none';
+            
+            // Criar iframe para IMDb
+            let iframe = document.getElementById('imdbIframe');
+            if (!iframe) {
+                iframe = document.createElement('iframe');
+                iframe.id = 'imdbIframe';
+                iframe.style.width = '100%';
+                iframe.style.height = '100%';
+                iframe.style.border = 'none';
+                iframe.allowFullscreen = true;
+                const playerWrapper = document.querySelector('.player-wrapper');
+                if (playerWrapper) playerWrapper.appendChild(iframe);
+            }
+            iframe.src = item.link;
+            iframe.style.display = 'block';
+            
+            // Oculta mensagem de "Carregando..."
+            const noContent = document.getElementById('noContent');
+            if (noContent) noContent.style.display = 'none';
+            
+            // Configura botões de like/favorito etc (igual ao original)
+            window.currentMedia = item;
+            window.currentMediaType = type;
+            // Dispara incremento de visualização (opcional)
+            if (window.incrementViewCount) window.incrementViewCount(item.id);
+            if (window.loadViewCount) window.loadViewCount(item.id);
+            if (window.startRealtimeUpdates) window.startRealtimeUpdates(item.id);
+            
+            // Atualiza botões de ação (like, favorito)
+            const likeBtn = document.getElementById('likeBtn');
+            const saveBtn = document.getElementById('saveBtn');
+            const reportBtn = document.getElementById('reportBtn');
+            const shareNativeBtn = document.getElementById('shareNativeBtn');
+            if (likeBtn) likeBtn.onclick = () => window.toggleLikeMedia(item.id);
+            if (saveBtn) saveBtn.onclick = () => window.toggleSaveMedia(item.id);
+            if (reportBtn) reportBtn.onclick = () => window.openReportPopup();
+            if (shareNativeBtn) shareNativeBtn.onclick = () => window.shareNative();
+            
+            // Carrega comentários e avaliações
+            if (window.loadRatingsFromFirebase) window.loadRatingsFromFirebase(item.id);
+            if (window.loadComments) window.loadComments(item.id);
+            if (window.loadLikeCount) window.loadLikeCount(item.id);
+            
+            // Configura envio de comentário
+            const submitComment = document.getElementById('submitCommentBtn');
+            const newCommentInput = document.getElementById('newCommentInput');
+            if (submitComment && newCommentInput) {
+                submitComment.onclick = () => window.addCommentToVideo(item.id, newCommentInput.value);
+                newCommentInput.onkeypress = (e) => {
+                    if (e.key === 'Enter') window.addCommentToVideo(item.id, newCommentInput.value);
+                };
+            }
+            // NÃO chama a função original para evitar conflito
+            return;
+        }
+        // Se não for IMDb, executa o play original
+        if (originalPlayMedia) originalPlayMedia(item, type);
+    };
+
+    // 6. Pequeno helper: showToast (caso não exista)
+    if (typeof window.showToast !== 'function') {
+        window.showToast = function(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerText = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        };
+    }
+    console.log('✅ IMDb Link Support ativado! Agora você pode adicionar e assistir filmes via playimdb.com e streamimdb.ru');
+})();
+</script>
+
+
+
+
                 
          </script>  
         </body>
