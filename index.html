@@ -10079,173 +10079,189 @@ if (loginAdminBtn) {
 
 
 
+
+
+
+// ==================== PATCH COMPLETO: SUPORTE A LINKS IMDB COM SELECTOR ====================
 (function() {
     if (typeof window === 'undefined') return;
 
-    // ========== 1. IDENTIFICAÇÃO DE LINK IMDb ==========
+    // Aguarda o DOM estar pronto para modificar o formulário admin
+    function addImdbOptionToAdminForm() {
+        // Procura pelo grupo de radio buttons existente
+        const radioGroup = document.querySelector('.save-row .radio-group');
+        if (!radioGroup) {
+            // Tenta novamente após 500ms
+            setTimeout(addImdbOptionToAdminForm, 500);
+            return;
+        }
+
+        // Verifica se a opção IMDb já existe
+        if (document.querySelector('input[name="mediaType"][value="imdb"]')) {
+            return;
+        }
+
+        // Cria o novo radio button para IMDb
+        const imdbLabel = document.createElement('label');
+        imdbLabel.className = 'text-xs text-gray-300';
+        imdbLabel.innerHTML = '<input type="radio" name="mediaType" value="imdb"> 🎬 IMDb';
+        
+        // Insere antes do botão Salvar
+        const saveBtn = document.getElementById('saveItemBtn');
+        if (saveBtn && saveBtn.parentNode) {
+            radioGroup.appendChild(imdbLabel);
+        } else {
+            radioGroup.appendChild(imdbLabel);
+        }
+
+        console.log('✅ Opção IMDb adicionada ao formulário admin');
+    }
+
+    // Detecta se é link do IMDb
     function isImdbLink(url) {
         if (!url) return false;
         return /playimdb\.com\/.*\/title\/tt\d+/.test(url) || 
                /streamimdb\.ru\/embed\/movie\/tt\d+/.test(url) ||
-               /imdb\.com\/title\/tt\d+/.test(url); // também aceita link direto do IMDb
+               /imdb\.com\/title\/tt\d+/.test(url);
     }
 
+    // Extrai ID do IMDb
     function extractImdbId(url) {
         const match = url.match(/tt\d+/);
         return match ? match[0] : null;
     }
 
-    // ========== 2. BUSCA DE DADOS REAIS DO IMDb (via CORS proxy) ==========
-    async function fetchImdbData(imdbId) {
-        try {
-            // Usa um proxy público para evitar CORS (allorigins.win)
-            const proxyUrl = `https://api.allorigins.win/raw?url=https://www.imdb.com/title/${imdbId}/`;
-            const response = await fetch(proxyUrl);
-            const html = await response.text();
-
-            // Extrai título (dentro da tag <title>)
-            let titleMatch = html.match(/<title>(.*?)<\/title>/i);
-            let title = titleMatch ? titleMatch[1].replace(' - IMDb', '').trim() : `Filme ${imdbId}`;
-
-            // Extrai ano (padrão: (2023) no título ou próximo)
-            let yearMatch = html.match(/<span class="sc-.*?">(\d{4})<\/span>/);
-            if (!yearMatch) yearMatch = html.match(/\((\d{4})\)/);
-            let year = yearMatch ? yearMatch[1] : new Date().getFullYear().toString();
-
-            // Extrai URL da capa (og:image)
-            let thumbMatch = html.match(/<meta property="og:image" content="([^"]+)"/);
-            let thumb = thumbMatch ? thumbMatch[1] : 'https://upload.wikimedia.org/wikipedia/commons/6/69/IMDB_Logo_2016.svg';
-
-            // Extrai sinopse (meta name="description")
-            let descMatch = html.match(/<meta name="description" content="([^"]+)"/);
-            let description = descMatch ? descMatch[1] : `Assista "${title}" no IMDb.`;
-
-            // Gênero (aproximado, pode vir da página)
-            let genreMatch = html.match(/<a href="\/search\/title\?genres=([^&"]+)"/i);
-            let genre = genreMatch ? genreMatch[1] : 'IMDb';
-
-            return { title, year, thumb, description, genre };
-        } catch (error) {
-            console.error('Erro ao buscar dados do IMDb:', error);
-            return null;
+    // Gera URL de embed do IMDb
+    function getImdbEmbedUrl(url) {
+        const imdbId = extractImdbId(url);
+        if (!imdbId) return url;
+        
+        // Se já for um link de embed, retorna ele mesmo
+        if (url.includes('/embed/') || url.includes('playimdb.com')) {
+            return url;
         }
+        
+        // Tenta converter para o formato playimdb
+        return `https://playimdb.com/pt/title/${imdbId}/`;
     }
 
-    // ========== 3. SUBSTITUI fetchVideoDataFromLink ==========
+    // Substituir fetchVideoDataFromLink (original)
     const originalFetchVideoData = window.fetchVideoDataFromLink;
     window.fetchVideoDataFromLink = async function(link, mediaType) {
-        if (isImdbLink(link)) {
+        // Se for IMDb e o tipo selecionado for imdb
+        if (mediaType === 'imdb' || (mediaType !== 'youtube' && mediaType !== 'iptv' && isImdbLink(link))) {
             const imdbId = extractImdbId(link);
-            if (imdbId) {
-                const data = await fetchImdbData(imdbId);
-                if (data) {
-                    return {
-                        title: data.title,
-                        description: data.description,
-                        thumb: data.thumb,
-                        year: data.year,
-                        genre: data.genre,
-                        link: link
-                    };
-                }
-            }
-            // Fallback genérico
             return {
-                title: `Filme IMDb ${imdbId || ''}`,
-                description: `Link: ${link}`,
+                title: `IMDb ${imdbId || 'Filme'}`,
+                description: `Assista este filme diretamente do IMDb.\nLink original: ${link}`,
                 thumb: 'https://upload.wikimedia.org/wikipedia/commons/6/69/IMDB_Logo_2016.svg',
                 year: new Date().getFullYear().toString(),
                 genre: 'IMDb',
-                link: link
+                link: link,
+                mediaType: 'imdb'
             };
         }
-        // Para outros tipos, chama a função original
+        // Se não for IMDb, chama a função original
         if (originalFetchVideoData) return originalFetchVideoData(link, mediaType);
         return null;
     };
 
-    // ========== 4. AUTO FILL (já usa a função acima) ==========
+    // Substituir autoFillFromLink
     const originalAutoFill = window.autoFillFromLink;
     window.autoFillFromLink = async function() {
         const link = document.getElementById('itemLink').value.trim();
-        if (isImdbLink(link)) {
-            const data = await window.fetchVideoDataFromLink(link, 'imdb');
-            if (data) {
-                if (data.title) document.getElementById('itemTitle').value = data.title;
-                if (data.thumb) document.getElementById('itemThumb').value = data.thumb;
-                if (data.year) document.getElementById('itemYear').value = data.year;
-                if (data.genre) document.getElementById('itemCategory').value = data.genre;
-                if (data.description) document.getElementById('itemDescription').value = data.description;
-                showToast('✅ Dados do IMDb preenchidos automaticamente!');
+        const mediaTypeRadio = document.querySelector('input[name="mediaType"]:checked').value;
+        
+        if (mediaTypeRadio === 'imdb' || isImdbLink(link)) {
+            const videoData = await window.fetchVideoDataFromLink(link, 'imdb');
+            if (videoData) {
+                if (videoData.title) document.getElementById('itemTitle').value = videoData.title;
+                if (videoData.thumb) document.getElementById('itemThumb').value = videoData.thumb;
+                if (videoData.year) document.getElementById('itemYear').value = videoData.year;
+                if (videoData.genre) document.getElementById('itemCategory').value = videoData.genre;
+                if (videoData.description) document.getElementById('itemDescription').value = videoData.description;
+                showToast('✅ IMDb preenchido automaticamente!');
             } else {
-                showToast('❌ Falha ao buscar dados do IMDb');
+                showToast('❌ Falha ao obter dados do IMDb');
             }
             return;
         }
         if (originalAutoFill) originalAutoFill();
     };
 
-    // ========== 5. SUBSTITUI saveSingleItem (IMDb sem conflito) ==========
+    // Substituir saveSingleItem para salvar corretamente
     const originalSaveSingleItem = window.saveSingleItem;
     window.saveSingleItem = async function() {
-        const link = document.getElementById('itemLink').value.trim();
-        const isImdb = isImdbLink(link);
+        const title = document.getElementById('itemTitle').value.trim();
+        let link = document.getElementById('itemLink').value.trim();
+        const thumb = document.getElementById('itemThumb').value.trim();
+        const category = document.getElementById('itemCategory').value.trim();
+        const year = document.getElementById('itemYear').value.trim();
+        const description = document.getElementById('itemDescription').value.trim();
+        let mediaType = document.querySelector('input[name="mediaType"]:checked').value;
         
-        if (isImdb) {
-            // Coleta dados do formulário
-            const title = document.getElementById('itemTitle').value.trim();
-            const thumb = document.getElementById('itemThumb').value.trim();
-            const category = document.getElementById('itemCategory').value.trim();
-            const year = document.getElementById('itemYear').value.trim();
-            const description = document.getElementById('itemDescription').value.trim();
-            const mediaType = 'imdb';   // tipo especial
-            
-            if (!title) {
-                showToast('❌ Preencha o título (use o botão Auto)');
-                return;
+        // Se o link for IMDb e o tipo selecionado for imdb, força o tipo
+        if (isImdbLink(link) && mediaType === 'imdb') {
+            let finalThumb = thumb;
+            if (!finalThumb) {
+                finalThumb = 'https://upload.wikimedia.org/wikipedia/commons/6/69/IMDB_Logo_2016.svg';
             }
             
-            // Gera ID único
-            const safeId = Date.now() + '-' + Math.random().toString(36).substring(2, 15);
             const itemData = {
-                id: safeId,
-                title,
-                link,
-                thumb: thumb || 'https://upload.wikimedia.org/wikipedia/commons/6/69/IMDB_Logo_2016.svg',
+                title, link, thumb: finalThumb,
                 category: category || 'IMDb',
-                year: year || new Date().getFullYear().toString(),
+                year: year || new Date().getFullYear(),
                 description: description || title,
-                mediaType,
+                mediaType: 'imdb',
                 createdAt: Date.now()
             };
             
-            // Determina o tipo de conteúdo atual (canais/filmes/séries) baseado na aba ativa
-            let targetType = '';
-            const adminCanais = document.getElementById('adminCanaisList');
-            const adminFilmes = document.getElementById('adminFilmesList');
-            const adminSeries = document.getElementById('adminSeriesList');
+            if (window.editingItem) {
+                const refPath = window.editingItem.type === 'canais' ? `canais/${window.editingItem.id}` : (window.editingItem.type === 'filmes' ? `filmes/${window.editingItem.id}` : `series/${window.editingItem.id}`);
+                await firebase.database().ref(refPath).update(itemData);
+                showToast('✅ Item IMDb atualizado!');
+                window.resetForm();
+                if (window.editingItem.type === 'canais') window.loadCanaisFromFirebase();
+                else if (window.editingItem.type === 'filmes') window.loadFilmesFromFirebase();
+                else if (window.editingItem.type === 'series') window.loadSeriesFromFirebase();
+                window.editingItem = null;
+                return;
+            }
             
-            if (adminCanais && !adminCanais.classList.contains('hidden')) targetType = 'canais';
-            else if (adminFilmes && !adminFilmes.classList.contains('hidden')) targetType = 'filmes';
-            else if (adminSeries && !adminSeries.classList.contains('hidden')) targetType = 'series';
-            else targetType = 'filmes'; // fallback
+            // Determinar tipo de destino
+            let targetType = '';
+            const adminCanaisList = document.getElementById('adminCanaisList');
+            const adminFilmesList = document.getElementById('adminFilmesList');
+            const adminSeriesList = document.getElementById('adminSeriesList');
+            
+            if (adminCanaisList && !adminCanaisList.classList.contains('hidden')) targetType = 'canais';
+            else if (adminFilmesList && !adminFilmesList.classList.contains('hidden')) targetType = 'filmes';
+            else if (adminSeriesList && !adminSeriesList.classList.contains('hidden')) targetType = 'series';
+            else if (window.currentAdminTab === 'adminTabCanais') targetType = 'canais';
+            else if (window.currentAdminTab === 'adminTabFilmes') targetType = 'filmes';
+            else if (window.currentAdminTab === 'adminTabSeries') targetType = 'series';
+            
+            if (!targetType) {
+                showToast('❌ Selecione uma aba (Canais, Filmes ou Séries)');
+                return;
+            }
+            
+            const existingItems = targetType === 'canais' ? window.canais : (targetType === 'filmes' ? window.filmes : window.series);
+            const isDuplicate = existingItems.some(item => item && item.title && (item.title.toLowerCase() === title.toLowerCase() || item.link === link));
+            if (isDuplicate) {
+                showToast('⚠️ Conteúdo duplicado!');
+                return;
+            }
             
             try {
-                await firebase.database().ref(`${targetType}/${safeId}`).set(itemData);
+                const safeId = window.generateSafeId();
+                const newItem = { id: safeId, ...itemData };
+                await firebase.database().ref(`${targetType}/${safeId}`).set(newItem);
                 showToast(`✅ ${targetType === 'canais' ? 'Canal' : (targetType === 'filmes' ? 'Filme' : 'Episódio')} IMDb salvo!`);
-                // Recarrega a lista correspondente
+                window.resetForm();
                 if (targetType === 'canais') window.loadCanaisFromFirebase();
                 else if (targetType === 'filmes') window.loadFilmesFromFirebase();
                 else if (targetType === 'series') window.loadSeriesFromFirebase();
-                
-                // Limpa o formulário
-                document.getElementById('itemTitle').value = '';
-                document.getElementById('itemLink').value = '';
-                document.getElementById('itemThumb').value = '';
-                document.getElementById('itemCategory').value = '';
-                document.getElementById('itemYear').value = '';
-                document.getElementById('itemDescription').value = '';
-                if (window.resetForm) window.resetForm(); // fallback
             } catch (error) {
                 console.error(error);
                 showToast('❌ Erro ao salvar: ' + error.message);
@@ -10253,37 +10269,40 @@ if (loginAdminBtn) {
             return;
         }
         
-        // Se não for IMDb, executa a função original
+        // Se não for IMDb, chama a função original
         if (originalSaveSingleItem) await originalSaveSingleItem();
     };
 
-    // ========== 6. REPRODUÇÃO COM IFRAME (já existia, mas garantimos) ==========
+    // Substituir playMedia para suportar iframe do IMDb
     const originalPlayMedia = window.playMedia;
     window.playMedia = async function(item, type) {
-        if (item && item.link && isImdbLink(item.link)) {
-            // Exibe container do player
+        if (item && item.link && (item.mediaType === 'imdb' || isImdbLink(item.link))) {
+            // Exibe o container do player normalmente
             const container = document.getElementById('playerCommentsContainer');
             const overlay = document.getElementById('floatingPlayerOverlay');
             if (container) container.classList.remove('hidden');
             if (overlay) overlay.classList.remove('hidden');
             
-            // Preenche informações
+            // Atualiza informações do vídeo
             const titleEl = document.getElementById('videoTitle');
             if (titleEl) titleEl.innerText = item.title;
             const yearEl = document.getElementById('videoYear');
             if (yearEl) yearEl.innerHTML = item.year ? `📅 ${item.year}` : '';
             const genreEl = document.getElementById('videoGenre');
             if (genreEl) genreEl.innerHTML = item.category ? `🎭 ${item.category}` : '';
-            const descEl = document.getElementById('videoDescription');
-            if (descEl) descEl.innerText = item.description || '';
             
-            // Oculta players padrão
+            // Descrição
+            let description = item.description || `Assista "${item.title}" via IMDb.`;
+            const descEl = document.getElementById('videoDescription');
+            if (descEl) descEl.innerHTML = makeNicknamesClickable(description);
+            
+            // Ocultar elementos antigos do player
             const youtubeDiv = document.getElementById('youtubePlayerDiv');
             const hlsVideo = document.getElementById('hlsPlayer');
             if (youtubeDiv) youtubeDiv.style.display = 'none';
             if (hlsVideo) hlsVideo.style.display = 'none';
             
-            // Cria ou reutiliza iframe
+            // Criar iframe para IMDb
             let iframe = document.getElementById('imdbIframe');
             if (!iframe) {
                 iframe = document.createElement('iframe');
@@ -10292,36 +10311,78 @@ if (loginAdminBtn) {
                 iframe.style.height = '100%';
                 iframe.style.border = 'none';
                 iframe.allowFullscreen = true;
-                const wrapper = document.querySelector('.player-wrapper');
-                if (wrapper) wrapper.appendChild(iframe);
+                iframe.setAttribute('allow', 'autoplay; encrypted-media; fullscreen');
+                const playerWrapper = document.querySelector('.player-wrapper');
+                if (playerWrapper) {
+                    // Remove filhos antigos
+                    while (playerWrapper.firstChild) playerWrapper.removeChild(playerWrapper.firstChild);
+                    playerWrapper.appendChild(iframe);
+                } else {
+                    const wrapper = document.getElementById('youtubePlayerDiv')?.parentElement;
+                    if (wrapper) wrapper.appendChild(iframe);
+                }
             }
-            iframe.src = item.link;
+            
+            const embedUrl = getImdbEmbedUrl(item.link);
+            iframe.src = embedUrl;
             iframe.style.display = 'block';
             
+            // Oculta mensagem de "Carregando..."
             const noContent = document.getElementById('noContent');
             if (noContent) noContent.style.display = 'none';
             
-            // Atualiza variáveis globais e carrega interações
+            // Configura variáveis globais
             window.currentMedia = item;
             window.currentMediaType = type;
+            
+            // Incrementa visualização
             if (window.incrementViewCount) window.incrementViewCount(item.id);
             if (window.loadViewCount) window.loadViewCount(item.id);
             if (window.startRealtimeUpdates) window.startRealtimeUpdates(item.id);
             
-            // Botões de ação
+            // Configura botões de ação (like, favorito, report, share)
             const likeBtn = document.getElementById('likeBtn');
             const saveBtn = document.getElementById('saveBtn');
             const reportBtn = document.getElementById('reportBtn');
             const shareNativeBtn = document.getElementById('shareNativeBtn');
-            if (likeBtn) likeBtn.onclick = () => window.toggleLikeMedia(item.id);
-            if (saveBtn) saveBtn.onclick = () => window.toggleSaveMedia(item.id);
+            
+            if (likeBtn) {
+                likeBtn.onclick = () => window.toggleLikeMedia(item.id);
+                // Atualiza estado do like
+                if (window.favoritos) {
+                    const isLiked = window.favoritos.some(f => f.id === item.id && f.liked);
+                    const likeIcon = likeBtn.querySelector('i');
+                    if (likeIcon) likeIcon.className = isLiked ? 'fas fa-heart' : 'far fa-heart';
+                }
+            }
+            
+            if (saveBtn) {
+                saveBtn.onclick = () => {
+                    if (!window.currentUser) { showToast('Faça login'); return; }
+                    const existing = window.favoritos?.find(f => f.id === item.id);
+                    if (existing && existing.saved) {
+                        firebase.database().ref(`favoritos/${window.currentUser.uid}/${item.id}`).remove();
+                    } else {
+                        firebase.database().ref(`favoritos/${window.currentUser.uid}/${item.id}`).set({
+                            id: item.id, title: item.title, thumb: item.thumb, type: type, saved: true
+                        });
+                    }
+                    const isSaved = window.favoritos?.some(f => f.id === item.id && f.saved);
+                    saveBtn.innerHTML = isSaved ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>';
+                };
+                const isSaved = window.favoritos?.some(f => f.id === item.id && f.saved);
+                saveBtn.innerHTML = isSaved ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>';
+            }
+            
             if (reportBtn) reportBtn.onclick = () => window.openReportPopup();
             if (shareNativeBtn) shareNativeBtn.onclick = () => window.shareNative();
             
+            // Carrega comentários e avaliações
             if (window.loadRatingsFromFirebase) window.loadRatingsFromFirebase(item.id);
             if (window.loadComments) window.loadComments(item.id);
             if (window.loadLikeCount) window.loadLikeCount(item.id);
             
+            // Configura envio de comentário
             const submitComment = document.getElementById('submitCommentBtn');
             const newCommentInput = document.getElementById('newCommentInput');
             if (submitComment && newCommentInput) {
@@ -10330,13 +10391,18 @@ if (loginAdminBtn) {
                     if (e.key === 'Enter') window.addCommentToVideo(item.id, newCommentInput.value);
                 };
             }
+            
+            // Atualiza estrelas de avaliação
+            if (window.createRatingStars) window.createRatingStars('ratingStarsContainer', item.id);
+            
+            // NÃO chama a função original para evitar conflito
             return;
         }
-        // Caso contrário, executa o play original
+        // Se não for IMDb, executa o play original
         if (originalPlayMedia) originalPlayMedia(item, type);
     };
 
-    // ========== 7. TOAST (caso não exista) ==========
+    // Helper para showToast (caso não exista)
     if (typeof window.showToast !== 'function') {
         window.showToast = function(msg) {
             const toast = document.createElement('div');
@@ -10347,9 +10413,41 @@ if (loginAdminBtn) {
         };
     }
 
-    console.log('✅ IMDb Link Support CORRIGIDO: busca dados reais e salva sem conflitos.');
-})();
+    // Função auxiliar makeNicknamesClickable (caso não exista)
+    if (typeof window.makeNicknamesClickable !== 'function') {
+        window.makeNicknamesClickable = function(text) {
+            if (!text) return text;
+            const regex = /@([a-zA-Z0-9_]+)/g;
+            return text.replace(regex, (match, nickname) => `<span class="clickable-nickname" data-nickname="${nickname}">${match}</span>`);
+        };
+    }
 
+    // Monitora a abertura do modal admin para adicionar a opção IMDb
+    const adminModal = document.getElementById('adminModal');
+    if (adminModal) {
+        const observer = new MutationObserver((mutations) => {
+            if (!adminModal.classList.contains('hidden')) {
+                setTimeout(addImdbOptionToAdminForm, 200);
+            }
+        });
+        observer.observe(adminModal, { attributes: true, attributeFilter: ['class'] });
+    }
+    
+    // Tenta adicionar também quando o DOM estiver pronto
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(addImdbOptionToAdminForm, 500);
+        });
+    } else {
+        setTimeout(addImdbOptionToAdminForm, 500);
+    }
+
+    console.log('✅ IMDb Link Support completo! Opção adicionada ao formulário. Agora você pode:');
+    console.log('   1. Selecionar "IMDb" no rádio button');
+    console.log('   2. Colar link do IMDb (playimdb.com, streamimdb.ru ou imdb.com/title/tt...)');
+    console.log('   3. Clicar em "Auto" para preencher ou "Salvar" diretamente');
+    console.log('   4. O card será criado e ao clicar abrirá em iframe dentro do player!');
+})();
 
 
 
