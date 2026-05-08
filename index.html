@@ -10471,7 +10471,274 @@ if (/Xbox/i.test(navigator.userAgent)) {
 
 
 
+// ==================== SCRIPT: LINKS ÚNICOS E COMPARTILHÁVEIS ====================
+(function() {
+    if (typeof window === 'undefined') return;
 
+    // ========== CONFIGURAÇÃO ==========
+    const APP_NAME = 'NoiteFilmes';
+    const BASE_URL = window.location.origin + window.location.pathname;
+
+    // Tipos de conteúdo e suas respectivas funções de abertura
+    const contentMap = {
+        'filme': (id) => window.playMediaById(id, 'filme'),
+        'serie': (id) => window.playMediaById(id, 'serie'),
+        'canal': (id) => window.playMediaById(id, 'canal'),
+        'post': (id) => {
+            window.switchSection('feed');
+            setTimeout(() => {
+                const postEl = document.getElementById(`post-${id}`);
+                if (postEl) {
+                    postEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    postEl.style.transition = 'background 0.3s';
+                    postEl.style.background = 'rgba(229,9,20,0.2)';
+                    setTimeout(() => postEl.style.background = '', 1000);
+                } else {
+                    // Recarrega o feed e tenta novamente
+                    window.renderFeed().then(() => {
+                        const postEl2 = document.getElementById(`post-${id}`);
+                        if (postEl2) postEl2.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    });
+                }
+            }, 100);
+        },
+        'perfil': (userId) => {
+            window.renderInstagramProfile(userId);
+            window.switchSection('perfil');
+        },
+        'hashtag': (tag) => {
+            // Busca global por hashtag
+            document.getElementById('searchInput').value = `#${tag}`;
+            window.switchSection('search');
+            setTimeout(() => window.performSearchInSection(), 100);
+        }
+    };
+
+    // ========== FUNÇÃO GERADORA DE LINK ==========
+    function generateShareLink(type, idOrName) {
+        if (!type || !idOrName) return BASE_URL;
+        // Limpa o ID/nome para URL
+        const encoded = encodeURIComponent(idOrName);
+        return `${BASE_URL}?type=${type}&id=${encoded}`;
+    }
+
+    // ========== PARSER E ROTEAMENTO ==========
+    function parseAndRoute() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const type = urlParams.get('type');
+        const id = urlParams.get('id');
+
+        if (!type || !id) return false;
+
+        const handler = contentMap[type];
+        if (handler) {
+            // Aguarda o DOM e o Firebase estarem prontos
+            const waitForData = setInterval(() => {
+                // Verifica se os dados já foram carregados (filmes, series, canais, etc.)
+                const dataReady = (window.filmesLoaded && window.seriesLoaded && window.canaisLoaded) || 
+                                  (type === 'post' && window.feedPosts) ||
+                                  (type === 'perfil' && window.currentUser);
+                if (dataReady || type === 'hashtag') {
+                    clearInterval(waitForData);
+                    handler(id);
+                }
+            }, 200);
+            // Timeout de segurança
+            setTimeout(() => clearInterval(waitForData), 5000);
+            return true;
+        }
+        return false;
+    }
+
+    // ========== MODIFICA OS BOTÕES DE COMPARTILHAMENTO EXISTENTES ==========
+    function enhanceShareButtons() {
+        // 1. Botão nativo de compartilhamento (player)
+        const shareNativeBtn = document.getElementById('shareNativeBtn');
+        if (shareNativeBtn && !shareNativeBtn.hasAttribute('data-enhanced')) {
+            const originalClick = shareNativeBtn.onclick;
+            shareNativeBtn.setAttribute('data-enhanced', 'true');
+            shareNativeBtn.onclick = (e) => {
+                if (window.currentMedia) {
+                    const link = generateShareLink(window.currentMediaType, window.currentMedia.id);
+                    if (navigator.share) {
+                        navigator.share({ title: window.currentMedia.title, url: link });
+                    } else {
+                        navigator.clipboard.writeText(link).then(() => window.showToast('Link copiado!'));
+                    }
+                } else {
+                    if (originalClick) originalClick(e);
+                }
+            };
+        }
+
+        // 2. Botão de compartilhar nos cards da grid (adiciona evento)
+        document.querySelectorAll('#contentGrid .glass-card').forEach(card => {
+            if (card.querySelector('.share-card-btn')) return;
+            const id = card.getAttribute('data-id');
+            const type = card.getAttribute('data-type');
+            if (id && type) {
+                const shareBtn = document.createElement('button');
+                shareBtn.className = 'action-btn share-card-btn';
+                shareBtn.innerHTML = '<i class="fas fa-share-alt"></i>';
+                shareBtn.title = 'Compartilhar link';
+                shareBtn.style.marginTop = '5px';
+                shareBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    const link = generateShareLink(type, id);
+                    if (navigator.share) {
+                        navigator.share({ title: card.querySelector('h3')?.innerText || 'Conteúdo', url: link });
+                    } else {
+                        navigator.clipboard.writeText(link).then(() => window.showToast('Link copiado!'));
+                    }
+                };
+                const cardBody = card.querySelector('.p-1');
+                if (cardBody) cardBody.appendChild(shareBtn);
+            }
+        });
+
+        // 3. Botão de compartilhar no perfil
+        const profileOptionsIcon = document.getElementById('profileOptionsIcon');
+        if (profileOptionsIcon && !profileOptionsIcon.hasAttribute('data-share')) {
+            profileOptionsIcon.setAttribute('data-share', 'true');
+            const parent = profileOptionsIcon.parentElement;
+            const shareProfileBtn = document.createElement('div');
+            shareProfileBtn.className = 'profile-options-icon';
+            shareProfileBtn.innerHTML = '<i class="fas fa-share-alt"></i>';
+            shareProfileBtn.style.marginRight = '10px';
+            shareProfileBtn.onclick = (e) => {
+                e.stopPropagation();
+                let userId = window.currentUser?.uid;
+                if (window.currentViewingUserId) userId = window.currentViewingUserId;
+                if (userId) {
+                    const link = generateShareLink('perfil', userId);
+                    if (navigator.share) {
+                        navigator.share({ title: 'Perfil NoiteFilmes', url: link });
+                    } else {
+                        navigator.clipboard.writeText(link).then(() => window.showToast('Link do perfil copiado!'));
+                    }
+                }
+            };
+            parent.insertBefore(shareProfileBtn, profileOptionsIcon);
+        }
+
+        // 4. Cada postagem no feed (botão já existe, mas podemos alterar o link)
+        document.querySelectorAll('.feed-post').forEach(post => {
+            const postId = post.id?.replace('post-', '');
+            if (postId && !post.hasAttribute('data-share-enhanced')) {
+                post.setAttribute('data-share-enhanced', 'true');
+                const shareBtn = post.querySelector('.action-button[onclick*="sharePost"]');
+                if (shareBtn) {
+                    const originalClick = shareBtn.onclick;
+                    shareBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        const link = generateShareLink('post', postId);
+                        if (navigator.share) {
+                            navigator.share({ title: 'Publicação NoiteFilmes', url: link });
+                        } else {
+                            navigator.clipboard.writeText(link).then(() => window.showToast('Link da postagem copiado!'));
+                        }
+                    };
+                }
+            }
+        });
+    }
+
+    // ========== OBSERVA MUDANÇAS NO DOM PARA NOVOS CARDS/POSTAGENS ==========
+    function observeContentChanges() {
+        const observer = new MutationObserver(() => {
+            enhanceShareButtons();
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
+
+    // ========== ATUALIZA URL SEM RECARREGAR (PARA NAVEGAÇÃO INTERNA) ==========
+    function updateUrlForCurrentContent() {
+        if (window.currentMedia && window.currentMedia.id && window.currentMediaType) {
+            const newUrl = generateShareLink(window.currentMediaType, window.currentMedia.id);
+            window.history.pushState({ type: window.currentMediaType, id: window.currentMedia.id }, '', newUrl);
+        } else if (window.currentViewingUserId) {
+            const newUrl = generateShareLink('perfil', window.currentViewingUserId);
+            window.history.pushState({ type: 'perfil', id: window.currentViewingUserId }, '', newUrl);
+        } else if (window.currentPostId) {
+            const newUrl = generateShareLink('post', window.currentPostId);
+            window.history.pushState({ type: 'post', id: window.currentPostId }, '', newUrl);
+        }
+    }
+
+    // ========== MONITORAR MUDANÇAS DE CONTEÚDO (PLAY, PERFIL, FEED) ==========
+    function hookContentChanges() {
+        // Salva as funções originais
+        const originalPlayMedia = window.playMedia;
+        window.playMedia = function(item, type) {
+            const result = originalPlayMedia.apply(this, arguments);
+            if (item && item.id) {
+                const url = generateShareLink(type, item.id);
+                window.history.pushState({ type: type, id: item.id }, '', url);
+            }
+            return result;
+        };
+
+        const originalRenderProfile = window.renderInstagramProfile;
+        window.renderInstagramProfile = function(userId) {
+            const result = originalRenderProfile.apply(this, arguments);
+            if (userId) {
+                const url = generateShareLink('perfil', userId);
+                window.history.pushState({ type: 'perfil', id: userId }, '', url);
+            } else if (window.currentUser) {
+                const url = generateShareLink('perfil', window.currentUser.uid);
+                window.history.pushState({ type: 'perfil', id: window.currentUser.uid }, '', url);
+            }
+            return result;
+        };
+
+        // Para posts abertos via modal ou clique
+        const originalViewPostDetail = window.viewPostDetail;
+        window.viewPostDetail = function(postId) {
+            const result = originalViewPostDetail.apply(this, arguments);
+            const url = generateShareLink('post', postId);
+            window.history.pushState({ type: 'post', id: postId }, '', url);
+            window.currentPostId = postId;
+            return result;
+        };
+    }
+
+    // ========== INICIALIZAÇÃO ==========
+    function init() {
+        // Roteia baseado na URL atual
+        parseAndRoute();
+
+        // Aprimora botões compartilhar
+        enhanceShareButtons();
+        observeContentChanges();
+
+        // Hook nas funções para atualizar URL
+        hookContentChanges();
+
+        // Lida com navegação pelo histórico (botão voltar/avante)
+        window.addEventListener('popstate', (event) => {
+            if (event.state) {
+                const { type, id } = event.state;
+                const handler = contentMap[type];
+                if (handler) handler(id);
+            } else {
+                // Se não houver state, recarrega a página inicial
+                window.location.reload();
+            }
+        });
+
+        console.log('✅ Sistema de links únicos e compartilháveis ativado!');
+    }
+
+    // Aguarda o DOM e os dados principais
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+
+    // Expor funções globalmente
+    window.generateShareLink = generateShareLink;
+})();
 
 
 
