@@ -10447,7 +10447,29 @@ if (loginAdminBtn) {
     console.log('   2. Colar link do IMDb (playimdb.com, streamimdb.ru ou imdb.com/title/tt...)');
     console.log('   3. Clicar em "Auto" para preencher ou "Salvar" diretamente');
     console.log('   4. O card será criado e ao clicar abrirá em iframe dentro do player!');
+
+
+
+
+// Dentro da função playMedia, na parte do IMDb, adicione:
+if (/Xbox/i.test(navigator.userAgent)) {
+  showToast("Xbox: formato não suportado. Clique em 'OK' para abrir no navegador.");
+  if (confirm("Deseja abrir o link do IMDb diretamente no navegador?")) {
+    window.open(item.link, '_blank');
+  }
+  return;
+}
+
+
+
 })();
+
+
+
+
+
+
+
 
 
 
