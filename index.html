@@ -5893,7 +5893,12 @@
                 function updateUserUI(user) { if (user) { hideLoginModal(); loadUserNickname(user.uid); database.ref(`favoritos/${user.uid}`).on('value', (snapshot) => { favoritos = snapshot.val() ? Object.values(snapshot.val()) : []; updateProfileUI(); }); database.ref('top10').on('value', (snapshot) => { const data = snapshot.val(); if (data) { top10List = data; renderTop10Carousel(); } else { generateTop10ByViews(); } }); updateProfileUI(); updateLastSeen(); database.ref(`usuarios/${user.uid}`).once('value').then(snap => { const data = snap.val(); if (data) { if (data.displayName) userProfileData.displayName = data.displayName; if (data.bio) userProfileData.bio = data.bio; if (data.externalLink) userProfileData.externalLink = data.externalLink; if (data.phone) userProfileData.phone = data.phone; if (data.whatsapp) userProfileData.whatsapp = data.whatsapp; userProfileData.avatarUrl = getAvatarUrl(data.avatarUrl); } }); loadChatList(); setupChatUnreadListener(); renderFeed(); } else { showLoginModal(); updateProfileUI(); } }
                 async function loadUserNickname(userId) { const snapshot = await database.ref(`usuarios/${userId}`).once('value'); const data = snapshot.val(); if (data && data.nickname) { currentUsername = data.nickname; localStorage.setItem('noitefilmes_username', currentUsername); } }
                 function updateLastSeen() { if (currentUser) { database.ref(`usuarios/${currentUser.uid}/lastSeen`).set(Date.now()); } }
-                setInterval(updateLastSeen, 30000);
+                // Atualiza lastSeen apenas se a página estiver visível
+setInterval(() => {
+    if (currentUser && !document.hidden) {
+        database.ref(`usuarios/${currentUser.uid}/lastSeen`).set(Date.now());
+    }
+}, 60000);
                 
                 async function registerWatchedHistory(mediaId, mediaTitle, mediaType, thumb, progressPercent = 0) {
                     if (!currentUser) return;
