@@ -3458,6 +3458,508 @@
         </div>
     </div>
 
+
+
+
+<!-- ==================== SEÇÃO DO CHAT ==================== -->
+<div id="chatSection" class="section">
+    <div class="chat-container" id="chatContainerNovo">
+        
+        <!-- SIDEBAR - LISTA DE CONVERSAS -->
+        <div class="chat-sidebar" id="chatSidebarNovo">
+            <div class="chat-sidebar-header">
+                <h3>
+                    <i class="fas fa-comment-dots"></i> Mensagens
+                    <span class="unread-total" id="unreadTotalNovo" style="display: none;">0</span>
+                </h3>
+                <button class="add-chat-btn" onclick="abrirBuscarUsuarios()">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+            
+            <!-- LISTA DE CONVERSAS -->
+            <ul class="chat-users" id="chatUsersListNovo">
+                <li class="chat-user loading-item" style="justify-content:center;">
+                    <div style="text-align: center; padding: 40px; color: #8696a0;">
+                        <i class="fas fa-spinner fa-pulse"></i> Carregando conversas...
+                    </div>
+                </li>
+            </ul>
+        </div>
+        
+        <!-- ÁREA PRINCIPAL DO CHAT (MENSAGENS) -->
+        <div class="chat-main hidden" id="chatMainNovo">
+            
+            <!-- CABEÇALHO DO CHAT -->
+            <div class="chat-header">
+                <button class="back-to-users" onclick="fecharChatAberto()">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="chat-header-avatar" id="chatHeaderAvatarNovo">
+                    <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #e50914, #b20710); border-radius: 50%; font-weight: bold; font-size: 18px;">G</div>
+                </div>
+                <div class="chat-header-info">
+                    <h4 id="chatHeaderNameNovo">Geral</h4>
+                    <p id="chatHeaderStatusNovo">Online</p>
+                </div>
+            </div>
+            
+            <!-- ÁREA DAS MENSAGENS -->
+            <div class="chat-messages" id="chatBoxNovo">
+                <div style="text-align: center; padding: 40px; color: #8696a0;">
+                    Selecione uma conversa para começar
+                </div>
+            </div>
+            
+            <!-- BARRA DE DIGITAÇÃO -->
+            <div class="message-bar">
+                <div class="message-bar-center" style="flex: 1;">
+                    <textarea 
+                        id="chatInputNovo" 
+                        class="message-bar-input" 
+                        placeholder="Digite uma mensagem..." 
+                        rows="1"
+                        oninput="autoResizeChat(this)"
+                        onkeypress="handleChatKeyPressNovo(event)"
+                    ></textarea>
+                </div>
+                <div class="message-bar-right">
+                    <button class="message-bar-button primary" onclick="enviarMensagemNova()">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== MODAL DE NOVA CONVERSA ==================== -->
+<div id="buscarUsuariosModal" class="user-search-modal hidden" style="display: none;">
+    <div class="user-search-content">
+        <h3>
+            Nova conversa
+            <button class="close-modal-btn" onclick="fecharBuscarUsuarios()">✕</button>
+        </h3>
+        <input type="text" id="buscarUsuarioInput" class="user-search-input" placeholder="Buscar usuário..." onkeyup="buscarUsuariosLista()">
+        <ul class="user-search-list" id="buscarUsuariosLista">
+            <li style="text-align: center; padding: 20px; color: #8696a0;">Carregando usuários...</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ==================== ESTILOS DO CHAT (se não tiver) ==================== -->
+<style>
+    /* CONTAINER PRINCIPAL */
+    .chat-container {
+        display: flex;
+        height: calc(100vh - 120px);
+        background: #0a0a0f;
+        border-radius: 16px;
+        overflow: hidden;
+        margin: 10px;
+    }
+    
+    /* SIDEBAR */
+    .chat-sidebar {
+        width: 320px;
+        background: #111118;
+        border-right: 1px solid rgba(255,255,255,0.1);
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .chat-sidebar-header {
+        padding: 16px;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .chat-sidebar-header h3 {
+        font-size: 18px;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .unread-total {
+        background: #e50914;
+        color: white;
+        font-size: 11px;
+        border-radius: 20px;
+        padding: 2px 8px;
+        min-width: 20px;
+        text-align: center;
+    }
+    
+    .add-chat-btn {
+        background: rgba(255,255,255,0.1);
+        border: none;
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        color: white;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    
+    .add-chat-btn:hover {
+        background: rgba(255,255,255,0.2);
+    }
+    
+    /* LISTA DE USUÁRIOS */
+    .chat-users {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px;
+        margin: 0;
+        list-style: none;
+    }
+    
+    .chat-user {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: background 0.2s;
+        margin-bottom: 4px;
+    }
+    
+    .chat-user:hover {
+        background: rgba(255,255,255,0.08);
+    }
+    
+    .chat-user.active {
+        background: rgba(0,168,255,0.15);
+    }
+    
+    .chat-user-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        position: relative;
+    }
+    
+    .chat-user-avatar img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+    
+    .chat-user-info {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .chat-user-info strong {
+        display: block;
+        font-size: 14px;
+        margin-bottom: 4px;
+    }
+    
+    .chat-user-info span {
+        font-size: 12px;
+        color: #8696a0;
+        display: block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    /* ÁREA PRINCIPAL */
+    .chat-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: #0f0f17;
+    }
+    
+    .chat-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        background: #111118;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .back-to-users {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 20px;
+        cursor: pointer;
+        display: none;
+    }
+    
+    .chat-header-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        overflow: hidden;
+    }
+    
+    .chat-header-info h4 {
+        margin: 0;
+        font-size: 16px;
+    }
+    
+    .chat-header-info p {
+        margin: 0;
+        font-size: 12px;
+        color: #8696a0;
+    }
+    
+    /* ÁREA DE MENSAGENS */
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    /* MENSAGENS */
+    .message {
+        display: flex;
+        gap: 10px;
+        max-width: 80%;
+    }
+    
+    .message.sent {
+        align-self: flex-end;
+        flex-direction: row-reverse;
+    }
+    
+    .message.received {
+        align-self: flex-start;
+    }
+    
+    .message-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        cursor: pointer;
+    }
+    
+    .message-avatar img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+    
+    .message-content {
+        padding: 8px 12px;
+        border-radius: 18px;
+        position: relative;
+    }
+    
+    .message.sent .message-content {
+        background: #005c4b;
+        border-bottom-right-radius: 4px;
+    }
+    
+    .message.received .message-content {
+        background: #202c33;
+        border-bottom-left-radius: 4px;
+    }
+    
+    .message-content p {
+        margin: 0;
+        word-wrap: break-word;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+    
+    .message-footer {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 4px;
+        margin-top: 4px;
+    }
+    
+    .message-time {
+        font-size: 10px;
+        opacity: 0.7;
+    }
+    
+    /* BARRA DE DIGITAÇÃO */
+    .message-bar {
+        display: flex;
+        align-items: flex-end;
+        gap: 12px;
+        padding: 12px 16px;
+        background: #111118;
+        border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .message-bar-input {
+        width: 100%;
+        background: #202c33;
+        border: none;
+        border-radius: 20px;
+        padding: 10px 16px;
+        color: white;
+        font-size: 14px;
+        resize: none;
+        max-height: 100px;
+    }
+    
+    .message-bar-input:focus {
+        outline: none;
+    }
+    
+    .message-bar-button {
+        background: rgba(255,255,255,0.1);
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        color: white;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    
+    .message-bar-button.primary {
+        background: #e50914;
+    }
+    
+    .message-bar-button.primary:hover {
+        background: #b20710;
+    }
+    
+    /* MODAL */
+    .user-search-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.95);
+        backdrop-filter: blur(20px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100000;
+    }
+    
+    .user-search-content {
+        background: rgba(25,25,45,0.95);
+        border-radius: 28px;
+        width: 90%;
+        max-width: 400px;
+        max-height: 80vh;
+        overflow: hidden;
+    }
+    
+    .user-search-content h3 {
+        padding: 16px;
+        margin: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .user-search-input {
+        width: calc(100% - 24px);
+        margin: 12px;
+        padding: 10px;
+        background: rgba(255,255,255,0.1);
+        border: none;
+        border-radius: 40px;
+        color: white;
+    }
+    
+    .user-search-list {
+        list-style: none;
+        margin: 0;
+        padding: 12px;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .user-search-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        border-radius: 16px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    
+    .user-search-item:hover {
+        background: rgba(255,255,255,0.1);
+    }
+    
+    .user-search-avatar {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        overflow: hidden;
+    }
+    
+    .user-search-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .close-modal-btn {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+    }
+    
+    /* RESPONSIVO */
+    @media (max-width: 768px) {
+        .chat-sidebar {
+            width: 100%;
+            position: absolute;
+            z-index: 10;
+            background: #111118;
+            height: 100%;
+        }
+        
+        .chat-sidebar.hidden {
+            display: none;
+        }
+        
+        .chat-main {
+            width: 100%;
+        }
+        
+        .back-to-users {
+            display: block;
+        }
+        
+        .message {
+            max-width: 90%;
+        }
+    }
+    
+    /* UTILITÁRIOS */
+    .hidden {
+        display: none !important;
+    }
+</style>
+
+
+    
+
     
     <!-- Seção Perfil com layout Instagram -->
     <div id="perfilSection" class="section">
