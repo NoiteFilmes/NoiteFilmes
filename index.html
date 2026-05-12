@@ -5447,7 +5447,7 @@ carregarPostDaURL();
                 function calculateRatingPercentage(mediaId) { const data = avaliacoes[mediaId]; if (!data || data.totalVotos === 0) return 0; const media = data.soma / data.totalVotos; return Math.round((media / 5) * 100); }
                 function updateRatingPercentDisplay(mediaId) { const percent = calculateRatingPercentage(mediaId); const percentSpan = document.getElementById('ratingPercentDisplay'); if (percentSpan) percentSpan.innerText = `${percent}%`; }
                 function updateRatingInfo(mediaId) { const percent = calculateRatingPercentage(mediaId); const totalVotos = avaliacoes[mediaId]?.totalVotos || 0; const infoHtml = `<span>⭐ ${percent}% gostaram (${totalVotos} votos)</span>`; const ratingInfo = document.getElementById('ratingInfo'); if (ratingInfo) ratingInfo.innerHTML = infoHtml; }
-                function saveRating(mediaId, rating) {
+              /*  function saveRating(mediaId, rating) {
     if (!currentUser) { 
         showToast('Faça login para avaliar'); 
         return; 
@@ -5521,7 +5521,7 @@ carregarPostDaURL();
             showToast('Erro ao salvar avaliação. Tente novamente.');
         });
     });
-}
+} */
                 function toggleLikeMedia(mediaId) { if (!currentUser) { showToast('Faça login para curtir'); return; } database.ref(`likes/${mediaId}/${currentUser.uid}`).once('value', (snapshot) => { if (snapshot.exists()) { database.ref(`likes/${mediaId}/${currentUser.uid}`).remove(); showToast('❤️ Like removido'); } else { database.ref(`likes/${mediaId}/${currentUser.uid}`).set(true); showToast('👍 Curtiu!'); } }); }
                 function createRatingStars(containerId, mediaId) {
     const container = document.getElementById(containerId);
@@ -5656,7 +5656,7 @@ function renderStarsCorrigido(container, mediaId, userRating) {
 }
 
                 
-                function renderStars(container, mediaId, userRating) {
+             /*   function renderStars(container, mediaId, userRating) {
     if (!container) return;
     
     container.innerHTML = '';
@@ -5695,7 +5695,7 @@ function renderStarsCorrigido(container, mediaId, userRating) {
         
         container.appendChild(star);
     }
-}
+} */
                 function updateRatingStarsDisplay(mediaId) {
     if (currentMedia && currentMedia.id === mediaId) {
         const container = document.getElementById('ratingStarsContainer');
