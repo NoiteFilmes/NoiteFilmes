@@ -4302,22 +4302,22 @@
         baseUrl = 'https://noitefilmes.com.br';
     }
     
-    // Gera a URL completa com o ID do post
+    // CORREÇÃO AQUI: Garante que o postId seja incluído na URL
     const postUrl = `${baseUrl}/?postId=${postId}`;
     
-    // Tenta usar o compartilhamento nativo do celular/desktop
+    console.log('Link gerado:', postUrl); // Para você testar se está funcionando
+    
     if (navigator.share) {
         try {
             await navigator.share({
                 title: 'NoiteFilmes',
                 text: 'Confira esta publicação no NoiteFilmes!',
-                url: postUrl
+                url: postUrl  // Agora vem com o postId
             });
         } catch (err) {
             console.log('Compartilhamento cancelado');
         }
     } else {
-        // Se não tiver compartilhamento nativo, copia o link
         await navigator.clipboard.writeText(postUrl);
         showToast('Link copiado para a área de transferência!');
     }
