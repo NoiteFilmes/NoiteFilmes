@@ -5445,7 +5445,7 @@ carregarPostDaURL();
     });
 }
                 function calculateRatingPercentage(mediaId) { const data = avaliacoes[mediaId]; if (!data || data.totalVotos === 0) return 0; const media = data.soma / data.totalVotos; return Math.round((media / 5) * 100); }
-                function updateRatingPercentDisplay(mediaId) { const percent = calculateRatingPercentage(mediaId); const percentSpan = document.getElementById('ratingPercentDisplay'); if (percentSpan) percentSpan.innerText = `${percent}%`; }
+             /*   function updateRatingPercentDisplay(mediaId) { const percent = calculateRatingPercentage(mediaId); const percentSpan = document.getElementById('ratingPercentDisplay'); if (percentSpan) percentSpan.innerText = `${percent}%`; } */
                 function updateRatingInfo(mediaId) { const percent = calculateRatingPercentage(mediaId); const totalVotos = avaliacoes[mediaId]?.totalVotos || 0; const infoHtml = `<span>⭐ ${percent}% gostaram (${totalVotos} votos)</span>`; const ratingInfo = document.getElementById('ratingInfo'); if (ratingInfo) ratingInfo.innerHTML = infoHtml; }
               /*  function saveRating(mediaId, rating) {
     if (!currentUser) { 
@@ -5523,7 +5523,7 @@ carregarPostDaURL();
     });
 } */
                 function toggleLikeMedia(mediaId) { if (!currentUser) { showToast('Faça login para curtir'); return; } database.ref(`likes/${mediaId}/${currentUser.uid}`).once('value', (snapshot) => { if (snapshot.exists()) { database.ref(`likes/${mediaId}/${currentUser.uid}`).remove(); showToast('❤️ Like removido'); } else { database.ref(`likes/${mediaId}/${currentUser.uid}`).set(true); showToast('👍 Curtiu!'); } }); }
-                function createRatingStars(containerId, mediaId) {
+              /*  function createRatingStars(containerId, mediaId) {
     const container = document.getElementById(containerId);
     if (!container) return;
     
@@ -5537,7 +5537,7 @@ carregarPostDaURL();
         renderStarsCorrigido(container, mediaId, 0);
     }
 }
-
+*/
 
 function renderStarsCorrigido(container, mediaId, userRating) {
     if (!container) return;
@@ -5696,7 +5696,7 @@ function renderStarsCorrigido(container, mediaId, userRating) {
         container.appendChild(star);
     }
 } */
-                function updateRatingStarsDisplay(mediaId) {
+             /*   function updateRatingStarsDisplay(mediaId) {
     if (currentMedia && currentMedia.id === mediaId) {
         const container = document.getElementById('ratingStarsContainer');
         if (container && currentUser) {
@@ -5709,7 +5709,7 @@ function renderStarsCorrigido(container, mediaId, userRating) {
         }
         atualizarPorcentagem(mediaId);
     }
-}
+} */
                 function loadComments(mediaId) {
                     database.ref(`comentarios/${mediaId}`).once('value', (snapshot) => {
                         const data = snapshot.val();
@@ -11038,6 +11038,230 @@ if (/Xbox/i.test(navigator.userAgent)) {
 })();
 
 
+
+
+
+
+
+// ============================================
+// SISTEMA DE AVALIAÇÃO CORRIGIDO - VERSÃO FINAL
+// ============================================
+
+// Função principal para criar as estrelas
+function criarEstrelas(containerId, mediaId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    if (!currentUser) {
+        // Usuário não logado - mostra estrelas cinza
+        mostrarEstrelas(container, 0, mediaId);
+        return;
+    }
+    
+    // Busca a avaliação atual do usuário no Firebase
+    const userRatingRef = firebase.database().ref(`avaliacoes/${mediaId}/${currentUser.uid}`);
+    userRatingRef.once('value').then((snapshot) => {
+        const notaAtual = snapshot.val() || 0;
+        mostrarEstrelas(container, notaAtual, mediaId);
+    }).catch(() => {
+        mostrarEstrelas(container, 0, mediaId);
+    });
+}
+
+// Função que desenha as estrelas na tela
+function mostrarEstrelas(container, notaAtual, mediaId) {
+    if (!container) return;
+    
+    container.innerHTML = '';
+    container.style.display = 'flex';
+    container.style.gap = '4px';
+    
+    for (let i = 1; i <= 5; i++) {
+        const estrela = document.createElement('i');
+        
+        // Define se a estrela está acesa ou apagada
+        if (i <= notaAtual) {
+            estrela.className = 'fas fa-star';
+            estrela.style.color = '#ffc107';
+            estrela.style.textShadow = '0 0 4px gold';
+        } else {
+            estrela.className = 'far fa-star';
+            estrela.style.color = 'rgba(255,255,255,0.3)';
+        }
+        
+        estrela.style.cursor = 'pointer';
+        estrela.style.fontSize = '18px';
+        estrela.style.margin = '0 2px';
+        estrela.style.transition = 'all 0.2s';
+        
+        // Armazena a nota como atributo
+        estrela.setAttribute('data-nota', i);
+        
+        // Evento de clique
+        estrela.onclick = (function(nota) {
+            return function(e) {
+                e.stopPropagation();
+                salvarAvaliacao(mediaId, nota);
+            };
+        })(i);
+        
+        // Efeito hover
+        estrela.onmouseenter = function() {
+            this.style.transform = 'scale(1.15)';
+        };
+        estrela.onmouseleave = function() {
+            this.style.transform = 'scale(1)';
+        };
+        
+        container.appendChild(estrela);
+    }
+}
+
+// Função que salva a avaliação (1 voto por usuário)
+function salvarAvaliacao(mediaId, novaNota) {
+    if (!currentUser) {
+        showToast('📝 Faça login para avaliar');
+        return;
+    }
+    
+    const userRatingRef = firebase.database().ref(`avaliacoes/${mediaId}/${currentUser.uid}`);
+    
+    // Primeiro, verifica a nota atual do usuário
+    userRatingRef.once('value').then((snapshot) => {
+        const notaAntiga = snapshot.val() || 0;
+        
+        // Se clicou na mesma nota, não faz nada
+        if (notaAntiga === novaNota) {
+            showToast(`⭐ Sua avaliação já é ${novaNota}/5`);
+            return;
+        }
+        
+        // Salva a nova nota do usuário
+        userRatingRef.set(novaNota);
+        
+        // Atualiza a estatística GLOBAL do filme
+        const estatisticaRef = firebase.database().ref(`avaliacoes/${mediaId}`);
+        
+        estatisticaRef.transaction((dadosAtuais) => {
+            if (!dadosAtuais) {
+                // Primeira avaliação deste filme
+                return {
+                    totalVotos: 1,
+                    soma: novaNota
+                };
+            }
+            
+            let totalVotos = dadosAtuais.totalVotos || 0;
+            let soma = dadosAtuais.soma || 0;
+            
+            if (notaAntiga === 0) {
+                // Usuário NUNCA votou antes - ADICIONA novo voto
+                totalVotos = totalVotos + 1;
+                soma = soma + novaNota;
+            } else {
+                // Usuário JÁ VOTOU - SUBSTITUI o voto antigo pelo novo
+                soma = soma - notaAntiga + novaNota;
+                // totalVotos permanece o MESMO
+            }
+            
+            return {
+                totalVotos: totalVotos,
+                soma: soma
+            };
+        }).then(() => {
+            // Sucesso!
+            showToast(`✅ Avaliação ${novaNota}/5 salva!`);
+            
+            // Atualiza as estrelas na tela
+            const container = document.getElementById('ratingStarsContainer');
+            if (container) {
+                mostrarEstrelas(container, novaNota, mediaId);
+            }
+            
+            // Atualiza a porcentagem
+            atualizarPorcentagem(mediaId);
+            
+        }).catch((erro) => {
+            console.error('Erro ao salvar:', erro);
+            showToast('❌ Erro ao salvar avaliação');
+        });
+    });
+}
+
+// Função que atualiza a porcentagem na tela
+function atualizarPorcentagem(mediaId) {
+    const estatisticaRef = firebase.database().ref(`avaliacoes/${mediaId}`);
+    
+    estatisticaRef.once('value').then((snapshot) => {
+        const dados = snapshot.val();
+        
+        const percentSpan = document.getElementById('ratingPercentDisplay');
+        const ratingInfo = document.getElementById('ratingInfo');
+        
+        if (!dados || dados.totalVotos === 0) {
+            if (percentSpan) percentSpan.innerText = '0%';
+            if (ratingInfo) ratingInfo.innerHTML = '<span>⭐ Seja o primeiro a avaliar!</span>';
+            return;
+        }
+        
+        const media = dados.soma / dados.totalVotos;
+        const porcentagem = Math.round((media / 5) * 100);
+        
+        if (percentSpan) {
+            percentSpan.innerText = `${porcentagem}%`;
+            percentSpan.style.color = '#ffc107';
+        }
+        
+        if (ratingInfo) {
+            ratingInfo.innerHTML = `<span>⭐ ${porcentagem}% gostaram (${dados.totalVotos} ${dados.totalVotos === 1 ? 'voto' : 'votos'})</span>`;
+        }
+    }).catch((erro) => {
+        console.error('Erro ao carregar porcentagem:', erro);
+    });
+}
+
+// Função para carregar avaliações do Firebase
+function carregarAvaliacoes(mediaId) {
+    if (!mediaId) return;
+    
+    const estatisticaRef = firebase.database().ref(`avaliacoes/${mediaId}`);
+    
+    estatisticaRef.on('value', (snapshot) => {
+        const dados = snapshot.val();
+        
+        if (dados && dados.totalVotos > 0) {
+            const media = dados.soma / dados.totalVotos;
+            const porcentagem = Math.round((media / 5) * 100);
+            
+            const percentSpan = document.getElementById('ratingPercentDisplay');
+            const ratingInfo = document.getElementById('ratingInfo');
+            
+            if (percentSpan) percentSpan.innerText = `${porcentagem}%`;
+            if (ratingInfo) ratingInfo.innerHTML = `<span>⭐ ${porcentagem}% gostaram (${dados.totalVotos} ${dados.totalVotos === 1 ? 'voto' : 'votos'})</span>`;
+        }
+    });
+    
+    // Recria as estrelas com a avaliação do usuário
+    if (currentUser) {
+        const userRatingRef = firebase.database().ref(`avaliacoes/${mediaId}/${currentUser.uid}`);
+        userRatingRef.on('value', (snapshot) => {
+            const notaAtual = snapshot.val() || 0;
+            const container = document.getElementById('ratingStarsContainer');
+            if (container) {
+                mostrarEstrelas(container, notaAtual, mediaId);
+            }
+        });
+    }
+}
+
+// Substitui a função original sem conflito
+window.createRatingStars = criarEstrelas;
+window.saveRating = salvarAvaliacao;
+window.updateRatingStarsDisplay = carregarAvaliacoes;
+
+console.log('✅ Sistema de avaliação corrigido e instalado!');
+
+                
 
                 
          </script>  
