@@ -5302,11 +5302,30 @@ carregarPostDaURL();
                 }
                 
                 function shareNative() {
-                    if (!currentMedia) { showToast('Nenhum vídeo selecionado'); return; }
-                    const shareData = { title: currentMedia.title, text: `🎬 Assista "${currentMedia.title}" no NoiteFilmes!`, url: window.location.href };
-                    if (navigator.share) navigator.share(shareData).catch(() => showToast('Compartilhamento cancelado'));
-                    else navigator.clipboard.writeText(window.location.href).then(() => showToast('Link copiado!'));
-                }
+    if (!currentMedia) { 
+        showToast('Nenhum vídeo selecionado'); 
+        return; 
+    }
+
+    // --- A LINHA MÁGICA ESTÁ AQUI ---
+    // Cria o link dinâmico no formato: SEU_DOMINIO/?mediaId=ID_DO_FILME&type=TIPO
+    const shareUrl = `${window.location.origin}${window.location.pathname}?mediaId=${currentMedia.id}&type=${currentMediaType}`;
+    // ---------------------------------
+
+    const shareData = { 
+        title: currentMedia.title, 
+        text: `🎬 Assista "${currentMedia.title}" no NoiteFilmes!`, 
+        url: shareUrl // <--- Usamos a URL que acabamos de criar
+    };
+
+    // Tenta usar o compartilhamento nativo do celular/PC
+    if (navigator.share) {
+        navigator.share(shareData).catch(() => showToast('Compartilhamento cancelado'));
+    } else {
+        // Se não tiver compartilhamento nativo, copia o link para a área de transferência
+        navigator.clipboard.writeText(shareUrl).then(() => showToast('Link copiado!'));
+    }
+}
                 
                 function openReportPopup() { if (!currentMedia) { showToast('Nenhum vídeo selecionado'); return; } if (!currentUser) { showToast('Faça login para reportar um problema'); return; } document.getElementById('reportPopup').classList.remove('hidden'); }
                 function closeReportPopup() { document.getElementById('reportPopup').classList.add('hidden'); document.getElementById('reportReason').value = 'video_indisponivel'; document.getElementById('reportComment').value = ''; }
