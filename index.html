@@ -4290,16 +4290,66 @@
                 }
                 
                 async function sharePost(postId) {
-                    const postUrl = `${window.location.origin}?postId=${postId}`;
-                    if (navigator.share) {
-                        try { await navigator.share({ title: 'NoiteFilmes', text: 'Confira esta publicação no NoiteFilmes!', url: postUrl }); }
-                        catch (err) { console.log('Compartilhamento cancelado'); }
-                    } else {
-                        await navigator.clipboard.writeText(postUrl);
-                        showToast('Link copiado para a área de transferência!');
-                    }
-                }
-                
+    // Detecta se está no GitHub Pages ou no domínio próprio
+    const isGitHub = window.location.hostname.includes('github.io');
+    let baseUrl;
+    
+    if (isGitHub) {
+        // Para GitHub Pages: https://noitefilmes.github.io/NoiteFilmes/
+        baseUrl = 'https://noitefilmes.github.io/NoiteFilmes';
+    } else {
+        // Para domínio próprio: https://noitefilmes.com.br
+        baseUrl = 'https://noitefilmes.com.br';
+    }
+    
+    // Gera a URL completa com o ID do post
+    const postUrl = `${baseUrl}/?postId=${postId}`;
+    
+    // Tenta usar o compartilhamento nativo do celular/desktop
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: 'NoiteFilmes',
+                text: 'Confira esta publicação no NoiteFilmes!',
+                url: postUrl
+            });
+        } catch (err) {
+            console.log('Compartilhamento cancelado');
+        }
+    } else {
+        // Se não tiver compartilhamento nativo, copia o link
+        await navigator.clipboard.writeText(postUrl);
+        showToast('Link copiado para a área de transferência!');
+    }
+}
+ 
+
+
+
+
+// Função que verifica se há um post para abrir quando a página carregar
+async function carregarPostDaURL() {
+    // Pega o parâmetro 'postId' da URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const postId = urlParams.get('postId');
+    
+    // Se existir um postId na URL
+    if (postId) {
+        // Procura o post no seu banco de dados
+        const postDoc = await db.collection('posts').doc(postId).get();
+        
+        if (postDoc.exists) {
+            const post = { id: postDoc.id, ...postDoc.data() };
+            // Abre o modal/página do post (ajuste o nome da sua função)
+            abrirModalPost(post);
+        }
+    }
+}
+
+// Chama esta função quando a página carregar
+// Adicione esta linha dentro do seu código de inicialização (onde tem o window.onload ou similar)
+carregarPostDaURL();
+               
                 // ==================== FUNÇÕES DE COMENTÁRIOS ====================
                 async function addCommentToPost(postId, commentText) {
                     if (!currentUser) { showToast('Faça login para comentar'); return; }
