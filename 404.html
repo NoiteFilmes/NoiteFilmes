@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Redirecionando...</title>
+    <script>
+        // Captura o caminho completo
+        var fullPath = window.location.pathname;
+        // Redireciona para a raiz mantendo o caminho como hash ou query param
+        window.location.href = './?path=' + encodeURIComponent(fullPath);
+    </script>
+</head>
+<body>Carregando...</body>
+</html>
