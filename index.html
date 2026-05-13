@@ -10838,7 +10838,6 @@ if (/Xbox/i.test(navigator.userAgent)) {
         
         if (!videoSrc) return null;
         
-        // Tentar extrair um título amigável
         let titulo = 'Vídeo do Facebook';
         const matchId = videoSrc.match(/\/video\.f[bp][a-z0-9.-]+\.fna\.fbcdn\.net\/[^?]+\?.*?&amp;vs=([a-f0-9]+)/i);
         if (matchId) {
@@ -10856,9 +10855,60 @@ if (/Xbox/i.test(navigator.userAgent)) {
         };
     }
     
+    // ========== MOSTRAR/OCULTAR ÁREA DO FACEBOOK CONFORME ABA SELECIONADA ==========
+    let facebookAreaElement = null;
+    let facebookRadioElement = null;
+    
+    function gerenciarVisibilidadeFacebook() {
+        // Verifica qual aba está ativa atualmente
+        const adminCanaisList = document.getElementById('adminCanaisList');
+        const adminFilmesList = document.getElementById('adminFilmesList');
+        const adminSeriesList = document.getElementById('adminSeriesList');
+        const adminDuplicadosList = document.getElementById('adminDuplicadosList');
+        const reportsList = document.getElementById('reportsList');
+        const adminUsersList = document.getElementById('adminUsersList');
+        
+        // Determina se a aba atual é Canais, Filmes ou Séries
+        let isContentTab = false;
+        
+        if (adminCanaisList && !adminCanaisList.classList.contains('hidden')) {
+            isContentTab = true;
+        } else if (adminFilmesList && !adminFilmesList.classList.contains('hidden')) {
+            isContentTab = true;
+        } else if (adminSeriesList && !adminSeriesList.classList.contains('hidden')) {
+            isContentTab = true;
+        }
+        
+        // Oculta em Duplicados, Reportados ou Usuários
+        const isHiddenTab = (adminDuplicadosList && !adminDuplicadosList.classList.contains('hidden')) ||
+                           (reportsList && !reportsList.classList.contains('hidden')) ||
+                           (adminUsersList && !adminUsersList.classList.contains('hidden'));
+        
+        const deveMostrar = isContentTab && !isHiddenTab;
+        
+        // Mostrar ou ocultar a área do Facebook
+        if (facebookAreaElement) {
+            facebookAreaElement.style.display = deveMostrar ? 'block' : 'none';
+        }
+        
+        // Mostrar ou ocultar o radio button do Facebook
+        if (facebookRadioElement) {
+            const radioGroup = facebookRadioElement.closest('.radio-group');
+            if (radioGroup) {
+                facebookRadioElement.style.display = deveMostrar ? 'inline-flex' : 'none';
+                
+                // Se estiver oculto e estiver selecionado, muda para YouTube
+                if (!deveMostrar && facebookRadioElement.querySelector('input') && 
+                    facebookRadioElement.querySelector('input').checked) {
+                    const youtubeRadio = radioGroup.querySelector('input[value="youtube"]');
+                    if (youtubeRadio) youtubeRadio.checked = true;
+                }
+            }
+        }
+    }
+    
     // ========== ADICIONAR ÁREA DE TEXTO PARA COLAR CÓDIGO DO FACEBOOK ==========
     function adicionarAreaFacebookAdmin() {
-        // Aguarda o modal admin carregar
         const interval = setInterval(() => {
             const adminFormArea = document.getElementById('adminFormArea');
             if (!adminFormArea) return;
@@ -10874,8 +10924,10 @@ if (/Xbox/i.test(navigator.userAgent)) {
             if (radioGroup && !radioGroup.querySelector('input[value="facebook"]')) {
                 const radioFacebook = document.createElement('label');
                 radioFacebook.className = 'text-xs text-gray-300';
+                radioFacebook.style.display = 'none'; // Inicia oculto
                 radioFacebook.innerHTML = '<input type="radio" name="mediaType" value="facebook"> 📘 Facebook (HTML)';
                 radioGroup.appendChild(radioFacebook);
+                facebookRadioElement = radioFacebook;
             }
             
             // Cria a área para colar código HTML
@@ -10883,6 +10935,7 @@ if (/Xbox/i.test(navigator.userAgent)) {
             facebookArea.id = 'facebookCodeArea';
             facebookArea.className = 'mt-3 p-2 bg-gray-800/30 rounded-xl';
             facebookArea.style.border = '1px solid rgba(229,9,20,0.3)';
+            facebookArea.style.display = 'none'; // Inicia oculto
             facebookArea.innerHTML = `
                 <div class="flex items-center gap-2 mb-2">
                     <i class="fab fa-facebook text-blue-500 text-sm"></i>
@@ -10903,14 +10956,78 @@ if (/Xbox/i.test(navigator.userAgent)) {
                 adminFormArea.appendChild(facebookArea);
             }
             
+            facebookAreaElement = facebookArea;
+            
             // Adiciona evento ao botão
             const extrairBtn = document.getElementById('extrairFacebookBtn');
             if (extrairBtn) {
                 extrairBtn.addEventListener('click', processarCodigoFacebook);
             }
             
+            // Configurar observers para monitorar mudanças de abas
+            configurarObservadoresAbas();
+            
+            // Executar verificação inicial
+            setTimeout(gerenciarVisibilidadeFacebook, 100);
+            
             clearInterval(interval);
         }, 500);
+    }
+    
+    // ========== CONFIGURAR OBSERVADORES PARA MONITORAR MUDANÇAS DE ABAS ==========
+    function configurarObservadoresAbas() {
+        // Lista de elementos que indicam mudança de aba
+        const elementosMonitorar = [
+            'adminCanaisList',
+            'adminFilmesList', 
+            'adminSeriesList',
+            'adminDuplicadosList',
+            'reportsList',
+            'adminUsersList'
+        ];
+        
+        // Observer para mudanças de classe (quando uma lista é mostrada/ocultada)
+        elementosMonitorar.forEach(id => {
+            const elemento = document.getElementById(id);
+            if (elemento) {
+                const observer = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                            gerenciarVisibilidadeFacebook();
+                        }
+                    });
+                });
+                observer.observe(elemento, { attributes: true });
+            }
+        });
+        
+        // Observer no body para detectar quando o modal admin é aberto
+        const adminModal = document.getElementById('adminModal');
+        if (adminModal) {
+            const modalObserver = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                        if (!adminModal.classList.contains('hidden')) {
+                            setTimeout(gerenciarVisibilidadeFacebook, 200);
+                        }
+                    }
+                });
+            });
+            modalObserver.observe(adminModal, { attributes: true });
+        }
+        
+        // Observer nos botões de aba (cliques)
+        const botoesAbas = ['adminTabCanais', 'adminTabFilmes', 'adminTabSeries', 
+                           'adminTabDuplicados', 'adminTabReportados', 'adminTabUsuarios'];
+        
+        botoesAbas.forEach(id => {
+            const botao = document.getElementById(id);
+            if (botao) {
+                botao.addEventListener('click', function() {
+                    setTimeout(gerenciarVisibilidadeFacebook, 150);
+                });
+            }
+        });
     }
     
     // ========== PROCESSAR O CÓDIGO DO FACEBOOK ==========
@@ -10923,7 +11040,6 @@ if (/Xbox/i.test(navigator.userAgent)) {
             return;
         }
         
-        // Extrair os dados
         const dados = extrairDadosFacebook(htmlCode);
         
         if (!dados) {
@@ -10931,7 +11047,6 @@ if (/Xbox/i.test(navigator.userAgent)) {
             return;
         }
         
-        // Preencher os campos do admin
         document.getElementById('itemLink').value = dados.link;
         document.getElementById('itemThumb').value = dados.thumb;
         document.getElementById('itemTitle').value = dados.title;
@@ -10939,11 +11054,9 @@ if (/Xbox/i.test(navigator.userAgent)) {
         document.getElementById('itemCategory').value = dados.genre;
         document.getElementById('itemDescription').value = dados.description;
         
-        // Selecionar o radio Facebook
         const radioFacebook = document.querySelector('input[name="mediaType"][value="facebook"]');
         if (radioFacebook) radioFacebook.checked = true;
         
-        // Mostrar preview
         const previewDiv = document.getElementById('facebookPreview');
         previewDiv.classList.remove('hidden');
         previewDiv.innerHTML = `
@@ -10961,9 +11074,6 @@ if (/Xbox/i.test(navigator.userAgent)) {
         `;
         
         showToast('✅ Dados do Facebook extraídos! Clique em Salvar para adicionar.');
-        
-        // Limpar o textarea após extrair (opcional)
-        // htmlInput.value = '';
     }
     
     // ========== MODIFICAR saveSingleItem PARA SUPORTAR FACEBOOK ==========
@@ -10974,17 +11084,14 @@ if (/Xbox/i.test(navigator.userAgent)) {
             const mediaType = mediaTypeRadio ? mediaTypeRadio.value : 'youtube';
             let link = document.getElementById('itemLink').value.trim();
             
-            // Se for Facebook, valida e salva
             if (mediaType === 'facebook') {
                 if (!link) {
                     showToast('❌ Link do vídeo não encontrado. Cole o código HTML primeiro.');
                     return;
                 }
-                // Não precisa validar formato especial
                 showToast('📘 Salvando vídeo do Facebook...');
             }
             
-            // Chamar a função original
             if (originalSaveSingleItem) {
                 await originalSaveSingleItem();
             }
@@ -10995,7 +11102,6 @@ if (/Xbox/i.test(navigator.userAgent)) {
     const originalPlayMedia = window.playMedia;
     if (originalPlayMedia) {
         window.playMedia = async function(item, type) {
-            // Verificar se é Facebook (mediaType ou link contém fbcdn)
             const isFacebook = (item.mediaType === 'facebook') || 
                                (item.link && (item.link.includes('fbcdn') || item.link.includes('facebook')));
             
@@ -11005,12 +11111,10 @@ if (/Xbox/i.test(navigator.userAgent)) {
                 container.classList.remove('hidden');
                 overlay.classList.remove('hidden');
                 
-                // Atualiza informações do vídeo
                 document.getElementById('videoTitle').innerText = item.title || 'Vídeo do Facebook';
                 document.getElementById('videoYear').innerHTML = item.year ? `📅 ${item.year}` : '';
                 document.getElementById('videoGenre').innerHTML = item.category ? `🎭 ${item.category}` : '';
                 
-                // Atualiza descrição
                 if (typeof updateVideoDescription === 'function') {
                     updateVideoDescription(item.description || 'Vídeo do Facebook - Streaming direto');
                 }
@@ -11025,7 +11129,6 @@ if (/Xbox/i.test(navigator.userAgent)) {
                 if (typeof loadViewCount === 'function') loadViewCount(item.id);
                 if (typeof startRealtimeUpdates === 'function') startRealtimeUpdates(item.id);
                 
-                // Configurar botões like, favorito, etc.
                 const likeBtn = document.getElementById('likeBtn');
                 const saveBtn = document.getElementById('saveBtn');
                 const reportBtn = document.getElementById('reportBtn');
@@ -11063,7 +11166,6 @@ if (/Xbox/i.test(navigator.userAgent)) {
                     newCommentInput.onkeypress = (e) => { if (e.key === 'Enter' && typeof addCommentToVideo === 'function') addCommentToVideo(item.id, newCommentInput.value); };
                 }
                 
-                // Exibir vídeo do Facebook nativamente
                 const youtubeDiv = document.getElementById('youtubePlayerDiv');
                 const hlsVideo = document.getElementById('hlsPlayer');
                 const noContent = document.getElementById('noContent');
@@ -11071,7 +11173,6 @@ if (/Xbox/i.test(navigator.userAgent)) {
                 if (youtubeDiv) youtubeDiv.style.display = 'block';
                 if (hlsVideo) hlsVideo.style.display = 'none';
                 
-                // Usar <video> nativo do HTML5
                 if (youtubeDiv) {
                     youtubeDiv.innerHTML = `
                         <video 
@@ -11100,7 +11201,6 @@ if (/Xbox/i.test(navigator.userAgent)) {
                 return;
             }
             
-            // Chamar função original para outros tipos
             originalPlayMedia(item, type);
         };
     }
@@ -11108,18 +11208,15 @@ if (/Xbox/i.test(navigator.userAgent)) {
     // ========== INICIALIZAR ==========
     function inicializar() {
         adicionarAreaFacebookAdmin();
-        console.log('✅ Suporte a vídeos do Facebook via código HTML adicionado!');
-        console.log('📘 Como usar: Cole o código <video> do Facebook e clique em "Extrair vídeo e capa"');
+        console.log('✅ Suporte a vídeos do Facebook adicionado! (Aparece apenas em Canais/Filmes/Séries)');
     }
     
-    // Executar quando o DOM estiver pronto
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', inicializar);
     } else {
         inicializar();
     }
     
-    // Função auxiliar
     function escapeHtml(text) {
         if (!text) return '';
         const div = document.createElement('div');
@@ -11137,128 +11234,6 @@ if (/Xbox/i.test(navigator.userAgent)) {
     }
 })();
 
-
-
-
-
-
-
-// controla a area das abas de colar o script do video do facebook, deixando somente em canai, filmes e series
-
-    
-(function() {
-    // Controlar exibição da área do Facebook apenas nas abas de conteúdo
-    function controlarVisibilidadeFacebook() {
-        const facebookArea = document.getElementById('facebookCodeArea');
-        if (!facebookArea) return;
-        
-        // Verificar qual aba admin está ativa
-        const abas = {
-            canais: document.getElementById('adminTabCanais'),
-            filmes: document.getElementById('adminTabFilmes'),
-            series: document.getElementById('adminTabSeries'),
-            duplicados: document.getElementById('adminTabDuplicados'),
-            reportados: document.getElementById('adminTabReportados'),
-            usuarios: document.getElementById('adminTabUsuarios')
-        };
-        
-        // Função para verificar se a aba ativa é uma das de conteúdo
-        function isContentTab() {
-            // Verifica pela classe ou estilo ativo
-            if (abas.canais && abas.canais.classList.contains('border-red-600')) return true;
-            if (abas.filmes && abas.filmes.classList.contains('border-red-600')) return true;
-            if (abas.series && abas.series.classList.contains('border-red-600')) return true;
-            return false;
-        }
-        
-        function updateVisibility() {
-            if (isContentTab()) {
-                facebookArea.style.display = 'block';
-            } else {
-                facebookArea.style.display = 'none';
-            }
-        }
-        
-        // Adicionar listeners para cada aba
-        Object.values(abas).forEach(aba => {
-            if (aba) {
-                aba.addEventListener('click', () => {
-                    setTimeout(updateVisibility, 50);
-                });
-            }
-        });
-        
-        // Inicializar
-        updateVisibility();
-    }
-    
-    // Aguardar o DOM e o admin carregar
-    const observer = new MutationObserver(() => {
-        const adminPanel = document.getElementById('adminPanel');
-        if (adminPanel && !adminPanel.classList.contains('hidden')) {
-            controlarVisibilidadeFacebook();
-            observer.disconnect();
-        }
-    });
-    observer.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
-    
-    // Caso o admin já esteja visível
-    if (document.getElementById('adminPanel') && !document.getElementById('adminPanel').classList.contains('hidden')) {
-        controlarVisibilidadeFacebook();
-    }
-})();
-
-function adicionarAreaFacebookAdmin() {
-    const interval = setInterval(() => {
-        const adminFormArea = document.getElementById('adminFormArea');
-        if (!adminFormArea) return;
-        if (document.getElementById('facebookCodeArea')) {
-            clearInterval(interval);
-            return;
-        }
-        
-        // Adiciona a opção Facebook no radio group
-        const radioGroup = adminFormArea.querySelector('.radio-group');
-        if (radioGroup && !radioGroup.querySelector('input[value="facebook"]')) {
-            const radioFacebook = document.createElement('label');
-            radioFacebook.className = 'text-xs text-gray-300';
-            radioFacebook.innerHTML = '<input type="radio" name="mediaType" value="facebook"> 📘 Facebook (HTML)';
-            radioGroup.appendChild(radioFacebook);
-        }
-        
-        // Cria a área
-        const facebookArea = document.createElement('div');
-        facebookArea.id = 'facebookCodeArea';
-        facebookArea.className = 'mt-3 p-2 bg-gray-800/30 rounded-xl';
-        facebookArea.style.border = '1px solid rgba(229,9,20,0.3)';
-        facebookArea.innerHTML = `...`; // conteúdo igual ao anterior
-        
-        // Insere após batchFilmesArea
-        const batchFilmesArea = document.getElementById('batchFilmesArea');
-        if (batchFilmesArea) {
-            batchFilmesArea.parentNode.insertBefore(facebookArea, batchFilmesArea.nextSibling);
-        } else {
-            adminFormArea.appendChild(facebookArea);
-        }
-        
-        // Configurar visibilidade conforme aba ativa
-        function atualizarVisibilidade() {
-            const isContentTab = document.getElementById('adminTabCanais')?.classList.contains('border-red-600') ||
-                                 document.getElementById('adminTabFilmes')?.classList.contains('border-red-600') ||
-                                 document.getElementById('adminTabSeries')?.classList.contains('border-red-600');
-            facebookArea.style.display = isContentTab ? 'block' : 'none';
-        }
-        
-        // Listeners nas abas
-        ['adminTabCanais', 'adminTabFilmes', 'adminTabSeries', 'adminTabDuplicados', 'adminTabReportados', 'adminTabUsuarios'].forEach(id => {
-            const tab = document.getElementById(id);
-            if (tab) tab.addEventListener('click', () => setTimeout(atualizarVisibilidade, 50));
-        });
-        atualizarVisibilidade();
-        
-        clearInterval(interval);
-    }, 500);
-}
 
 
                 
