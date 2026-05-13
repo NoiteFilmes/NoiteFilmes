@@ -11143,6 +11143,78 @@ if (/Xbox/i.test(navigator.userAgent)) {
 
 
 
+// controla a area das abas de colar o script do video do facebook, deixando somente em canai, filmes e series
+
+    
+(function() {
+    // Controlar exibição da área do Facebook apenas nas abas de conteúdo
+    function controlarVisibilidadeFacebook() {
+        const facebookArea = document.getElementById('facebookCodeArea');
+        if (!facebookArea) return;
+        
+        // Verificar qual aba admin está ativa
+        const abas = {
+            canais: document.getElementById('adminTabCanais'),
+            filmes: document.getElementById('adminTabFilmes'),
+            series: document.getElementById('adminTabSeries'),
+            duplicados: document.getElementById('adminTabDuplicados'),
+            reportados: document.getElementById('adminTabReportados'),
+            usuarios: document.getElementById('adminTabUsuarios')
+        };
+        
+        // Função para verificar se a aba ativa é uma das de conteúdo
+        function isContentTab() {
+            // Verifica pela classe ou estilo ativo
+            if (abas.canais && abas.canais.classList.contains('border-red-600')) return true;
+            if (abas.filmes && abas.filmes.classList.contains('border-red-600')) return true;
+            if (abas.series && abas.series.classList.contains('border-red-600')) return true;
+            return false;
+        }
+        
+        function updateVisibility() {
+            if (isContentTab()) {
+                facebookArea.style.display = 'block';
+            } else {
+                facebookArea.style.display = 'none';
+            }
+        }
+        
+        // Adicionar listeners para cada aba
+        Object.values(abas).forEach(aba => {
+            if (aba) {
+                aba.addEventListener('click', () => {
+                    setTimeout(updateVisibility, 50);
+                });
+            }
+        });
+        
+        // Inicializar
+        updateVisibility();
+    }
+    
+    // Aguardar o DOM e o admin carregar
+    const observer = new MutationObserver(() => {
+        const adminPanel = document.getElementById('adminPanel');
+        if (adminPanel && !adminPanel.classList.contains('hidden')) {
+            controlarVisibilidadeFacebook();
+            observer.disconnect();
+        }
+    });
+    observer.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+    
+    // Caso o admin já esteja visível
+    if (document.getElementById('adminPanel') && !document.getElementById('adminPanel').classList.contains('hidden')) {
+        controlarVisibilidadeFacebook();
+    }
+})();
+
+
+
+
+
+
+
+
 
 // ============================================
 // SISTEMA DE AVALIAÇÃO CORRIGIDO - VERSÃO FINAL
