@@ -10825,217 +10825,318 @@ if (/Xbox/i.test(navigator.userAgent)) {
 
 
 (function() {
-    // ========== ADICIONAR OPÇÃO "FACEBOOK" NO ADMIN ==========
-    function adicionarOpcaoFacebook() {
-        // Aguarda o DOM carregar e o modal admin existir
+    // ========== EXTRAIR DADOS DE CÓDIGO <video> DO FACEBOOK ==========
+    function extrairDadosFacebook(htmlCode) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlCode, 'text/html');
+        const videoElement = doc.querySelector('video');
+        
+        if (!videoElement) return null;
+        
+        const videoSrc = videoElement.getAttribute('src');
+        const posterSrc = videoElement.getAttribute('poster');
+        
+        if (!videoSrc) return null;
+        
+        // Tentar extrair um título amigável
+        let titulo = 'Vídeo do Facebook';
+        const matchId = videoSrc.match(/\/video\.f[bp][a-z0-9.-]+\.fna\.fbcdn\.net\/[^?]+\?.*?&amp;vs=([a-f0-9]+)/i);
+        if (matchId) {
+            titulo = `Facebook Video (${matchId[1].substring(0, 8)})`;
+        }
+        
+        return {
+            link: videoSrc,
+            thumb: posterSrc || 'https://via.placeholder.com/300x200?text=Facebook+Video',
+            title: titulo,
+            year: new Date().getFullYear().toString(),
+            genre: 'Facebook',
+            description: 'Vídeo do Facebook - Streaming direto',
+            mediaType: 'facebook'
+        };
+    }
+    
+    // ========== ADICIONAR ÁREA DE TEXTO PARA COLAR CÓDIGO DO FACEBOOK ==========
+    function adicionarAreaFacebookAdmin() {
+        // Aguarda o modal admin carregar
         const interval = setInterval(() => {
-            const radioGroup = document.querySelector('#adminFormArea .radio-group');
-            if (!radioGroup) return;
+            const adminFormArea = document.getElementById('adminFormArea');
+            if (!adminFormArea) return;
             
-            // Verifica se já foi adicionado
-            if (radioGroup.querySelector('input[value="facebook"]')) {
+            // Verificar se já foi adicionado
+            if (document.getElementById('facebookCodeArea')) {
                 clearInterval(interval);
                 return;
             }
             
-            const novoRadio = document.createElement('label');
-            novoRadio.className = 'text-xs text-gray-300';
-            novoRadio.innerHTML = '<input type="radio" name="mediaType" value="facebook"> 📘 Facebook';
-            radioGroup.appendChild(novoRadio);
+            // Adiciona a opção Facebook no radio group
+            const radioGroup = adminFormArea.querySelector('.radio-group');
+            if (radioGroup && !radioGroup.querySelector('input[value="facebook"]')) {
+                const radioFacebook = document.createElement('label');
+                radioFacebook.className = 'text-xs text-gray-300';
+                radioFacebook.innerHTML = '<input type="radio" name="mediaType" value="facebook"> 📘 Facebook (HTML)';
+                radioGroup.appendChild(radioFacebook);
+            }
+            
+            // Cria a área para colar código HTML
+            const facebookArea = document.createElement('div');
+            facebookArea.id = 'facebookCodeArea';
+            facebookArea.className = 'mt-3 p-2 bg-gray-800/30 rounded-xl';
+            facebookArea.style.border = '1px solid rgba(229,9,20,0.3)';
+            facebookArea.innerHTML = `
+                <div class="flex items-center gap-2 mb-2">
+                    <i class="fab fa-facebook text-blue-500 text-sm"></i>
+                    <span class="text-xs font-semibold text-white">Colar código <video> do Facebook</span>
+                    <button id="extrairFacebookBtn" class="ml-auto bg-red-600 hover:bg-red-700 px-3 py-1 rounded-full text-[10px] transition ripple-btn">
+                        <i class="fas fa-magic"></i> Extrair vídeo e capa
+                    </button>
+                </div>
+                <textarea id="facebookHtmlInput" rows="4" class="batch-input w-full rounded-xl text-xs bg-gray-700 text-white placeholder-gray-400" placeholder="Cole aqui o código HTML do vídeo do Facebook...&#10;Exemplo:&#10;&lt;video poster=&quot;https://...&quot; src=&quot;https://...&quot;&gt;&lt;/video&gt;"></textarea>
+                <div id="facebookPreview" class="mt-2 hidden"></div>
+            `;
+            
+            // Insere após o batchFilmesArea ou no final
+            const batchFilmesArea = document.getElementById('batchFilmesArea');
+            if (batchFilmesArea) {
+                batchFilmesArea.parentNode.insertBefore(facebookArea, batchFilmesArea.nextSibling);
+            } else {
+                adminFormArea.appendChild(facebookArea);
+            }
+            
+            // Adiciona evento ao botão
+            const extrairBtn = document.getElementById('extrairFacebookBtn');
+            if (extrairBtn) {
+                extrairBtn.addEventListener('click', processarCodigoFacebook);
+            }
+            
             clearInterval(interval);
         }, 500);
     }
     
-    // ========== DETECTAR LINK DO FACEBOOK ==========
-    function isFacebookLink(link) {
-        if (!link) return false;
-        return link.includes('facebook.com') || link.includes('fb.watch');
-    }
-    
-    // ========== EXTRAIR URL EMBED DO FACEBOOK ==========
-    function getFacebookEmbedUrl(link) {
-        // Garante que seja uma URL válida para embed
-        return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(link)}&show_text=0&width=560`;
-    }
-    
-    // ========== MODIFICAR playMedia PARA SUPORTAR FACEBOOK ==========
-    const originalPlayMedia = window.playMedia;
-    if (originalPlayMedia) {
-        window.playMedia = async function(item, type) {
-            // Se for Facebook, trata com iframe
-            if (item.mediaType === 'facebook' || isFacebookLink(item.link)) {
-                const container = document.getElementById('playerCommentsContainer');
-                const overlay = document.getElementById('floatingPlayerOverlay');
-                container.classList.remove('hidden');
-                overlay.classList.remove('hidden');
-                
-                // Atualiza informações do vídeo
-                document.getElementById('videoTitle').innerText = item.title;
-                document.getElementById('videoYear').innerHTML = item.year ? `📅 ${item.year}` : '';
-                document.getElementById('videoGenre').innerHTML = item.category ? `🎭 ${item.category}` : '';
-                updateVideoDescription(item.description || 'Vídeo do Facebook');
-                setupDescriptionToggle();
-                
-                currentMedia = item;
-                currentMediaType = type;
-                incrementViewCount(item.id);
-                loadViewCount(item.id);
-                startRealtimeUpdates(item.id);
-                
-                // Atualiza botões like, favorito, etc.
-                const likeBtn = document.getElementById('likeBtn');
-                const saveBtn = document.getElementById('saveBtn');
-                const reportBtn = document.getElementById('reportBtn');
-                const shareNativeBtn = document.getElementById('shareNativeBtn');
-                
-                const updateButtons = () => {
-                    const isLiked = favoritos.some(f => f.id === item.id && f.liked);
-                    likeBtn.querySelector('i').className = isLiked ? 'fas fa-heart' : 'far fa-heart';
-                    likeBtn.classList.toggle('active', isLiked);
-                    const isSaved = favoritos.some(f => f.id === item.id && f.saved);
-                    saveBtn.innerHTML = isSaved ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>';
-                    saveBtn.classList.toggle('active', isSaved);
-                };
-                likeBtn.onclick = () => { toggleLikeMedia(item.id); setTimeout(() => loadLikeCount(item.id), 500); };
-                saveBtn.onclick = () => { if (!currentUser) { showToast('Faça login'); return; } const existing = favoritos.find(f => f.id === item.id); if (existing && existing.saved) database.ref(`favoritos/${currentUser.uid}/${item.id}`).remove(); else database.ref(`favoritos/${currentUser.uid}/${item.id}`).set({ id: item.id, title: item.title, thumb: item.thumb, type: type, liked: existing?.liked || false, saved: true }); updateButtons(); };
-                reportBtn.onclick = () => openReportPopup();
-                shareNativeBtn.onclick = () => shareNative();
-                updateButtons();
-                
-                loadRatingsFromFirebase(item.id);
-                loadComments(item.id);
-                loadLikeCount(item.id);
-                
-                const submitComment = document.getElementById('submitCommentBtn');
-                const newCommentInput = document.getElementById('newCommentInput');
-                submitComment.onclick = () => addCommentToVideo(item.id, newCommentInput.value);
-                newCommentInput.onkeypress = (e) => { if (e.key === 'Enter') addCommentToVideo(item.id, newCommentInput.value); };
-                
-                // Exibir iframe do Facebook
-                const youtubeDiv = document.getElementById('youtubePlayerDiv');
-                const hlsVideo = document.getElementById('hlsPlayer');
-                const noContent = document.getElementById('noContent');
-                youtubeDiv.style.display = 'block';
-                hlsVideo.style.display = 'none';
-                
-                const embedUrl = getFacebookEmbedUrl(item.link);
-                youtubeDiv.innerHTML = `<iframe src="${embedUrl}" width="100%" height="100%" style="border:none; overflow:hidden;" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>`;
-                noContent.style.display = 'none';
-                
-                if (castSession) loadCurrentMediaToCast();
-                return;
-            }
-            // Caso contrário, chama a função original
-            originalPlayMedia(item, type);
-        };
+    // ========== PROCESSAR O CÓDIGO DO FACEBOOK ==========
+    function processarCodigoFacebook() {
+        const htmlInput = document.getElementById('facebookHtmlInput');
+        const htmlCode = htmlInput.value.trim();
+        
+        if (!htmlCode) {
+            showToast('❌ Cole o código HTML do vídeo do Facebook primeiro!');
+            return;
+        }
+        
+        // Extrair os dados
+        const dados = extrairDadosFacebook(htmlCode);
+        
+        if (!dados) {
+            showToast('❌ Não foi possível extrair o vídeo. Certifique-se de colar o código <video> completo.');
+            return;
+        }
+        
+        // Preencher os campos do admin
+        document.getElementById('itemLink').value = dados.link;
+        document.getElementById('itemThumb').value = dados.thumb;
+        document.getElementById('itemTitle').value = dados.title;
+        document.getElementById('itemYear').value = dados.year;
+        document.getElementById('itemCategory').value = dados.genre;
+        document.getElementById('itemDescription').value = dados.description;
+        
+        // Selecionar o radio Facebook
+        const radioFacebook = document.querySelector('input[name="mediaType"][value="facebook"]');
+        if (radioFacebook) radioFacebook.checked = true;
+        
+        // Mostrar preview
+        const previewDiv = document.getElementById('facebookPreview');
+        previewDiv.classList.remove('hidden');
+        previewDiv.innerHTML = `
+            <div class="mt-2 p-2 bg-green-900/30 rounded-lg text-[10px]">
+                <div class="flex gap-2 items-center">
+                    <i class="fas fa-check-circle text-green-500"></i>
+                    <span class="font-bold">✅ Vídeo extraído com sucesso!</span>
+                </div>
+                <div class="mt-1 text-gray-300 break-all">
+                    <div><span class="text-red-400">🎬 Título:</span> ${escapeHtml(dados.title)}</div>
+                    <div><span class="text-red-400">📹 Link:</span> ${dados.link.substring(0, 80)}...</div>
+                    <div><span class="text-red-400">🖼️ Capa:</span> ${dados.thumb ? 'Extraída ✓' : 'Não encontrada'}</div>
+                </div>
+            </div>
+        `;
+        
+        showToast('✅ Dados do Facebook extraídos! Clique em Salvar para adicionar.');
+        
+        // Limpar o textarea após extrair (opcional)
+        // htmlInput.value = '';
     }
     
     // ========== MODIFICAR saveSingleItem PARA SUPORTAR FACEBOOK ==========
     const originalSaveSingleItem = window.saveSingleItem;
     if (originalSaveSingleItem) {
         window.saveSingleItem = async function() {
-            const mediaType = document.querySelector('input[name="mediaType"]:checked')?.value;
+            const mediaTypeRadio = document.querySelector('input[name="mediaType"]:checked');
+            const mediaType = mediaTypeRadio ? mediaTypeRadio.value : 'youtube';
             let link = document.getElementById('itemLink').value.trim();
             
-            // Se for Facebook, não precisa validar como YouTube ou IPTV
+            // Se for Facebook, valida e salva
             if (mediaType === 'facebook') {
-                if (!link || !isFacebookLink(link)) {
-                    showToast('❌ Link do Facebook inválido.');
+                if (!link) {
+                    showToast('❌ Link do vídeo não encontrado. Cole o código HTML primeiro.');
                     return;
                 }
-                // Força o tipo para facebook
-                document.querySelector('input[name="mediaType"][value="facebook"]').checked = true;
+                // Não precisa validar formato especial
+                showToast('📘 Salvando vídeo do Facebook...');
             }
             
-            // Chama a função original
-            await originalSaveSingleItem();
+            // Chamar a função original
+            if (originalSaveSingleItem) {
+                await originalSaveSingleItem();
+            }
         };
     }
     
-    // ========== MODIFICAR autoFillFromLink PARA SUPORTAR FACEBOOK ==========
-    const originalAutoFill = window.autoFillFromLink;
-    if (originalAutoFill) {
-        window.autoFillFromLink = async function() {
-            const link = document.getElementById('itemLink').value.trim();
-            const mediaType = document.querySelector('input[name="mediaType"]:checked')?.value;
+    // ========== MODIFICAR playMedia PARA REPRODUZIR VÍDEO DO FACEBOOK ==========
+    const originalPlayMedia = window.playMedia;
+    if (originalPlayMedia) {
+        window.playMedia = async function(item, type) {
+            // Verificar se é Facebook (mediaType ou link contém fbcdn)
+            const isFacebook = (item.mediaType === 'facebook') || 
+                               (item.link && (item.link.includes('fbcdn') || item.link.includes('facebook')));
             
-            if (isFacebookLink(link) && mediaType !== 'facebook') {
-                // Se detectou Facebook mas não está selecionado, sugere trocar
-                const radios = document.querySelectorAll('input[name="mediaType"]');
-                for (let r of radios) {
-                    if (r.value === 'facebook') {
-                        r.checked = true;
-                        break;
+            if (isFacebook) {
+                const container = document.getElementById('playerCommentsContainer');
+                const overlay = document.getElementById('floatingPlayerOverlay');
+                container.classList.remove('hidden');
+                overlay.classList.remove('hidden');
+                
+                // Atualiza informações do vídeo
+                document.getElementById('videoTitle').innerText = item.title || 'Vídeo do Facebook';
+                document.getElementById('videoYear').innerHTML = item.year ? `📅 ${item.year}` : '';
+                document.getElementById('videoGenre').innerHTML = item.category ? `🎭 ${item.category}` : '';
+                
+                // Atualiza descrição
+                if (typeof updateVideoDescription === 'function') {
+                    updateVideoDescription(item.description || 'Vídeo do Facebook - Streaming direto');
+                }
+                if (typeof setupDescriptionToggle === 'function') {
+                    setupDescriptionToggle();
+                }
+                
+                currentMedia = item;
+                currentMediaType = type;
+                
+                if (typeof incrementViewCount === 'function') incrementViewCount(item.id);
+                if (typeof loadViewCount === 'function') loadViewCount(item.id);
+                if (typeof startRealtimeUpdates === 'function') startRealtimeUpdates(item.id);
+                
+                // Configurar botões like, favorito, etc.
+                const likeBtn = document.getElementById('likeBtn');
+                const saveBtn = document.getElementById('saveBtn');
+                const reportBtn = document.getElementById('reportBtn');
+                const shareNativeBtn = document.getElementById('shareNativeBtn');
+                
+                const updateButtons = () => {
+                    if (typeof favoritos !== 'undefined') {
+                        const isLiked = favoritos.some(f => f.id === item.id && f.liked);
+                        if (likeBtn && likeBtn.querySelector('i')) {
+                            likeBtn.querySelector('i').className = isLiked ? 'fas fa-heart' : 'far fa-heart';
+                            likeBtn.classList.toggle('active', isLiked);
+                        }
+                        const isSaved = favoritos.some(f => f.id === item.id && f.saved);
+                        if (saveBtn) {
+                            saveBtn.innerHTML = isSaved ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>';
+                            saveBtn.classList.toggle('active', isSaved);
+                        }
                     }
+                };
+                
+                if (likeBtn) likeBtn.onclick = () => { if (typeof toggleLikeMedia === 'function') toggleLikeMedia(item.id); setTimeout(() => { if (typeof loadLikeCount === 'function') loadLikeCount(item.id); }, 500); };
+                if (saveBtn) saveBtn.onclick = () => { if (!currentUser) { showToast('Faça login'); return; } const existing = favoritos.find(f => f.id === item.id); if (existing && existing.saved) database.ref(`favoritos/${currentUser.uid}/${item.id}`).remove(); else database.ref(`favoritos/${currentUser.uid}/${item.id}`).set({ id: item.id, title: item.title, thumb: item.thumb, type: type, liked: existing?.liked || false, saved: true }); updateButtons(); };
+                if (reportBtn) reportBtn.onclick = () => { if (typeof openReportPopup === 'function') openReportPopup(); };
+                if (shareNativeBtn) shareNativeBtn.onclick = () => { if (typeof shareNative === 'function') shareNative(); };
+                updateButtons();
+                
+                if (typeof loadRatingsFromFirebase === 'function') loadRatingsFromFirebase(item.id);
+                if (typeof loadComments === 'function') loadComments(item.id);
+                if (typeof loadLikeCount === 'function') loadLikeCount(item.id);
+                
+                const submitComment = document.getElementById('submitCommentBtn');
+                const newCommentInput = document.getElementById('newCommentInput');
+                if (submitComment && newCommentInput) {
+                    submitComment.onclick = () => { if (typeof addCommentToVideo === 'function') addCommentToVideo(item.id, newCommentInput.value); };
+                    newCommentInput.onkeypress = (e) => { if (e.key === 'Enter' && typeof addCommentToVideo === 'function') addCommentToVideo(item.id, newCommentInput.value); };
                 }
-                showToast('🔍 Link do Facebook detectado. Modo Facebook ativado.');
-            }
-            
-            if (mediaType === 'facebook' || isFacebookLink(link)) {
-                // Preenche dados básicos do Facebook
-                let title = document.getElementById('itemTitle').value.trim();
-                if (!title) {
-                    // Tenta extrair título da URL
-                    const match = link.match(/\/v\/([^\/?]+)/);
-                    title = match ? `Vídeo do Facebook (${match[1]})` : 'Vídeo do Facebook';
-                    document.getElementById('itemTitle').value = title;
+                
+                // Exibir vídeo do Facebook nativamente
+                const youtubeDiv = document.getElementById('youtubePlayerDiv');
+                const hlsVideo = document.getElementById('hlsPlayer');
+                const noContent = document.getElementById('noContent');
+                
+                if (youtubeDiv) youtubeDiv.style.display = 'block';
+                if (hlsVideo) hlsVideo.style.display = 'none';
+                
+                // Usar <video> nativo do HTML5
+                if (youtubeDiv) {
+                    youtubeDiv.innerHTML = `
+                        <video 
+                            src="${item.link}" 
+                            poster="${item.thumb || ''}" 
+                            controls 
+                            autoplay
+                            style="width:100%; height:100%; object-fit:contain; background:#000;"
+                            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                        >
+                            Seu navegador não suporta vídeo HTML5.
+                        </video>
+                        <div style="display:none; align-items:center; justify-content:center; position:absolute; inset:0; background:#000; color:#fff; flex-direction:column;">
+                            <i class="fas fa-exclamation-triangle text-3xl text-red-500 mb-2"></i>
+                            <p>Não foi possível carregar o vídeo</p>
+                            <a href="${item.link}" target="_blank" class="text-red-500 underline text-sm mt-2">Abrir link diretamente</a>
+                        </div>
+                    `;
                 }
-                if (!document.getElementById('itemThumb').value.trim()) {
-                    document.getElementById('itemThumb').value = 'https://via.placeholder.com/300x200?text=Facebook+Video';
+                
+                if (noContent) noContent.style.display = 'none';
+                
+                if (typeof castSession !== 'undefined' && castSession && typeof loadCurrentMediaToCast === 'function') {
+                    loadCurrentMediaToCast();
                 }
-                if (!document.getElementById('itemCategory').value.trim()) {
-                    document.getElementById('itemCategory').value = 'Facebook';
-                }
-                if (!document.getElementById('itemYear').value.trim()) {
-                    document.getElementById('itemYear').value = new Date().getFullYear().toString();
-                }
-                if (!document.getElementById('itemDescription').value.trim()) {
-                    document.getElementById('itemDescription').value = `Vídeo hospedado no Facebook: ${title}`;
-                }
-                showToast('✅ Campos do Facebook preenchidos!');
                 return;
             }
             
-            // Senão, chama o original
-            if (originalAutoFill) originalAutoFill();
+            // Chamar função original para outros tipos
+            originalPlayMedia(item, type);
         };
     }
     
-    // ========== MODIFICAR isIptvLink PARA NÃO TRATAR FACEBOOK COMO IPTV ==========
-    if (typeof window.isIptvLink === 'function') {
-        const originalIsIptv = window.isIptvLink;
-        window.isIptvLink = function(url) {
-            if (isFacebookLink(url)) return false;
-            return originalIsIptv(url);
-        };
+    // ========== INICIALIZAR ==========
+    function inicializar() {
+        adicionarAreaFacebookAdmin();
+        console.log('✅ Suporte a vídeos do Facebook via código HTML adicionado!');
+        console.log('📘 Como usar: Cole o código <video> do Facebook e clique em "Extrair vídeo e capa"');
     }
     
-    // ========== MODIFICAR fetchVideoDataFromLink PARA SUPORTAR FACEBOOK ==========
-    const originalFetchVideoData = window.fetchVideoDataFromLink;
-    if (originalFetchVideoData) {
-        window.fetchVideoDataFromLink = async function(link, mediaType) {
-            if (mediaType === 'facebook' || isFacebookLink(link)) {
-                let title = 'Vídeo do Facebook';
-                const match = link.match(/\/v\/([^\/?]+)/);
-                if (match) title = `Vídeo do Facebook (${match[1]})`;
-                return {
-                    title: title,
-                    description: 'Vídeo do Facebook - Streaming embutido',
-                    thumb: 'https://via.placeholder.com/300x200?text=Facebook+Video',
-                    year: new Date().getFullYear().toString(),
-                    genre: 'Facebook',
-                    link: link
-                };
-            }
-            return originalFetchVideoData(link, mediaType);
-        };
+    // Executar quando o DOM estiver pronto
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', inicializar);
+    } else {
+        inicializar();
     }
     
-    // ========== EXECUTAR INJEÇÃO DA OPÇÃO ==========
-    adicionarOpcaoFacebook();
+    // Função auxiliar
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
     
-    console.log('✅ Suporte a links do Facebook adicionado com sucesso!');
+    function showToast(msg) {
+        let toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.innerText = msg;
+        toast.style.cssText = 'position:fixed; bottom:90px; right:20px; background:rgba(0,0,0,0.85); backdrop-filter:blur(20px); color:white; padding:8px 16px; border-radius:60px; z-index:10000; animation:slideInRight 0.3s ease-out, fadeOut 3s forwards 0.3s; border:1px solid rgba(255,255,255,0.2); font-size:0.75rem;';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
 })();
+
 
 
 
