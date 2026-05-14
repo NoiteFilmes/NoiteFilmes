@@ -3305,15 +3305,21 @@
 
 /* Esconde a barra de rolagem no Chrome/Safari (mais limpo) */
 #genreScroll::-webkit-scrollbar {
-    height: 2px;
+    height: 4px;
 }
 #genreScroll::-webkit-scrollbar-track {
-    background: rgba(255,255,255,0.08);
+    background: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
 }
 #genreScroll::-webkit-scrollbar-thumb {
-    background: #e50914;
+    background: #e50914 !important;
     border-radius: 10px;
+}
+
+/* Para navegadores Firefox */
+#genreScroll {
+    scrollbar-color: #e50914 rgba(255, 255, 255, 0.1) !important;
+    scrollbar-width: thin;
 }
 
 /* Botões de gênero - MAIS COMPACTOS */
