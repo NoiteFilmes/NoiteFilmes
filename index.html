@@ -3338,41 +3338,41 @@
     box-shadow: 0 2px 8px rgba(229, 9, 20, 0.3);
 }
 
-/* Select de ordenação - SEM EMOJI, MAIS MODERNO */
+/* Select de ordenação - MAIS COMPACTO E JUSTO */
 #sortSelect {
     flex-shrink: 0 !important;
-    font-size: 11px !important;
+    font-size: 10px !important;
     font-weight: 500 !important;
-    padding: 6px 28px 6px 12px !important; /* Espaço para a seta */
+    padding: 4px 22px 4px 8px !important; /* Reduzido drasticamente */
     border-radius: 40px !important;
     background-color: rgba(0, 0, 0, 0.5) !important;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    background-position: right 10px center;
-    background-size: 12px;
+    background-position: right 6px center;
+    background-size: 10px;
     appearance: none;
     -webkit-appearance: none;
     border: 1px solid rgba(255, 255, 255, 0.2);
     color: white;
     cursor: pointer;
     backdrop-filter: blur(4px);
+    width: auto !important;
+    min-width: 105px !important; /* Largura mínima reduzida */
+    max-width: 130px !important;
+    text-overflow: ellipsis;
 }
 
-/* Ajuste para dispositivos muito pequenos */
+/* Para mobile, ainda mais compacto */
 @media (max-width: 480px) {
-    .genre-filter {
-        font-size: 10px !important;
-        padding: 5px 12px !important;
-    }
     #sortSelect {
-        font-size: 10px !important;
-        padding: 5px 26px 5px 10px !important;
-    }
-    .filters-row {
-        gap: 8px !important;
-        min-height: 40px;
+        font-size: 9px !important;
+        padding: 3px 18px 3px 6px !important;
+        min-width: 90px !important;
+        max-width: 110px !important;
     }
 }
+
+
 
 /* Ocultar a barra de rolagem em dispositivos móveis (opcional) */
 @media (max-width: 768px) {
@@ -3527,15 +3527,15 @@
             <div class="glass p-2 rounded-xl">
                 <div class="filters-row flex items-center gap-2">
                     <div id="genreScroll" class="genre-scroll flex flex-1 overflow-x-auto gap-1 pb-1"></div>
-                    <select id="sortSelect" class="sort-select bg-white/10 rounded-full px-2 py-1 text-[9px] cursor-pointer">
-                        <option value="recent">🕐 Mais recentes</option>
-                        <option value="views">👁️ Mais vistos</option>
-                        <option value="az">🔤 A-Z</option>
-                        <option value="za">🔤 Z-A</option>
-                        <option value="year_asc">📅 Ano (crescente)</option>
-                        <option value="year_desc">📅 Ano (decrescente)</option>
-                        <option value="genre">🎭 Por gênero</option>
-                    </select>
+                    <select id="sortSelect" class="sort-select" style="font-size: 10px; padding: 4px 24px 4px 8px; min-width: auto; width: auto; background-size: 10px;">
+    <option value="recent">🕐 Mais Recentes</option>
+    <option value="views">👁️ Mais Vistos</option>
+    <option value="az">🔤 A-Z</option>
+    <option value="za">🔤 Z-A</option>
+    <option value="year_asc">📅 Ano ↑</option>
+    <option value="year_desc">📅 Ano ↓</option>
+    <option value="genre">🎭 Por Gênero</option>
+</select>
                 </div>
             </div>
         </div>
@@ -6065,7 +6065,7 @@ function loadSeriesFromFirebase() {
     // Salva o gênero ativo atual
     const activeGenre = currentGenreFilter || 'todos';
     
-    // Gera os botões (com ordem alfabética)
+    // Gera os botões
     let genresArray = Array.from(genres).sort((a, b) => a.localeCompare(b, 'pt-BR'));
     
     let html = '<button data-genre="todos" class="genre-filter px-2 py-0.5 rounded-full bg-white/10 text-[10px] ripple-btn">🎬 Todos</button>';
@@ -6086,7 +6086,7 @@ function loadSeriesFromFirebase() {
             document.querySelectorAll('#genreScroll .genre-filter').forEach(b => b.classList.remove('genre-filter-active'));
             btn.classList.add('genre-filter-active');
             currentGenreFilter = btn.getAttribute('data-genre');
-            renderGrid();
+            renderGrid(); // Isso já funciona para todos os tipos (canais, filmes, series)
         });
     });
 }
