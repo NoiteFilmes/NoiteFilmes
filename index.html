@@ -11731,6 +11731,133 @@ setTimeout(function() {
 
 
 
+
+
+  <!-- Script para o Botão Voltar ao Topo (Liquid Glass) -->
+    (function() {
+        // Cria o elemento do botão e adiciona ao final do body
+        const btnTopo = document.createElement('div');
+        btnTopo.id = 'btnVoltarTopo';
+        btnTopo.innerHTML = '<i class="fas fa-arrow-up"></i>';
+        btnTopo.setAttribute('aria-label', 'Voltar ao topo');
+        btnTopo.style.cssText = `
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            width: 44px;
+            height: 44px;
+            border-radius: 30px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transform: scale(0.85);
+            color: white;
+            font-size: 20px;
+        `;
+        document.body.appendChild(btnTopo);
+
+        let secoesVisiveis = false;
+
+        // Função para verificar se a seção ativa é 'filmes', 'series' ou 'canais'
+        function isContentSectionActive() {
+            const sections = ['filmesSection', 'seriesSection', 'canaisSection'];
+            return sections.some(id => {
+                const el = document.getElementById(id);
+                return el && el.classList.contains('active-section');
+            });
+        }
+
+        // Função para mostrar ou esconder o botão baseado na rolagem e na seção ativa
+        function toggleButtonVisibility() {
+            const isActive = isContentSectionActive();
+            const shouldShow = isActive && (window.scrollY > 300);
+
+            if (shouldShow && !secoesVisiveis) {
+                // Aparece de forma suave
+                btnTopo.style.opacity = '1';
+                btnTopo.style.visibility = 'visible';
+                btnTopo.style.transform = 'scale(1)';
+                secoesVisiveis = true;
+            } else if (!shouldShow && secoesVisiveis) {
+                // Esconde de forma suave
+                btnTopo.style.opacity = '0';
+                btnTopo.style.visibility = 'hidden';
+                btnTopo.style.transform = 'scale(0.85)';
+                secoesVisiveis = false;
+            }
+        }
+
+        // Função para rolar suavemente ao topo
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
+        // Adiciona o evento de clique
+        btnTopo.addEventListener('click', scrollToTop);
+
+        // Adiciona efeito hover
+        btnTopo.addEventListener('mouseenter', () => {
+            btnTopo.style.background = 'rgba(255, 255, 255, 0.15)';
+            btnTopo.style.transform = 'scale(1.05)';
+            btnTopo.style.borderColor = 'rgba(255, 255, 255, 0.4)';
+        });
+        btnTopo.addEventListener('mouseleave', () => {
+            btnTopo.style.background = 'rgba(255, 255, 255, 0.08)';
+            if (secoesVisiveis) {
+                btnTopo.style.transform = 'scale(1)';
+            } else {
+                btnTopo.style.transform = 'scale(0.85)';
+            }
+            btnTopo.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+        });
+
+        // Eventos de rolagem e navegação para monitorar a visibilidade
+        window.addEventListener('scroll', toggleButtonVisibility);
+        
+        // Observa mudanças na classe 'active-section' das seções
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    toggleButtonVisibility();
+                }
+            });
+        });
+
+        // Observa as seções principais
+        const sections = ['filmesSection', 'seriesSection', 'canaisSection'];
+        sections.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                observer.observe(el, { attributes: true });
+            }
+        });
+
+        // Verificação inicial
+        toggleButtonVisibility();
+    })();
+
+
+
+
+
+
+
+
+                
+
                 
 
 
