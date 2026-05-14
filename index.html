@@ -3884,6 +3884,89 @@
             
             
                 // ==================== CONSTANTES ====================
+
+
+
+// ==================== CORREÇÃO DO LOGIN TRAVADO ====================
+(function() {
+    console.log('🔧 Inicializando sistema de correção de login...');
+    
+    // Força a exibição do modal de login se o usuário não estiver logado
+    function forcarExibicaoLogin() {
+        const loginModal = document.getElementById('loginModal');
+        if (loginModal) {
+            // Se o modal existe e o usuário não está logado
+            if (!currentUser) {
+                loginModal.classList.remove('hidden');
+                console.log('✅ Modal de login forçado a aparecer');
+            } else {
+                loginModal.classList.add('hidden');
+                console.log('✅ Usuário logado, modal oculto');
+            }
+        } else {
+            console.error('❌ Modal de login não encontrado!');
+        }
+    }
+    
+    // Verifica se o Firebase Auth está funcionando
+    function verificarFirebaseAuth() {
+        if (typeof auth === 'undefined') {
+            console.error('❌ Firebase Auth não carregou!');
+            return false;
+        }
+        
+        // Verifica se o Firebase está configurado corretamente
+        const config = firebase.app().options;
+        if (!config.apiKey) {
+            console.error('❌ Firebase não configurado corretamente!');
+            return false;
+        }
+        
+        console.log('✅ Firebase Auth OK');
+        return true;
+    }
+    
+    // Força a atualização do estado do usuário
+    function forcarAtualizacaoUsuario() {
+        if (auth && auth.currentUser) {
+            currentUser = auth.currentUser;
+            console.log('✅ Usuário recuperado:', currentUser.email);
+            updateUserUI(currentUser);
+            forcarExibicaoLogin();
+        } else {
+            currentUser = null;
+            forcarExibicaoLogin();
+        }
+    }
+    
+    // Executa as verificações
+    setTimeout(() => {
+        if (verificarFirebaseAuth()) {
+            forcarAtualizacaoUsuario();
+        } else {
+            // Tenta recarregar o Firebase
+            console.log('🔄 Tentando recarregar Firebase...');
+            if (typeof firebase !== 'undefined') {
+                try {
+                    // Força uma reconexão
+                    auth.onAuthStateChanged((user) => {
+                        currentUser = user;
+                        updateUserUI(user);
+                        forcarExibicaoLogin();
+                    });
+                } catch(e) {
+                    console.error('Erro ao recarregar Firebase:', e);
+                }
+            }
+        }
+    }, 500);
+})();
+
+
+
+
+
+                
                 const DEFAULT_AVATAR_URL = "https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png";
                 
                 // ==================== FIREBASE CONFIG ====================
@@ -6423,7 +6506,57 @@ function loadSeriesFromFirebase() {
                 async function saveBatch() { if (batchPreviewItems.length === 0) { showToast('❌ Clique em "Pré-visualizar" primeiro'); return; } const existingTitles = filmes.map(f => f.title); const newItems = batchPreviewItems.filter(item => !existingTitles.includes(item.title)); const duplicates = batchPreviewItems.filter(item => existingTitles.includes(item.title)); if (duplicates.length > 0) { if (!confirm(`⚠️ ${duplicates.length} duplicados. Adicionar apenas ${newItems.length} novos?`)) return; } if (newItems.length === 0) { showToast('❌ Nenhum filme novo'); return; } showToast(`💾 Salvando ${newItems.length} filmes...`); let salvos = 0; for (let item of newItems) { const safeId = generateSafeId(); const mediaType = extractYoutubeId(item.link) ? 'youtube' : 'iptv'; await database.ref(`filmes/${safeId}`).set({ id: safeId, title: item.title, link: item.link, thumb: item.thumb, category: item.genre, year: item.year, description: item.description, createdAt: Date.now(), mediaType: mediaType }); salvos++; } showToast(`✅ ${salvos} filmes salvos!`); document.getElementById('batchLinksInput').value = ''; document.getElementById('batchPreview').innerHTML = ''; batchPreviewItems = []; loadFilmesFromFirebase(); }
                 async function saveEpisodes() { const serieName = document.getElementById('serieTitle').value.trim(); const episodesText = document.getElementById('episodesLinksInput').value; if (!serieName) { alert('Digite o nome da série'); return; } const lines = episodesText.split('\n').filter(l => l.trim()); if (lines.length === 0) { alert('Cole os episódios'); return; } showToast(`💾 Salvando ${lines.length} episódios...`); let salvos = 0; for (let line of lines) { let episodeTitle = '', link = ''; if (line.includes(':')) { const parts = line.split(':'); episodeTitle = parts[0].trim(); link = parts.slice(1).join(':').trim(); } else { link = line.trim(); episodeTitle = `EP${String(salvos + 1).padStart(2, '0')}`; } let metadata; if (extractYoutubeId(link)) metadata = await fetchVideoDataFromLink(link, 'youtube'); else if (isIptvLink(link)) metadata = await fetchVideoDataFromLink(link, 'iptv'); const safeId = generateSafeId(); const mediaType = extractYoutubeId(link) ? 'youtube' : 'iptv'; await database.ref(`series/${safeId}`).set({ id: safeId, title: `${serieName} - ${episodeTitle}`, link: link, thumb: metadata?.thumb || 'https://via.placeholder.com/300x200', category: metadata?.genre || 'Série', year: metadata?.year || new Date().getFullYear(), description: metadata?.description || `Episódio ${episodeTitle}`, createdAt: Date.now(), mediaType: mediaType }); salvos++; } showToast(`✅ ${salvos} episódios salvos!`); document.getElementById('serieTitle').value = ''; document.getElementById('episodesLinksInput').value = ''; loadSeriesFromFirebase(); }
                 
-                function updateUserUI(user) { if (user) { hideLoginModal(); loadUserNickname(user.uid); database.ref(`favoritos/${user.uid}`).on('value', (snapshot) => { favoritos = snapshot.val() ? Object.values(snapshot.val()) : []; updateProfileUI(); }); database.ref('top10').on('value', (snapshot) => { const data = snapshot.val(); if (data) { top10List = data; renderTop10Carousel(); } else { generateTop10ByViews(); } }); updateProfileUI(); updateLastSeen(); database.ref(`usuarios/${user.uid}`).once('value').then(snap => { const data = snap.val(); if (data) { if (data.displayName) userProfileData.displayName = data.displayName; if (data.bio) userProfileData.bio = data.bio; if (data.externalLink) userProfileData.externalLink = data.externalLink; if (data.phone) userProfileData.phone = data.phone; if (data.whatsapp) userProfileData.whatsapp = data.whatsapp; userProfileData.avatarUrl = getAvatarUrl(data.avatarUrl); } }); loadChatList(); setupChatUnreadListener(); renderFeed(); } else { showLoginModal(); updateProfileUI(); } }
+                function updateUserUI(user) { 
+    console.log('🔄 updateUserUI chamado com user:', user ? user.email : 'null');
+    
+    if (user) { 
+        hideLoginModal(); 
+        loadUserNickname(user.uid); 
+        
+        // Carrega favoritos
+        database.ref(`favoritos/${user.uid}`).on('value', (snapshot) => { 
+            favoritos = snapshot.val() ? Object.values(snapshot.val()) : []; 
+            updateProfileUI(); 
+        }); 
+        
+        // Carrega top10
+        database.ref('top10').on('value', (snapshot) => { 
+            const data = snapshot.val(); 
+            if (data) { 
+                top10List = data; 
+                renderTop10Carousel(); 
+            } else { 
+                generateTop10ByViews(); 
+            } 
+        }); 
+        
+        updateProfileUI(); 
+        updateLastSeen(); 
+        
+        // Carrega dados do perfil
+        database.ref(`usuarios/${user.uid}`).once('value').then(snap => { 
+            const data = snap.val(); 
+            if (data) { 
+                if (data.displayName) userProfileData.displayName = data.displayName; 
+                if (data.bio) userProfileData.bio = data.bio; 
+                if (data.externalLink) userProfileData.externalLink = data.externalLink; 
+                if (data.phone) userProfileData.phone = data.phone; 
+                if (data.whatsapp) userProfileData.whatsapp = data.whatsapp; 
+                userProfileData.avatarUrl = getAvatarUrl(data.avatarUrl); 
+            } 
+        }); 
+        
+        loadChatList(); 
+        setupChatUnreadListener(); 
+        renderFeed();
+        
+        console.log('✅ UI atualizada com usuário logado');
+    } else { 
+        showLoginModal(); 
+        updateProfileUI(); 
+        console.log('⚠️ Nenhum usuário logado, mostrando modal de login');
+    } 
+}
                 async function loadUserNickname(userId) { const snapshot = await database.ref(`usuarios/${userId}`).once('value'); const data = snapshot.val(); if (data && data.nickname) { currentUsername = data.nickname; localStorage.setItem('noitefilmes_username', currentUsername); } }
                 function updateLastSeen() { if (currentUser) { database.ref(`usuarios/${currentUser.uid}/lastSeen`).set(Date.now()); } }
                 // Atualiza lastSeen apenas se a página estiver visível
@@ -6649,8 +6782,81 @@ setInterval(() => {
                 function setDarkMode() { document.body.classList.remove('light-mode'); document.body.classList.add('dark-mode'); localStorage.setItem('noitefilmes_theme', 'dark'); }
                 function setLightMode() { document.body.classList.remove('dark-mode'); document.body.classList.add('light-mode'); localStorage.setItem('noitefilmes_theme', 'light'); }
                 function loadTheme() { const theme = localStorage.getItem('noitefilmes_theme'); if (theme === 'light') setLightMode(); else setDarkMode(); }
-                function hideLoginModal() { document.getElementById('loginModal').classList.add('hidden'); }
-                function showLoginModal() { document.getElementById('loginModal').classList.remove('hidden'); }
+                function hideLoginModal() { 
+    const modal = document.getElementById('loginModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        console.log('🔒 Modal de login ocultado');
+    }
+}
+
+function showLoginModal() { 
+    const modal = document.getElementById('loginModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        console.log('🔓 Modal de login exibido');
+        
+        // Garante que os campos estão vazios e visíveis
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        if (loginForm) loginForm.classList.remove('hidden');
+        if (registerForm) registerForm.classList.add('hidden');
+        
+        // Limpa os campos
+        const loginEmail = document.getElementById('loginEmail');
+        const loginPassword = document.getElementById('loginPassword');
+        if (loginEmail) loginEmail.value = '';
+        if (loginPassword) loginPassword.value = '';
+    } else {
+        console.error('❌ Modal de login não encontrado no DOM!');
+        // Tenta criar o modal se não existir
+        criarModalLoginEmergencial();
+    }
+}
+
+// Função de emergência para criar o modal se ele não existir
+function criarModalLoginEmergencial() {
+    if (document.getElementById('loginModal')) return;
+    
+    console.log('🚨 Criando modal de login de emergência...');
+    const modalHTML = `
+        <div id="loginModal" class="login-modal fixed inset-0 z-[2000] flex items-center justify-center bg-black/95 backdrop-blur-lg">
+            <div class="login-box bg-[#1a1a1a] rounded-2xl p-6 w-[90%] max-w-[350px] border border-[#e50914]">
+                <h2 class="text-xl font-bold mb-4 text-center text-white">🎬 NoiteFilmes</h2>
+                <div id="loginForm">
+                    <input type="email" id="loginEmail" class="w-full p-3 bg-[#2a2a2a] border border-[#444] rounded-lg text-white mb-3" placeholder="Email">
+                    <input type="password" id="loginPassword" class="w-full p-3 bg-[#2a2a2a] border border-[#444] rounded-lg text-white mb-3" placeholder="Senha">
+                    <button id="doLogin" class="w-full bg-[#e50914] text-white p-3 rounded-lg font-bold">Entrar</button>
+                    <div class="text-[#e50914] text-center mt-3 text-sm cursor-pointer" id="showRegister">Não tem conta? Cadastre-se</div>
+                </div>
+                <div id="registerForm" class="hidden">
+                    <input type="email" id="registerEmail" class="w-full p-3 bg-[#2a2a2a] border border-[#444] rounded-lg text-white mb-3" placeholder="Email">
+                    <input type="password" id="registerPassword" class="w-full p-3 bg-[#2a2a2a] border border-[#444] rounded-lg text-white mb-3" placeholder="Senha">
+                    <input type="text" id="registerNickname" class="w-full p-3 bg-[#2a2a2a] border border-[#444] rounded-lg text-white mb-3" placeholder="@Nickname">
+                    <button id="doRegister" class="w-full bg-[#e50914] text-white p-3 rounded-lg font-bold">Cadastrar</button>
+                    <div class="text-[#e50914] text-center mt-3 text-sm cursor-pointer" id="showLogin">Já tem conta? Faça login</div>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Reconecta os eventos
+    document.getElementById('doLogin').onclick = () => {
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+        auth.signInWithEmailAndPassword(email, password).catch(e => showToast('Erro: ' + e.message));
+    };
+    document.getElementById('doRegister').onclick = registerUser;
+    document.getElementById('showRegister').onclick = () => {
+        document.getElementById('loginForm').classList.add('hidden');
+        document.getElementById('registerForm').classList.remove('hidden');
+    };
+    document.getElementById('showLogin').onclick = () => {
+        document.getElementById('registerForm').classList.add('hidden');
+        document.getElementById('loginForm').classList.remove('hidden');
+    };
+} }
                 
                 loadCanaisFromFirebase();
                 loadFilmesFromFirebase();
@@ -11789,7 +11995,57 @@ function editarCategoriaCanal(canalId, categoriaAtual) {
         });
     }
 }
-                
+
+
+
+
+
+
+
+                // ==================== VERIFICAÇÃO DE INICIALIZAÇÃO ====================
+(function verificarInicializacao() {
+    console.log('🚀 Verificando inicialização do sistema...');
+    
+    let tentativas = 0;
+    const maxTentativas = 10;
+    
+    const intervalo = setInterval(() => {
+        tentativas++;
+        
+        // Verifica se o Firebase está pronto
+        if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+            console.log('✅ Firebase inicializado com sucesso!');
+            
+            // Verifica se o modal de login existe
+            const loginModal = document.getElementById('loginModal');
+            if (!loginModal) {
+                console.log('⚠️ Modal de login não encontrado, criando...');
+                criarModalLoginEmergencial();
+            }
+            
+            // Força a verificação do usuário
+            if (auth && auth.currentUser) {
+                console.log('✅ Usuário já está logado:', auth.currentUser.email);
+                hideLoginModal();
+            } else {
+                console.log('⚠️ Nenhum usuário logado, exibindo modal');
+                showLoginModal();
+            }
+            
+            clearInterval(interval);
+        } else if (tentativas >= maxTentativas) {
+            console.error('❌ Firebase não inicializou após', maxTentativas, 'tentativas');
+            clearInterval(interval);
+            
+            // Mostra mensagem de erro amigável
+            const erroDiv = document.createElement('div');
+            erroDiv.style.cssText = 'position:fixed; bottom:20px; left:20px; right:20px; background:#e50914; color:white; padding:12px; border-radius:12px; text-align:center; z-index:9999; font-size:12px;';
+            erroDiv.innerHTML = '⚠️ Erro ao conectar com o servidor. Recarregue a página ou tente novamente mais tarde.';
+            document.body.appendChild(erroDiv);
+            setTimeout(() => erroDiv.remove(), 5000);
+        }
+    }, 500);
+})();
 
                 
          </script>  
