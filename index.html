@@ -3269,121 +3269,120 @@
 
 
 
-    /* --- ESTILOS CORRIGIDOS PARA OS FILTROS --- */
-    
-    /* Container principal da área de filtros */
-    #filtrosArea .glass {
-        overflow: visible; /* Garante que o conteúdo não corte */
-        padding: 8px 0; /* Dá um pouco de espaço vertical */
-    }
+    /* --- ESTILOS OTIMIZADOS PARA OS FILTROS --- */
 
-    /* A linha que contém os gêneros e o select */
-    .filters-row {
-        display: flex !important;
-        flex-wrap: nowrap !important; /* FORÇA FICAREM NA MESMA LINHA */
-        align-items: center !important;
-        gap: 12px !important; /* Espaço entre o scroll de gêneros e o select */
-        overflow-x: visible !important;
-        width: 100%;
-    }
+/* Container principal da área de filtros - MAIS COMPACTO */
+#filtrosArea .glass {
+    padding: 6px 8px !important;
+    border-radius: 20px !important;
+    background: rgba(20, 25, 45, 0.5) !important;
+    backdrop-filter: blur(14px) !important;
+}
 
-    /* O scroll dos gêneros (Todos, Ação, Suspense...) */
-    #genreScroll {
-        display: flex !important;
-        flex-wrap: nowrap !important; /* BOTÕES FICAM EM UMA LINHA ÚNICA */
-        overflow-x: auto !important;  /* ADICIONA A ROLAGEM HORIZONTAL */
-        overflow-y: hidden !important;
-        -webkit-overflow-scrolling: touch; /* Rolagem suave no iPhone */
-        scrollbar-width: thin; /* Deixa a barra de rolagem mais fina (Firefox) */
-        gap: 8px !important;
-        padding: 4px 0 8px 0 !important; /* Espaço interno para não cortar a sombra do botão */
-        flex: 1; /* Ocupa o espaço disponível */
-    }
-    
-    /* Esconde a barra de rolagem no Chrome/Safari (opcional, mas deixa mais limpo) */
-    #genreScroll::-webkit-scrollbar {
-        height: 3px;
-    }
-    #genreScroll::-webkit-scrollbar-track {
-        background: rgba(255,255,255,0.1);
-        border-radius: 10px;
-    }
-    #genreScroll::-webkit-scrollbar-thumb {
-        background: #e50914;
-        border-radius: 10px;
-    }
+/* A linha que contém os gêneros e o select */
+.filters-row {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 10px !important;
+    width: 100%;
+    min-height: 44px; /* Altura fixa e compacta */
+}
 
-    /* Estilo para cada botão de gênero (Todos, Ação...) */
+/* O scroll dos gêneros (Todos, Ação, Suspense...) */
+#genreScroll {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    gap: 6px !important;
+    padding: 2px 0 4px 0 !important;
+    flex: 1;
+}
+
+/* Esconde a barra de rolagem no Chrome/Safari (mais limpo) */
+#genreScroll::-webkit-scrollbar {
+    height: 2px;
+}
+#genreScroll::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.08);
+    border-radius: 10px;
+}
+#genreScroll::-webkit-scrollbar-thumb {
+    background: #e50914;
+    border-radius: 10px;
+}
+
+/* Botões de gênero - MAIS COMPACTOS */
+.genre-filter {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    padding: 6px 14px !important;
+    border-radius: 40px !important;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    letter-spacing: -0.2px;
+}
+
+.genre-filter-active {
+    background: linear-gradient(135deg, #e50914, #b20710) !important;
+    color: white !important;
+    border-color: transparent !important;
+    box-shadow: 0 2px 8px rgba(229, 9, 20, 0.3);
+}
+
+/* Select de ordenação - SEM EMOJI, MAIS MODERNO */
+#sortSelect {
+    flex-shrink: 0 !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    padding: 6px 28px 6px 12px !important; /* Espaço para a seta */
+    border-radius: 40px !important;
+    background-color: rgba(0, 0, 0, 0.5) !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 12px;
+    appearance: none;
+    -webkit-appearance: none;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+}
+
+/* Ajuste para dispositivos muito pequenos */
+@media (max-width: 480px) {
     .genre-filter {
-        flex-shrink: 0 !important;   /* IMPEDE OS BOTÕES DE ENCOLHEREM */
-        white-space: nowrap !important; /* IMPEDE O TEXTO DE QUEBRAR */
-        font-size: 11px !important;
-        padding: 6px 14px !important;
-        border-radius: 40px !important;
-        transition: all 0.2s ease;
-        cursor: pointer;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        font-size: 10px !important;
+        padding: 5px 12px !important;
     }
-    
-    .genre-filter-active {
-        background: linear-gradient(135deg, #e50914, #b20710) !important;
-        color: white !important;
-        border-color: transparent !important;
-    }
-
-    /* Estilo para o select de ordenação (Mais recentes, Mais vistos...) */
     #sortSelect {
-        flex-shrink: 0 !important; /* IMPEDE O SELECT DE ENCOLHER */
-        font-size: 11px !important;
-        padding: 6px 12px !important;
-        border-radius: 40px !important;
-        background-color: rgba(0, 0, 0, 0.4) !important;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        color: white;
-        cursor: pointer;
-        backdrop-filter: blur(4px);
+        font-size: 10px !important;
+        padding: 5px 26px 5px 10px !important;
     }
-    
-    /* Ajuste para dispositivos muito pequenos */
-    @media (max-width: 480px) {
-        .genre-filter {
-            font-size: 10px !important;
-            padding: 5px 12px !important;
-        }
-        #sortSelect {
-            font-size: 10px !important;
-            padding: 5px 10px !important;
-        }
-        .filters-row {
-            gap: 8px !important;
-        }
+    .filters-row {
+        gap: 8px !important;
+        min-height: 40px;
     }
+}
 
-    /* CORREÇÃO PARA O MENU SUPERIOR (Canais, Filmes, Séries, etc.) */
-    .menu-container {
-        display: flex !important;
-        overflow-x: auto !important;
-        overflow-y: hidden !important;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: thin;
-        gap: 8px;
-        padding: 8px 12px;
-        flex-wrap: nowrap !important; /* FORÇA FICAR EM UMA LINHA */
+/* Ocultar a barra de rolagem em dispositivos móveis (opcional) */
+@media (max-width: 768px) {
+    #genreScroll::-webkit-scrollbar {
+        display: none;
     }
-    
-    .menu-container .nav-item {
-        flex-shrink: 0 !important; /* BOTÕES NÃO ENCOLHEM */
-        white-space: nowrap !important;
+    #genreScroll {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
     }
-    
-    /* Remove a quebra de linha no bottom nav se houver */
-    .bottom-nav {
-        flex-wrap: nowrap !important;
-        overflow-x: auto !important;
-        justify-content: space-between !important;
-    }
-
+}
 
 
         
@@ -3528,7 +3527,7 @@
                 <div class="filters-row flex items-center gap-2">
                     <div id="genreScroll" class="genre-scroll flex flex-1 overflow-x-auto gap-1 pb-1"></div>
                     <select id="sortSelect" class="sort-select bg-white/10 rounded-full px-2 py-1 text-[9px] cursor-pointer">
-                        <option value="recent">📅 Mais recentes</option>
+                        <option value="recent">🕐 Mais recentes</option>
                         <option value="views">👁️ Mais vistos</option>
                         <option value="az">🔤 A-Z</option>
                         <option value="za">🔤 Z-A</option>
@@ -5956,58 +5955,80 @@ function renderStarsCorrigido(container, mediaId, userRating) {
                 
                 // ==================== FUNÇÕES DE CARREGAMENTO DE DADOS COM TRATAMENTO DE ERROS ====================
                 function loadCanaisFromFirebase() { 
-                    database.ref('canais').once('value', (snapshot) => { 
-                        const data = snapshot.val(); 
-                        canais = data ? Object.values(data).filter(i => i && !i.hidden) : []; 
-                        canaisLoaded = true; 
-                        updateContentCounters(); 
-                        loadAllViews(); 
-                        if (currentNavTab === 'canais') renderGrid(); 
-                        updateGenreFilters(); 
-                        if (isAdminLogged) refreshAdminLists(); 
-                        checkAllDataLoaded(); 
-                    }).catch(error => {
-                        console.error('Erro ao carregar canais:', error);
-                        canais = [];
-                        canaisLoaded = true;
-                    });
-                }
+    database.ref('canais').once('value', (snapshot) => { 
+        const data = snapshot.val(); 
+        canais = data ? Object.values(data).filter(i => i && !i.hidden) : []; 
+        canaisLoaded = true; 
+        updateContentCounters(); 
+        loadAllViews(); 
+        if (currentNavTab === 'canais') renderGrid(); 
+        if (isAdminLogged) refreshAdminLists(); 
+        checkAllDataLoaded(); 
+        
+        // 🔥 ADICIONE ESTA LINHA ABAIXO 🔥
+        updateGenreFilters(); // Força atualizar os filtros após carregar os dados
+    }).catch(error => {
+        console.error('Erro ao carregar canais:', error);
+        canais = [];
+        canaisLoaded = true;
+        updateGenreFilters(); // Mesmo com erro, tenta atualizar
+    });
+}
+
+function loadFilmesFromFirebase() { 
+    database.ref('filmes').once('value', (snapshot) => { 
+        const data = snapshot.val(); 
+        filmes = data ? Object.values(data).filter(i => i && !i.hidden) : []; 
+        filmesLoaded = true; 
+        updateContentCounters(); 
+        loadAllViews(); 
+        if (currentNavTab === 'filmes') renderGrid(); 
+        if (isAdminLogged) refreshAdminLists(); 
+        checkAllDataLoaded(); 
+        
+        // 🔥 ADICIONE ESTA LINHA ABAIXO 🔥
+        updateGenreFilters(); // Força atualizar os filtros após carregar os dados
+    }).catch(error => {
+        console.error('Erro ao carregar filmes:', error);
+        filmes = [];
+        filmesLoaded = true;
+        updateGenreFilters();
+    });
+}
+
+function loadSeriesFromFirebase() { 
+    database.ref('series').once('value', (snapshot) => { 
+        const data = snapshot.val(); 
+        series = data ? Object.values(data).filter(i => i && !i.hidden) : []; 
+        seriesLoaded = true; 
+        updateContentCounters(); 
+        loadAllViews(); 
+        if (currentNavTab === 'series') renderGrid(); 
+        if (isAdminLogged) refreshAdminLists(); 
+        checkAllDataLoaded(); 
+        
+        // 🔥 ADICIONE ESTA LINHA ABAIXO 🔥
+        updateGenreFilters(); // Força atualizar os filtros após carregar os dados
+    }).catch(error => {
+        console.error('Erro ao carregar séries:', error);
+        series = [];
+        seriesLoaded = true;
+        updateGenreFilters();
+    });
+}
                 
-                function loadFilmesFromFirebase() { 
-                    database.ref('filmes').once('value', (snapshot) => { 
-                        const data = snapshot.val(); 
-                        filmes = data ? Object.values(data).filter(i => i && !i.hidden) : []; 
-                        filmesLoaded = true; 
-                        updateContentCounters(); 
-                        loadAllViews(); 
-                        if (currentNavTab === 'filmes') renderGrid(); 
-                        if (isAdminLogged) refreshAdminLists(); 
-                        checkAllDataLoaded(); 
-                    }).catch(error => {
-                        console.error('Erro ao carregar filmes:', error);
-                        filmes = [];
-                        filmesLoaded = true;
-                    });
-                }
-                
-                function loadSeriesFromFirebase() { 
-                    database.ref('series').once('value', (snapshot) => { 
-                        const data = snapshot.val(); 
-                        series = data ? Object.values(data).filter(i => i && !i.hidden) : []; 
-                        seriesLoaded = true; 
-                        updateContentCounters(); 
-                        loadAllViews(); 
-                        if (currentNavTab === 'series') renderGrid(); 
-                        if (isAdminLogged) refreshAdminLists(); 
-                        checkAllDataLoaded(); 
-                    }).catch(error => {
-                        console.error('Erro ao carregar séries:', error);
-                        series = [];
-                        seriesLoaded = true;
-                    });
-                }
-                
-                function checkAllDataLoaded() { if (canaisLoaded && filmesLoaded && seriesLoaded) { const urlParams = new URLSearchParams(window.location.search); const mediaId = urlParams.get('mediaId'); const type = urlParams.get('type'); if (mediaId && type) playMediaById(mediaId, type); } }
+                function checkAllDataLoaded() { 
+    if (canaisLoaded && filmesLoaded && seriesLoaded) { 
+        // 🔥 ADICIONE ESTA LINHA AQUI 🔥
+        updateGenreFilters(); // Garante que os filtros apareçam quando tudo estiver carregado
+        
+        const urlParams = new URLSearchParams(window.location.search); 
+        const mediaId = urlParams.get('mediaId'); 
+        const type = urlParams.get('type'); 
+        if (mediaId && type) playMediaById(mediaId, type); 
+    } 
+}
+
                 
                 function sortItems(items) { if (!items) return []; const sorted = [...items]; switch (currentSort) { case 'recent': sorted.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); break; case 'views': sorted.sort((a, b) => (viewsCache[b.id] || 0) - (viewsCache[a.id] || 0)); break; case 'az': sorted.sort((a, b) => a.title.localeCompare(b.title)); break; case 'za': sorted.sort((a, b) => b.title.localeCompare(a.title)); break; case 'year_asc': sorted.sort((a, b) => (parseInt(a.year) || 0) - (parseInt(b.year) || 0)); break; case 'year_desc': sorted.sort((a, b) => (parseInt(b.year) || 0) - (parseInt(a.year) || 0)); break; case 'genre': sorted.sort((a, b) => (a.category || '').localeCompare(b.category || '')); break; default: sorted.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); } return sorted; }
                 
@@ -6025,20 +6046,49 @@ function renderStarsCorrigido(container, mediaId, userRating) {
                 }
                 
                 function updateGenreFilters() {
-                    let items = [];
-                    if (currentNavTab === 'canais') items = canais;
-                    else if (currentNavTab === 'filmes') items = filmes;
-                    else if (currentNavTab === 'series') items = series;
-                    const genres = new Set();
-                    items.forEach(item => { if (item.category) genres.add(item.category); });
-                    const scrollContainer = document.getElementById('genreScroll');
-                    scrollContainer.innerHTML = '<button data-genre="todos" class="genre-filter px-2 py-0.5 rounded-full bg-white/10 text-[10px] genre-filter-active ripple-btn">🎬 Todos</button>';
-                    Array.from(genres).sort().forEach(genre => { scrollContainer.innerHTML += `<button data-genre="${genre}" class="genre-filter px-2 py-0.5 rounded-full bg-white/10 text-[10px] ripple-btn">${genre}</button>`; });
-                    document.querySelectorAll('#genreScroll .genre-filter').forEach(btn => {
-                        if (btn.getAttribute('data-genre') === currentGenreFilter) btn.classList.add('genre-filter-active');
-                        btn.addEventListener('click', () => { document.querySelectorAll('#genreScroll .genre-filter').forEach(b => b.classList.remove('genre-filter-active')); btn.classList.add('genre-filter-active'); currentGenreFilter = btn.getAttribute('data-genre'); renderGrid(); });
-                    });
-                }
+    let items = [];
+    if (currentNavTab === 'canais') items = canais;
+    else if (currentNavTab === 'filmes') items = filmes;
+    else if (currentNavTab === 'series') items = series;
+    
+    const genres = new Set();
+    items.forEach(item => { 
+        if (item && item.category && item.category.trim() !== '') {
+            genres.add(item.category);
+        }
+    });
+    
+    const scrollContainer = document.getElementById('genreScroll');
+    if (!scrollContainer) return;
+    
+    // Salva o gênero ativo atual
+    const activeGenre = currentGenreFilter || 'todos';
+    
+    // Gera os botões (com ordem alfabética)
+    let genresArray = Array.from(genres).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    
+    let html = '<button data-genre="todos" class="genre-filter px-2 py-0.5 rounded-full bg-white/10 text-[10px] ripple-btn">🎬 Todos</button>';
+    
+    genresArray.forEach(genre => {
+        html += `<button data-genre="${genre}" class="genre-filter px-2 py-0.5 rounded-full bg-white/10 text-[10px] ripple-btn">${genre}</button>`;
+    });
+    
+    scrollContainer.innerHTML = html;
+    
+    // Aplica a classe active no gênero correto
+    document.querySelectorAll('#genreScroll .genre-filter').forEach(btn => {
+        if (btn.getAttribute('data-genre') === activeGenre) {
+            btn.classList.add('genre-filter-active');
+        }
+        
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('#genreScroll .genre-filter').forEach(b => b.classList.remove('genre-filter-active'));
+            btn.classList.add('genre-filter-active');
+            currentGenreFilter = btn.getAttribute('data-genre');
+            renderGrid();
+        });
+    });
+}
                 
                 function renderTop10Carousel() {
                     const track = document.getElementById('top10Track');
@@ -11365,6 +11415,35 @@ if (/Xbox/i.test(navigator.userAgent)) {
                 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+// 🔥 GARANTIA EXTRA: Forçar carregamento dos filtros após 2 segundos
+setTimeout(function() {
+    if (document.getElementById('genreScroll') && document.getElementById('genreScroll').innerHTML === '') {
+        console.log('🔄 Recarregando filtros automaticamente...');
+        updateGenreFilters();
+    }
+}, 2000);
+
+
+
+
+
+
+
+
+                
 
 
 
