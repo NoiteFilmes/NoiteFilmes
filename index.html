@@ -6034,26 +6034,174 @@ function loadSeriesFromFirebase() {
                 function sortItems(items) { if (!items) return []; const sorted = [...items]; switch (currentSort) { case 'recent': sorted.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); break; case 'views': sorted.sort((a, b) => (viewsCache[b.id] || 0) - (viewsCache[a.id] || 0)); break; case 'az': sorted.sort((a, b) => a.title.localeCompare(b.title)); break; case 'za': sorted.sort((a, b) => b.title.localeCompare(a.title)); break; case 'year_asc': sorted.sort((a, b) => (parseInt(a.year) || 0) - (parseInt(b.year) || 0)); break; case 'year_desc': sorted.sort((a, b) => (parseInt(b.year) || 0) - (parseInt(a.year) || 0)); break; case 'genre': sorted.sort((a, b) => (a.category || '').localeCompare(b.category || '')); break; default: sorted.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); } return sorted; }
                 
                 function renderGrid() {
-                    let items = [];
+    let items = [];
     if (currentNavTab === 'canais') items = canais;
     else if (currentNavTab === 'filmes') items = filmes;
     else if (currentNavTab === 'series') items = series;
     
-    // 🔥 ESTA LINHA É A MAIS IMPORTANTE - ELA APLICA O FILTRO 🔥
-    if (currentGenreFilter !== 'todos' && currentNavTab !== 'canais') {
-        items = items.filter(i => i.category === currentGenreFilter);
+    // 🔥 FILTRO INTELIGENTE - Normaliza os gêneros para comparar
+    if (currentGenreFilter !== 'todos') {
+        items = items.filter(item => {
+            if (!item.category) return false;
+            const generoNormalizado = normalizarGenero(item.category);
+            return generoNormalizado === currentGenreFilter;
+        });
     }
     
-    // CORREÇÃO: Também filtrar canais se eles tiverem categoria
-    if (currentGenreFilter !== 'todos' && currentNavTab === 'canais') {
-        items = items.filter(i => i.category === currentGenreFilter);
+    items = sortItems(items);
+    
+    const grid = document.getElementById('contentGrid');
+    if (items.length === 0) { 
+        grid.innerHTML = '<div class="col-span-full text-center py-4 text-gray-500 text-xs">📀 Nenhum conteúdo encontrado.</div>'; 
+        return; 
     }
-                    items = sortItems(items);
-                    const grid = document.getElementById('contentGrid');
-                    if (items.length === 0) { grid.innerHTML = '<div class="col-span-full text-center py-4 text-gray-500 text-xs">📀 Nenhum conteúdo encontrado.</div>'; return; }
-                    grid.innerHTML = items.map(item => { const isIptv = isIptvLink(item.link); const views = viewsCache[item.id] || 0; return `<div class="glass-card overflow-hidden cursor-pointer transition-all card-hover ripple-btn" data-id="${item.id}" data-type="${currentNavTab}"><img src="${item.thumb || 'https://via.placeholder.com/300x200'}" class="w-full h-28 object-cover" onerror="this.src='https://via.placeholder.com/300x200'"><div class="p-1"><h3 class="font-semibold text-xs truncate">${item.title} ${isIptv ? '<span class="iptv-badge text-[7px] bg-red-600 px-1 rounded ml-0.5">VIDEO</span>' : ''}</h3><p class="text-[9px] opacity-70">${item.category || 'Geral'} ${item.year ? `• ${item.year}` : ''}</p><p class="text-[9px]"><i class="fas fa-eye"></i> ${views}</p></div></div>`; }).join('');
-                    document.querySelectorAll('#contentGrid > div').forEach(card => { card.addEventListener('click', () => { const id = card.getAttribute('data-id'); const type = card.getAttribute('data-type'); let item; if (type === 'canais') item = canais.find(c => c.id === id); else if (type === 'filmes') item = filmes.find(f => f.id === id); else item = series.find(s => s.id === id); if (item) playMedia(item, type); }); });
-                }
+    
+    grid.innerHTML = items.map(item => { 
+        const isIptv = isIptvLink(item.link); 
+        const views = viewsCache[item.id] || 0; 
+        return `<div class="glass-card overflow-hidden cursor-pointer transition-all card-hover ripple-btn" data-id="${item.id}" data-type="${currentNavTab}"><img src="${item.thumb || 'https://via.placeholder.com/300x200'}" class="w-full h-28 object-cover" onerror="this.src='https://via.placeholder.com/300x200'"><div class="p-1"><h3 class="font-semibold text-xs truncate">${item.title} ${isIptv ? '<span class="iptv-badge text-[7px] bg-red-600 px-1 rounded ml-0.5">VIDEO</span>' : ''}</h3><p class="text-[9px] opacity-70">${item.category || 'Geral'} ${item.year ? `• ${item.year}` : ''}</p><p class="text-[9px]"><i class="fas fa-eye"></i> ${views}</p></div></div>`; 
+    }).join('');
+    
+    document.querySelectorAll('#contentGrid > div').forEach(card => { 
+        card.addEventListener('click', () => { 
+            const id = card.getAttribute('data-id'); 
+            const type = card.getAttribute('data-type'); 
+            let item; 
+            if (type === 'canais') item = canais.find(c => c.id === id); 
+            else if (type === 'filmes') item = filmes.find(f => f.id === id); 
+            else item = series.find(s => s.id === id); 
+            if (item) playMedia(item, type); 
+        }); 
+    });
+}
+
+
+
+
+// 🔥 FUNÇÃO PARA NORMALIZAR TEXTOS (remove acentos, letras maiúsculas, variações)
+function normalizarTexto(texto) {
+    if (!texto) return '';
+    
+    // Converte para minúsculo
+    let normalizado = texto.toLowerCase();
+    
+    // Remove acentos e caracteres especiais
+    normalizado = normalizado.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    
+    // Remove caracteres não alfanuméricos (exceto espaços)
+    normalizado = normalizado.replace(/[^a-z0-9\s]/g, '');
+    
+    // Remove espaços extras
+    normalizado = normalizado.trim();
+    
+    return normalizado;
+}
+
+// 🔥 MAPA DE SINÔNIMOS - Agrupa palavras similares
+const mapaGeneros = {
+    // Ação e variações
+    'acao': 'Ação',
+    'açao': 'Ação', 
+    'açaõ': 'Ação',
+    'açã': 'Ação',
+    'accao': 'Ação',
+    'accion': 'Ação',
+    
+    // Comédia e variações
+    'comedia': 'Comédia',
+    'comédia': 'Comédia',
+    'comedya': 'Comédia',
+    'komedia': 'Comédia',
+    
+    // Desenho / Animação
+    'desenho': 'Animação',
+    'desenhos': 'Animação',
+    'animacao': 'Animação',
+    'animação': 'Animação',
+    'animation': 'Animação',
+    'cartoon': 'Animação',
+    
+    // Terror
+    'terror': 'Terror',
+    'horror': 'Terror',
+    'horror': 'Terror',
+    
+    // Suspense
+    'suspense': 'Suspense',
+    'suspence': 'Suspense',
+    
+    // Drama
+    'drama': 'Drama',
+    'dram': 'Drama',
+    
+    // Romance
+    'romance': 'Romance',
+    'romantico': 'Romance',
+    'romântico': 'Romance',
+    
+    // Ficção / Sci-Fi
+    'ficcao': 'Ficção',
+    'ficção': 'Ficção',
+    'science fiction': 'Ficção Científica',
+    'sci-fi': 'Ficção Científica',
+    'scifi': 'Ficção Científica',
+    
+    // Aventura
+    'aventura': 'Aventura',
+    'adventure': 'Aventura',
+    
+    // Canais (para a seção canais)
+    'canal': 'Canais',
+    'canais': 'Canais',
+    'tv': 'Canais TV',
+    'televisao': 'Canais TV',
+    'televisão': 'Canais TV',
+    
+    // Esportes
+    'esporte': 'Esportes',
+    'esportes': 'Esportes',
+    'sports': 'Esportes',
+    'futebol': 'Esportes',
+    'basquete': 'Esportes',
+    
+    // Documentário
+    'documentario': 'Documentário',
+    'documentário': 'Documentário',
+    'documentary': 'Documentário',
+    'doc': 'Documentário',
+    
+    // Família
+    'familia': 'Família',
+    'família': 'Família',
+    'family': 'Família',
+    'infantil': 'Família',
+    
+    // Ação e Aventura (combinação)
+    'acao aventura': 'Ação/Aventura',
+    'aventura acao': 'Ação/Aventura',
+    'action adventure': 'Ação/Aventura'
+};
+
+// 🔥 FUNÇÃO PARA NORMALIZAR E AGRUPAR GÊNEROS
+function normalizarGenero(generoOriginal) {
+    if (!generoOriginal || generoOriginal.trim() === '') return 'Geral';
+    
+    // Primeiro, normaliza o texto (remove acentos, etc)
+    const textoNormalizado = normalizarTexto(generoOriginal);
+    
+    // Verifica se tem no mapa de sinônimos
+    if (mapaGeneros[textoNormalizado]) {
+        return mapaGeneros[textoNormalizado];
+    }
+    
+    // Se não encontrar, retorna o original com a primeira letra maiúscula
+    return generoOriginal.charAt(0).toUpperCase() + generoOriginal.slice(1).toLowerCase();
+}
+
+
+
+
+                
                 
                 function updateGenreFilters() {
     let items = [];
@@ -6061,12 +6209,23 @@ function loadSeriesFromFirebase() {
     else if (currentNavTab === 'filmes') items = filmes;
     else if (currentNavTab === 'series') items = series;
     
-    const genres = new Set();
+    // 🔥 MAPA PARA ARMAZENAR GÊNEROS NORMALIZADOS
+    const genresMap = new Map();
+    
     items.forEach(item => { 
         if (item && item.category && item.category.trim() !== '') {
-            genres.add(item.category);
+            // Normaliza o gênero (ex: "Açao" vira "Ação")
+            const generoNormalizado = normalizarGenero(item.category);
+            
+            // Armazena no mapa (evita duplicatas)
+            if (!genresMap.has(generoNormalizado)) {
+                genresMap.set(generoNormalizado, true);
+            }
         }
     });
+    
+    // Converte o mapa para array e ordena
+    let genresArray = Array.from(genresMap.keys()).sort((a, b) => a.localeCompare(b, 'pt-BR'));
     
     const scrollContainer = document.getElementById('genreScroll');
     if (!scrollContainer) return;
@@ -6075,8 +6234,6 @@ function loadSeriesFromFirebase() {
     const activeGenre = currentGenreFilter || 'todos';
     
     // Gera os botões
-    let genresArray = Array.from(genres).sort((a, b) => a.localeCompare(b, 'pt-BR'));
-    
     let html = '<button data-genre="todos" class="genre-filter px-2 py-0.5 rounded-full bg-white/10 text-[10px] ripple-btn">🎬 Todos</button>';
     
     genresArray.forEach(genre => {
@@ -6095,9 +6252,11 @@ function loadSeriesFromFirebase() {
             document.querySelectorAll('#genreScroll .genre-filter').forEach(b => b.classList.remove('genre-filter-active'));
             btn.classList.add('genre-filter-active');
             currentGenreFilter = btn.getAttribute('data-genre');
-            renderGrid(); // Isso já funciona para todos os tipos (canais, filmes, series)
+            renderGrid();
         });
     });
+    
+    console.log('🎨 Gêneros carregados:', genresArray);
 }
                 
                 function renderTop10Carousel() {
