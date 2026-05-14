@@ -3337,39 +3337,38 @@
     box-shadow: 0 2px 8px rgba(229, 9, 20, 0.3);
 }
 
-/* Select de ordenação - SEM EMOJI, MAIS MODERNO */
+/* Select de ordenação - MAIS COMPACTO E JUSTO */
 #sortSelect {
     flex-shrink: 0 !important;
-    font-size: 11px !important;
+    font-size: 10px !important;
     font-weight: 500 !important;
-    padding: 6px 28px 6px 12px !important; /* Espaço para a seta */
+    padding: 4px 24px 4px 8px !important; /* MUITO MAIS COMPACTO */
     border-radius: 40px !important;
     background-color: rgba(0, 0, 0, 0.5) !important;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    background-position: right 10px center;
-    background-size: 12px;
+    background-position: right 6px center;
+    background-size: 10px;
     appearance: none;
     -webkit-appearance: none;
     border: 1px solid rgba(255, 255, 255, 0.2);
     color: white;
     cursor: pointer;
     backdrop-filter: blur(4px);
+    min-width: auto;
+    width: auto;
+    max-width: 105px; /* Largura máxima limitada */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Ajuste para dispositivos muito pequenos */
 @media (max-width: 480px) {
-    .genre-filter {
-        font-size: 10px !important;
-        padding: 5px 12px !important;
-    }
     #sortSelect {
-        font-size: 10px !important;
-        padding: 5px 26px 5px 10px !important;
-    }
-    .filters-row {
-        gap: 8px !important;
-        min-height: 40px;
+        font-size: 9px !important;
+        padding: 3px 20px 3px 6px !important;
+        max-width: 95px;
     }
 }
 
@@ -3526,15 +3525,15 @@
             <div class="glass p-2 rounded-xl">
                 <div class="filters-row flex items-center gap-2">
                     <div id="genreScroll" class="genre-scroll flex flex-1 overflow-x-auto gap-1 pb-1"></div>
-                    <select id="sortSelect" class="sort-select bg-white/10 rounded-full px-2 py-1 text-[9px] cursor-pointer">
-                        <option value="recent">🕐 Mais recentes</option>
-                        <option value="views">👁️ Mais vistos</option>
-                        <option value="az">🔤 A-Z</option>
-                        <option value="za">🔤 Z-A</option>
-                        <option value="year_asc">📅 Ano (crescente)</option>
-                        <option value="year_desc">📅 Ano (decrescente)</option>
-                        <option value="genre">🎭 Por gênero</option>
-                    </select>
+                    <select id="sortSelect" class="sort-select">
+    <option value="recent">🕐 Recentes</option>
+    <option value="views">👁️ Vistos</option>
+    <option value="az">🔤 A-Z</option>
+    <option value="za">🔤 Z-A</option>
+    <option value="year_asc">📅 Ano ↑</option>
+    <option value="year_desc">📅 Ano ↓</option>
+    <option value="genre">🎭 Gênero</option>
+</select>
                 </div>
             </div>
         </div>
@@ -5961,20 +5960,21 @@ function renderStarsCorrigido(container, mediaId, userRating) {
         canaisLoaded = true; 
         updateContentCounters(); 
         loadAllViews(); 
+        
+        // 🔥 NORMALIZA OS GÊNEROS DOS CANAIS 🔥
+        normalizarGenerosCanais();
+        
         if (currentNavTab === 'canais') renderGrid(); 
         if (isAdminLogged) refreshAdminLists(); 
         checkAllDataLoaded(); 
-        
-        // 🔥 ADICIONE ESTA LINHA ABAIXO 🔥
-        updateGenreFilters(); // Força atualizar os filtros após carregar os dados
+        updateGenreFilters(); // Força atualizar os filtros
     }).catch(error => {
         console.error('Erro ao carregar canais:', error);
         canais = [];
         canaisLoaded = true;
-        updateGenreFilters(); // Mesmo com erro, tenta atualizar
+        updateGenreFilters();
     });
 }
-
 function loadFilmesFromFirebase() { 
     database.ref('filmes').once('value', (snapshot) => { 
         const data = snapshot.val(); 
@@ -6047,9 +6047,15 @@ function loadSeriesFromFirebase() {
                 
                 function updateGenreFilters() {
     let items = [];
-    if (currentNavTab === 'canais') items = canais;
-    else if (currentNavTab === 'filmes') items = filmes;
-    else if (currentNavTab === 'series') items = series;
+    if (currentNavTab === 'canais') {
+        items = canais;
+        // Normaliza os gêneros dos canais antes de processar
+        normalizarGenerosCanais();
+    } else if (currentNavTab === 'filmes') {
+        items = filmes;
+    } else if (currentNavTab === 'series') {
+        items = series;
+    }
     
     const genres = new Set();
     items.forEach(item => { 
@@ -6057,6 +6063,11 @@ function loadSeriesFromFirebase() {
             genres.add(item.category);
         }
     });
+    
+    // Se for canais e não tiver nenhum gênero, adiciona um padrão
+    if (currentNavTab === 'canais' && genres.size === 0) {
+        genres.add('📡 Geral');
+    }
     
     const scrollContainer = document.getElementById('genreScroll');
     if (!scrollContainer) return;
@@ -6067,10 +6078,10 @@ function loadSeriesFromFirebase() {
     // Gera os botões (com ordem alfabética)
     let genresArray = Array.from(genres).sort((a, b) => a.localeCompare(b, 'pt-BR'));
     
-    let html = '<button data-genre="todos" class="genre-filter px-2 py-0.5 rounded-full bg-white/10 text-[10px] ripple-btn">🎬 Todos</button>';
+    let html = '<button data-genre="todos" class="genre-filter ripple-btn">🎬 Todos</button>';
     
     genresArray.forEach(genre => {
-        html += `<button data-genre="${genre}" class="genre-filter px-2 py-0.5 rounded-full bg-white/10 text-[10px] ripple-btn">${genre}</button>`;
+        html += `<button data-genre="${genre}" class="genre-filter ripple-btn">${genre}</button>`;
     });
     
     scrollContainer.innerHTML = html;
@@ -7994,6 +8005,45 @@ function addAdminTabsScrollStyles() {
     `;
     document.head.appendChild(style);
 }
+
+
+
+
+
+/* Botões de gênero - MAIS COMPACTOS AINDA */
+.genre-filter {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    font-size: 10px !important;
+    font-weight: 500 !important;
+    padding: 4px 12px !important; /* Mais compacto */
+    border-radius: 40px !important;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    letter-spacing: -0.2px;
+}
+
+.genre-filter-active {
+    background: linear-gradient(135deg, #e50914, #b20710) !important;
+    color: white !important;
+    border-color: transparent !important;
+    box-shadow: 0 2px 8px rgba(229, 9, 20, 0.3);
+}
+
+/* Ajuste para dispositivos muito pequenos */
+@media (max-width: 480px) {
+    .genre-filter {
+        font-size: 9px !important;
+        padding: 3px 10px !important;
+    }
+}
+
+
+
+
+                
 
 // Adicionar a nova aba "Usuários" no menu Admin (com scroll horizontal)
 function addAdminUsersTab() {
@@ -11665,6 +11715,80 @@ window.updateRatingStarsDisplay = carregarAvaliacoes;
 
 console.log('✅ Sistema de avaliação corrigido e instalado!');
 
+
+
+
+
+
+
+                // Função para garantir que todos os canais tenham uma categoria
+function normalizarGenerosCanais() {
+    if (!canais || canais.length === 0) return;
+    
+    let atualizacoes = [];
+    const categoriasPadrao = {
+        'esporte': '⚽ Esportes',
+        'esportes': '⚽ Esportes',
+        'noticias': '📰 Notícias',
+        'notícias': '📰 Notícias',
+        'filmes': '🎬 Filmes',
+        'series': '📺 Séries',
+        'entretenimento': '🎭 Entretenimento',
+        'musica': '🎵 Música',
+        'música': '🎵 Música',
+        'infantil': '🧸 Infantil',
+        'variedades': '🎪 Variedades'
+    };
+    
+    canais.forEach(canal => {
+        // Se o canal não tem categoria ou está vazia
+        if (!canal.category || canal.category.trim() === '') {
+            let categoriaEncontrada = '📡 Geral';
+            const tituloLower = (canal.title || '').toLowerCase();
+            
+            // Tenta identificar a categoria pelo título
+            for (let [key, value] of Object.entries(categoriasPadrao)) {
+                if (tituloLower.includes(key)) {
+                    categoriaEncontrada = value;
+                    break;
+                }
+            }
+            
+            // Atualiza no Firebase
+            if (canal.id) {
+                atualizacoes.push(
+                    database.ref(`canais/${canal.id}/category`).set(categoriaEncontrada)
+                );
+                canal.category = categoriaEncontrada;
+            }
+        }
+    });
+    
+    // Executa todas as atualizações
+    if (atualizacoes.length > 0) {
+        Promise.all(atualizacoes).then(() => {
+            console.log(`✅ ${atualizacoes.length} canais atualizados com categoria`);
+            updateGenreFilters(); // Recarrega os filtros
+        });
+    }
+}
+
+
+
+
+
+                // Função para editar rapidamente a categoria de um canal
+function editarCategoriaCanal(canalId, categoriaAtual) {
+    const novaCategoria = prompt('Editar categoria do canal:', categoriaAtual);
+    if (novaCategoria && novaCategoria.trim() !== '') {
+        database.ref(`canais/${canalId}/category`).set(novaCategoria.trim()).then(() => {
+            showToast('✅ Categoria atualizada!');
+            loadCanaisFromFirebase();
+        }).catch(error => {
+            showToast('❌ Erro ao atualizar: ' + error.message);
+        });
+    }
+}
                 
 
                 
