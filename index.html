@@ -6099,87 +6099,206 @@ function normalizarTexto(texto) {
 
 // 🔥 MAPA DE SINÔNIMOS - Agrupa palavras similares
 const mapaGeneros = {
-    // Ação e variações
+    // ========== AÇÃO ==========
     'acao': 'Ação',
     'açao': 'Ação', 
     'açaõ': 'Ação',
     'açã': 'Ação',
     'accao': 'Ação',
     'accion': 'Ação',
+    'action': 'Ação',
     
-    // Comédia e variações
+    // ========== COMÉDIA ==========
     'comedia': 'Comédia',
     'comédia': 'Comédia',
     'comedya': 'Comédia',
     'komedia': 'Comédia',
+    'comedy': 'Comédia',
+    'humor': 'Comédia',
+    'comico': 'Comédia',
+    'cômico': 'Comédia',
     
-    // Desenho / Animação
+    // ========== ANIMAÇÃO / DESENHO ==========
     'desenho': 'Animação',
     'desenhos': 'Animação',
     'animacao': 'Animação',
     'animação': 'Animação',
     'animation': 'Animação',
     'cartoon': 'Animação',
+    'desenho animado': 'Animação',
+    'infantil': 'Animação',
     
-    // Terror
+    // ========== TERROR ==========
     'terror': 'Terror',
     'horror': 'Terror',
     'horror': 'Terror',
+    'susto': 'Terror',
+    'medo': 'Terror',
     
-    // Suspense
+    // ========== SUSPENSE ==========
     'suspense': 'Suspense',
     'suspence': 'Suspense',
+    'mistério': 'Suspense',
+    'misterio': 'Suspense',
+    'thriller': 'Suspense',
     
-    // Drama
+    // ========== DRAMA ==========
     'drama': 'Drama',
     'dram': 'Drama',
+    'dramatico': 'Drama',
+    'dramático': 'Drama',
     
-    // Romance
+    // ========== ROMANCE ==========
     'romance': 'Romance',
     'romantico': 'Romance',
     'romântico': 'Romance',
+    'amor': 'Romance',
+    'love': 'Romance',
     
-    // Ficção / Sci-Fi
-    'ficcao': 'Ficção',
-    'ficção': 'Ficção',
+    // ========== FICÇÃO CIENTÍFICA ==========
+    'ficcao': 'Ficção Científica',
+    'ficção': 'Ficção Científica',
+    'ficcao cientifica': 'Ficção Científica',
+    'ficção científica': 'Ficção Científica',
     'science fiction': 'Ficção Científica',
     'sci-fi': 'Ficção Científica',
     'scifi': 'Ficção Científica',
+    'futuro': 'Ficção Científica',
+    'espaco': 'Ficção Científica',
+    'espaço': 'Ficção Científica',
     
-    // Aventura
+    // ========== AVENTURA ==========
     'aventura': 'Aventura',
     'adventure': 'Aventura',
+    'aventuras': 'Aventura',
     
-    // Canais (para a seção canais)
-    'canal': 'Canais',
-    'canais': 'Canais',
+    // ========== CANAIS ==========
+    'canal': 'Canais TV',
+    'canais': 'Canais TV',
     'tv': 'Canais TV',
     'televisao': 'Canais TV',
     'televisão': 'Canais TV',
+    'ao vivo': 'Canais TV',
+    'live': 'Canais TV',
     
-    // Esportes
+    // ========== ESPORTES ==========
     'esporte': 'Esportes',
     'esportes': 'Esportes',
     'sports': 'Esportes',
     'futebol': 'Esportes',
     'basquete': 'Esportes',
+    'volei': 'Esportes',
+    'vôlei': 'Esportes',
+    'tenis': 'Esportes',
+    'tênis': 'Esportes',
+    'f1': 'Esportes',
+    'formula 1': 'Esportes',
+    'luta': 'Esportes',
+    'boxe': 'Esportes',
+    'ufc': 'Esportes',
     
-    // Documentário
+    // ========== DOCUMENTÁRIO ==========
     'documentario': 'Documentário',
     'documentário': 'Documentário',
     'documentary': 'Documentário',
     'doc': 'Documentário',
+    'natureza': 'Documentário',
+    'animal': 'Documentário',
     
-    // Família
+    // ========== FAMÍLIA ==========
     'familia': 'Família',
     'família': 'Família',
     'family': 'Família',
-    'infantil': 'Família',
+    'criancas': 'Família',
+    'crianças': 'Família',
     
-    // Ação e Aventura (combinação)
+    // ========== POLICIAL ==========
+    'policial': 'Policial',
+    'policia': 'Policial',
+    'polícia': 'Policial',
+    'crime': 'Policial',
+    'criminal': 'Policial',
+    'detetive': 'Policial',
+    'investigacao': 'Policial',
+    'investigação': 'Policial',
+    
+    // ========== GUERRA ==========
+    'guerra': 'Guerra',
+    'war': 'Guerra',
+    'militar': 'Guerra',
+    'soldado': 'Guerra',
+    
+    // ========== FAROESTE ==========
+    'faroeste': 'Faroeste',
+    'western': 'Faroeste',
+    'cowboy': 'Faroeste',
+    'velho oeste': 'Faroeste',
+    
+    // ========== BIOGRAFIA ==========
+    'biografia': 'Biografia',
+    'biopic': 'Biografia',
+    'biografico': 'Biografia',
+    'biográfico': 'Biografia',
+    'vida real': 'Biografia',
+    
+    // ========== HISTÓRIA ==========
+    'historia': 'História',
+    'história': 'História',
+    'historical': 'História',
+    'historico': 'História',
+    'histórico': 'História',
+    'epoca': 'História',
+    'época': 'História',
+    
+    // ========== MUSICAL ==========
+    'musical': 'Musical',
+    'musica': 'Musical',
+    'música': 'Musical',
+    'show': 'Musical',
+    'concerto': 'Musical',
+    
+    // ========== AÇÃO E AVENTURA ==========
     'acao aventura': 'Ação/Aventura',
     'aventura acao': 'Ação/Aventura',
-    'action adventure': 'Ação/Aventura'
+    'action adventure': 'Ação/Aventura',
+    'acao e aventura': 'Ação/Aventura',
+    
+    // ========== REALITY SHOW ==========
+    'reality': 'Reality Show',
+    'reality show': 'Reality Show',
+    'realidade': 'Reality Show',
+    
+    // ========== NOVELA ==========
+    'novela': 'Novela',
+    'novelas': 'Novela',
+    'telenovela': 'Novela',
+    'drama coreano': 'Novela',
+    'k-drama': 'Novela',
+    
+    // ========== ENTREVISTA ==========
+    'entrevista': 'Talk Show',
+    'talk show': 'Talk Show',
+    'talk': 'Talk Show',
+    
+    // ========== NOTÍCIAS ==========
+    'noticias': 'Notícias',
+    'notícias': 'Notícias',
+    'jornal': 'Notícias',
+    'news': 'Notícias',
+    'informacao': 'Notícias',
+    'informação': 'Notícias',
+    
+    // ========== RELIGIÃO ==========
+    'religiao': 'Religião',
+    'religião': 'Religião',
+    'igreja': 'Religião',
+    'gospel': 'Religião',
+    'fe': 'Religião',
+    
+    // ========== VARIEDADES ==========
+    'variedades': 'Variedades',
+    'entretenimento': 'Variedades',
+    'entertainment': 'Variedades'
 };
 
 // 🔥 FUNÇÃO PARA NORMALIZAR E AGRUPAR GÊNEROS
