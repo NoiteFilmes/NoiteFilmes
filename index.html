@@ -6035,10 +6035,19 @@ function loadSeriesFromFirebase() {
                 
                 function renderGrid() {
                     let items = [];
-                    if (currentNavTab === 'canais') items = canais;
-                    else if (currentNavTab === 'filmes') items = filmes;
-                    else if (currentNavTab === 'series') items = series;
-                    if (currentGenreFilter !== 'todos' && currentNavTab !== 'canais') items = items.filter(i => i.category === currentGenreFilter);
+    if (currentNavTab === 'canais') items = canais;
+    else if (currentNavTab === 'filmes') items = filmes;
+    else if (currentNavTab === 'series') items = series;
+    
+    // 🔥 ESTA LINHA É A MAIS IMPORTANTE - ELA APLICA O FILTRO 🔥
+    if (currentGenreFilter !== 'todos' && currentNavTab !== 'canais') {
+        items = items.filter(i => i.category === currentGenreFilter);
+    }
+    
+    // CORREÇÃO: Também filtrar canais se eles tiverem categoria
+    if (currentGenreFilter !== 'todos' && currentNavTab === 'canais') {
+        items = items.filter(i => i.category === currentGenreFilter);
+    }
                     items = sortItems(items);
                     const grid = document.getElementById('contentGrid');
                     if (items.length === 0) { grid.innerHTML = '<div class="col-span-full text-center py-4 text-gray-500 text-xs">📀 Nenhum conteúdo encontrado.</div>'; return; }
