@@ -6925,7 +6925,10 @@ setInterval(() => {
 
                 // INICIO TITITIAGO
 
-                function buscarConteudo(termo) {
+
+
+
+function buscarConteudo(termo) {
     const filtro = document.querySelector('.search-filter-btn.active')?.getAttribute('data-filter') || 'todos';
     const resultadosDiv = document.getElementById('searchResults');
     
@@ -6964,14 +6967,18 @@ setInterval(() => {
         </div>
     `).join('');
     
-    // CORREÇÃO PRINCIPAL: Evento de clique melhorado
+    // CORREÇÃO PRINCIPAL: Evento de clique melhorado sem quebrar as abas
     document.querySelectorAll('#searchResults .search-result-card').forEach(el => {
-        el.addEventListener('click', (e) => {
+        // Remove listeners anteriores para evitar duplicação
+        const newEl = el.cloneNode(true);
+        el.parentNode.replaceChild(newEl, el);
+        
+        newEl.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
             
-            const id = el.getAttribute('data-id');
-            const tipo = el.getAttribute('data-tipo');
+            const id = newEl.getAttribute('data-id');
+            const tipo = newEl.getAttribute('data-tipo');
             let item;
             
             if (tipo === 'filme') item = filmes.find(f => f.id == id);
@@ -6979,78 +6986,144 @@ setInterval(() => {
             else item = canais.find(c => c.id == id);
             
             if (item) {
-                // 1. FECHAR A SEÇÃO DE BUSCA
+                // 1. SALVAR A REFERÊNCIA DA SEÇÃO DE BUSCA
                 const searchSection = document.getElementById('searchSection');
+                const mainContent = document.querySelector('.main-content');
+                const bottomNav = document.querySelector('.bottom-nav');
+                
+                // 2. ESCONDER A SEÇÃO DE BUSCA MAS NÃO REMOVER
                 if (searchSection) {
-                    searchSection.classList.remove('active-section');
                     searchSection.style.display = 'none';
+                    searchSection.classList.remove('active-section');
                 }
                 
-                // 2. LIMPAR O CAMPO DE BUSCA E RESULTADOS
+                // 3. LIMPAR O CAMPO DE BUSCA E RESULTADOS
                 const searchInput = document.getElementById('searchInput');
                 if (searchInput) searchInput.value = '';
                 resultadosDiv.innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
                 
-                // 3. ESCONDER O BOTÃO DE LIMPAR
+                // 4. ESCONDER O BOTÃO DE LIMPAR
                 const clearBtn = document.getElementById('clearSearchBtn');
                 if (clearBtn) clearBtn.style.display = 'none';
                 
-                // 4. MUDAR PARA A ABA CORRESPONDENTE
+                // 5. GARANTIR QUE O MAIN CONTENT ESTÁ VISÍVEL
+                if (mainContent) mainContent.style.display = 'block';
+                if (bottomNav) bottomNav.style.display = 'flex';
+                
+                // 6. MUDAR PARA A SEÇÃO CORRESPONDENTE USANDO switchSection
                 if (tipo === 'filme') {
-                    // Muda para aba de filmes
-                    if (typeof setNavTab === 'function') {
-                        setNavTab('filmes');
-                    } else if (typeof window.setNavTab === 'function') {
-                        window.setNavTab('filmes');
-                    }
-                    // Força a seção correta
+                    // Atualizar a aba ativa na navegação
+                    document.querySelectorAll('.nav-item').forEach(navItem => {
+                        navItem.classList.remove('active');
+                        if (navItem.getAttribute('data-tab') === 'filmes') {
+                            navItem.classList.add('active');
+                        }
+                    });
+                    
+                    // Mudar a seção visível
                     if (typeof switchSection === 'function') {
                         switchSection('filmes');
                     }
+                    
+                    // Forçar a exibição das seções de conteúdo
+                    const filmesSection = document.getElementById('filmesSection');
+                    const seriesSection = document.getElementById('seriesSection');
+                    const canaisSection = document.getElementById('canaisSection');
+                    const feedSection = document.getElementById('feedSection');
+                    
+                    if (filmesSection) filmesSection.classList.add('active-section');
+                    if (seriesSection) seriesSection.classList.remove('active-section');
+                    if (canaisSection) canaisSection.classList.remove('active-section');
+                    if (feedSection) feedSection.classList.remove('active-section');
+                    
                 } else if (tipo === 'serie') {
-                    // Muda para aba de séries
-                    if (typeof setNavTab === 'function') {
-                        setNavTab('series');
-                    } else if (typeof window.setNavTab === 'function') {
-                        window.setNavTab('series');
-                    }
+                    // Atualizar a aba ativa na navegação
+                    document.querySelectorAll('.nav-item').forEach(navItem => {
+                        navItem.classList.remove('active');
+                        if (navItem.getAttribute('data-tab') === 'series') {
+                            navItem.classList.add('active');
+                        }
+                    });
+                    
                     if (typeof switchSection === 'function') {
                         switchSection('series');
                     }
+                    
+                    const filmesSection = document.getElementById('filmesSection');
+                    const seriesSection = document.getElementById('seriesSection');
+                    const canaisSection = document.getElementById('canaisSection');
+                    const feedSection = document.getElementById('feedSection');
+                    
+                    if (filmesSection) filmesSection.classList.remove('active-section');
+                    if (seriesSection) seriesSection.classList.add('active-section');
+                    if (canaisSection) canaisSection.classList.remove('active-section');
+                    if (feedSection) feedSection.classList.remove('active-section');
+                    
                 } else if (tipo === 'canal') {
-                    // Muda para aba de canais
-                    if (typeof setNavTab === 'function') {
-                        setNavTab('canais');
-                    } else if (typeof window.setNavTab === 'function') {
-                        window.setNavTab('canais');
-                    }
+                    // Atualizar a aba ativa na navegação
+                    document.querySelectorAll('.nav-item').forEach(navItem => {
+                        navItem.classList.remove('active');
+                        if (navItem.getAttribute('data-tab') === 'canais') {
+                            navItem.classList.add('active');
+                        }
+                    });
+                    
                     if (typeof switchSection === 'function') {
                         switchSection('canais');
                     }
+                    
+                    const filmesSection = document.getElementById('filmesSection');
+                    const seriesSection = document.getElementById('seriesSection');
+                    const canaisSection = document.getElementById('canaisSection');
+                    const feedSection = document.getElementById('feedSection');
+                    
+                    if (filmesSection) filmesSection.classList.remove('active-section');
+                    if (seriesSection) seriesSection.classList.remove('active-section');
+                    if (canaisSection) canaisSection.classList.add('active-section');
+                    if (feedSection) feedSection.classList.remove('active-section');
                 }
                 
-                // 5. PEQUENO ATRASO PARA GARANTIR QUE A UI ATUALIZOU
+                // 7. GARANTIR QUE O CONTEÚDO DA SEÇÃO ESTÁ CARREGADO
                 setTimeout(() => {
-                    // 6. ABRIR O CONTEÚDO
-                    if (typeof playMedia === 'function') {
-                        playMedia(item, tipo);
-                    } else if (typeof abrirConteudoDireto === 'function') {
-                        abrirConteudoDireto(item, tipo);
-                    } else {
-                        console.log('Tentando abrir:', item.title);
-                        // Fallback: tenta encontrar e clicar no elemento na grid
-                        const elementoGrid = document.querySelector(`.grid-item[data-id="${id}"], .card[data-id="${id}"]`);
-                        if (elementoGrid && typeof elementoGrid.click === 'function') {
-                            elementoGrid.click();
-                        }
+                    // Forçar recarregamento da seção se necessário
+                    if (tipo === 'filme' && typeof carregarFilmes === 'function') {
+                        carregarFilmes();
+                    } else if (tipo === 'serie' && typeof carregarSeries === 'function') {
+                        carregarSeries();
+                    } else if (tipo === 'canal' && typeof carregarCanais === 'function') {
+                        carregarCanais();
                     }
                 }, 50);
+                
+                // 8. ABRIR O CONTEÚDO APÓS A TROCA DE TELA
+                setTimeout(() => {
+                    if (typeof playMedia === 'function') {
+                        playMedia(item, tipo);
+                    } else {
+                        console.log('Abrindo conteúdo:', item.title);
+                        // Disparar evento personalizado
+                        const event = new CustomEvent('openMedia', {
+                            detail: { item: item, tipo: tipo }
+                        });
+                        document.dispatchEvent(event);
+                    }
+                }, 100);
             }
         });
     });
 }
 
+
+
+
+
+                
+
 // FIM TITITIAGO
+
+
+
+                
 // CORREÇÃO DEFINITIVA DO CHAT - MENSAGENS NA ORDEM CORRETA
 (function fixChatOrder() {
     // Aguardar o carregamento da página
