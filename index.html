@@ -12097,178 +12097,243 @@ console.log('✅ Sistema de avaliação corrigido e instalado!');
 
 
 // =====================================================
-// FUNÇÃO DE BUSCA INTELIGENTE COM ABERTURA AUTOMÁTICA
+// CORREÇÃO COMPLETA DA BUSCA - VERSÃO DEFINITIVA
 // =====================================================
 
-// Esta função substitui a lógica de clique nos cards de busca
-function corrigirBuscaECards() {
-    console.log('✅ Sistema de busca inteligente ativado!');
-
-    // 1. LIMPA OS EVENTOS ANTIGOS DOS CARDS E CRIA OS NOVOS
-    function configurarEventosCards() {
-        const cards = document.querySelectorAll('#searchResults .search-result-card');
+(function() {
+    console.log('🔧 Inicializando correção da busca...');
+    
+    // Função que realmente abre o player e toca o conteúdo
+    function abrirConteudo(item, tipo) {
+        if (!item) {
+            showToast('❌ Conteúdo não encontrado');
+            return;
+        }
+        
+        console.log(`🎬 Abrindo: ${item.title} (${tipo})`);
+        
+        // Fecha a aba de busca e mostra a aba correta
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active-section'));
+        
+        if (tipo === 'filme') {
+            document.getElementById('filmesSection').classList.add('active-section');
+            document.querySelectorAll('.bottom-nav-item').forEach(i => i.classList.remove('active'));
+            document.querySelector('.bottom-nav-item[data-section="filmes"]').classList.add('active');
+        } else if (tipo === 'serie') {
+            document.getElementById('filmesSection').classList.add('active-section');
+            document.querySelectorAll('.bottom-nav-item').forEach(i => i.classList.remove('active'));
+            document.querySelector('.bottom-nav-item[data-section="filmes"]').classList.add('active');
+            if (typeof setNavTab === 'function') setNavTab('series');
+        } else if (tipo === 'canal') {
+            document.getElementById('filmesSection').classList.add('active-section');
+            document.querySelectorAll('.bottom-nav-item').forEach(i => i.classList.remove('active'));
+            document.querySelector('.bottom-nav-item[data-section="filmes"]').classList.add('active');
+            if (typeof setNavTab === 'function') setNavTab('canais');
+        }
+        
+        // Abre o player
+        const container = document.getElementById('playerCommentsContainer');
+        const overlay = document.getElementById('floatingPlayerOverlay');
+        if (container) container.classList.remove('hidden');
+        if (overlay) overlay.classList.remove('hidden');
+        
+        // Chama a função playMedia existente
+        if (typeof playMedia === 'function') {
+            playMedia(item, tipo);
+        } else if (typeof window.playMedia === 'function') {
+            window.playMedia(item, tipo);
+        } else {
+            // Fallback: abre manualmente
+            console.log('⚠️ playMedia não encontrada, tentando fallback...');
+            abrirPlayerManual(item, tipo);
+        }
+    }
+    
+    // Fallback manual caso playMedia não exista
+    function abrirPlayerManual(item, tipo) {
+        const titleEl = document.getElementById('videoTitle');
+        if (titleEl) titleEl.innerText = item.title;
+        
+        const yearEl = document.getElementById('videoYear');
+        if (yearEl) yearEl.innerHTML = item.year ? `📅 ${item.year}` : '';
+        
+        const genreEl = document.getElementById('videoGenre');
+        if (genreEl) genreEl.innerHTML = item.category ? `🎭 ${item.category}` : '';
+        
+        const descEl = document.getElementById('videoDescription');
+        if (descEl) descEl.innerHTML = item.description || 'Sem descrição';
+        
+        // Detecta tipo de link
+        const videoId = extractYoutubeId ? extractYoutubeId(item.link) : null;
+        const isHls = isIptvLink ? isIptvLink(item.link) : false;
+        
+        const youtubeDiv = document.getElementById('youtubePlayerDiv');
+        const hlsVideo = document.getElementById('hlsPlayer');
+        
+        if (youtubeDiv) youtubeDiv.style.display = 'none';
+        if (hlsVideo) hlsVideo.style.display = 'none';
+        
+        if (videoId && typeof YT !== 'undefined' && YT.Player) {
+            youtubeDiv.style.display = 'block';
+            if (window.ytPlayer) {
+                window.ytPlayer.loadVideoById(videoId);
+                window.ytPlayer.playVideo();
+            } else {
+                window.ytPlayer = new YT.Player('youtubePlayerDiv', {
+                    height: '100%',
+                    width: '100%',
+                    videoId: videoId,
+                    playerVars: { 'autoplay': 1, 'controls': 1 }
+                });
+            }
+        } else if (isHls && hlsVideo) {
+            hlsVideo.style.display = 'block';
+            if (Hls && Hls.isSupported()) {
+                if (window.hlsInstance) window.hlsInstance.destroy();
+                window.hlsInstance = new Hls();
+                window.hlsInstance.loadSource(item.link);
+                window.hlsInstance.attachMedia(hlsVideo);
+                window.hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => hlsVideo.play());
+            } else if (hlsVideo.canPlayType('application/vnd.apple.mpegurl')) {
+                hlsVideo.src = item.link;
+                hlsVideo.play();
+            }
+        } else {
+            showToast('Formato não suportado para reprodução manual');
+        }
+        
+        window.currentMedia = item;
+        window.currentMediaType = tipo;
+    }
+    
+    // Configura os eventos dos cards de busca
+    function configurarCardsBusca() {
+        const cards = document.querySelectorAll('#searchResults .search-result-card, .global-search-item');
         
         cards.forEach(card => {
-            // Remove o evento antigo se existir (evita duplicação)
-            const novoCard = card.cloneNode(true);
-            card.parentNode.replaceChild(novoCard, card);
+            // Evita duplicar eventos
+            if (card.hasAttribute('data-busca-fixed')) return;
+            card.setAttribute('data-busca-fixed', 'true');
             
-            // Adiciona o novo evento
-            novoCard.addEventListener('click', function(e) {
+            card.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 
                 const id = this.getAttribute('data-id');
-                const type = this.getAttribute('data-type');
+                let tipo = this.getAttribute('data-type') || this.getAttribute('data-tipo');
                 
-                console.log(`🔍 Card clicado: ID=${id}, Tipo=${type}`);
+                console.log(`🖱️ Card clicado: id=${id}, tipo=${tipo}`);
                 
-                if (!id || !type) {
-                    showToast('Erro: Dados do card não encontrados');
+                if (!id) {
+                    showToast('❌ ID do conteúdo não encontrado');
                     return;
                 }
                 
-                let itemEncontrado = null;
+                // Procura o item nos arrays globais
+                let item = null;
                 
-                // Busca o item nos arrays globais (filmes, series, canais)
-                if (type === 'filme') {
-                    itemEncontrado = window.filmes?.find(f => f && f.id === id);
-                    if (itemEncontrado) {
-                        console.log(`🎬 Filme encontrado: ${itemEncontrado.title}`);
-                        // Troca para a aba de filmes
-                        if (typeof setNavTab === 'function') {
-                            setNavTab('filmes');
-                        } else {
-                            // Fallback manual
-                            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-                            document.getElementById('navFilmesBtn')?.classList.add('active');
-                            window.currentNavTab = 'filmes';
-                            if (typeof renderGrid === 'function') renderGrid();
-                        }
-                        // Toca o filme
-                        playMedia(itemEncontrado, 'filme');
-                    }
-                } 
-                else if (type === 'serie') {
-                    itemEncontrado = window.series?.find(s => s && s.id === id);
-                    if (itemEncontrado) {
-                        console.log(`📺 Série encontrada: ${itemEncontrado.title}`);
-                        // Troca para a aba de séries
-                        if (typeof setNavTab === 'function') {
-                            setNavTab('series');
-                        } else {
-                            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-                            document.getElementById('navSeriesBtn')?.classList.add('active');
-                            window.currentNavTab = 'series';
-                            if (typeof renderGrid === 'function') renderGrid();
-                        }
-                        // Toca a série
-                        playMedia(itemEncontrado, 'serie');
-                    }
-                } 
-                else if (type === 'canal') {
-                    itemEncontrado = window.canais?.find(c => c && c.id === id);
-                    if (itemEncontrado) {
-                        console.log(`📡 Canal encontrado: ${itemEncontrado.title}`);
-                        // Troca para a aba de canais
-                        if (typeof setNavTab === 'function') {
-                            setNavTab('canais');
-                        } else {
-                            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-                            document.getElementById('navCanaisBtn')?.classList.add('active');
-                            window.currentNavTab = 'canais';
-                            if (typeof renderGrid === 'function') renderGrid();
-                        }
-                        // Toca o canal
-                        playMedia(itemEncontrado, 'canal');
+                if (tipo === 'filme' || tipo === 'filmes') {
+                    item = window.filmes?.find(f => f && f.id === id);
+                    tipo = 'filme';
+                } else if (tipo === 'serie' || tipo === 'series') {
+                    item = window.series?.find(s => s && s.id === id);
+                    tipo = 'serie';
+                } else if (tipo === 'canal' || tipo === 'canais') {
+                    item = window.canais?.find(c => c && c.id === id);
+                    tipo = 'canal';
+                } else {
+                    // Tenta em todos os arrays
+                    item = window.filmes?.find(f => f && f.id === id) ||
+                           window.series?.find(s => s && s.id === id) ||
+                           window.canais?.find(c => c && c.id === id);
+                    if (item) {
+                        if (window.filmes?.some(f => f.id === id)) tipo = 'filme';
+                        else if (window.series?.some(s => s.id === id)) tipo = 'serie';
+                        else if (window.canais?.some(c => c.id === id)) tipo = 'canal';
                     }
                 }
                 
-                if (!itemEncontrado) {
+                if (item) {
+                    console.log(`✅ Conteúdo encontrado: ${item.title}`);
+                    abrirConteudo(item, tipo);
+                } else {
+                    console.log(`❌ Conteúdo não encontrado para ID: ${id}`);
                     showToast('❌ Conteúdo não encontrado no catálogo');
                 }
             });
         });
     }
-
-    // 2. OBSERVA MUDANÇAS NA ÁREA DE RESULTADOS (BUSCA DINÂMICA)
-    const observerBusca = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                // Pequeno delay para garantir que o DOM foi atualizado
-                setTimeout(configurarEventosCards, 100);
-            }
-        });
-    });
-
-    const searchResults = document.getElementById('searchResults');
-    if (searchResults) {
-        observerBusca.observe(searchResults, { childList: true, subtree: true });
-        // Configura eventos iniciais
-        setTimeout(configurarEventosCards, 500);
-    }
-
-    // 3. TAMBÉM CORRIGE A FUNÇÃO ORIGINAL DE BUSCA (para manter compatibilidade)
-    const buscarConteudoOriginal = window.buscarConteudo;
-    if (buscarConteudoOriginal) {
-        window.buscarConteudo = function(termo) {
-            buscarConteudoOriginal(termo);
-            setTimeout(configurarEventosCards, 300);
-        };
-    }
     
-    // 4. CORRIGE O MÉTODO DE EXIBIÇÃO DOS RESULTADOS (se existir)
-    const performSearchOriginal = window.performSearchInSection;
-    if (performSearchOriginal) {
-        window.performSearchInSection = function() {
-            performSearchOriginal();
-            setTimeout(configurarEventosCards, 200);
-        };
-    }
-}
-
-// Inicializa a correção quando a página carregar
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', corrigirBuscaECards);
-} else {
-    corrigirBuscaECards();
-}
-
-// Garante que os botões de filtro de busca também não percam os eventos
-const observerFiltros = new MutationObserver(function() {
-    const searchResults = document.getElementById('searchResults');
-    if (searchResults && searchResults.children.length > 0) {
-        setTimeout(() => {
-            document.querySelectorAll('#searchResults .search-result-card').forEach(card => {
-                if (!card.hasAttribute('data-event-fixed')) {
-                    card.setAttribute('data-event-fixed', 'true');
-                    card.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const id = this.getAttribute('data-id');
-                        const type = this.getAttribute('data-type');
-                        console.log(`🎯 Card fixo clicado: ${type} - ${id}`);
-                        if (id && type) {
-                            let item = null;
-                            if (type === 'filme') item = window.filmes?.find(f => f.id === id);
-                            else if (type === 'serie') item = window.series?.find(s => s.id === id);
-                            else if (type === 'canal') item = window.canais?.find(c => c.id === id);
-                            if (item) playMedia(item, type);
-                        }
-                    });
+    // Monitora quando novos cards são adicionados
+    function iniciarObservador() {
+        const targetNode = document.getElementById('searchResults');
+        if (!targetNode) return;
+        
+        const observer = new MutationObserver(function(mutations) {
+            let precisaConfigurar = false;
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                    precisaConfigurar = true;
                 }
             });
-        }, 50);
+            if (precisaConfigurar) {
+                setTimeout(configurarCardsBusca, 100);
+            }
+        });
+        
+        observer.observe(targetNode, { childList: true, subtree: true });
+        configurarCardsBusca();
     }
-});
-
-const searchContainer = document.getElementById('searchSection');
-if (searchContainer) {
-    observerFiltros.observe(searchContainer, { childList: true, subtree: true });
-}
-
-console.log('✅ Correção de busca implementada! Clique em qualquer card da busca que ele abrirá o conteúdo automaticamente.');
-
+    
+    // Também observa a busca global
+    function iniciarObservadorGlobal() {
+        const globalTarget = document.getElementById('globalSearchResults');
+        if (!globalTarget) return;
+        
+        const observer = new MutationObserver(function() {
+            setTimeout(() => {
+                const cards = document.querySelectorAll('#globalSearchResults .global-search-item');
+                cards.forEach(card => {
+                    if (card.hasAttribute('data-busca-fixed')) return;
+                    card.setAttribute('data-busca-fixed', 'true');
+                    card.addEventListener('click', function(e) {
+                        const id = this.getAttribute('data-id');
+                        const tipo = this.getAttribute('data-type');
+                        if (id && tipo) {
+                            let item = null;
+                            if (tipo === 'filme') item = window.filmes?.find(f => f.id === id);
+                            else if (tipo === 'serie') item = window.series?.find(s => s.id === id);
+                            else if (tipo === 'canal') item = window.canais?.find(c => c.id === id);
+                            if (item) abrirConteudo(item, tipo);
+                        }
+                    });
+                });
+            }, 100);
+        });
+        
+        observer.observe(globalTarget, { childList: true, subtree: true });
+    }
+    
+    // Sobrescreve a função de busca para garantir que os cards tenham os atributos corretos
+    const originalBuscarConteudo = window.buscarConteudo || window.performSearchInSection;
+    if (originalBuscarConteudo) {
+        window.buscarConteudo = function(termo) {
+            if (originalBuscarConteudo) originalBuscarConteudo(termo);
+            setTimeout(configurarCardsBusca, 200);
+        };
+        window.performSearchInSection = window.buscarConteudo;
+    }
+    
+    // Inicializa
+    iniciarObservador();
+    iniciarObservadorGlobal();
+    
+    // Força configuração inicial
+    setTimeout(configurarCardsBusca, 1000);
+    setTimeout(configurarCardsBusca, 3000);
+    
+    console.log('✅ Sistema de busca corrigido! Clique nos cards para abrir.');
+})();
                 
 
                 
