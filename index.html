@@ -3845,56 +3845,6 @@
             <input type="file" id="avatarUploadInput" accept="image/*" style="display: none;">
 
             <script>
-
-
-// Função para salvar qual aba estava ativa
-function salvarAbaAtiva(aba) {
-    localStorage.setItem('lastActiveSection', aba);
-}
-
-// Modifique a função switchSection para salvar a aba
-const originalSwitchSection = window.switchSection;
-window.switchSection = function(sectionId) {
-    // Salva a seção atual ANTES de mudar
-    if (sectionId !== 'search') {
-        salvarAbaAtiva(sectionId);
-    }
-    
-    if (originalSwitchSection) {
-        originalSwitchSection(sectionId);
-    } else {
-        // Fallback: executa a lógica original
-        document.querySelectorAll('.section').forEach(s => s.classList.remove('active-section'));
-        document.getElementById(`${sectionId}Section`).classList.add('active-section');
-        document.querySelectorAll('.bottom-nav-item').forEach(item => item.classList.remove('active'));
-        document.querySelector(`.bottom-nav-item[data-section="${sectionId}"]`).classList.add('active');
-        const topMenu = document.getElementById('topMenuContainer');
-        if (topMenu) {
-            topMenu.style.display = sectionId === 'filmes' ? 'flex' : 'none';
-        }
-        if (sectionId === 'feed') renderFeed();
-        if (sectionId === 'perfil') renderInstagramProfile();
-        if (sectionId === 'chat') { 
-            document.getElementById('chatSidebarNovo').classList.remove('hidden'); 
-            document.getElementById('chatMainNovo').classList.add('hidden'); 
-            if (typeof loadChatList === 'function') loadChatList(); 
-        }
-        if (sectionId === 'search') {
-            document.getElementById('searchInput').value = '';
-            document.getElementById('clearSearchBtn').style.display = 'none';
-            document.getElementById('searchResults').innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
-            document.getElementById('searchInput').focus();
-            currentSearchFilter = 'todos';
-            document.querySelectorAll('.search-filter-btn').forEach(btn => {
-                if (btn.getAttribute('data-filter') === 'todos') btn.classList.add('active');
-                else btn.classList.remove('active');
-            });
-        }
-    }
-};
-
-
-                
             
             
             (function forceExternalBrowser() {
@@ -4120,16 +4070,8 @@ window.switchSection = function(sectionId) {
                     if (toast && toast.remove) toast.remove();
                 }
                 
-
-
-
-
-
-// ==================== FUNÇÃO DE BUSCA NA SEÇÃO DE BUSCA (CORRIGIDA) ====================
-
-
-// ==================== FUNÇÃO DE BUSCA NA SEÇÃO DE BUSCA (CORRIGIDA - VERSÃO FINAL) ====================
-function performSearchInSection() {
+                // ==================== FUNÇÃO DE BUSCA NA SEÇÃO DE BUSCA ====================
+                function performSearchInSection() {
     const term = document.getElementById('searchInput').value.trim().toLowerCase();
     const resultsContainer = document.getElementById('searchResults');
     const clearBtn = document.getElementById('clearSearchBtn');
@@ -4140,12 +4082,6 @@ function performSearchInSection() {
     
     if (term.length === 0) {
         resultsContainer.innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
-        return;
-    }
-    
-    // Aguarda os dados carregarem
-    if ((!filmes || filmes.length === 0) && (!series || series.length === 0) && (!canais || canais.length === 0)) {
-        resultsContainer.innerHTML = '<div class="no-results">⏳ Carregando dados, aguarde...</div>';
         return;
     }
     
@@ -4164,6 +4100,7 @@ function performSearchInSection() {
             allItems = canais.filter(c => c && c.title).map(c => ({ ...c, type: 'canal', typeIcon: '📡', typeName: 'Canal' }));
         }
     } else {
+        allItems = [];
         if (filmes && filmes.length > 0) {
             allItems.push(...filmes.filter(f => f && f.title).map(f => ({ ...f, type: 'filme', typeIcon: '🎬', typeName: 'Filme' })));
         }
@@ -4193,117 +4130,46 @@ function performSearchInSection() {
     }
     
     resultsContainer.innerHTML = matches.map(item => `
-        <div class="search-result-card glass-card p-2 ripple-btn" data-id="${item.id}" data-type="${item.type}" data-title="${escapeHtml(item.title)}">
+        <div class="search-result-card glass-card p-2 ripple-btn" data-id="${item.id}" data-type="${item.type}">
             <img src="${item.thumb || 'https://via.placeholder.com/300x450'}" class="search-result-image" onerror="this.src='https://via.placeholder.com/300x450'">
             <div class="search-result-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title.substring(0, 30))}${item.title.length > 30 ? '...' : ''}</div>
             <div class="search-result-type">${item.typeIcon} ${item.typeName} ${item.year ? `• ${item.year}` : ''}</div>
         </div>
     `).join('');
     
-    // Remove eventos antigos e adiciona novos
     document.querySelectorAll('#searchResults .search-result-card').forEach(el => {
-        // Remove listener antigo para evitar duplicação
-        const newEl = el.cloneNode(true);
-        el.parentNode.replaceChild(newEl, el);
-        
-        newEl.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const id = newEl.getAttribute('data-id');
-            const type = newEl.getAttribute('data-type');
-            const title = newEl.getAttribute('data-title');
-            
-            console.log(`Abrindo: ${title} (${type}) - ID: ${id}`);
-            
-            let item = null;
-            
-            if (type === 'filme') {
-                item = filmes.find(f => f && String(f.id) === String(id));
-                if (item) {
-                    fecharBuscaEAbrirConteudo(item, 'filme');
-                }
-            } 
-            else if (type === 'serie') {
-                item = series.find(s => s && String(s.id) === String(id));
-                if (item) {
-                    fecharBuscaEAbrirConteudo(item, 'serie');
-                }
-            } 
-            else if (type === 'canal') {
-                item = canais.find(c => c && String(c.id) === String(id));
-                if (item) {
-                    fecharBuscaEAbrirConteudo(item, 'canal');
-                }
+        el.addEventListener('click', () => {
+            const id = el.getAttribute('data-id');
+            const type = el.getAttribute('data-type');
+            let item;
+            if (type === 'filme') item = filmes.find(f => f && f.id === id);
+            else if (type === 'serie') item = series.find(s => s && s.id === id);
+            else item = canais.find(c => c && c.id === id);
+            if (item) {
+                playMedia(item, type);
             }
         });
     });
 }
-
-// NOVA FUNÇÃO: Fecha busca e abre conteúdo sem quebrar a navegação
-function fecharBuscaEAbrirConteudo(item, tipo) {
-    if (!item) return;
-    
-    // Salva a seção atual ANTES de abrir o player
-    let currentSection = 'filmes';
-    for (const section of ['filmes', 'series', 'canais', 'feed', 'perfil', 'chat']) {
-        const sectionEl = document.getElementById(`${section}Section`);
-        if (sectionEl && sectionEl.classList.contains('active-section')) {
-            currentSection = section;
-            break;
-        }
-    }
-    localStorage.setItem('lastActiveSection', currentSection);
-    
-    // Fecha a seção de busca (sem afetar outras)
-    const searchSection = document.getElementById('searchSection');
-    if (searchSection) {
-        searchSection.classList.remove('active-section');
-    }
-    
-    // Limpa o campo de busca e resultados (opcional, mas bom para UX)
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) searchInput.value = '';
-    const searchResults = document.getElementById('searchResults');
-    if (searchResults) {
-        searchResults.innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
-    }
-    const clearBtn = document.getElementById('clearSearchBtn');
-    if (clearBtn) clearBtn.style.display = 'none';
-    
-    // Abre o player com o conteúdo
-    playMedia(item, tipo);
-    
-    // Atualiza a URL
-    window.history.pushState({ mediaId: item.id, type: tipo }, '', `${window.location.pathname}?mediaId=${item.id}&type=${tipo}`);
-}
-
-function clearSearch() {
-    document.getElementById('searchInput').value = '';
-    document.getElementById('clearSearchBtn').style.display = 'none';
-    document.getElementById('searchResults').innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
-    document.getElementById('searchInput').focus();
-}
-
-function setSearchFilter(filter) {
-    currentSearchFilter = filter;
-    document.querySelectorAll('.search-filter-btn').forEach(btn => {
-        if (btn.getAttribute('data-filter') === filter) {
-            btn.classList.add('active');
-        } else {
-            btn.classList.remove('active');
-        }
-    });
-    performSearchInSection();
-}
-
-
-
-
-
-
                 
+                function clearSearch() {
+                    document.getElementById('searchInput').value = '';
+                    document.getElementById('clearSearchBtn').style.display = 'none';
+                    document.getElementById('searchResults').innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
+                    document.getElementById('searchInput').focus();
+                }
                 
+                function setSearchFilter(filter) {
+                    currentSearchFilter = filter;
+                    document.querySelectorAll('.search-filter-btn').forEach(btn => {
+                        if (btn.getAttribute('data-filter') === filter) {
+                            btn.classList.add('active');
+                        } else {
+                            btn.classList.remove('active');
+                        }
+                    });
+                    performSearchInSection();
+                }
                 
                 // ==================== FUNÇÕES DE POSTAGEM ====================
                 function openCreatePostModal() {
@@ -4969,795 +4835,68 @@ carregarPostDaURL();
                     else if (userId && currentUser && userId === currentUser.uid) { renderInstagramProfile(); switchSection('perfil'); }
                 }
                 
-                // ==================== SISTEMA DE NAVEGAÇÃO CORRIGIDO - CÓDIGO COMPLETO ====================
-
-// Variável global para controlar a aba ativa
-let activeMainTab = 'filmes'; // filmes, series, canais, feed, perfil, chat, search
-
-// ==================== FUNÇÃO PRINCIPAL DE NAVEGAÇÃO ====================
-function switchSection(sectionId) {
-    // Salva a aba ativa (exceto quando for busca, pois busca é temporária)
-    if (sectionId !== 'search') {
-        activeMainTab = sectionId;
-        localStorage.setItem('activeMainTab', activeMainTab);
-    }
-    
-    // Remove active-section de todas as seções
-    document.querySelectorAll('.section').forEach(s => {
-        s.classList.remove('active-section');
-    });
-    
-    // Ativa a seção solicitada
-    const targetSection = document.getElementById(`${sectionId}Section`);
-    if (targetSection) {
-        targetSection.classList.add('active-section');
-    }
-    
-    // Atualiza o bottom navigation
-    document.querySelectorAll('.bottom-nav-item').forEach(item => {
-        item.classList.remove('active');
-        if (item.getAttribute('data-section') === sectionId) {
-            item.classList.add('active');
-        }
-    });
-    
-    // Controla a visibilidade do menu superior (só aparece em filmes)
-    const topMenu = document.getElementById('topMenuContainer');
-    if (topMenu) {
-        topMenu.style.display = sectionId === 'filmes' ? 'flex' : 'none';
-    }
-    
-    // Ações específicas por seção
-    if (sectionId === 'feed') {
-        if (typeof renderFeed === 'function') renderFeed();
-    }
-    if (sectionId === 'perfil') {
-        if (typeof renderInstagramProfile === 'function') renderInstagramProfile();
-    }
-    if (sectionId === 'chat') {
-        const sidebar = document.getElementById('chatSidebarNovo');
-        const main = document.getElementById('chatMainNovo');
-        if (sidebar) sidebar.classList.remove('hidden');
-        if (main) main.classList.add('hidden');
-        if (typeof loadChatList === 'function') loadChatList();
-    }
-    if (sectionId === 'search') {
-        // Reseta a busca quando abrir
-        const searchInput = document.getElementById('searchInput');
-        const clearBtn = document.getElementById('clearSearchBtn');
-        const resultsContainer = document.getElementById('searchResults');
-        
-        if (searchInput) {
-            searchInput.value = '';
-            searchInput.focus();
-        }
-        if (clearBtn) clearBtn.style.display = 'none';
-        if (resultsContainer) {
-            resultsContainer.innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
-        }
-        currentSearchFilter = 'todos';
-        document.querySelectorAll('.search-filter-btn').forEach(btn => {
-            if (btn.getAttribute('data-filter') === 'todos') {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        });
-    }
-    
-    // Se for filmes, series ou canais, renderiza a grid
-    if (sectionId === 'filmes' || sectionId === 'series' || sectionId === 'canais') {
-        // Atualiza o currentNavTab para o sistema antigo
-        currentNavTab = sectionId;
-        currentGenreFilter = 'todos';
-        
-        // Atualiza os botões do menu superior
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.classList.remove('active');
-        });
-        if (sectionId === 'canais') {
-            const btn = document.getElementById('navCanaisBtn');
-            if (btn) btn.classList.add('active');
-        } else if (sectionId === 'filmes') {
-            const btn = document.getElementById('navFilmesBtn');
-            if (btn) btn.classList.add('active');
-        } else if (sectionId === 'series') {
-            const btn = document.getElementById('navSeriesBtn');
-            if (btn) btn.classList.add('active');
-        }
-        
-        // Atualiza os filtros e renderiza
-        if (typeof updateGenreFilters === 'function') updateGenreFilters();
-        if (typeof renderGrid === 'function') renderGrid();
-    }
-    
-    console.log('Seção ativada:', sectionId);
-}
-
-// ==================== FUNÇÃO CLOSE PLAYER CORRIGIDA ====================
-window.closePlayer = function() {
-    // Fecha o player do YouTube se existir
-    if (typeof ytPlayer !== 'undefined' && ytPlayer) {
-        if (typeof stopProgressTracking === 'function') stopProgressTracking(ytPlayer, true);
-        ytPlayer.stopVideo();
-    }
-    
-    // Fecha o player HLS se existir
-    if (window.hlsInstance) {
-        if (typeof stopProgressTracking === 'function') stopProgressTracking(document.getElementById('hlsPlayer'), false);
-        window.hlsInstance.destroy();
-        window.hlsInstance = null;
-    }
-    
-    // Esconde o container do player
-    const playerContainer = document.getElementById('playerCommentsContainer');
-    const overlay = document.getElementById('floatingPlayerOverlay');
-    if (playerContainer) playerContainer.classList.add('hidden');
-    if (overlay) overlay.classList.add('hidden');
-    
-    // Para as atualizações em tempo real
-    if (typeof stopRealtimeUpdates === 'function') stopRealtimeUpdates();
-    
-    // Remove parâmetros da URL
-    const url = new URL(window.location);
-    url.searchParams.delete('mediaId');
-    url.searchParams.delete('type');
-    window.history.pushState({}, '', url);
-    
-    // Restaura a aba que estava ativa antes
-    // Se activeMainTab for 'search', volta para 'filmes' (busca não é uma aba permanente)
-    let tabToRestore = activeMainTab;
-    if (tabToRestore === 'search') tabToRestore = 'filmes';
-    
-    // Força a restauração da aba correta
-    switchSection(tabToRestore);
-    
-    console.log('Player fechado, restaurando aba:', tabToRestore);
-};
-
-// ==================== FUNÇÃO DE BUSCA CORRIGIDA ====================
-function performSearchInSection() {
-    // Só executa se a seção de busca estiver ativa
-    const searchSection = document.getElementById('searchSection');
-    if (!searchSection || !searchSection.classList.contains('active-section')) {
-        return;
-    }
-    
-    const term = document.getElementById('searchInput').value.trim().toLowerCase();
-    const resultsContainer = document.getElementById('searchResults');
-    const clearBtn = document.getElementById('clearSearchBtn');
-    
-    if (clearBtn) {
-        clearBtn.style.display = term.length > 0 ? 'flex' : 'none';
-    }
-    
-    if (term.length === 0) {
-        resultsContainer.innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
-        return;
-    }
-    
-    // Verifica se os dados já foram carregados
-    if ((!filmes || filmes.length === 0) && (!series || series.length === 0) && (!canais || canais.length === 0)) {
-        resultsContainer.innerHTML = '<div class="no-results">⏳ Carregando conteúdo, aguarde...</div>';
-        return;
-    }
-    
-    let allItems = [];
-    
-    if (currentSearchFilter === 'filmes') {
-        if (filmes && filmes.length > 0) {
-            allItems = filmes.filter(f => f && f.title).map(f => ({ ...f, type: 'filme', typeIcon: '🎬', typeName: 'Filme' }));
-        }
-    } else if (currentSearchFilter === 'series') {
-        if (series && series.length > 0) {
-            allItems = series.filter(s => s && s.title).map(s => ({ ...s, type: 'serie', typeIcon: '📺', typeName: 'Série' }));
-        }
-    } else if (currentSearchFilter === 'canais') {
-        if (canais && canais.length > 0) {
-            allItems = canais.filter(c => c && c.title).map(c => ({ ...c, type: 'canal', typeIcon: '📡', typeName: 'Canal' }));
-        }
-    } else {
-        if (filmes && filmes.length > 0) {
-            allItems.push(...filmes.filter(f => f && f.title).map(f => ({ ...f, type: 'filme', typeIcon: '🎬', typeName: 'Filme' })));
-        }
-        if (series && series.length > 0) {
-            allItems.push(...series.filter(s => s && s.title).map(s => ({ ...s, type: 'serie', typeIcon: '📺', typeName: 'Série' })));
-        }
-        if (canais && canais.length > 0) {
-            allItems.push(...canais.filter(c => c && c.title).map(c => ({ ...c, type: 'canal', typeIcon: '📡', typeName: 'Canal' })));
-        }
-    }
-    
-    if (allItems.length === 0) {
-        resultsContainer.innerHTML = '<div class="no-results">📀 Nenhum conteúdo cadastrado ainda</div>';
-        return;
-    }
-    
-    const matches = allItems.filter(item => {
-        if (!item || !item.title) return false;
-        const titleMatch = item.title.toLowerCase().includes(term);
-        const categoryMatch = item.category ? item.category.toLowerCase().includes(term) : false;
-        return titleMatch || categoryMatch;
-    });
-    
-    if (matches.length === 0) {
-        resultsContainer.innerHTML = '<div class="no-results">❌ Nenhum resultado encontrado para "' + escapeHtml(term) + '"</div>';
-        return;
-    }
-    
-    resultsContainer.innerHTML = matches.map(item => `
-        <div class="search-result-card glass-card p-2 ripple-btn" data-id="${item.id}" data-type="${item.type}" data-title="${escapeHtml(item.title)}">
-            <img src="${item.thumb || 'https://via.placeholder.com/300x450'}" class="search-result-image" onerror="this.src='https://via.placeholder.com/300x450'">
-            <div class="search-result-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title.substring(0, 30))}${item.title.length > 30 ? '...' : ''}</div>
-            <div class="search-result-type">${item.typeIcon} ${item.typeName} ${item.year ? `• ${item.year}` : ''}</div>
-        </div>
-    `).join('');
-    
-    // Adiciona eventos aos cards
-    document.querySelectorAll('#searchResults .search-result-card').forEach(card => {
-        // Remove eventos antigos para evitar duplicação
-        const newCard = card.cloneNode(true);
-        card.parentNode.replaceChild(newCard, card);
-        
-        newCard.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const id = newCard.getAttribute('data-id');
-            const type = newCard.getAttribute('data-type');
-            const title = newCard.getAttribute('data-title');
-            
-            console.log(`Abrindo conteúdo da busca: ${title} (${type})`);
-            
-            let item = null;
-            
-            if (type === 'filme') {
-                item = filmes.find(f => f && String(f.id) === String(id));
-                if (item) {
-                    abrirConteudoDaBusca(item, 'filme');
-                }
-            } else if (type === 'serie') {
-                item = series.find(s => s && String(s.id) === String(id));
-                if (item) {
-                    abrirConteudoDaBusca(item, 'serie');
-                }
-            } else if (type === 'canal') {
-                item = canais.find(c => c && String(c.id) === String(id));
-                if (item) {
-                    abrirConteudoDaBusca(item, 'canal');
-                }
-            }
-            
-            if (!item) {
-                console.error('Conteúdo não encontrado:', id, type);
-            }
-        });
-    });
-}
-
-// ==================== FUNÇÃO PARA ABRIR CONTEÚDO VINDO DA BUSCA ====================
-function abrirConteudoDaBusca(item, tipo) {
-    if (!item) return;
-    
-    // Salva a aba para onde vai voltar (filmes)
-    activeMainTab = 'filmes';
-    localStorage.setItem('activeMainTab', activeMainTab);
-    
-    // Abre o player com o conteúdo
-    playMedia(item, tipo);
-    
-    // Atualiza a URL
-    window.history.pushState({ mediaId: item.id, type: tipo }, '', `${window.location.pathname}?mediaId=${item.id}&type=${tipo}`);
-}
-
-// ==================== FUNÇÃO PARA LIMPAR A BUSCA ====================
-function clearSearch() {
-    const searchInput = document.getElementById('searchInput');
-    const clearBtn = document.getElementById('clearSearchBtn');
-    const resultsContainer = document.getElementById('searchResults');
-    
-    if (searchInput) searchInput.value = '';
-    if (clearBtn) clearBtn.style.display = 'none';
-    if (resultsContainer) {
-        resultsContainer.innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
-    }
-    if (searchInput) searchInput.focus();
-}
-
-// ==================== FUNÇÃO PARA FILTRAR POR TIPO ====================
-function setSearchFilter(filter) {
-    currentSearchFilter = filter;
-    document.querySelectorAll('.search-filter-btn').forEach(btn => {
-        if (btn.getAttribute('data-filter') === filter) {
-            btn.classList.add('active');
-        } else {
-            btn.classList.remove('active');
-        }
-    });
-    performSearchInSection();
-}
-
-// ==================== FUNÇÃO PLAY MEDIA COMPLETA (COM SUPORTE A BUSCA) ====================
-async function playMedia(item, type) {
-    // SALVA A ABA ATUAL ANTES DE ABRIR O PLAYER
-    for (const section of ['filmes', 'series', 'canais', 'feed', 'perfil', 'chat']) {
-        const sectionEl = document.getElementById(`${section}Section`);
-        if (sectionEl && sectionEl.classList.contains('active-section')) {
-            activeMainTab = section;
-            localStorage.setItem('activeMainTab', activeMainTab);
-            break;
-        }
-    }
-    
-    // Se veio da busca, já temos activeMainTab = 'filmes' (definido em abrirConteudoDaBusca)
-    
-    const videoId = extractYoutubeId(item.link);
-    const isHls = isIptvLink(item.link);
-    const container = document.getElementById('playerCommentsContainer');
-    const overlay = document.getElementById('floatingPlayerOverlay');
-    container.classList.remove('hidden');
-    overlay.classList.remove('hidden');
-    
-    const titleEl = document.getElementById('videoTitle');
-    if (titleEl) titleEl.innerText = item.title;
-    
-    const yearEl = document.getElementById('videoYear');
-    if (yearEl) yearEl.innerHTML = item.year ? `📅 ${item.year}` : '';
-    
-    const genreEl = document.getElementById('videoGenre');
-    if (genreEl) genreEl.innerHTML = item.category ? `🎭 ${item.category}` : '';
-    
-    let description = item.description || '';
-    if (!description || description === '') {
-        showToast('🔍 Buscando descrição...');
-        description = await fetchVideoDescription(item.link, item.title);
-        item.description = description;
-        if (item.id) {
-            const refPath = type === 'filme' ? `filmes/${item.id}` : (type === 'serie' ? `series/${item.id}` : `canais/${item.id}`);
-            database.ref(refPath).update({ description: description });
-        }
-    }
-    updateVideoDescription(description);
-    setupDescriptionToggle();
-    
-    window.currentMedia = item;
-    window.currentMediaType = type;
-    incrementViewCount(item.id);
-    loadViewCount(item.id);
-    startRealtimeUpdates(item.id);
-    
-    const likeBtn = document.getElementById('likeBtn');
-    const saveBtn = document.getElementById('saveBtn');
-    const reportBtn = document.getElementById('reportBtn');
-    const shareNativeBtn = document.getElementById('shareNativeBtn');
-    
-    function updateButtons() {
-        const isLiked = favoritos.some(f => f.id === item.id && f.liked);
-        const likeIcon = likeBtn.querySelector('i');
-        if (likeIcon) likeIcon.className = isLiked ? 'fas fa-heart' : 'far fa-heart';
-        likeBtn.classList.toggle('active', isLiked);
-        
-        const isSaved = favoritos.some(f => f.id === item.id && f.saved);
-        saveBtn.innerHTML = isSaved ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>';
-        saveBtn.classList.toggle('active', isSaved);
-    }
-    
-    likeBtn.onclick = () => {
-        toggleLikeMedia(item.id);
-        setTimeout(() => loadLikeCount(item.id), 500);
-    };
-    
-    saveBtn.onclick = () => {
-        if (!currentUser) {
-            showToast('Faça login');
-            return;
-        }
-        const existing = favoritos.find(f => f.id === item.id);
-        if (existing && existing.saved) {
-            database.ref(`favoritos/${currentUser.uid}/${item.id}`).remove();
-        } else {
-            database.ref(`favoritos/${currentUser.uid}/${item.id}`).set({
-                id: item.id,
-                title: item.title,
-                thumb: item.thumb,
-                type: type,
-                liked: existing?.liked || false,
-                saved: true
-            });
-        }
-        updateButtons();
-    };
-    
-    reportBtn.onclick = () => openReportPopup();
-    shareNativeBtn.onclick = () => shareNative();
-    updateButtons();
-    
-    loadRatingsFromFirebase(item.id);
-    loadComments(item.id);
-    loadLikeCount(item.id);
-    
-    const submitComment = document.getElementById('submitCommentBtn');
-    const newCommentInput = document.getElementById('newCommentInput');
-    submitComment.onclick = () => addCommentToVideo(item.id, newCommentInput.value);
-    newCommentInput.onkeypress = (e) => {
-        if (e.key === 'Enter') addCommentToVideo(item.id, newCommentInput.value);
-    };
-    
-    const youtubeDiv = document.getElementById('youtubePlayerDiv');
-    const hlsVideo = document.getElementById('hlsPlayer');
-    const noContent = document.getElementById('noContent');
-    
-    youtubeDiv.style.display = 'none';
-    hlsVideo.style.display = 'none';
-    
-    if (window.hlsInstance) window.hlsInstance.destroy();
-    
-    if (videoId) {
-        youtubeDiv.style.display = 'block';
-        if (ytPlayer) {
-            ytPlayer.loadVideoById(videoId);
-            loadProgress(item.id, (savedTime) => {
-                if (savedTime > 5) {
-                    ytPlayer.seekTo(savedTime, true);
-                    showToast(`⏯️ Continuando de onde parou`);
-                }
-                startProgressTracking(item.id, ytPlayer, true);
-            });
-            ytPlayer.playVideo();
-        } else {
-            ytPlayer = new YT.Player('youtubePlayerDiv', {
-                height: '100%',
-                width: '100%',
-                videoId: videoId,
-                playerVars: {
-                    'autoplay': 1,
-                    'controls': 1,
-                    'modestbranding': 1,
-                    'rel': 0,
-                    'showinfo': 0,
-                    'fs': 1,
-                    'playsinline': 1
-                },
-                events: {
-                    'onReady': (event) => {
-                        loadProgress(item.id, (savedTime) => {
-                            if (savedTime > 5) {
-                                event.target.seekTo(savedTime, true);
-                                showToast(`⏯️ Continuando de onde parou`);
-                            }
-                            startProgressTracking(item.id, event.target, true);
+                // ==================== FUNÇÕES DE NAVEGAÇÃO ====================
+                function switchSection(sectionId) {
+                    document.querySelectorAll('.section').forEach(s => s.classList.remove('active-section'));
+                    document.getElementById(`${sectionId}Section`).classList.add('active-section');
+                    document.querySelectorAll('.bottom-nav-item').forEach(item => item.classList.remove('active'));
+                    document.querySelector(`.bottom-nav-item[data-section="${sectionId}"]`).classList.add('active');
+                    const topMenu = document.getElementById('topMenuContainer');
+                    if (sectionId === 'filmes') {
+                        topMenu.style.display = 'flex';
+                    } else {
+                        topMenu.style.display = 'none';
+                    }
+                    if (sectionId === 'feed') renderFeed();
+                    if (sectionId === 'perfil') renderInstagramProfile();
+                    if (sectionId === 'chat') { document.getElementById('chatSidebar').classList.remove('hidden'); document.getElementById('chatMain').classList.add('hidden'); loadChatList(); }
+                    if (sectionId === 'search') {
+                        document.getElementById('searchInput').value = '';
+                        document.getElementById('clearSearchBtn').style.display = 'none';
+                        document.getElementById('searchResults').innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
+                        document.getElementById('searchInput').focus();
+                        currentSearchFilter = 'todos';
+                        document.querySelectorAll('.search-filter-btn').forEach(btn => {
+                            if (btn.getAttribute('data-filter') === 'todos') btn.classList.add('active');
+                            else btn.classList.remove('active');
                         });
-                        event.target.playVideo();
-                        noContent.style.display = 'none';
-                    },
-                    'onStateChange': (event) => {
-                        if (event.data === YT.PlayerState.ENDED) {
-                            database.ref(`progresso/${currentUser?.uid}/${item.id}`).remove();
-                            stopProgressTracking(ytPlayer, true);
-                        }
                     }
                 }
-            });
-        }
-        noContent.style.display = 'none';
-    } else if (isHls) {
-        hlsVideo.style.display = 'block';
-        if (Hls.isSupported()) {
-            window.hlsInstance = new Hls();
-            window.hlsInstance.loadSource(item.link);
-            window.hlsInstance.attachMedia(hlsVideo);
-            window.hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
-                loadProgress(item.id, (savedTime) => {
-                    if (savedTime > 5) {
-                        hlsVideo.currentTime = savedTime;
-                        showToast(`⏯️ Continuando de onde parou`);
+                
+                function updateContentCounters() {
+                    document.getElementById('filmesCount').innerText = filmes.length;
+                    document.getElementById('seriesCount').innerText = series.length;
+                    document.getElementById('canaisCount').innerText = canais.length;
+                }
+                
+                function makeNicknamesClickable(text) {
+                    if (!text) return text;
+                    const regex = /@([a-zA-Z0-9_]+)/g;
+                    return text.replace(regex, (match, nickname) => `<span class="clickable-nickname" data-nickname="${nickname}">${match}</span>`);
+                }
+                
+                function setupNicknameClickHandlers() {
+                    document.querySelectorAll('.clickable-nickname').forEach(el => {
+                        el.removeEventListener('click', nicknameClickHandler);
+                        el.addEventListener('click', nicknameClickHandler);
+                    });
+                }
+                
+                function nicknameClickHandler(e) {
+                    e.stopPropagation();
+                    const nickname = this.getAttribute('data-nickname');
+                    if (nickname) {
+                        database.ref('usuarios').orderByChild('nickname').equalTo(nickname).once('value', (snapshot) => {
+                            const users = snapshot.val();
+                            if (users) {
+                                const userId = Object.keys(users)[0];
+                                if (userId && currentUser && userId !== currentUser.uid) { renderInstagramProfile(userId); switchSection('perfil'); }
+                                else if (userId && currentUser && userId === currentUser.uid) { renderInstagramProfile(); switchSection('perfil'); }
+                                else showToast(`Usuário ${nickname} não encontrado`);
+                            } else showToast(`Usuário ${nickname} não encontrado`);
+                        });
                     }
-                    startProgressTracking(item.id, hlsVideo, false);
-                });
-                hlsVideo.play();
-                noContent.style.display = 'none';
-            });
-            hlsVideo.addEventListener('ended', () => {
-                database.ref(`progresso/${currentUser?.uid}/${item.id}`).remove();
-                stopProgressTracking(hlsVideo, false);
-            });
-        } else if (hlsVideo.canPlayType('application/vnd.apple.mpegurl')) {
-            hlsVideo.src = item.link;
-            hlsVideo.addEventListener('loadedmetadata', () => {
-                loadProgress(item.id, (savedTime) => {
-                    if (savedTime > 5) {
-                        hlsVideo.currentTime = savedTime;
-                        showToast(`⏯️ Continuando de onde parou`);
-                    }
-                    startProgressTracking(item.id, hlsVideo, false);
-                });
-                hlsVideo.play();
-                noContent.style.display = 'none';
-            });
-            hlsVideo.addEventListener('ended', () => {
-                database.ref(`progresso/${currentUser?.uid}/${item.id}`).remove();
-                stopProgressTracking(hlsVideo, false);
-            });
-        }
-    } else {
-        showToast('Formato não suportado');
-    }
-    
-    if (typeof castSession !== 'undefined' && castSession) {
-        if (typeof loadCurrentMediaToCast === 'function') loadCurrentMediaToCast();
-    }
-}
-
-// ==================== FUNÇÃO PARA CRIAR AS ESTRELAS DE AVALIAÇÃO ====================
-function createRatingStars(containerId, mediaId) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    
-    if (!currentUser) {
-        mostrarEstrelas(container, 0, mediaId);
-        return;
-    }
-    
-    const userRatingRef = firebase.database().ref(`avaliacoes/${mediaId}/${currentUser.uid}`);
-    userRatingRef.once('value').then((snapshot) => {
-        const notaAtual = snapshot.val() || 0;
-        mostrarEstrelas(container, notaAtual, mediaId);
-    }).catch(() => {
-        mostrarEstrelas(container, 0, mediaId);
-    });
-}
-
-function mostrarEstrelas(container, notaAtual, mediaId) {
-    if (!container) return;
-    
-    container.innerHTML = '';
-    container.style.display = 'flex';
-    container.style.gap = '4px';
-    
-    for (let i = 1; i <= 5; i++) {
-        const estrela = document.createElement('i');
-        
-        if (i <= notaAtual) {
-            estrela.className = 'fas fa-star';
-            estrela.style.color = '#ffc107';
-            estrela.style.textShadow = '0 0 4px gold';
-        } else {
-            estrela.className = 'far fa-star';
-            estrela.style.color = 'rgba(255,255,255,0.3)';
-        }
-        
-        estrela.style.cursor = 'pointer';
-        estrela.style.fontSize = '18px';
-        estrela.style.margin = '0 2px';
-        estrela.style.transition = 'all 0.2s';
-        estrela.setAttribute('data-nota', i);
-        
-        estrela.onclick = (function(nota) {
-            return function(e) {
-                e.stopPropagation();
-                salvarAvaliacao(mediaId, nota);
-            };
-        })(i);
-        
-        estrela.onmouseenter = function() {
-            this.style.transform = 'scale(1.15)';
-        };
-        estrela.onmouseleave = function() {
-            this.style.transform = 'scale(1)';
-        };
-        
-        container.appendChild(estrela);
-    }
-}
-
-function salvarAvaliacao(mediaId, novaNota) {
-    if (!currentUser) {
-        showToast('📝 Faça login para avaliar');
-        return;
-    }
-    
-    const userRatingRef = firebase.database().ref(`avaliacoes/${mediaId}/${currentUser.uid}`);
-    
-    userRatingRef.once('value').then((snapshot) => {
-        const notaAntiga = snapshot.val() || 0;
-        
-        if (notaAntiga === novaNota) {
-            showToast(`⭐ Sua avaliação já é ${novaNota}/5`);
-            return;
-        }
-        
-        userRatingRef.set(novaNota);
-        
-        const estatisticaRef = firebase.database().ref(`avaliacoes/${mediaId}`);
-        
-        estatisticaRef.transaction((dadosAtuais) => {
-            if (!dadosAtuais) {
-                return {
-                    totalVotos: 1,
-                    soma: novaNota
-                };
-            }
-            
-            let totalVotos = dadosAtuais.totalVotos || 0;
-            let soma = dadosAtuais.soma || 0;
-            
-            if (notaAntiga === 0) {
-                totalVotos = totalVotos + 1;
-                soma = soma + novaNota;
-            } else {
-                soma = soma - notaAntiga + novaNota;
-            }
-            
-            return {
-                totalVotos: totalVotos,
-                soma: soma
-            };
-        }).then(() => {
-            showToast(`✅ Avaliação ${novaNota}/5 salva!`);
-            
-            const container = document.getElementById('ratingStarsContainer');
-            if (container) {
-                mostrarEstrelas(container, novaNota, mediaId);
-            }
-            
-            atualizarPorcentagem(mediaId);
-            
-        }).catch((erro) => {
-            console.error('Erro ao salvar:', erro);
-            showToast('❌ Erro ao salvar avaliação');
-        });
-    });
-}
-
-function atualizarPorcentagem(mediaId) {
-    const estatisticaRef = firebase.database().ref(`avaliacoes/${mediaId}`);
-    
-    estatisticaRef.once('value').then((snapshot) => {
-        const dados = snapshot.val();
-        
-        const percentSpan = document.getElementById('ratingPercentDisplay');
-        const ratingInfo = document.getElementById('ratingInfo');
-        
-        if (!dados || dados.totalVotos === 0) {
-            if (percentSpan) percentSpan.innerText = '0%';
-            if (ratingInfo) ratingInfo.innerHTML = '<span>⭐ Seja o primeiro a avaliar!</span>';
-            return;
-        }
-        
-        const media = dados.soma / dados.totalVotos;
-        const porcentagem = Math.round((media / 5) * 100);
-        
-        if (percentSpan) {
-            percentSpan.innerText = `${porcentagem}%`;
-            percentSpan.style.color = '#ffc107';
-        }
-        
-        if (ratingInfo) {
-            ratingInfo.innerHTML = `<span>⭐ ${porcentagem}% gostaram (${dados.totalVotos} ${dados.totalVotos === 1 ? 'voto' : 'votos'})</span>`;
-        }
-    }).catch((erro) => {
-        console.error('Erro ao carregar porcentagem:', erro);
-    });
-}
-
-// ==================== REINICIALIZAR OS BOTÕES DE NAVEGAÇÃO ====================
-function reinicializarBotoesNavegacao() {
-    // Bottom navigation
-    document.querySelectorAll('.bottom-nav-item').forEach(btn => {
-        const newBtn = btn.cloneNode(true);
-        btn.parentNode.replaceChild(newBtn, btn);
-        newBtn.addEventListener('click', function(e) {
-            const section = this.getAttribute('data-section');
-            if (section) {
-                switchSection(section);
-            }
-        });
-    });
-    
-    // Top menu navigation
-    const navCanais = document.getElementById('navCanaisBtn');
-    const navFilmes = document.getElementById('navFilmesBtn');
-    const navSeries = document.getElementById('navSeriesBtn');
-    const navSearch = document.getElementById('navSearchBtn');
-    const navFavorites = document.getElementById('favoritesBtn');
-    const navAdmin = document.getElementById('adminBtn');
-    const navSettings = document.getElementById('settingsBtn');
-    
-    if (navCanais) {
-        const newNavCanais = navCanais.cloneNode(true);
-        navCanais.parentNode.replaceChild(newNavCanais, navCanais);
-        newNavCanais.addEventListener('click', () => switchSection('canais'));
-    }
-    if (navFilmes) {
-        const newNavFilmes = navFilmes.cloneNode(true);
-        navFilmes.parentNode.replaceChild(newNavFilmes, navFilmes);
-        newNavFilmes.addEventListener('click', () => switchSection('filmes'));
-    }
-    if (navSeries) {
-        const newNavSeries = navSeries.cloneNode(true);
-        navSeries.parentNode.replaceChild(newNavSeries, navSeries);
-        newNavSeries.addEventListener('click', () => switchSection('series'));
-    }
-    if (navSearch) {
-        const newNavSearch = navSearch.cloneNode(true);
-        navSearch.parentNode.replaceChild(newNavSearch, navSearch);
-        newNavSearch.addEventListener('click', () => switchSection('search'));
-    }
-    if (navFavorites) {
-        const newNavFavorites = navFavorites.cloneNode(true);
-        navFavorites.parentNode.replaceChild(newNavFavorites, navFavorites);
-        newNavFavorites.addEventListener('click', () => {
-            if (typeof openFavoritesPopup === 'function') openFavoritesPopup();
-        });
-    }
-    if (navAdmin) {
-        const newNavAdmin = navAdmin.cloneNode(true);
-        navAdmin.parentNode.replaceChild(newNavAdmin, navAdmin);
-        newNavAdmin.addEventListener('click', () => {
-            const modal = document.getElementById('adminModal');
-            if (modal) modal.classList.remove('hidden');
-        });
-    }
-    if (navSettings) {
-        const newNavSettings = navSettings.cloneNode(true);
-        navSettings.parentNode.replaceChild(newNavSettings, navSettings);
-        newNavSettings.addEventListener('click', () => {
-            const modal = document.getElementById('settingsModal');
-            if (modal) modal.classList.remove('hidden');
-        });
-    }
-}
-
-// ==================== INICIALIZAÇÃO DA NAVEGAÇÃO ====================
-function inicializarNavegacao() {
-    // Carrega a última aba salva
-    const savedTab = localStorage.getItem('activeMainTab');
-    if (savedTab && savedTab !== 'search') {
-        activeMainTab = savedTab;
-    } else {
-        activeMainTab = 'filmes';
-    }
-    
-    // Inicializa os botões
-    reinicializarBotoesNavegacao();
-    
-    // Ativa a aba correta
-    switchSection(activeMainTab);
-    
-    // Configura os eventos do campo de busca
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-        searchInput.addEventListener('input', performSearchInSection);
-        searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') performSearchInSection();
-        });
-    }
-    
-    // Configura o botão de limpar busca
-    const clearSearchBtn = document.getElementById('clearSearchBtn');
-    if (clearSearchBtn) {
-        clearSearchBtn.addEventListener('click', clearSearch);
-    }
-    
-    // Configura os botões de filtro da busca
-    document.querySelectorAll('.search-filter-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const filter = btn.getAttribute('data-filter');
-            setSearchFilter(filter);
-        });
-    });
-    
-    console.log('Navegação inicializada, aba ativa:', activeMainTab);
-}
-
-// Executa quando o DOM estiver pronto
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', inicializarNavegacao);
-} else {
-    inicializarNavegacao();
-}
-                // fim do teste
-
+                }
                 
                 // ==================== PERFIL INSTAGRAM ====================
                 let currentProfileTab = 'posts';
@@ -6727,15 +5866,6 @@ function renderStarsCorrigido(container, mediaId, userRating) {
                 }
                 
                 async function playMedia(item, type) {
-                    let activeSection = 'filmes';
-    for (const section of ['filmes', 'series', 'canais', 'feed', 'perfil', 'chat']) {
-        const sectionEl = document.getElementById(`${section}Section`);
-        if (sectionEl && sectionEl.classList.contains('active-section')) {
-            activeSection = section;
-            break;
-        }
-    }
-    localStorage.setItem('lastActiveSection', activeSection);
                     const videoId = extractYoutubeId(item.link);
                     const isHls = isIptvLink(item.link);
                     const container = document.getElementById('playerCommentsContainer');
@@ -6817,72 +5947,16 @@ function renderStarsCorrigido(container, mediaId, userRating) {
                 }
                 
                 function closePlayer() {
-    if (ytPlayer) { 
-        stopProgressTracking(ytPlayer, true); 
-        ytPlayer.stopVideo(); 
-    }
-    if (window.hlsInstance) { 
-        stopProgressTracking(document.getElementById('hlsPlayer'), false); 
-        window.hlsInstance.destroy(); 
-    }
-    
-    // Fecha o container do player
-    const playerContainer = document.getElementById('playerCommentsContainer');
-    const overlay = document.getElementById('floatingPlayerOverlay');
-    
-    if (playerContainer) playerContainer.classList.add('hidden');
-    if (overlay) overlay.classList.add('hidden');
-    
-    stopRealtimeUpdates();
-    
-    // Remove os parâmetros da URL
-    const url = new URL(window.location);
-    url.searchParams.delete('mediaId');
-    url.searchParams.delete('type');
-    window.history.pushState({}, '', url);
-    
-    // ========== CORREÇÃO CRÍTICA: Restaura a seção ativa corretamente ==========
-    // Salva qual era a seção ativa antes de abrir o player
-    let currentActiveSection = localStorage.getItem('lastActiveSection') || 'filmes';
-    
-    // Oculta TODAS as seções primeiro
-    document.querySelectorAll('.section').forEach(s => {
-        s.classList.remove('active-section');
-    });
-    
-    // Ativa a seção que estava ativa antes
-    const sectionToActivate = document.getElementById(`${currentActiveSection}Section`);
-    if (sectionToActivate) {
-        sectionToActivate.classList.add('active-section');
-    } else {
-        // Fallback: ativa filmes
-        document.getElementById('filmesSection').classList.add('active-section');
-    }
-    
-    // Atualiza o bottom nav
-    document.querySelectorAll('.bottom-nav-item').forEach(item => {
-        item.classList.remove('active');
-        if (item.getAttribute('data-section') === currentActiveSection) {
-            item.classList.add('active');
-        }
-    });
-    
-    // Mostra ou esconde o menu superior baseado na seção
-    const topMenu = document.getElementById('topMenuContainer');
-    if (topMenu) {
-        if (currentActiveSection === 'filmes') {
-            topMenu.style.display = 'flex';
-        } else {
-            topMenu.style.display = 'none';
-        }
-    }
-    
-    // Reseta o gênero e ordenação para garantir que a grid reappareça
-    currentGenreFilter = 'todos';
-    renderGrid();
-    
-    console.log('Player fechado, restaurando seção:', currentActiveSection);
-}
+                    if (ytPlayer) { stopProgressTracking(ytPlayer, true); ytPlayer.stopVideo(); }
+                    if (window.hlsInstance) { stopProgressTracking(document.getElementById('hlsPlayer'), false); window.hlsInstance.destroy(); }
+                    document.getElementById('playerCommentsContainer').classList.add('hidden');
+                    document.getElementById('floatingPlayerOverlay').classList.add('hidden');
+                    stopRealtimeUpdates();
+                    const url = new URL(window.location);
+                    url.searchParams.delete('mediaId');
+                    url.searchParams.delete('type');
+                    window.history.pushState({}, '', url);
+                }
                 
                 function onYouTubeIframeAPIReady() {}
                 
@@ -7940,22 +7014,261 @@ setInterval(() => {
                     });
                 }
 
-                // INICIO TITITIAGO
+                function buscarConteudo(termo) {
+                    const filtro = document.querySelector('.search-filter-btn.active')?.getAttribute('data-filter') || 'todos';
+                    const resultadosDiv = document.getElementById('searchResults');
+                    
+                    let itens = [];
+                    
+                    if (filtro === 'filmes') {
+                        itens = filmes.map(f => ({ ...f, tipo: 'filme', icone: '🎬', nomeTipo: 'Filme' }));
+                    } else if (filtro === 'series') {
+                        itens = series.map(s => ({ ...s, tipo: 'serie', icone: '📺', nomeTipo: 'Série' }));
+                    } else if (filtro === 'canais') {
+                        itens = canais.map(c => ({ ...c, tipo: 'canal', icone: '📡', nomeTipo: 'Canal' }));
+                    } else {
+                        itens = [
+                            ...filmes.map(f => ({ ...f, tipo: 'filme', icone: '🎬', nomeTipo: 'Filme' })),
+                            ...series.map(s => ({ ...s, tipo: 'serie', icone: '📺', nomeTipo: 'Série' })),
+                            ...canais.map(c => ({ ...c, tipo: 'canal', icone: '📡', nomeTipo: 'Canal' }))
+                        ];
+                    }
+                    
+                    const termoLower = termo.toLowerCase();
+                    const resultados = itens.filter(item => 
+                        item.title.toLowerCase().includes(termoLower) || 
+                        (item.category && item.category.toLowerCase().includes(termoLower))
+                    );
+                    
+                    if (resultados.length === 0) {
+                        resultadosDiv.innerHTML = `<div class="no-results">❌ Nenhum resultado encontrado para "${termo}"</div>`;
+                        return;
+                    }
+                    
+                    resultadosDiv.innerHTML = resultados.map(item => `
+                        <div class="search-result-card glass-card p-2 ripple-btn" data-id="${item.id}" data-tipo="${item.tipo}">
+                            <img src="${item.thumb || 'https://via.placeholder.com/300x450'}" class="search-result-image" onerror="this.src='https://via.placeholder.com/300x450'">
+                            <div class="search-result-title" title="${item.title}">${item.title.substring(0, 30)}${item.title.length > 30 ? '...' : ''}</div>
+                            <div class="search-result-type">${item.icone} ${item.nomeTipo} ${item.year ? `• ${item.year}` : ''}</div>
+                        </div>
+                    `).join('');
+                    
+                    document.querySelectorAll('#searchResults .search-result-card').forEach(el => {
+                        el.addEventListener('click', () => {
+                            const id = el.getAttribute('data-id');
+                            const tipo = el.getAttribute('data-tipo');
+                            let item;
+                            if (tipo === 'filme') item = filmes.find(f => f.id === id);
+                            else if (tipo === 'serie') item = series.find(s => s.id === id);
+                            else item = canais.find(c => c.id === id);
+                            if (item) playMedia(item, tipo);
+                        });
+                    });
+                }
 
+                document.querySelectorAll('.search-filter-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.search-filter-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        const termoAtual = document.getElementById('searchInput').value.trim();
+                        if (termoAtual) {
+                            buscarConteudo(termoAtual);
+                        }
+                    });
+                });
 
+                console.log('✅ Sistema de busca corrigido!');
 
+                const originalSetNavTab = window.setNavTab || setNavTab;
 
+                window.setNavTab = function(tab) {
+                    const searchSection = document.getElementById('searchSection');
+                    const isInSearchSection = searchSection && searchSection.classList.contains('active-section');
+                    
+                    if (isInSearchSection && tab !== 'buscar') {
+                        console.log('🔍 Saindo da aba Buscar para mostrar:', tab);
+                        
+                        if (tab === 'canais') {
+                            switchSection('filmes');
+                            setTimeout(() => {
+                                originalSetNavTab('canais');
+                            }, 50);
+                        } else if (tab === 'filmes') {
+                            switchSection('filmes');
+                            setTimeout(() => {
+                                originalSetNavTab('filmes');
+                            }, 50);
+                        } else if (tab === 'series') {
+                            switchSection('filmes');
+                            setTimeout(() => {
+                                originalSetNavTab('series');
+                            }, 50);
+                        } else {
+                            originalSetNavTab(tab);
+                        }
+                    } else {
+                        originalSetNavTab(tab);
+                    }
+                };
 
+                const navCanaisBtn = document.getElementById('navCanaisBtn');
+                const navFilmesBtn = document.getElementById('navFilmesBtn');
+                const navSeriesBtn = document.getElementById('navSeriesBtn');
+                const navSearchBtn = document.getElementById('navSearchBtn');
 
+                if (navCanaisBtn) {
+                    const newBtn = navCanaisBtn.cloneNode(true);
+                    navCanaisBtn.parentNode.replaceChild(newBtn, navCanaisBtn);
+                    newBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        window.setNavTab('canais');
+                    });
+                }
 
+                if (navFilmesBtn) {
+                    const newBtn = navFilmesBtn.cloneNode(true);
+                    navFilmesBtn.parentNode.replaceChild(newBtn, navFilmesBtn);
+                    newBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        window.setNavTab('filmes');
+                    });
+                }
 
+                if (navSeriesBtn) {
+                    const newBtn = navSeriesBtn.cloneNode(true);
+                    navSeriesBtn.parentNode.replaceChild(newBtn, navSeriesBtn);
+                    newBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        window.setNavTab('series');
+                    });
+                }
+
+                if (navSearchBtn) {
+                    const newBtn = navSearchBtn.cloneNode(true);
+                    navSearchBtn.parentNode.replaceChild(newBtn, navSearchBtn);
+                    newBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        switchSection('search');
+                    });
+                }
+
+                console.log('✅ Correção aplicada: agora ao clicar em Canais/Filmes/Séries na aba Buscar, a busca fecha e o conteúdo aparece normalmente!');
                 
+                // Função para carregar conteúdo da aba do perfil
+                async function loadProfileTabContent(uid, nickname, tabName) {
+                    const container = document.getElementById('profileTabContent');
+                    if (!container) return;
+                    
+                    if (tabName === 'posts') {
+                        const postsSnap = await database.ref(`feed_posts`).orderByChild('userId').equalTo(uid).once('value');
+                        const posts = postsSnap.val();
+                        const postsList = posts ? Object.values(posts).filter(p => !p.originalPostId).sort((a, b) => b.createdAt - a.createdAt) : [];
+                        
+                        if (postsList.length === 0) {
+                            container.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Nenhuma publicação ainda</div>';
+                            return;
+                        }
+                        
+                        container.innerHTML = '<div class="post-grid" id="profilePostGrid"></div>';
+                        const gridContainer = document.getElementById('profilePostGrid');
+                        for (const post of postsList) {
+                            const postDiv = document.createElement('div');
+                            postDiv.className = 'post-grid-item';
+                            postDiv.onclick = () => viewPostDetail(post.id);
+                            if (post.mediaType === 'video') {
+                                postDiv.innerHTML = `<video src="${post.mediaUrl}" style="width:100%; height:100%; object-fit:cover;"></video><div class="play-icon"><i class="fas fa-play"></i></div>`;
+                            } else {
+                                postDiv.innerHTML = `<img src="${post.mediaUrl}" onerror="this.src='https://via.placeholder.com/300x300'">`;
+                            }
+                            gridContainer.appendChild(postDiv);
+                        }
+                    } else if (tabName === 'favoritos') {
+                        const favSnapshot = await database.ref(`favoritos/${uid}`).once('value');
+                        const favs = favSnapshot.val();
+                        if (!favs || Object.keys(favs).length === 0) {
+                            container.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Nenhum favorito ainda</div>';
+                            return;
+                        }
+                        const favList = Object.values(favs);
+                        container.innerHTML = '<div class="post-grid" id="profileFavGrid"></div>';
+                        const gridContainer = document.getElementById('profileFavGrid');
+                        for (const fav of favList) {
+                            const favDiv = document.createElement('div');
+                            favDiv.className = 'post-grid-item';
+                            favDiv.onclick = () => playMediaById(fav.id, fav.type || 'filme');
+                            favDiv.innerHTML = `<img src="${fav.thumb || 'https://via.placeholder.com/300x300'}" onerror="this.src='https://via.placeholder.com/300x300'">`;
+                            gridContainer.appendChild(favDiv);
+                        }
+                    } else if (tabName === 'salvos') {
+                        const savedPostsSnap = await database.ref('feed_posts').once('value');
+                        const allPosts = savedPostsSnap.val();
+                        if (!allPosts) {
+                            container.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Nenhum post salvo</div>';
+                            return;
+                        }
+                        const savedPosts = [];
+                        for (const [postId, post] of Object.entries(allPosts)) {
+                            if (post.saves && post.saves[uid] === true) {
+                                savedPosts.push({ id: postId, ...post });
+                            }
+                        }
+                        if (savedPosts.length === 0) {
+                            container.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Nenhum post salvo</div>';
+                            return;
+                        }
+                        savedPosts.sort((a, b) => b.createdAt - a.createdAt);
+                        container.innerHTML = '<div class="post-grid" id="profileSavedGrid"></div>';
+                        const gridContainer = document.getElementById('profileSavedGrid');
+                        for (const post of savedPosts) {
+                            const postDiv = document.createElement('div');
+                            postDiv.className = 'post-grid-item';
+                            postDiv.onclick = () => viewPostDetail(post.id);
+                            if (post.mediaType === 'video') {
+                                postDiv.innerHTML = `<video src="${post.mediaUrl}" style="width:100%; height:100%; object-fit:cover;"></video><div class="play-icon"><i class="fas fa-play"></i></div>`;
+                            } else {
+                                postDiv.innerHTML = `<img src="${post.mediaUrl}" onerror="this.src='https://via.placeholder.com/300x300'">`;
+                            }
+                            gridContainer.appendChild(postDiv);
+                        }
+                    } else if (tabName === 'marcacoes') {
+                        container.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Em breve - marcações em comentários</div>';
+                    } else if (tabName === 'assistidos') {
+                        const historySnap = await database.ref(`watched_history/${uid}`).once('value');
+                        const history = historySnap.val();
+                        if (!history || Object.keys(history).length === 0) {
+                            container.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Nenhum conteúdo assistido ainda</div>';
+                            return;
+                        }
+                        const historyList = Object.values(history).sort((a, b) => b.watchedAt - a.watchedAt);
+                        container.innerHTML = '<div class="post-grid" id="profileHistoryGrid"></div>';
+                        const gridContainer = document.getElementById('profileHistoryGrid');
+                        for (const item of historyList.slice(0, 30)) {
+                            const histDiv = document.createElement('div');
+                            histDiv.className = 'post-grid-item';
+                            histDiv.onclick = () => playMediaById(item.mediaId, item.mediaType);
+                            histDiv.innerHTML = `<img src="${item.thumb}" onerror="this.src='https://via.placeholder.com/300x300'"><div class="progress-overlay" style="position:absolute; bottom:0; left:0; right:0; height:3px; background:rgba(229,9,20,0.8); width:${item.progress || 0}%"></div>`;
+                            gridContainer.appendChild(histDiv);
+                        }
+                    }
+                }
 
-// FIM TITITIAGO
-
-
-
+                // Garantir que a função loadProfileTabContent esteja disponível globalmente
+                window.loadProfileTabContent = loadProfileTabContent;
                 
+                // Função auxiliar para fechar busca global
+                function closeGlobalSearch() {
+                    document.getElementById('globalSearchModal').classList.add('hidden');
+                }
+                
+                // Garantir que funções de perfil estejam disponíveis
+                window.openEditProfileModal = openEditProfileModal;
+                window.saveEditProfile = saveEditProfile;
+                window.uploadProfileAvatar = uploadProfileAvatar;
+                window.getAvatarUrl = getAvatarUrl;
+                window.DEFAULT_AVATAR_URL = DEFAULT_AVATAR_URL;
+
+
+
 // CORREÇÃO DEFINITIVA DO CHAT - MENSAGENS NA ORDEM CORRETA
 (function fixChatOrder() {
     // Aguardar o carregamento da página
@@ -12773,19 +12086,6 @@ window.updateRatingStarsDisplay = carregarAvaliacoes;
 
 console.log('✅ Sistema de avaliação corrigido e instalado!');
 
-
-
-
-
-
-
-
-
-
-
-
-
-                
                 
 
                 
