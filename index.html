@@ -4070,8 +4070,15 @@
                     if (toast && toast.remove) toast.remove();
                 }
                 
+
+
+
+
+
+
+
                 // ==================== FUNÇÃO DE BUSCA NA SEÇÃO DE BUSCA ====================
-                function performSearchInSection() {
+function performSearchInSection() {
     const term = document.getElementById('searchInput').value.trim().toLowerCase();
     const resultsContainer = document.getElementById('searchResults');
     const clearBtn = document.getElementById('clearSearchBtn');
@@ -4130,46 +4137,180 @@
     }
     
     resultsContainer.innerHTML = matches.map(item => `
-        <div class="search-result-card glass-card p-2 ripple-btn" data-id="${item.id}" data-type="${item.type}">
+        <div class="search-result-card glass-card p-2 ripple-btn" data-id="${item.id}" data-type="${item.type}" data-title="${escapeHtml(item.title)}">
             <img src="${item.thumb || 'https://via.placeholder.com/300x450'}" class="search-result-image" onerror="this.src='https://via.placeholder.com/300x450'">
             <div class="search-result-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title.substring(0, 30))}${item.title.length > 30 ? '...' : ''}</div>
             <div class="search-result-type">${item.typeIcon} ${item.typeName} ${item.year ? `• ${item.year}` : ''}</div>
         </div>
     `).join('');
     
+    // Adiciona evento de clique diretamente em cada card
     document.querySelectorAll('#searchResults .search-result-card').forEach(el => {
-        el.addEventListener('click', () => {
+        el.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
             const id = el.getAttribute('data-id');
             const type = el.getAttribute('data-type');
-            let item;
-            if (type === 'filme') item = filmes.find(f => f && f.id === id);
-            else if (type === 'serie') item = series.find(s => s && s.id === id);
-            else item = canais.find(c => c && c.id === id);
-            if (item) {
-                playMedia(item, type);
+            const title = el.getAttribute('data-title');
+            
+            console.log(`Abrindo: ${title} (${type}) - ID: ${id}`);
+            
+            let item = null;
+            
+            // Busca o item completo nos arrays originais
+            if (type === 'filme') {
+                item = filmes.find(f => f && String(f.id) === String(id));
+                if (item) {
+                    console.log('Filme encontrado:', item.title);
+                    abrirConteudoDireto(item, 'filme');
+                } else {
+                    console.error('Filme não encontrado com ID:', id);
+                }
+            } 
+            else if (type === 'serie') {
+                item = series.find(s => s && String(s.id) === String(id));
+                if (item) {
+                    console.log('Série encontrada:', item.title);
+                    abrirConteudoDireto(item, 'serie');
+                } else {
+                    console.error('Série não encontrada com ID:', id);
+                }
+            } 
+            else if (type === 'canal') {
+                item = canais.find(c => c && String(c.id) === String(id));
+                if (item) {
+                    console.log('Canal encontrado:', item.title);
+                    abrirConteudoDireto(item, 'canal');
+                } else {
+                    console.error('Canal não encontrado com ID:', id);
+                }
             }
+            
+            // Opcional: Fechar a busca após selecionar um item
+            fecharBusca();
         });
     });
 }
-                
-                function clearSearch() {
-                    document.getElementById('searchInput').value = '';
-                    document.getElementById('clearSearchBtn').style.display = 'none';
-                    document.getElementById('searchResults').innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
-                    document.getElementById('searchInput').focus();
-                }
-                
-                function setSearchFilter(filter) {
-                    currentSearchFilter = filter;
-                    document.querySelectorAll('.search-filter-btn').forEach(btn => {
-                        if (btn.getAttribute('data-filter') === filter) {
-                            btn.classList.add('active');
-                        } else {
-                            btn.classList.remove('active');
-                        }
-                    });
-                    performSearchInSection();
-                }
+
+// Nova função para abrir conteúdo diretamente
+function abrirConteudoDireto(item, tipo) {
+    if (!item) {
+        console.error('Item inválido para abrir');
+        return;
+    }
+    
+    console.log(`Abrindo ${tipo} diretamente:`, item.title);
+    
+    // Esconde a seção de busca se estiver visível
+    const searchSection = document.getElementById('searchSection');
+    if (searchSection) {
+        searchSection.style.display = 'none';
+    }
+    
+    // Chama a função apropriada baseada no tipo
+    switch(tipo) {
+        case 'filme':
+            if (typeof abrirFilme === 'function') {
+                abrirFilme(item);
+            } else if (typeof playMedia === 'function') {
+                playMedia(item, 'filme');
+            } else if (typeof openMedia === 'function') {
+                openMedia(item);
+            } else {
+                // Fallback: tenta encontrar e clicar no elemento do filme
+                console.warn('Função de abertura não encontrada, tentando método alternativo');
+                abrirPorMetodoAlternativo(item, tipo);
+            }
+            break;
+            
+        case 'serie':
+            if (typeof abrirSerie === 'function') {
+                abrirSerie(item);
+            } else if (typeof playMedia === 'function') {
+                playMedia(item, 'serie');
+            } else if (typeof openMedia === 'function') {
+                openMedia(item);
+            } else {
+                console.warn('Função de abertura não encontrada, tentando método alternativo');
+                abrirPorMetodoAlternativo(item, tipo);
+            }
+            break;
+            
+        case 'canal':
+            if (typeof abrirCanal === 'function') {
+                abrirCanal(item);
+            } else if (typeof playMedia === 'function') {
+                playMedia(item, 'canal');
+            } else if (typeof openMedia === 'function') {
+                openMedia(item);
+            } else {
+                console.warn('Função de abertura não encontrada, tentando método alternativo');
+                abrirPorMetodoAlternativo(item, tipo);
+            }
+            break;
+    }
+}
+
+// Método alternativo caso as funções padrão não existam
+function abrirPorMetodoAlternativo(item, tipo) {
+    // Tenta disparar um evento personalizado
+    const event = new CustomEvent('abrirConteudo', {
+        detail: { item: item, tipo: tipo }
+    });
+    document.dispatchEvent(event);
+    
+    // Tenta encontrar e clicar no elemento correspondente na UI
+    setTimeout(() => {
+        const elementoItem = document.querySelector(`[data-id="${item.id}"][data-type="${tipo}"]`);
+        if (elementoItem && typeof elementoItem.click === 'function') {
+            elementoItem.click();
+        }
+    }, 100);
+}
+
+// Função para fechar a seção de busca
+function fecharBusca() {
+    const searchSection = document.getElementById('searchSection');
+    const searchInput = document.getElementById('searchInput');
+    const searchResults = document.getElementById('searchResults');
+    
+    if (searchSection) {
+        searchSection.style.display = 'none';
+    }
+    
+    if (searchInput) {
+        searchInput.value = '';
+    }
+    
+    if (searchResults) {
+        searchResults.innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
+    }
+    
+    const clearBtn = document.getElementById('clearSearchBtn');
+    if (clearBtn) {
+        clearBtn.style.display = 'none';
+    }
+}
+
+function clearSearch() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('clearSearchBtn').style.display = 'none';
+    document.getElementById('searchResults').innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
+    document.getElementById('searchInput').focus();
+}
+
+function setSearchFilter(filter) {
+    currentSearchFilter = filter;
+    document.querySelectorAll('.search-filter-btn').forEach(btn => {
+        if (btn.getAttribute('data-filter') === filter) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+    performSearchInSection();
+}
                 
                 // ==================== FUNÇÕES DE POSTAGEM ====================
                 function openCreatePostModal() {
