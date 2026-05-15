@@ -3722,25 +3722,56 @@
     </div>
 
     <!-- LOGIN MODAL -->
-    <div id="loginModal" class="login-modal fixed inset-0 z-[2000] flex items-center justify-center bg-black/95 backdrop-blur-lg">
-        <div class="login-box bg-[#1a1a1a] rounded-2xl p-6 w-[90%] max-w-[350px] border border-[#e50914]">
-            <h2 class="text-xl font-bold mb-4 text-center text-white">🎬 NoiteFilmes</h2>
-            <div id="loginForm">
-                <input type="email" id="loginEmail" class="login-input w-full p-3 bg-[#2a2a2a] border border-[#444] rounded-lg text-white mb-3" placeholder="Email">
-                <input type="password" id="loginPassword" class="login-input w-full p-3 bg-[#2a2a2a] border border-[#444] rounded-lg text-white mb-3" placeholder="Senha">
-                <button id="doLogin" class="login-btn bg-[#e50914] text-white p-3 rounded-lg w-full font-bold transition hover:bg-red-700 ripple-btn">Entrar</button>
-                <div class="switch-auth text-[#e50914] text-center mt-3 text-sm cursor-pointer" id="showRegister">Não tem conta? Cadastre-se</div>
+<div id="loginModal" class="login-modal fixed inset-0 z-[2000] flex items-center justify-center bg-black/95 backdrop-blur-lg">
+    <div class="login-box bg-[#1a1a1a] rounded-2xl p-6 w-[90%] max-w-[380px] border border-[#e50914]">
+        
+        <!-- MENSAGEM DE BOAS-VINDAS E EXPLICAÇÃO -->
+        <div class="text-center mb-4 p-3 rounded-xl bg-gradient-to-r from-red-900/30 to-red-600/20 border border-red-500/30">
+            <div class="flex justify-center mb-2">
+                <i class="fas fa-film text-red-500 text-3xl"></i>
+                <i class="fas fa-heart text-pink-500 text-2xl mx-1 mt-1"></i>
+                <i class="fas fa-tv text-red-500 text-3xl"></i>
             </div>
-            <div id="registerForm" class="hidden">
-                <input type="email" id="registerEmail" class="login-input w-full p-3 bg-[#2a2a2a] border border-[#444] rounded-lg text-white mb-3" placeholder="Email">
-                <input type="password" id="registerPassword" class="login-input w-full p-3 bg-[#2a2a2a] border border-[#444] rounded-lg text-white mb-3" placeholder="Senha">
-                <input type="text" id="registerNickname" class="login-input w-full p-3 bg-[#2a2a2a] border border-[#444] rounded-lg text-white mb-3" placeholder="@Nickname (ex: @joaofilmes)">
-                <div id="nicknameSuggestions" class="suggestions-box hidden bg-[#2a2a2a] rounded-lg mt-1 p-2"></div>
-                <button id="doRegister" class="login-btn bg-[#e50914] text-white p-3 rounded-lg w-full font-bold transition hover:bg-red-700 ripple-btn">Cadastrar</button>
-                <div class="switch-auth text-[#e50914] text-center mt-3 text-sm cursor-pointer" id="showLogin">Já tem conta? Faça login</div>
-            </div>
+            <h3 class="text-white font-bold text-sm">🎬 Seja bem-vindo ao NoiteFilmes!</h3>
+            <p class="text-gray-300 text-xs mt-2 leading-relaxed">
+                ✨ Uma rede social <strong class="text-red-400">ESTILO INSTAGRAM</strong>, mas feita para quem ama <strong class="text-yellow-400">CINEMA</strong>!<br>
+                🎥 Aqui você <strong class="text-green-400">ASSISTE FILMES E SÉRIES TOTALMENTE DE GRAÇA</strong>,<br>
+                💬 comenta, curte, segue outros cinéfilos e compartilha sua paixão por filmes!<br>
+                🍿 Mais de <strong>1000+ títulos disponíveis</strong> para você aproveitar!
+            </p>
+        </div>
+        
+        <!-- BOTÃO CTA DESTACADO - INCENTIVO A CRIAR CONTA -->
+        <button id="ctaRegisterBtn" class="w-full bg-gradient-to-r from-red-600 to-pink-600 text-white p-3 rounded-xl font-bold text-sm mb-3 transition-all hover:scale-105 hover:shadow-lg hover:shadow-red-500/30 ripple-btn flex items-center justify-center gap-2">
+            <i class="fas fa-user-plus"></i>
+            🎬 CRIAR MINHA CONTA AGORA - É GRÁTIS! 🎬
+            <i class="fas fa-ticket-alt"></i>
+        </button>
+        
+        <div class="text-center text-gray-500 text-[11px] mb-3">ou faça login com sua conta existente</div>
+        
+        <div id="loginForm">
+            <input type="email" id="loginEmail" class="login-input w-full p-3 bg-[#2a2a2a] border border-[#444] rounded-lg text-white mb-3" placeholder="Email">
+            <input type="password" id="loginPassword" class="login-input w-full p-3 bg-[#2a2a2a] border border-[#444] rounded-lg text-white mb-3" placeholder="Senha">
+            <button id="doLogin" class="login-btn bg-[#e50914] text-white p-3 rounded-lg w-full font-bold transition hover:bg-red-700 ripple-btn">Entrar</button>
+            <div class="switch-auth text-[#e50914] text-center mt-3 text-sm cursor-pointer" id="showRegister">✨ Não tem conta? Cadastre-se gratuitamente ✨</div>
+        </div>
+        
+        <div id="registerForm" class="hidden">
+            <input type="email" id="registerEmail" class="login-input w-full p-3 bg-[#2a2a2a] border border-[#444] rounded-lg text-white mb-3" placeholder="Email">
+            <input type="password" id="registerPassword" class="login-input w-full p-3 bg-[#2a2a2a] border border-[#444] rounded-lg text-white mb-3" placeholder="Senha">
+            <input type="text" id="registerNickname" class="login-input w-full p-3 bg-[#2a2a2a] border border-[#444] rounded-lg text-white mb-3" placeholder="@Nickname (ex: @joaofilmes)">
+            <div id="nicknameSuggestions" class="suggestions-box hidden bg-[#2a2a2a] rounded-lg mt-1 p-2"></div>
+            <button id="doRegister" class="login-btn bg-[#e50914] text-white p-3 rounded-lg w-full font-bold transition hover:bg-red-700 ripple-btn">📝 Cadastrar e começar a diversão!</button>
+            <div class="switch-auth text-[#e50914] text-center mt-3 text-sm cursor-pointer" id="showLogin">← Voltar para o login</div>
+        </div>
+        
+        <!-- FRASE DE MOTIVAÇÃO RODAPÉ -->
+        <div class="text-center mt-3 text-[10px] text-gray-500 border-t border-gray-800 pt-2">
+            🍿 <span id="randomMotivationPhrase">Assistir é bom, compartilhar é melhor!</span> 🎬
         </div>
     </div>
+</div>
 
     <!-- Settings Modal -->
     <div id="settingsModal" class="settings-modal hidden fixed inset-0 z-[1500] flex items-center justify-center bg-black/95 backdrop-blur-lg">
@@ -3870,6 +3901,38 @@
             <input type="file" id="avatarUploadInput" accept="image/*" style="display: none;">
 
             <script>
+
+
+
+// Botão CTA - leva direto para o cadastro
+document.getElementById('ctaRegisterBtn')?.addEventListener('click', function() {
+    // Esconde o login e mostra o cadastro
+    document.getElementById('loginForm').classList.add('hidden');
+    document.getElementById('registerForm').classList.remove('hidden');
+    
+    // Animação de feedback (opcional)
+    showToast('🎬 Cadastre-se agora e comece a se divertir!');
+});
+
+// Frases motivacionais aleatórias no rodapé
+const frases = [
+    "Assistir é bom, compartilhar é melhor!",
+    "Junte-se a milhares de cinéfilos!",
+    "Filmes de graça? Só aqui!",
+    "Sua próxima aventura cinematográfica te espera!",
+    "Comente, curta, compartilhe sua paixão!",
+    "Mais de 1000 filmes esperando por você!",
+    "A rede social que todo cinéfilo merece!"
+];
+setInterval(() => {
+    const fraseEl = document.getElementById('randomMotivationPhrase');
+    if (fraseEl) {
+        const randomIndex = Math.floor(Math.random() * frases.length);
+        fraseEl.textContent = frases[randomIndex];
+    }
+}, 5000);
+
+                
             
             
             (function forceExternalBrowser() {
