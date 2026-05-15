@@ -3392,6 +3392,20 @@
 }
 
 
+
+
+        @keyframes fadeInPopup {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+
         
     </style>
     
@@ -7094,11 +7108,45 @@ function buscarConteudo(termo) {
                 document.getElementById('navFilmesBtn').classList.add('active');
                 document.querySelectorAll('.bottom-nav-item').forEach(b => b.classList.remove('active'));
                 document.querySelector('.bottom-nav-item[data-section="filmes"]').classList.add('active');
-             /*   // ABRE O PLAYER
+                // ABRE O PLAYER
                 playMedia(item, tipo);
             } else {
-                alert('Conteúdo não encontrado!');
-          */  } 
+                // Popup estilo liquid glass
+                const popup = document.createElement('div');
+                popup.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: rgba(20, 25, 45, 0.75);
+                    backdrop-filter: blur(20px);
+                    -webkit-backdrop-filter: blur(20px);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    border-radius: 28px;
+                    padding: 20px 40px;
+                    text-align: center;
+                    z-index: 10000;
+                    animation: fadeInPopup 0.3s ease-out;
+                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+                `;
+                
+                popup.innerHTML = `
+                    <i class="fas fa-film" style="font-size: 48px; color: #e50914; margin-bottom: 12px; display: block;"></i>
+                    <h2 style="color: white; font-size: 24px; font-weight: bold; margin: 0 0 8px 0;">🎬 Bom Filme!</h2>
+                    <p style="color: rgba(255,255,255,0.8); font-size: 14px; margin: 0;">Aproveite sua sessão! 🍿</p>
+                `;
+                
+                document.body.appendChild(popup);
+                
+                // Animação de fade out
+                setTimeout(() => {
+                    popup.style.transition = 'opacity 0.5s ease-out';
+                    popup.style.opacity = '0';
+                    setTimeout(() => {
+                        if (popup && popup.remove) popup.remove();
+                    }, 500);
+                }, 2000);
+            }
         });
     });
 }
