@@ -6967,18 +6967,10 @@ function buscarConteudo(termo) {
         </div>
     `).join('');
     
-    // CORREÇÃO PRINCIPAL: Evento de clique melhorado sem quebrar as abas
     document.querySelectorAll('#searchResults .search-result-card').forEach(el => {
-        // Remove listeners anteriores para evitar duplicação
-        const newEl = el.cloneNode(true);
-        el.parentNode.replaceChild(newEl, el);
-        
-        newEl.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const id = newEl.getAttribute('data-id');
-            const tipo = newEl.getAttribute('data-tipo');
+        el.addEventListener('click', () => {
+            const id = el.getAttribute('data-id');
+            const tipo = el.getAttribute('data-tipo');
             let item;
             
             if (tipo === 'filme') item = filmes.find(f => f.id == id);
@@ -6986,133 +6978,26 @@ function buscarConteudo(termo) {
             else item = canais.find(c => c.id == id);
             
             if (item) {
-                // 1. SALVAR A REFERÊNCIA DA SEÇÃO DE BUSCA
+                // SIMPLES: apenas fechar busca e chamar playMedia
                 const searchSection = document.getElementById('searchSection');
-                const mainContent = document.querySelector('.main-content');
-                const bottomNav = document.querySelector('.bottom-nav');
-                
-                // 2. ESCONDER A SEÇÃO DE BUSCA MAS NÃO REMOVER
                 if (searchSection) {
                     searchSection.style.display = 'none';
-                    searchSection.classList.remove('active-section');
                 }
                 
-                // 3. LIMPAR O CAMPO DE BUSCA E RESULTADOS
-                const searchInput = document.getElementById('searchInput');
-                if (searchInput) searchInput.value = '';
-                resultadosDiv.innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
+                // Limpar busca
+                document.getElementById('searchInput').value = '';
+                document.getElementById('searchResults').innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
                 
-                // 4. ESCONDER O BOTÃO DE LIMPAR
-                const clearBtn = document.getElementById('clearSearchBtn');
-                if (clearBtn) clearBtn.style.display = 'none';
-                
-                // 5. GARANTIR QUE O MAIN CONTENT ESTÁ VISÍVEL
-                if (mainContent) mainContent.style.display = 'block';
-                if (bottomNav) bottomNav.style.display = 'flex';
-                
-                // 6. MUDAR PARA A SEÇÃO CORRESPONDENTE USANDO switchSection
-                if (tipo === 'filme') {
-                    // Atualizar a aba ativa na navegação
-                    document.querySelectorAll('.nav-item').forEach(navItem => {
-                        navItem.classList.remove('active');
-                        if (navItem.getAttribute('data-tab') === 'filmes') {
-                            navItem.classList.add('active');
-                        }
-                    });
-                    
-                    // Mudar a seção visível
-                    if (typeof switchSection === 'function') {
-                        switchSection('filmes');
-                    }
-                    
-                    // Forçar a exibição das seções de conteúdo
-                    const filmesSection = document.getElementById('filmesSection');
-                    const seriesSection = document.getElementById('seriesSection');
-                    const canaisSection = document.getElementById('canaisSection');
-                    const feedSection = document.getElementById('feedSection');
-                    
-                    if (filmesSection) filmesSection.classList.add('active-section');
-                    if (seriesSection) seriesSection.classList.remove('active-section');
-                    if (canaisSection) canaisSection.classList.remove('active-section');
-                    if (feedSection) feedSection.classList.remove('active-section');
-                    
-                } else if (tipo === 'serie') {
-                    // Atualizar a aba ativa na navegação
-                    document.querySelectorAll('.nav-item').forEach(navItem => {
-                        navItem.classList.remove('active');
-                        if (navItem.getAttribute('data-tab') === 'series') {
-                            navItem.classList.add('active');
-                        }
-                    });
-                    
-                    if (typeof switchSection === 'function') {
-                        switchSection('series');
-                    }
-                    
-                    const filmesSection = document.getElementById('filmesSection');
-                    const seriesSection = document.getElementById('seriesSection');
-                    const canaisSection = document.getElementById('canaisSection');
-                    const feedSection = document.getElementById('feedSection');
-                    
-                    if (filmesSection) filmesSection.classList.remove('active-section');
-                    if (seriesSection) seriesSection.classList.add('active-section');
-                    if (canaisSection) canaisSection.classList.remove('active-section');
-                    if (feedSection) feedSection.classList.remove('active-section');
-                    
-                } else if (tipo === 'canal') {
-                    // Atualizar a aba ativa na navegação
-                    document.querySelectorAll('.nav-item').forEach(navItem => {
-                        navItem.classList.remove('active');
-                        if (navItem.getAttribute('data-tab') === 'canais') {
-                            navItem.classList.add('active');
-                        }
-                    });
-                    
-                    if (typeof switchSection === 'function') {
-                        switchSection('canais');
-                    }
-                    
-                    const filmesSection = document.getElementById('filmesSection');
-                    const seriesSection = document.getElementById('seriesSection');
-                    const canaisSection = document.getElementById('canaisSection');
-                    const feedSection = document.getElementById('feedSection');
-                    
-                    if (filmesSection) filmesSection.classList.remove('active-section');
-                    if (seriesSection) seriesSection.classList.remove('active-section');
-                    if (canaisSection) canaisSection.classList.add('active-section');
-                    if (feedSection) feedSection.classList.remove('active-section');
-                }
-                
-                // 7. GARANTIR QUE O CONTEÚDO DA SEÇÃO ESTÁ CARREGADO
-                setTimeout(() => {
-                    // Forçar recarregamento da seção se necessário
-                    if (tipo === 'filme' && typeof carregarFilmes === 'function') {
-                        carregarFilmes();
-                    } else if (tipo === 'serie' && typeof carregarSeries === 'function') {
-                        carregarSeries();
-                    } else if (tipo === 'canal' && typeof carregarCanais === 'function') {
-                        carregarCanais();
-                    }
-                }, 50);
-                
-                // 8. ABRIR O CONTEÚDO APÓS A TROCA DE TELA
+                // Pequeno delay para garantir que a busca fechou
                 setTimeout(() => {
                     if (typeof playMedia === 'function') {
                         playMedia(item, tipo);
-                    } else {
-                        console.log('Abrindo conteúdo:', item.title);
-                        // Disparar evento personalizado
-                        const event = new CustomEvent('openMedia', {
-                            detail: { item: item, tipo: tipo }
-                        });
-                        document.dispatchEvent(event);
                     }
-                }, 100);
+                }, 50);
             }
         });
     });
 }
-
 
 
 
