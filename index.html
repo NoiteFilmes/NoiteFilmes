@@ -12097,11 +12097,66 @@ console.log('✅ Sistema de avaliação corrigido e instalado!');
 
 
 // =====================================================
-// CORREÇÃO COMPLETA DA BUSCA - VERSÃO DEFINITIVA
+// CORREÇÃO COMPLETA DA BUSCA - COM MUDANÇA DE ABA
 // =====================================================
 
 (function() {
     console.log('🔧 Inicializando correção da busca...');
+    
+    // Função para trocar a aba ativa
+    function trocarAba(tipo) {
+        console.log(`🔄 Trocando para aba: ${tipo}`);
+        
+        // Esconde todas as seções
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active-section'));
+        
+        // Mostra a seção correta
+        if (tipo === 'filme') {
+            document.getElementById('filmesSection')?.classList.add('active-section');
+            // Atualiza navegação inferior
+            document.querySelectorAll('.bottom-nav-item').forEach(i => i.classList.remove('active'));
+            document.querySelector('.bottom-nav-item[data-section="filmes"]')?.classList.add('active');
+            // Atualiza menu superior
+            if (typeof setNavTab === 'function') {
+                setNavTab('filmes');
+            } else {
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                document.getElementById('navFilmesBtn')?.classList.add('active');
+                window.currentNavTab = 'filmes';
+                if (typeof renderGrid === 'function') renderGrid();
+            }
+        } 
+        else if (tipo === 'serie') {
+            document.getElementById('filmesSection')?.classList.add('active-section');
+            document.querySelectorAll('.bottom-nav-item').forEach(i => i.classList.remove('active'));
+            document.querySelector('.bottom-nav-item[data-section="filmes"]')?.classList.add('active');
+            if (typeof setNavTab === 'function') {
+                setNavTab('series');
+            } else {
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                document.getElementById('navSeriesBtn')?.classList.add('active');
+                window.currentNavTab = 'series';
+                if (typeof renderGrid === 'function') renderGrid();
+            }
+        } 
+        else if (tipo === 'canal') {
+            document.getElementById('filmesSection')?.classList.add('active-section');
+            document.querySelectorAll('.bottom-nav-item').forEach(i => i.classList.remove('active'));
+            document.querySelector('.bottom-nav-item[data-section="filmes"]')?.classList.add('active');
+            if (typeof setNavTab === 'function') {
+                setNavTab('canais');
+            } else {
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                document.getElementById('navCanaisBtn')?.classList.add('active');
+                window.currentNavTab = 'canais';
+                if (typeof renderGrid === 'function') renderGrid();
+            }
+        }
+        
+        // Garante que o menu superior seja exibido
+        const topMenu = document.getElementById('topMenuContainer');
+        if (topMenu) topMenu.style.display = 'flex';
+    }
     
     // Função que realmente abre o player e toca o conteúdo
     function abrirConteudo(item, tipo) {
@@ -12112,44 +12167,26 @@ console.log('✅ Sistema de avaliação corrigido e instalado!');
         
         console.log(`🎬 Abrindo: ${item.title} (${tipo})`);
         
-        // Fecha a aba de busca e mostra a aba correta
-        document.querySelectorAll('.section').forEach(s => s.classList.remove('active-section'));
+        // 1. PRIMEIRO: Troca a aba ativa
+        trocarAba(tipo);
         
-        if (tipo === 'filme') {
-            document.getElementById('filmesSection').classList.add('active-section');
-            document.querySelectorAll('.bottom-nav-item').forEach(i => i.classList.remove('active'));
-            document.querySelector('.bottom-nav-item[data-section="filmes"]').classList.add('active');
-        } else if (tipo === 'serie') {
-            document.getElementById('filmesSection').classList.add('active-section');
-            document.querySelectorAll('.bottom-nav-item').forEach(i => i.classList.remove('active'));
-            document.querySelector('.bottom-nav-item[data-section="filmes"]').classList.add('active');
-            if (typeof setNavTab === 'function') setNavTab('series');
-        } else if (tipo === 'canal') {
-            document.getElementById('filmesSection').classList.add('active-section');
-            document.querySelectorAll('.bottom-nav-item').forEach(i => i.classList.remove('active'));
-            document.querySelector('.bottom-nav-item[data-section="filmes"]').classList.add('active');
-            if (typeof setNavTab === 'function') setNavTab('canais');
-        }
-        
-        // Abre o player
+        // 2. SEGUNDO: Abre o player
         const container = document.getElementById('playerCommentsContainer');
         const overlay = document.getElementById('floatingPlayerOverlay');
         if (container) container.classList.remove('hidden');
         if (overlay) overlay.classList.remove('hidden');
         
-        // Chama a função playMedia existente
+        // 3. TERCEIRO: Toca o conteúdo
         if (typeof playMedia === 'function') {
             playMedia(item, tipo);
         } else if (typeof window.playMedia === 'function') {
             window.playMedia(item, tipo);
         } else {
-            // Fallback: abre manualmente
-            console.log('⚠️ playMedia não encontrada, tentando fallback...');
             abrirPlayerManual(item, tipo);
         }
     }
     
-    // Fallback manual caso playMedia não exista
+    // Fallback manual
     function abrirPlayerManual(item, tipo) {
         const titleEl = document.getElementById('videoTitle');
         if (titleEl) titleEl.innerText = item.title;
@@ -12163,7 +12200,6 @@ console.log('✅ Sistema de avaliação corrigido e instalado!');
         const descEl = document.getElementById('videoDescription');
         if (descEl) descEl.innerHTML = item.description || 'Sem descrição';
         
-        // Detecta tipo de link
         const videoId = extractYoutubeId ? extractYoutubeId(item.link) : null;
         const isHls = isIptvLink ? isIptvLink(item.link) : false;
         
@@ -12199,19 +12235,18 @@ console.log('✅ Sistema de avaliação corrigido e instalado!');
                 hlsVideo.play();
             }
         } else {
-            showToast('Formato não suportado para reprodução manual');
+            showToast('Formato não suportado');
         }
         
         window.currentMedia = item;
         window.currentMediaType = tipo;
     }
     
-    // Configura os eventos dos cards de busca
+    // Configura os cards de busca
     function configurarCardsBusca() {
-        const cards = document.querySelectorAll('#searchResults .search-result-card, .global-search-item');
+        const cards = document.querySelectorAll('#searchResults .search-result-card');
         
         cards.forEach(card => {
-            // Evita duplicar eventos
             if (card.hasAttribute('data-busca-fixed')) return;
             card.setAttribute('data-busca-fixed', 'true');
             
@@ -12220,29 +12255,24 @@ console.log('✅ Sistema de avaliação corrigido e instalado!');
                 e.stopPropagation();
                 
                 const id = this.getAttribute('data-id');
-                let tipo = this.getAttribute('data-type') || this.getAttribute('data-tipo');
+                let tipo = this.getAttribute('data-type');
                 
                 console.log(`🖱️ Card clicado: id=${id}, tipo=${tipo}`);
                 
                 if (!id) {
-                    showToast('❌ ID do conteúdo não encontrado');
+                    showToast('❌ ID não encontrado');
                     return;
                 }
                 
-                // Procura o item nos arrays globais
                 let item = null;
                 
-                if (tipo === 'filme' || tipo === 'filmes') {
+                if (tipo === 'filme') {
                     item = window.filmes?.find(f => f && f.id === id);
-                    tipo = 'filme';
-                } else if (tipo === 'serie' || tipo === 'series') {
+                } else if (tipo === 'serie') {
                     item = window.series?.find(s => s && s.id === id);
-                    tipo = 'serie';
-                } else if (tipo === 'canal' || tipo === 'canais') {
+                } else if (tipo === 'canal') {
                     item = window.canais?.find(c => c && c.id === id);
-                    tipo = 'canal';
                 } else {
-                    // Tenta em todos os arrays
                     item = window.filmes?.find(f => f && f.id === id) ||
                            window.series?.find(s => s && s.id === id) ||
                            window.canais?.find(c => c && c.id === id);
@@ -12254,17 +12284,36 @@ console.log('✅ Sistema de avaliação corrigido e instalado!');
                 }
                 
                 if (item) {
-                    console.log(`✅ Conteúdo encontrado: ${item.title}`);
+                    console.log(`✅ Abrindo: ${item.title}`);
                     abrirConteudo(item, tipo);
                 } else {
-                    console.log(`❌ Conteúdo não encontrado para ID: ${id}`);
-                    showToast('❌ Conteúdo não encontrado no catálogo');
+                    console.log(`❌ Conteúdo não encontrado: ${id}`);
+                    showToast('❌ Conteúdo não encontrado');
                 }
             });
         });
     }
     
-    // Monitora quando novos cards são adicionados
+    // Corrige o erro do updateRatingPercentDisplay
+    if (typeof window.updateRatingPercentDisplay === 'undefined') {
+        window.updateRatingPercentDisplay = function(mediaId) {
+            const percentSpan = document.getElementById('ratingPercentDisplay');
+            if (percentSpan) {
+                database.ref(`avaliacoes/${mediaId}`).once('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (data && data.totalVotos > 0) {
+                        const media = data.soma / data.totalVotos;
+                        const percent = Math.round((media / 5) * 100);
+                        percentSpan.innerText = `${percent}%`;
+                    } else {
+                        percentSpan.innerText = '0%';
+                    }
+                });
+            }
+        };
+    }
+    
+    // Observa novos cards
     function iniciarObservador() {
         const targetNode = document.getElementById('searchResults');
         if (!targetNode) return;
@@ -12285,54 +12334,12 @@ console.log('✅ Sistema de avaliação corrigido e instalado!');
         configurarCardsBusca();
     }
     
-    // Também observa a busca global
-    function iniciarObservadorGlobal() {
-        const globalTarget = document.getElementById('globalSearchResults');
-        if (!globalTarget) return;
-        
-        const observer = new MutationObserver(function() {
-            setTimeout(() => {
-                const cards = document.querySelectorAll('#globalSearchResults .global-search-item');
-                cards.forEach(card => {
-                    if (card.hasAttribute('data-busca-fixed')) return;
-                    card.setAttribute('data-busca-fixed', 'true');
-                    card.addEventListener('click', function(e) {
-                        const id = this.getAttribute('data-id');
-                        const tipo = this.getAttribute('data-type');
-                        if (id && tipo) {
-                            let item = null;
-                            if (tipo === 'filme') item = window.filmes?.find(f => f.id === id);
-                            else if (tipo === 'serie') item = window.series?.find(s => s.id === id);
-                            else if (tipo === 'canal') item = window.canais?.find(c => c.id === id);
-                            if (item) abrirConteudo(item, tipo);
-                        }
-                    });
-                });
-            }, 100);
-        });
-        
-        observer.observe(globalTarget, { childList: true, subtree: true });
-    }
-    
-    // Sobrescreve a função de busca para garantir que os cards tenham os atributos corretos
-    const originalBuscarConteudo = window.buscarConteudo || window.performSearchInSection;
-    if (originalBuscarConteudo) {
-        window.buscarConteudo = function(termo) {
-            if (originalBuscarConteudo) originalBuscarConteudo(termo);
-            setTimeout(configurarCardsBusca, 200);
-        };
-        window.performSearchInSection = window.buscarConteudo;
-    }
-    
     // Inicializa
     iniciarObservador();
-    iniciarObservadorGlobal();
+    setTimeout(configurarCardsBusca, 500);
+    setTimeout(configurarCardsBusca, 2000);
     
-    // Força configuração inicial
-    setTimeout(configurarCardsBusca, 1000);
-    setTimeout(configurarCardsBusca, 3000);
-    
-    console.log('✅ Sistema de busca corrigido! Clique nos cards para abrir.');
+    console.log('✅ Busca corrigida! Clique no card → muda de aba → abre player');
 })();
                 
 
