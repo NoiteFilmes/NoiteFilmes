@@ -12086,6 +12086,191 @@ window.updateRatingStarsDisplay = carregarAvaliacoes;
 
 console.log('✅ Sistema de avaliação corrigido e instalado!');
 
+
+
+
+
+
+
+
+
+
+
+// =====================================================
+// FUNÇÃO DE BUSCA INTELIGENTE COM ABERTURA AUTOMÁTICA
+// =====================================================
+
+// Esta função substitui a lógica de clique nos cards de busca
+function corrigirBuscaECards() {
+    console.log('✅ Sistema de busca inteligente ativado!');
+
+    // 1. LIMPA OS EVENTOS ANTIGOS DOS CARDS E CRIA OS NOVOS
+    function configurarEventosCards() {
+        const cards = document.querySelectorAll('#searchResults .search-result-card');
+        
+        cards.forEach(card => {
+            // Remove o evento antigo se existir (evita duplicação)
+            const novoCard = card.cloneNode(true);
+            card.parentNode.replaceChild(novoCard, card);
+            
+            // Adiciona o novo evento
+            novoCard.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const id = this.getAttribute('data-id');
+                const type = this.getAttribute('data-type');
+                
+                console.log(`🔍 Card clicado: ID=${id}, Tipo=${type}`);
+                
+                if (!id || !type) {
+                    showToast('Erro: Dados do card não encontrados');
+                    return;
+                }
+                
+                let itemEncontrado = null;
+                
+                // Busca o item nos arrays globais (filmes, series, canais)
+                if (type === 'filme') {
+                    itemEncontrado = window.filmes?.find(f => f && f.id === id);
+                    if (itemEncontrado) {
+                        console.log(`🎬 Filme encontrado: ${itemEncontrado.title}`);
+                        // Troca para a aba de filmes
+                        if (typeof setNavTab === 'function') {
+                            setNavTab('filmes');
+                        } else {
+                            // Fallback manual
+                            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+                            document.getElementById('navFilmesBtn')?.classList.add('active');
+                            window.currentNavTab = 'filmes';
+                            if (typeof renderGrid === 'function') renderGrid();
+                        }
+                        // Toca o filme
+                        playMedia(itemEncontrado, 'filme');
+                    }
+                } 
+                else if (type === 'serie') {
+                    itemEncontrado = window.series?.find(s => s && s.id === id);
+                    if (itemEncontrado) {
+                        console.log(`📺 Série encontrada: ${itemEncontrado.title}`);
+                        // Troca para a aba de séries
+                        if (typeof setNavTab === 'function') {
+                            setNavTab('series');
+                        } else {
+                            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+                            document.getElementById('navSeriesBtn')?.classList.add('active');
+                            window.currentNavTab = 'series';
+                            if (typeof renderGrid === 'function') renderGrid();
+                        }
+                        // Toca a série
+                        playMedia(itemEncontrado, 'serie');
+                    }
+                } 
+                else if (type === 'canal') {
+                    itemEncontrado = window.canais?.find(c => c && c.id === id);
+                    if (itemEncontrado) {
+                        console.log(`📡 Canal encontrado: ${itemEncontrado.title}`);
+                        // Troca para a aba de canais
+                        if (typeof setNavTab === 'function') {
+                            setNavTab('canais');
+                        } else {
+                            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+                            document.getElementById('navCanaisBtn')?.classList.add('active');
+                            window.currentNavTab = 'canais';
+                            if (typeof renderGrid === 'function') renderGrid();
+                        }
+                        // Toca o canal
+                        playMedia(itemEncontrado, 'canal');
+                    }
+                }
+                
+                if (!itemEncontrado) {
+                    showToast('❌ Conteúdo não encontrado no catálogo');
+                }
+            });
+        });
+    }
+
+    // 2. OBSERVA MUDANÇAS NA ÁREA DE RESULTADOS (BUSCA DINÂMICA)
+    const observerBusca = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                // Pequeno delay para garantir que o DOM foi atualizado
+                setTimeout(configurarEventosCards, 100);
+            }
+        });
+    });
+
+    const searchResults = document.getElementById('searchResults');
+    if (searchResults) {
+        observerBusca.observe(searchResults, { childList: true, subtree: true });
+        // Configura eventos iniciais
+        setTimeout(configurarEventosCards, 500);
+    }
+
+    // 3. TAMBÉM CORRIGE A FUNÇÃO ORIGINAL DE BUSCA (para manter compatibilidade)
+    const buscarConteudoOriginal = window.buscarConteudo;
+    if (buscarConteudoOriginal) {
+        window.buscarConteudo = function(termo) {
+            buscarConteudoOriginal(termo);
+            setTimeout(configurarEventosCards, 300);
+        };
+    }
+    
+    // 4. CORRIGE O MÉTODO DE EXIBIÇÃO DOS RESULTADOS (se existir)
+    const performSearchOriginal = window.performSearchInSection;
+    if (performSearchOriginal) {
+        window.performSearchInSection = function() {
+            performSearchOriginal();
+            setTimeout(configurarEventosCards, 200);
+        };
+    }
+}
+
+// Inicializa a correção quando a página carregar
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', corrigirBuscaECards);
+} else {
+    corrigirBuscaECards();
+}
+
+// Garante que os botões de filtro de busca também não percam os eventos
+const observerFiltros = new MutationObserver(function() {
+    const searchResults = document.getElementById('searchResults');
+    if (searchResults && searchResults.children.length > 0) {
+        setTimeout(() => {
+            document.querySelectorAll('#searchResults .search-result-card').forEach(card => {
+                if (!card.hasAttribute('data-event-fixed')) {
+                    card.setAttribute('data-event-fixed', 'true');
+                    card.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const id = this.getAttribute('data-id');
+                        const type = this.getAttribute('data-type');
+                        console.log(`🎯 Card fixo clicado: ${type} - ${id}`);
+                        if (id && type) {
+                            let item = null;
+                            if (type === 'filme') item = window.filmes?.find(f => f.id === id);
+                            else if (type === 'serie') item = window.series?.find(s => s.id === id);
+                            else if (type === 'canal') item = window.canais?.find(c => c.id === id);
+                            if (item) playMedia(item, type);
+                        }
+                    });
+                }
+            });
+        }, 50);
+    }
+});
+
+const searchContainer = document.getElementById('searchSection');
+if (searchContainer) {
+    observerFiltros.observe(searchContainer, { childList: true, subtree: true });
+}
+
+console.log('✅ Correção de busca implementada! Clique em qualquer card da busca que ele abrirá o conteúdo automaticamente.');
+
+                
+
                 
 
                 
