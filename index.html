@@ -6967,8 +6967,12 @@ function buscarConteudo(termo) {
         </div>
     `).join('');
     
+    // CORREÇÃO DEFINITIVA: Evento de clique sem conflito
     document.querySelectorAll('#searchResults .search-result-card').forEach(el => {
-        el.addEventListener('click', () => {
+        el.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
             const id = el.getAttribute('data-id');
             const tipo = el.getAttribute('data-tipo');
             let item;
@@ -6978,22 +6982,101 @@ function buscarConteudo(termo) {
             else item = canais.find(c => c.id == id);
             
             if (item) {
-                // SIMPLES: apenas fechar busca e chamar playMedia
+                // 1. ESCONDER A SEÇÃO DE BUSCA
                 const searchSection = document.getElementById('searchSection');
                 if (searchSection) {
                     searchSection.style.display = 'none';
+                    searchSection.classList.remove('active-section');
                 }
                 
-                // Limpar busca
-                document.getElementById('searchInput').value = '';
-                document.getElementById('searchResults').innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
+                // 2. LIMPAR INPUT E RESULTADOS
+                const searchInput = document.getElementById('searchInput');
+                if (searchInput) searchInput.value = '';
+                resultadosDiv.innerHTML = '<div class="no-results">🔍 Digite o nome do filme, série ou canal para buscar</div>';
                 
-                // Pequeno delay para garantir que a busca fechou
+                const clearBtn = document.getElementById('clearSearchBtn');
+                if (clearBtn) clearBtn.style.display = 'none';
+                
+                // 3. RESTAURAR A VISIBILIDADE DAS SEÇÕES PRINCIPAIS
+                // Forçar que todas as seções principais estejam visíveis
+                const filmesSection = document.getElementById('filmesSection');
+                const seriesSection = document.getElementById('seriesSection');
+                const canaisSection = document.getElementById('canaisSection');
+                const feedSection = document.getElementById('feedSection');
+                
+                // Garantir que todas as seções tenham display block
+                if (filmesSection) filmesSection.style.display = 'block';
+                if (seriesSection) seriesSection.style.display = 'block';
+                if (canaisSection) canaisSection.style.display = 'block';
+                if (feedSection) feedSection.style.display = 'block';
+                
+                // 4. MUDAR PARA A SEÇÃO CORRETA SEM USAR setNavTab PARA EVITAR CONFLITO
+                // Usar switchSection diretamente que é mais confiável
+                if (tipo === 'filme') {
+                    // Esconder todas as seções
+                    if (filmesSection) filmesSection.classList.remove('active-section');
+                    if (seriesSection) seriesSection.classList.remove('active-section');
+                    if (canaisSection) canaisSection.classList.remove('active-section');
+                    if (feedSection) feedSection.classList.remove('active-section');
+                    
+                    // Ativar apenas filmes
+                    if (filmesSection) filmesSection.classList.add('active-section');
+                    
+                    // Atualizar navegação visual
+                    document.querySelectorAll('.nav-item').forEach(navItem => {
+                        navItem.classList.remove('active');
+                        if (navItem.getAttribute('data-tab') === 'filmes') {
+                            navItem.classList.add('active');
+                        }
+                    });
+                    
+                } else if (tipo === 'serie') {
+                    // Esconder todas as seções
+                    if (filmesSection) filmesSection.classList.remove('active-section');
+                    if (seriesSection) seriesSection.classList.remove('active-section');
+                    if (canaisSection) canaisSection.classList.remove('active-section');
+                    if (feedSection) feedSection.classList.remove('active-section');
+                    
+                    // Ativar apenas séries
+                    if (seriesSection) seriesSection.classList.add('active-section');
+                    
+                    // Atualizar navegação visual
+                    document.querySelectorAll('.nav-item').forEach(navItem => {
+                        navItem.classList.remove('active');
+                        if (navItem.getAttribute('data-tab') === 'series') {
+                            navItem.classList.add('active');
+                        }
+                    });
+                    
+                } else if (tipo === 'canal') {
+                    // Esconder todas as seções
+                    if (filmesSection) filmesSection.classList.remove('active-section');
+                    if (seriesSection) seriesSection.classList.remove('active-section');
+                    if (canaisSection) canaisSection.classList.remove('active-section');
+                    if (feedSection) feedSection.classList.remove('active-section');
+                    
+                    // Ativar apenas canais
+                    if (canaisSection) canaisSection.classList.add('active-section');
+                    
+                    // Atualizar navegação visual
+                    document.querySelectorAll('.nav-item').forEach(navItem => {
+                        navItem.classList.remove('active');
+                        if (navItem.getAttribute('data-tab') === 'canais') {
+                            navItem.classList.add('active');
+                        }
+                    });
+                }
+                
+                // 5. GARANTIR QUE O BOTTOM NAV ESTÁ VISÍVEL
+                const bottomNav = document.querySelector('.bottom-nav');
+                if (bottomNav) bottomNav.style.display = 'flex';
+                
+                // 6. ABRIR O CONTEÚDO APÓS A TROCA DE TELA
                 setTimeout(() => {
                     if (typeof playMedia === 'function') {
                         playMedia(item, tipo);
                     }
-                }, 50);
+                }, 100);
             }
         });
     });
@@ -9447,7 +9530,7 @@ if (loginAdminBtn) {
         });
         
         // Restaura a posição quando a aba for reativada
-        const originalSetNavTab = window.setNavTab;
+     /*   const originalSetNavTab = window.setNavTab;
         if (originalSetNavTab) {
             window.setNavTab = function(tab) {
                 // Salva posição atual antes de trocar
@@ -9479,7 +9562,7 @@ if (loginAdminBtn) {
     console.log('✅ Admin melhorado: espaço ampliado, busca adicionada e rolagem corrigida!');
 })();
 
-
+*/
 
 
 
