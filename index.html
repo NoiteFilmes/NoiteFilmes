@@ -12603,7 +12603,118 @@ console.log('✅ Sistema de avaliação corrigido e instalado!');
     };
 })();
                 
+// =====================================================
+// CORREÇÃO DA BUSCA - COLE ESTE CÓDIGO NO FINAL DO ARQUIVO
+// =====================================================
 
+(function() {
+    console.log('🚀 Corrigindo busca...');
+    
+    // Função que ativa a aba de filmes
+    function ativarFilmes() {
+        // Esconde todas as seções
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active-section'));
+        
+        // Mostra a seção de filmes
+        const filmesSec = document.getElementById('filmesSection');
+        if (filmesSec) filmesSec.classList.add('active-section');
+        
+        // Atualiza o menu superior
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        const navFilmes = document.getElementById('navFilmesBtn');
+        if (navFilmes) navFilmes.classList.add('active');
+        
+        // Atualiza o menu inferior
+        document.querySelectorAll('.bottom-nav-item').forEach(i => i.classList.remove('active'));
+        const bottomFilmes = document.querySelector('.bottom-nav-item[data-section="filmes"]');
+        if (bottomFilmes) bottomFilmes.classList.add('active');
+        
+        // Mostra o menu superior
+        const topMenu = document.getElementById('topMenuContainer');
+        if (topMenu) topMenu.style.display = 'flex';
+    }
+    
+    // Função que abre o player
+    function abrirPlayer(item) {
+        // Mostra o container do player
+        const container = document.getElementById('playerCommentsContainer');
+        const overlay = document.getElementById('floatingPlayerOverlay');
+        if (container) container.classList.remove('hidden');
+        if (overlay) overlay.classList.remove('hidden');
+        
+        // Coloca as informações do vídeo
+        document.getElementById('videoTitle').innerText = item.title;
+        document.getElementById('videoYear').innerHTML = item.year ? `📅 ${item.year}` : '';
+        document.getElementById('videoGenre').innerHTML = item.category ? `🎭 ${item.category}` : '';
+        document.getElementById('videoDescription').innerHTML = item.description || 'Sem descrição';
+        
+        // Tenta reproduzir o vídeo
+        const videoId = item.link ? extractYoutubeId(item.link) : null;
+        const youtubeDiv = document.getElementById('youtubePlayerDiv');
+        
+        if (videoId && youtubeDiv) {
+            youtubeDiv.style.display = 'block';
+            if (window.ytPlayer && typeof window.ytPlayer.loadVideoById === 'function') {
+                window.ytPlayer.loadVideoById(videoId);
+                window.ytPlayer.playVideo();
+            }
+        }
+        
+        window.currentMedia = item;
+    }
+    
+    // Configura os cards da busca
+    function configurarCards() {
+        const cards = document.querySelectorAll('#searchResults .search-result-card');
+        
+        cards.forEach(card => {
+            if (card.hasAttribute('data-fixo')) return;
+            card.setAttribute('data-fixo', 'true');
+            
+            card.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const id = this.getAttribute('data-id');
+                const tipo = this.getAttribute('data-type');
+                
+                // Procura o item
+                let item = null;
+                if (tipo === 'filme' && window.filmes) {
+                    item = window.filmes.find(f => f.id === id);
+                } else if (tipo === 'serie' && window.series) {
+                    item = window.series.find(s => s.id === id);
+                } else if (tipo === 'canal' && window.canais) {
+                    item = window.canais.find(c => c.id === id);
+                }
+                
+                if (item) {
+                    // 1. Ativa a aba de filmes
+                    ativarFilmes();
+                    // 2. Abre o player
+                    setTimeout(() => abrirPlayer(item), 100);
+                } else {
+                    alert('Conteúdo não encontrado');
+                }
+            });
+        });
+    }
+    
+    // Observa quando novos cards aparecem
+    const observer = new MutationObserver(() => {
+        setTimeout(configurarCards, 100);
+    });
+    
+    const resultados = document.getElementById('searchResults');
+    if (resultados) {
+        observer.observe(resultados, { childList: true, subtree: true });
+    }
+    
+    // Configura os cards iniciais
+    setTimeout(configurarCards, 500);
+    setTimeout(configurarCards, 2000);
+    
+    console.log('✅ Correção ativada!');
+})();
                 
 
                 
