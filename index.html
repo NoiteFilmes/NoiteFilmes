@@ -12710,7 +12710,37 @@ console.log('✅ Sistema de avaliação corrigido e instalado!');
                     // 2. Abre o player
                     setTimeout(() => abrirPlayer(item), 100);
                 } else {
-                    alert('Conteúdo não encontrado');
+                    // Popup estilo liquid glass
+const popup = document.createElement('div');
+popup.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(20, 25, 45, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 32px;
+    padding: 24px 48px;
+    text-align: center;
+    z-index: 100000;
+    animation: fadeInPopup 0.3s ease-out;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+`;
+popup.innerHTML = `
+    <i class="fas fa-film" style="font-size: 56px; color: #e50914; margin-bottom: 12px; display: block;"></i>
+    <h2 style="color: white; font-size: 28px; font-weight: bold; margin: 0 0 8px 0; letter-spacing: -0.5px;">🎬 Bom Filme!</h2>
+    <p style="color: rgba(255,255,255,0.8); font-size: 14px; margin: 0;">Aproveite sua sessão! 🍿</p>
+`;
+document.body.appendChild(popup);
+setTimeout(() => {
+    popup.style.transition = 'opacity 0.5s ease-out';
+    popup.style.opacity = '0';
+    setTimeout(() => {
+        if (popup && popup.remove) popup.remove();
+    }, 500);
+}, 2000);
                 }
             });
         });
