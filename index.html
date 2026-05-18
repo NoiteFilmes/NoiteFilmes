@@ -6034,23 +6034,30 @@ function renderStarsCorrigido(container, mediaId, userRating) {
                     if (castSession) loadCurrentMediaToCast();
                 }
                 
-                function closePlayer() {
-    // 1. Para o YouTube
-    if (ytPlayer && typeof ytPlayer.stopVideo === 'function') {
-        ytPlayer.stopVideo();
-        ytPlayer.clearVideo();   // Remove o vídeo do player
+                
+    function closePlayer() {
+    // 1. DESTRUIR YouTube player completamente (e não apenas parar)
+    if (ytPlayer) {
+        if (typeof ytPlayer.destroy === 'function') {
+            ytPlayer.destroy();   // Remove o iframe e libera recursos
+        } else if (typeof ytPlayer.stopVideo === 'function') {
+            ytPlayer.stopVideo(); // Fallback para versões antigas
+        }
+        ytPlayer = null;          // Garante que será recriado depois
     }
 
-    // 2. Para HLS (IPTV/MP4)
+    // 2. Destruir player HLS (IPTV/MP4)
     if (window.hlsInstance) {
         try {
-            stopProgressTracking(document.getElementById('hlsPlayer'), false);
+            if (typeof stopProgressTracking === 'function') {
+                stopProgressTracking(document.getElementById('hlsPlayer'), false);
+            }
             window.hlsInstance.destroy();
             window.hlsInstance = null;
-        } catch(e) { console.warn(e); }
+        } catch(e) { console.warn('Erro ao destruir HLS:', e); }
     }
 
-    // 3. Para o player de vídeo HTML5 (Facebook, etc.)
+    // 3. Parar e limpar vídeo HTML5 (Facebook, etc.)
     const hlsVideo = document.getElementById('hlsPlayer');
     if (hlsVideo) {
         hlsVideo.pause();
@@ -6058,66 +6065,48 @@ function renderStarsCorrigido(container, mediaId, userRating) {
         hlsVideo.load();
     }
 
-    // 4. Para o iframe do IMDb
+    // 4. Limpar iframe do IMDb
     const imdbIframe = document.getElementById('imdbIframe');
     if (imdbIframe) {
-        imdbIframe.src = 'about:blank';   // Para o carregamento
+        imdbIframe.src = 'about:blank';
         imdbIframe.style.display = 'none';
     }
 
-    // 5. Para o div do YouTube (caso tenha algum vídeo solto)
-    const youtubeDiv = document.getElementById('youtubePlayerDiv');
-    if (youtubeDiv) {
-        // Remove qualquer iframe ou elemento que possa ter ficado
-        while (youtubeDiv.firstChild) {
-            youtubeDiv.removeChild(youtubeDiv.firstChild);
-        }
+    // 5. Limpar qualquer outro vídeo/iframe dentro do wrapper (sem mexer no youtubePlayerDiv)
+    const playerWrapper = document.querySelector('.player-wrapper');
+    if (playerWrapper) {
+        const videos = playerWrapper.querySelectorAll('video:not(#hlsPlayer), iframe:not(#youtubePlayerDiv iframe)');
+        videos.forEach(el => {
+            if (el.tagName === 'VIDEO') {
+                el.pause();
+                el.src = '';
+                el.load();
+            } else if (el.tagName === 'IFRAME') {
+                el.src = 'about:blank';
+            }
+        });
     }
 
-    // 6. Para qualquer outro vídeo que possa estar rodando
-    const allVideos = document.querySelectorAll('#playerCommentsContainer video, #playerCommentsContainer iframe');
-    allVideos.forEach(video => {
-        if (video.tagName === 'VIDEO') {
-            video.pause();
-            video.src = '';
-            video.load();
-        } else if (video.tagName === 'IFRAME') {
-            video.src = 'about:blank';
-        }
-    });
-
-    // 7. Para o Facebook (se criou um elemento separado)
-    const facebookVideo = document.querySelector('#youtubePlayerDiv video');
-    if (facebookVideo) {
-        facebookVideo.pause();
-        facebookVideo.src = '';
-        facebookVideo.load();
-    }
-
-    // 8. Esconde os containers
-    const container = document.getElementById('playerCommentsContainer');
+    // 6. Esconder os containers
+    const playerContainer = document.getElementById('playerCommentsContainer');
     const overlay = document.getElementById('floatingPlayerOverlay');
-    if (container) container.classList.add('hidden');
+    if (playerContainer) playerContainer.classList.add('hidden');
     if (overlay) overlay.classList.add('hidden');
 
-    // 9. Para as atualizações em tempo real (curtidas, comentários)
-    if (typeof stopRealtimeUpdates === 'function') {
-        stopRealtimeUpdates();
-    }
-
-    // 10. Para o progresso de reprodução (se estiver monitorando)
+    // 7. Parar atualizações em tempo real e progresso
+    if (typeof stopRealtimeUpdates === 'function') stopRealtimeUpdates();
     if (progressInterval) {
         clearInterval(progressInterval);
         progressInterval = null;
     }
 
-    // 11. Remove os parâmetros da URL
+    // 8. Remover parâmetros da URL
     const url = new URL(window.location);
     url.searchParams.delete('mediaId');
     url.searchParams.delete('type');
     window.history.pushState({}, '', url);
 
-    // 12. Limpa as variáveis globais (opcional, mas recomendado)
+    // 9. Limpar variáveis globais (para não haver referência antiga)
     window.currentMedia = null;
     window.currentMediaType = null;
     if (typeof currentMedia !== 'undefined') currentMedia = null;
