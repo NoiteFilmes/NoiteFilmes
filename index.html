@@ -5644,29 +5644,29 @@ carregarPostDaURL();
                 function startRealtimeUpdates(mediaId) { if (updateInterval) clearInterval(updateInterval); updateInterval = setInterval(() => { if (currentMedia && currentMedia.id === mediaId) { loadRatingsFromFirebase(mediaId); loadComments(mediaId); loadLikeCount(mediaId); loadViewCount(mediaId); } }, 1000); }
                 function stopRealtimeUpdates() { if (updateInterval) { clearInterval(updateInterval); updateInterval = null; } }
                 function loadLikeCount(mediaId) { database.ref(`likes/${mediaId}`).on('value', (snapshot) => { const data = snapshot.val(); likeCount = data ? Object.keys(data).length : 0; const likeSpan = document.getElementById('likeCount'); if (likeSpan) likeSpan.innerText = likeCount; }); }
-                function loadRatingsFromFirebase(mediaId) {
-    database.ref(`avaliacoes/${mediaId}`).once('value', (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-            avaliacoes[mediaId] = { 
-                totalVotos: data.totalVotos || 0, 
-                soma: data.soma || 0 
-            };
-        } else {
-            avaliacoes[mediaId] = { totalVotos: 0, soma: 0 };
-        }
+                /* function loadRatingsFromFirebase(mediaId) {
+    /* database.ref(`avaliacoes/${mediaId}`).once('value', (snapshot) => {
+        /*const data = snapshot.val();
+        /*if (data) {
+            /*avaliacoes[mediaId] = { 
+                /*totalVotos: data.totalVotos || 0, 
+                /*soma: data.soma || 0 
+            /*};
+        /*} else {
+            /*avaliacoes[mediaId] = { totalVotos: 0, soma: 0 };
+        /* }
         
         // Se for o filme atual, atualiza a exibição
-        if (currentMedia && currentMedia.id === mediaId) {
-            updateRatingStarsDisplay(mediaId);
-            updateRatingInfo(mediaId);
-            updateRatingPercentDisplay(mediaId);
-        }
-    });
-}
-                function calculateRatingPercentage(mediaId) { const data = avaliacoes[mediaId]; if (!data || data.totalVotos === 0) return 0; const media = data.soma / data.totalVotos; return Math.round((media / 5) * 100); }
+        /*if (currentMedia && currentMedia.id === mediaId) {
+            /*updateRatingStarsDisplay(mediaId);
+            /*updateRatingInfo(mediaId);
+            /*updateRatingPercentDisplay(mediaId);
+        /*}
+    /*});
+/*}
+                /* function calculateRatingPercentage(mediaId) { const data = avaliacoes[mediaId]; if (!data || data.totalVotos === 0) return 0; const media = data.soma / data.totalVotos; return Math.round((media / 5) * 100); }
              /*   function updateRatingPercentDisplay(mediaId) { const percent = calculateRatingPercentage(mediaId); const percentSpan = document.getElementById('ratingPercentDisplay'); if (percentSpan) percentSpan.innerText = `${percent}%`; } */
-                function updateRatingInfo(mediaId) { const percent = calculateRatingPercentage(mediaId); const totalVotos = avaliacoes[mediaId]?.totalVotos || 0; const infoHtml = `<span>⭐ ${percent}% gostaram (${totalVotos} votos)</span>`; const ratingInfo = document.getElementById('ratingInfo'); if (ratingInfo) ratingInfo.innerHTML = infoHtml; }
+              /*  function updateRatingInfo(mediaId) { const percent = calculateRatingPercentage(mediaId); const totalVotos = avaliacoes[mediaId]?.totalVotos || 0; const infoHtml = `<span>⭐ ${percent}% gostaram (${totalVotos} votos)</span>`; const ratingInfo = document.getElementById('ratingInfo'); if (ratingInfo) ratingInfo.innerHTML = infoHtml; }
               /*  function saveRating(mediaId, rating) {
     if (!currentUser) { 
         showToast('Faça login para avaliar'); 
