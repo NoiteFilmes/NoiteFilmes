@@ -12668,21 +12668,23 @@ setTimeout(() => {
 
 
 // ============================================================
-// SISTEMA DE AVALIAÇÃO CORRIGIDO - VOTO ÚNICO POR USUÁRIO
+// SISTEMA DE AVALIAÇÃO DEFINITIVO - VOTO ÚNICO POR USUÁRIO
 // ============================================================
 
-// Cria as estrelas interativas no container especificado
+// Cria as estrelas interativas no container
 function criarEstrelas(containerId, mediaId) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
+    // Se não houver usuário logado, mostra estrelas cinza (sem clique)
     if (!currentUser) {
         mostrarEstrelas(container, 0, mediaId, false);
         return;
     }
 
-    // Busca a nota atual do usuário
-    firebase.database().ref(`avaliacoes/${mediaId}/${currentUser.uid}`).once('value')
+    // Busca a nota atual do usuário no Firebase
+    const userRatingRef = firebase.database().ref(`avaliacoes/${mediaId}/${currentUser.uid}`);
+    userRatingRef.once('value')
         .then(snapshot => {
             const notaAtual = snapshot.val() || 0;
             mostrarEstrelas(container, notaAtual, mediaId, true);
@@ -12690,7 +12692,8 @@ function criarEstrelas(containerId, mediaId) {
         .catch(() => mostrarEstrelas(container, 0, mediaId, true));
 }
 
-function mostrarEstrelas(container, notaAtual, mediaId, comClique = true) {
+// Desenha as estrelas (com ou sem interação)
+function mostrarEstrelas(container, notaAtual, mediaId, interativo) {
     container.innerHTML = '';
     container.style.display = 'flex';
     container.style.gap = '6px';
@@ -12706,12 +12709,12 @@ function mostrarEstrelas(container, notaAtual, mediaId, comClique = true) {
             estrela.style.color = 'rgba(255,255,255,0.3)';
         }
 
-        estrela.style.cursor = comClique ? 'pointer' : 'default';
+        estrela.style.cursor = interativo ? 'pointer' : 'default';
         estrela.style.fontSize = '18px';
         estrela.style.margin = '0 2px';
         estrela.style.transition = 'all 0.2s';
 
-        if (comClique) {
+        if (interativo) {
             estrela.addEventListener('click', (e) => {
                 e.stopPropagation();
                 salvarAvaliacaoUnica(mediaId, i);
@@ -12748,7 +12751,7 @@ function salvarAvaliacaoUnica(mediaId, novaNota) {
 
             // Atualiza a nota do usuário
             return userRatingRef.set(novaNota).then(() => {
-                // Agora atualiza as estatísticas gerais de forma atômica
+                // Atualiza as estatísticas gerais de forma atômica
                 return ratingRef.transaction(dadosAtuais => {
                     if (!dadosAtuais) {
                         // Primeira avaliação do conteúdo
@@ -12808,7 +12811,7 @@ function atualizarPorcentagemEAvaliacoes(mediaId) {
         .catch(err => console.warn('Erro ao atualizar porcentagem:', err));
 }
 
-// Função para carregar avaliações (chamada ao abrir o player)
+// Função para carregar avaliações ao abrir o player
 function carregarAvaliacoes(mediaId) {
     if (!mediaId) return;
     atualizarPorcentagemEAvaliacoes(mediaId);
@@ -12822,16 +12825,14 @@ function carregarAvaliacoes(mediaId) {
     }
 }
 
-// Sobrescreve funções antigas para evitar conflitos
+// Sobrescreve quaisquer funções antigas
 window.createRatingStars = criarEstrelas;
 window.saveRating = salvarAvaliacaoUnica;
 window.updateRatingStarsDisplay = carregarAvaliacoes;
-
-// Se existir a função antiga "salvarAvaliacaoCorrigida", redireciona
 window.salvarAvaliacaoCorrigida = salvarAvaliacaoUnica;
 window.salvarAvaliacao = salvarAvaliacaoUnica;
 
-console.log('✅ Sistema de avaliação corrigido: cada usuário pode avaliar um conteúdo apenas uma vez (substituindo a nota anterior).');
+console.log('✅ Sistema de avaliação definitivo: voto único por usuário, substituição correta da nota e recálculo da porcentagem.');
 
 
 
