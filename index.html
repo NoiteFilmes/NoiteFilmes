@@ -1,6 +1,4 @@
 
-
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -5524,27 +5522,27 @@ carregarPostDaURL();
                 }
                 
                 function shareNative() {
-    // 🔧 CORREÇÃO: se currentMedia estiver vazio, tenta pegar do window (usado pelo IMDb)
-    if (!currentMedia && window.currentMedia) {
-        currentMedia = window.currentMedia;
-        currentMediaType = window.currentMediaType;
-    }
-
     if (!currentMedia) { 
         showToast('Nenhum vídeo selecionado'); 
         return; 
     }
 
+    // --- A LINHA MÁGICA ESTÁ AQUI ---
+    // Cria o link dinâmico no formato: SEU_DOMINIO/?mediaId=ID_DO_FILME&type=TIPO
     const shareUrl = `${window.location.origin}${window.location.pathname}?mediaId=${currentMedia.id}&type=${currentMediaType}`;
+    // ---------------------------------
+
     const shareData = { 
         title: currentMedia.title, 
         text: `🎬 Assista "${currentMedia.title}" no NoiteFilmes!`, 
-        url: shareUrl
+        url: shareUrl // <--- Usamos a URL que acabamos de criar
     };
 
+    // Tenta usar o compartilhamento nativo do celular/PC
     if (navigator.share) {
         navigator.share(shareData).catch(() => showToast('Compartilhamento cancelado'));
     } else {
+        // Se não tiver compartilhamento nativo, copia o link para a área de transferência
         navigator.clipboard.writeText(shareUrl).then(() => showToast('Link copiado!'));
     }
 }
