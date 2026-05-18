@@ -1,4 +1,6 @@
 
+
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -6034,84 +6036,17 @@ function renderStarsCorrigido(container, mediaId, userRating) {
                     if (castSession) loadCurrentMediaToCast();
                 }
                 
-                
-    function closePlayer() {
-    // 1. DESTRUIR YouTube player completamente (e não apenas parar)
-    if (ytPlayer) {
-        if (typeof ytPlayer.destroy === 'function') {
-            ytPlayer.destroy();   // Remove o iframe e libera recursos
-        } else if (typeof ytPlayer.stopVideo === 'function') {
-            ytPlayer.stopVideo(); // Fallback para versões antigas
-        }
-        ytPlayer = null;          // Garante que será recriado depois
-    }
-
-    // 2. Destruir player HLS (IPTV/MP4)
-    if (window.hlsInstance) {
-        try {
-            if (typeof stopProgressTracking === 'function') {
-                stopProgressTracking(document.getElementById('hlsPlayer'), false);
-            }
-            window.hlsInstance.destroy();
-            window.hlsInstance = null;
-        } catch(e) { console.warn('Erro ao destruir HLS:', e); }
-    }
-
-    // 3. Parar e limpar vídeo HTML5 (Facebook, etc.)
-    const hlsVideo = document.getElementById('hlsPlayer');
-    if (hlsVideo) {
-        hlsVideo.pause();
-        hlsVideo.src = '';
-        hlsVideo.load();
-    }
-
-    // 4. Limpar iframe do IMDb
-    const imdbIframe = document.getElementById('imdbIframe');
-    if (imdbIframe) {
-        imdbIframe.src = 'about:blank';
-        imdbIframe.style.display = 'none';
-    }
-
-    // 5. Limpar qualquer outro vídeo/iframe dentro do wrapper (sem mexer no youtubePlayerDiv)
-    const playerWrapper = document.querySelector('.player-wrapper');
-    if (playerWrapper) {
-        const videos = playerWrapper.querySelectorAll('video:not(#hlsPlayer), iframe:not(#youtubePlayerDiv iframe)');
-        videos.forEach(el => {
-            if (el.tagName === 'VIDEO') {
-                el.pause();
-                el.src = '';
-                el.load();
-            } else if (el.tagName === 'IFRAME') {
-                el.src = 'about:blank';
-            }
-        });
-    }
-
-    // 6. Esconder os containers
-    const playerContainer = document.getElementById('playerCommentsContainer');
-    const overlay = document.getElementById('floatingPlayerOverlay');
-    if (playerContainer) playerContainer.classList.add('hidden');
-    if (overlay) overlay.classList.add('hidden');
-
-    // 7. Parar atualizações em tempo real e progresso
-    if (typeof stopRealtimeUpdates === 'function') stopRealtimeUpdates();
-    if (progressInterval) {
-        clearInterval(progressInterval);
-        progressInterval = null;
-    }
-
-    // 8. Remover parâmetros da URL
-    const url = new URL(window.location);
-    url.searchParams.delete('mediaId');
-    url.searchParams.delete('type');
-    window.history.pushState({}, '', url);
-
-    // 9. Limpar variáveis globais (para não haver referência antiga)
-    window.currentMedia = null;
-    window.currentMediaType = null;
-    if (typeof currentMedia !== 'undefined') currentMedia = null;
-    if (typeof currentMediaType !== 'undefined') currentMediaType = null;
-}
+                function closePlayer() {
+                    if (ytPlayer) { stopProgressTracking(ytPlayer, true); ytPlayer.stopVideo(); }
+                    if (window.hlsInstance) { stopProgressTracking(document.getElementById('hlsPlayer'), false); window.hlsInstance.destroy(); }
+                    document.getElementById('playerCommentsContainer').classList.add('hidden');
+                    document.getElementById('floatingPlayerOverlay').classList.add('hidden');
+                    stopRealtimeUpdates();
+                    const url = new URL(window.location);
+                    url.searchParams.delete('mediaId');
+                    url.searchParams.delete('type');
+                    window.history.pushState({}, '', url);
+                }
                 
                 function onYouTubeIframeAPIReady() {}
                 
