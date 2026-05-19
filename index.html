@@ -12673,10 +12673,10 @@ setTimeout(() => {
 
 
 // ======================================================
-// SISTEMA DE AVALIAÇÃO POR CARD
+// SISTEMA DE AVALIAÇÃO COMPLETO
 // ======================================================
 
-// Cache individual por mediaId
+// Cache visual
 const ratingCache = {};
 
 // ======================================================
@@ -12692,6 +12692,9 @@ function criarEstrelas(mediaId) {
 
     if (!container) return;
 
+    // Evita duplicar estrelas
+    container.innerHTML = '';
+
     // Usuário não logado
     if (!currentUser) {
 
@@ -12706,7 +12709,9 @@ function criarEstrelas(mediaId) {
     }
 
     const votoRef = firebase.database()
-        .ref(`avaliacoes/${mediaId}/votos/${currentUser.uid}`);
+        .ref(
+            `avaliacoes/${mediaId}/votos/${currentUser.uid}`
+        );
 
     votoRef.once('value')
         .then(snapshot => {
@@ -12747,7 +12752,7 @@ function renderizarEstrelas(
 
     container.style.display = 'flex';
     container.style.alignItems = 'center';
-    container.style.gap = '2px';
+    container.style.gap = '3px';
     container.style.flexWrap = 'nowrap';
 
     for (let i = 1; i <= 5; i++) {
@@ -12755,17 +12760,19 @@ function renderizarEstrelas(
         const estrela =
             document.createElement('i');
 
+        // Ícone
         estrela.className =
             i <= notaAtual
                 ? 'fas fa-star'
                 : 'far fa-star';
 
+        // Cor
         estrela.style.color =
             i <= notaAtual
                 ? '#FFC107'
                 : 'rgba(255,255,255,0.25)';
 
-        // Menor para mobile
+        // Tamanho menor mobile
         estrela.style.fontSize = '14px';
 
         estrela.style.cursor =
@@ -12780,6 +12787,7 @@ function renderizarEstrelas(
 
         if (interativo) {
 
+            // Hover
             estrela.addEventListener(
                 'mouseenter',
                 () => {
@@ -12796,14 +12804,15 @@ function renderizarEstrelas(
                 }
             );
 
+            // Clique
             estrela.addEventListener(
                 'click',
-                (e) => {
+                async (e) => {
 
                     e.preventDefault();
                     e.stopPropagation();
 
-                    salvarAvaliacao(
+                    await salvarAvaliacao(
                         mediaId,
                         i
                     );
@@ -12842,13 +12851,17 @@ async function salvarAvaliacao(
 
         const votoRef =
             firebase.database()
-                .ref(`avaliacoes/${mediaId}/votos/${uid}`);
+                .ref(
+                    `avaliacoes/${mediaId}/votos/${uid}`
+                );
 
         const statsRef =
             firebase.database()
-                .ref(`avaliacoes/${mediaId}/stats`);
+                .ref(
+                    `avaliacoes/${mediaId}/stats`
+                );
 
-        // Busca voto antigo
+        // Nota antiga
         const snapshot =
             await votoRef.once('value');
 
@@ -12868,7 +12881,7 @@ async function salvarAvaliacao(
         // Salva voto
         await votoRef.set(novaNota);
 
-        // Atualiza stats
+        // Atualiza estatísticas
         await statsRef.transaction(
             stats => {
 
@@ -12894,7 +12907,7 @@ async function salvarAvaliacao(
 
                 } else {
 
-                    // Alteração
+                    // Troca nota
                     soma =
                         soma
                         - notaAntiga
@@ -12924,7 +12937,7 @@ async function salvarAvaliacao(
             );
         }
 
-        // Atualiza porcentagem
+        // Atualiza %
         atualizarPorcentagem(
             mediaId
         );
@@ -12953,7 +12966,9 @@ function atualizarPorcentagem(
 
     const statsRef =
         firebase.database()
-            .ref(`avaliacoes/${mediaId}/stats`);
+            .ref(
+                `avaliacoes/${mediaId}/stats`
+            );
 
     statsRef.once('value')
         .then(snapshot => {
@@ -12976,15 +12991,14 @@ function atualizarPorcentagem(
                 !ratingInfo
             ) return;
 
-            // Se não existir dados
+            // Sem dados
             if (
                 !dados ||
                 typeof dados.totalVotos ===
                 'undefined'
             ) {
 
-                // Se já tiver cache,
-                // NÃO ALTERA
+                // NÃO pisca
                 if (
                     ratingCache[mediaId]
                 ) {
@@ -13012,29 +13026,29 @@ function atualizarPorcentagem(
                 percentDisplay.innerText =
                     '0%';
 
-                // NÃO mostra mais:
-                // "Seja o primeiro a avaliar"
-
                 ratingInfo.innerHTML =
                     '';
 
                 return;
             }
 
+            // Média
             const media =
                 soma / totalVotos;
 
+            // %
             const porcentagem =
                 Math.round(
                     (media / 5) * 100
                 );
 
-            // Cache individual
+            // Cache
             ratingCache[mediaId] = {
                 porcentagem,
                 totalVotos
             };
 
+            // Atualiza
             percentDisplay.innerText =
                 `${porcentagem}%`;
 
@@ -13051,20 +13065,18 @@ function atualizarPorcentagem(
 }
 
 // ======================================================
-// CARREGAR AVALIAÇÕES
+// CARREGAR CARD
 // ======================================================
 
 function carregarAvaliacoes(
     mediaId
 ) {
 
-    if (!mediaId) return;
-
-    atualizarPorcentagem(
+    criarEstrelas(
         mediaId
     );
 
-    criarEstrelas(
+    atualizarPorcentagem(
         mediaId
     );
 }
@@ -13086,7 +13098,7 @@ window.salvarAvaliacao =
     salvarAvaliacao;
 
 console.log(
-    'Sistema de avaliação por card carregado'
+    'Sistema de avaliação carregado'
 );
 
 
