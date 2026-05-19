@@ -12673,21 +12673,33 @@ setTimeout(() => {
 
 
 // ======================================================
-// SISTEMA DE AVALIAÇÃO PROFISSIONAL - FIREBASE
+// SISTEMA DE AVALIAÇÃO ESTÁVEL - FIREBASE
 // ======================================================
 
-// ------------------------------------------------------
-// CRIA ESTRELAS
-// ------------------------------------------------------
+// Cache visual para evitar piscadas
+let ultimoPercentual = '0%';
+let ultimoTextoInfo = '⭐ Seja o primeiro a avaliar!';
+
+// ======================================================
+// CRIAR ESTRELAS
+// ======================================================
 
 function criarEstrelas(containerId, mediaId) {
+
     const container = document.getElementById(containerId);
 
     if (!container) return;
 
     // Usuário não logado
     if (!currentUser) {
-        renderizarEstrelas(container, 0, mediaId, false);
+
+        renderizarEstrelas(
+            container,
+            0,
+            mediaId,
+            false
+        );
+
         return;
     }
 
@@ -12696,80 +12708,126 @@ function criarEstrelas(containerId, mediaId) {
 
     votoRef.once('value')
         .then(snapshot => {
+
             const nota = snapshot.val() || 0;
-            renderizarEstrelas(container, nota, mediaId, true);
+
+            renderizarEstrelas(
+                container,
+                nota,
+                mediaId,
+                true
+            );
         })
         .catch(() => {
-            renderizarEstrelas(container, 0, mediaId, true);
+
+            renderizarEstrelas(
+                container,
+                0,
+                mediaId,
+                true
+            );
         });
 }
 
-// ------------------------------------------------------
-// RENDERIZA ESTRELAS
-// ------------------------------------------------------
+// ======================================================
+// RENDERIZAR ESTRELAS
+// ======================================================
 
-function renderizarEstrelas(container, notaAtual, mediaId, interativo) {
+function renderizarEstrelas(
+    container,
+    notaAtual,
+    mediaId,
+    interativo
+) {
 
     container.innerHTML = '';
 
     container.style.display = 'flex';
     container.style.alignItems = 'center';
-    container.style.gap = '4px';
+    container.style.gap = '2px';
+    container.style.flexWrap = 'nowrap';
 
     for (let i = 1; i <= 5; i++) {
 
         const estrela = document.createElement('i');
 
-        // Estrela cheia ou vazia
-        estrela.className = i <= notaAtual
-            ? 'fas fa-star'
-            : 'far fa-star';
+        estrela.className =
+            i <= notaAtual
+                ? 'fas fa-star'
+                : 'far fa-star';
 
-        estrela.style.color = i <= notaAtual
-            ? '#FFC107'
-            : 'rgba(255,255,255,0.25)';
+        estrela.style.color =
+            i <= notaAtual
+                ? '#FFC107'
+                : 'rgba(255,255,255,0.25)';
 
-        estrela.style.fontSize = '18px';
-        estrela.style.cursor = interativo ? 'pointer' : 'default';
-        estrela.style.transition = 'transform .15s ease';
+        // ESTRELAS MENORES
+        estrela.style.fontSize = '15px';
 
-        // Evita interferência no player
-        estrela.style.pointerEvents = interativo ? 'auto' : 'none';
+        estrela.style.cursor =
+            interativo ? 'pointer' : 'default';
+
+        estrela.style.transition =
+            'transform .15s ease';
+
+        estrela.style.pointerEvents =
+            interativo ? 'auto' : 'none';
+
+        // Evita quebrar linha no mobile
+        estrela.style.flexShrink = '0';
 
         if (interativo) {
 
-            // Hover visual
-            estrela.addEventListener('mouseenter', () => {
-                estrela.style.transform = 'scale(1.15)';
-            });
+            estrela.addEventListener(
+                'mouseenter',
+                () => {
+                    estrela.style.transform =
+                        'scale(1.08)';
+                }
+            );
 
-            estrela.addEventListener('mouseleave', () => {
-                estrela.style.transform = 'scale(1)';
-            });
+            estrela.addEventListener(
+                'mouseleave',
+                () => {
+                    estrela.style.transform =
+                        'scale(1)';
+                }
+            );
 
-            // Clique
-            estrela.addEventListener('click', (e) => {
+            estrela.addEventListener(
+                'click',
+                (e) => {
 
-                // NÃO propaga para o player
-                e.preventDefault();
-                e.stopPropagation();
+                    e.preventDefault();
+                    e.stopPropagation();
 
-                salvarAvaliacao(mediaId, i);
-            });
+                    salvarAvaliacao(
+                        mediaId,
+                        i
+                    );
+                }
+            );
         }
 
         container.appendChild(estrela);
     }
 }
 
-// ------------------------------------------------------
+// ======================================================
 // SALVAR AVALIAÇÃO
-// ------------------------------------------------------
+// ======================================================
 
-async function salvarAvaliacao(mediaId, novaNota) {
+async function salvarAvaliacao(
+    mediaId,
+    novaNota
+) {
 
     if (!currentUser) {
-        showToast('Faça login para avaliar');
+
+        showToast(
+            'Faça login para avaliar'
+        );
+
         return;
     }
 
@@ -12783,34 +12841,42 @@ async function salvarAvaliacao(mediaId, novaNota) {
         const statsRef = firebase.database()
             .ref(`avaliacoes/${mediaId}/stats`);
 
-        // Busca nota antiga
-        const snapshot = await votoRef.once('value');
+        // Busca voto antigo
+        const snapshot =
+            await votoRef.once('value');
 
-        const notaAntiga = snapshot.val() || 0;
+        const notaAntiga =
+            snapshot.val() || 0;
 
-        // Se for mesma nota
+        // Mesma nota
         if (notaAntiga === novaNota) {
 
-            showToast(`Sua avaliação já é ${novaNota}/5`);
+            showToast(
+                `Sua avaliação já é ${novaNota}/5`
+            );
 
             return;
         }
 
-        // Salva voto do usuário
+        // Salva voto
         await votoRef.set(novaNota);
 
         // Atualiza estatísticas
         await statsRef.transaction(stats => {
 
             if (!stats) {
+
                 stats = {
                     totalVotos: 0,
                     soma: 0
                 };
             }
 
-            let totalVotos = stats.totalVotos || 0;
-            let soma = stats.soma || 0;
+            let totalVotos =
+                stats.totalVotos || 0;
+
+            let soma =
+                stats.soma || 0;
 
             // Novo voto
             if (notaAntiga === 0) {
@@ -12820,8 +12886,11 @@ async function salvarAvaliacao(mediaId, novaNota) {
 
             } else {
 
-                // Alterou voto
-                soma = soma - notaAntiga + novaNota;
+                // Alteração de voto
+                soma =
+                    soma
+                    - notaAntiga
+                    + novaNota;
             }
 
             return {
@@ -12830,11 +12899,14 @@ async function salvarAvaliacao(mediaId, novaNota) {
             };
         });
 
-        // Atualiza UI
+        // Atualiza estrelas
         const container =
-            document.getElementById('ratingStarsContainer');
+            document.getElementById(
+                'ratingStarsContainer'
+            );
 
         if (container) {
+
             renderizarEstrelas(
                 container,
                 novaNota,
@@ -12843,21 +12915,26 @@ async function salvarAvaliacao(mediaId, novaNota) {
             );
         }
 
+        // Atualiza porcentagem
         atualizarPorcentagem(mediaId);
 
-        showToast(`Avaliação ${novaNota}/5 salva`);
+        showToast(
+            `Avaliação ${novaNota}/5 salva`
+        );
 
     } catch (error) {
 
         console.error(error);
 
-        showToast('Erro ao salvar avaliação');
+        showToast(
+            'Erro ao salvar avaliação'
+        );
     }
 }
 
-// ------------------------------------------------------
-// ATUALIZA PORCENTAGEM
-// ------------------------------------------------------
+// ======================================================
+// ATUALIZAR PORCENTAGEM
+// ======================================================
 
 function atualizarPorcentagem(mediaId) {
 
@@ -12870,74 +12947,136 @@ function atualizarPorcentagem(mediaId) {
             const dados = snapshot.val();
 
             const percentDisplay =
-                document.getElementById('ratingPercentDisplay');
+                document.getElementById(
+                    'ratingPercentDisplay'
+                );
 
             const ratingInfo =
-                document.getElementById('ratingInfo');
+                document.getElementById(
+                    'ratingInfo'
+                );
 
-            // Sem votos
-            if (!dados || !dados.totalVotos) {
+            // Se stats ainda não existir
+            // NÃO limpa a tela
+            if (
+                !dados ||
+                typeof dados.totalVotos === 'undefined'
+            ) {
 
                 if (percentDisplay) {
-                    percentDisplay.innerText = '0%';
+                    percentDisplay.innerText =
+                        ultimoPercentual;
                 }
 
                 if (ratingInfo) {
                     ratingInfo.innerHTML =
-                        '⭐ Seja o primeiro a avaliar';
+                        ultimoTextoInfo;
+                }
+
+                return;
+            }
+
+            const totalVotos =
+                dados.totalVotos || 0;
+
+            const soma =
+                dados.soma || 0;
+
+            // Sem votos
+            if (totalVotos <= 0) {
+
+                ultimoPercentual = '0%';
+
+                ultimoTextoInfo =
+                    '⭐ Seja o primeiro a avaliar!';
+
+                if (percentDisplay) {
+                    percentDisplay.innerText =
+                        ultimoPercentual;
+                }
+
+                if (ratingInfo) {
+                    ratingInfo.innerHTML =
+                        ultimoTextoInfo;
                 }
 
                 return;
             }
 
             const media =
-                dados.soma / dados.totalVotos;
+                soma / totalVotos;
 
             const porcentagem =
-                Math.round((media / 5) * 100);
+                Math.round(
+                    (media / 5) * 100
+                );
 
+            // Salva cache visual
+            ultimoPercentual =
+                `${porcentagem}%`;
+
+            ultimoTextoInfo =
+                `⭐ ${porcentagem}% gostaram (${totalVotos} ${totalVotos === 1 ? 'voto' : 'votos'})`;
+
+            // Atualiza tela
             if (percentDisplay) {
+
                 percentDisplay.innerText =
-                    `${porcentagem}%`;
+                    ultimoPercentual;
             }
 
             if (ratingInfo) {
 
                 ratingInfo.innerHTML =
-                    `⭐ ${porcentagem}% gostaram (${dados.totalVotos} ${dados.totalVotos === 1 ? 'voto' : 'votos'})`;
+                    ultimoTextoInfo;
             }
         })
         .catch(error => {
-            console.warn(error);
+
+            console.warn(
+                'Erro avaliação:',
+                error
+            );
         });
 }
 
-// ------------------------------------------------------
-// CARREGA AVALIAÇÕES
-// ------------------------------------------------------
+// ======================================================
+// CARREGAR AVALIAÇÕES
+// ======================================================
 
 function carregarAvaliacoes(mediaId) {
 
     if (!mediaId) return;
 
+    // Primeiro atualiza porcentagem
     atualizarPorcentagem(mediaId);
 
+    // Depois estrelas
     criarEstrelas(
         'ratingStarsContainer',
         mediaId
     );
 }
 
-// ------------------------------------------------------
-// EXPORTA FUNÇÕES
-// ------------------------------------------------------
+// ======================================================
+// EXPORTAR FUNÇÕES
+// ======================================================
 
-window.createRatingStars = criarEstrelas;
-window.saveRating = salvarAvaliacao;
-window.updateRatingStarsDisplay = carregarAvaliacoes;
-window.salvarAvaliacao = salvarAvaliacao;
+window.createRatingStars =
+    criarEstrelas;
 
-console.log('Sistema de avaliação carregado');
+window.saveRating =
+    salvarAvaliacao;
+
+window.updateRatingStarsDisplay =
+    carregarAvaliacoes;
+
+window.salvarAvaliacao =
+    salvarAvaliacao;
+
+console.log(
+    'Sistema de avaliação carregado com sucesso'
+);
 
 
 
