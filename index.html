@@ -12673,41 +12673,37 @@ setTimeout(() => {
 
 
 // ======================================================
-// SISTEMA DE AVALIAÇÃO PROFISSIONAL - FIREBASE (CORRIGIDO)
+// SISTEMA DE AVALIAÇÃO PROFISSIONAL - FIREBASE
+// VERSÃO ESTÁVEL (sem piscadas e sem reset para 0%)
 // ======================================================
 
-// Controle para evitar piscadas e atualizações duplicadas
-let ultimoPercentual = {};     // guarda o último valor mostrado para cada mídia
-let atualizandoPercentual = {}; // evita múltiplas chamadas ao mesmo tempo
+// Armazena listeners ativos para cada mídia (evita duplicação)
+const ratingListeners = {};
 
 // ------------------------------------------------------
-// CRIA ESTRELAS
+// CRIA ESTRELAS (com suporte a usuário logado)
 // ------------------------------------------------------
 function criarEstrelas(containerId, mediaId) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    // Usuário não logado
+    // Usuário não logado → estrelas apenas visuais, sem clique
     if (!currentUser) {
         renderizarEstrelas(container, 0, mediaId, false);
         return;
     }
 
-    const votoRef = firebase.database()
-        .ref(`avaliacoes/${mediaId}/votos/${currentUser.uid}`);
-
+    const votoRef = firebase.database().ref(`avaliacoes/${mediaId}/votos/${currentUser.uid}`);
     votoRef.once('value')
         .then(snapshot => {
             const nota = snapshot.val() || 0;
             renderizarEstrelas(container, nota, mediaId, true);
         })
-        .catch(() => {
-            renderizarEstrelas(container, 0, mediaId, true);
-        });
+        .catch(() => renderizarEstrelas(container, 0, mediaId, true));
 }
 
 // ------------------------------------------------------
-// RENDERIZA ESTRELAS
+// RENDERIZA AS ESTRELAS NA TELA
 // ------------------------------------------------------
 function renderizarEstrelas(container, notaAtual, mediaId, interativo) {
     container.innerHTML = '';
@@ -12725,12 +12721,8 @@ function renderizarEstrelas(container, notaAtual, mediaId, interativo) {
         estrela.style.pointerEvents = interativo ? 'auto' : 'none';
 
         if (interativo) {
-            estrela.addEventListener('mouseenter', () => {
-                estrela.style.transform = 'scale(1.15)';
-            });
-            estrela.addEventListener('mouseleave', () => {
-                estrela.style.transform = 'scale(1)';
-            });
+            estrela.addEventListener('mouseenter', () => estrela.style.transform = 'scale(1.15)');
+            estrela.addEventListener('mouseleave', () => estrela.style.transform = 'scale(1)');
             estrela.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -12742,7 +12734,7 @@ function renderizarEstrelas(container, notaAtual, mediaId, interativo) {
 }
 
 // ------------------------------------------------------
-// SALVAR AVALIAÇÃO (sem piscadas)
+// SALVAR AVALIAÇÃO (mantém consistência)
 // ------------------------------------------------------
 async function salvarAvaliacao(mediaId, novaNota) {
     if (!currentUser) {
@@ -12771,7 +12763,7 @@ async function salvarAvaliacao(mediaId, novaNota) {
             let soma = stats.soma || 0;
 
             if (notaAntiga === 0) {
-                totalVotos += 1;
+                totalVotos++;
                 soma += novaNota;
             } else {
                 soma = soma - notaAntiga + novaNota;
@@ -12779,14 +12771,9 @@ async function salvarAvaliacao(mediaId, novaNota) {
             return { totalVotos, soma };
         });
 
-        // Atualiza estrelas
+        // Atualiza estrelas localmente para feedback imediato
         const container = document.getElementById('ratingStarsContainer');
-        if (container) {
-            renderizarEstrelas(container, novaNota, mediaId, true);
-        }
-
-        // Atualiza porcentagem (com proteção contra piscadas)
-        atualizarPorcentagem(mediaId);
+        if (container) renderizarEstrelas(container, novaNota, mediaId, true);
 
         showToast(`Avaliação ${novaNota}/5 salva`);
     } catch (error) {
@@ -12796,78 +12783,88 @@ async function salvarAvaliacao(mediaId, novaNota) {
 }
 
 // ------------------------------------------------------
-// ATUALIZA PORCENTAGEM (sem piscar, sem zerar)
+// ATUALIZA A PORCENTAGEM E TEXTO (EM TEMPO REAL)
 // ------------------------------------------------------
-function atualizarPorcentagem(mediaId) {
-    // Evita múltiplas atualizações ao mesmo tempo
-    if (atualizandoPercentual[mediaId]) return;
-    atualizandoPercentual[mediaId] = true;
+function iniciarAtualizacaoEmTempoReal(mediaId) {
+    // Se já existe um listener para esta mídia, não cria outro
+    if (ratingListeners[mediaId]) return;
 
     const statsRef = firebase.database().ref(`avaliacoes/${mediaId}/stats`);
-    statsRef.once('value')
-        .then(snapshot => {
-            const dados = snapshot.val();
-            const percentDisplay = document.getElementById('ratingPercentDisplay');
-            const ratingInfo = document.getElementById('ratingInfo');
+    const percentDisplay = document.getElementById('ratingPercentDisplay');
+    const ratingInfo = document.getElementById('ratingInfo');
 
-            // Caso sem votos
-            if (!dados || !dados.totalVotos) {
-                if (percentDisplay && percentDisplay.innerText !== '0%') {
-                    percentDisplay.innerText = '0%';
-                }
-                if (ratingInfo && ratingInfo.innerHTML !== '⭐ Seja o primeiro a avaliar') {
-                    ratingInfo.innerHTML = '⭐ Seja o primeiro a avaliar';
-                }
-                atualizandoPercentual[mediaId] = false;
-                return;
+    if (!percentDisplay || !ratingInfo) return;
+
+    // Função que será chamada sempre que os stats mudarem
+    const handler = (snapshot) => {
+        const dados = snapshot.val();
+
+        // Caso não haja dados (ou votos = 0)
+        if (!dados || !dados.totalVotos || dados.totalVotos === 0) {
+            // Só mostra "seja o primeiro" se realmente não houver nenhum voto
+            // Importante: NÃO sobrescreve dados existentes indevidamente
+            if (ratingInfo.innerHTML !== '⭐ Seja o primeiro a avaliar') {
+                ratingInfo.innerHTML = '⭐ Seja o primeiro a avaliar';
             }
-
-            const media = dados.soma / dados.totalVotos;
-            const porcentagem = Math.round((media / 5) * 100);
-            const textoVotos = `${dados.totalVotos} ${dados.totalVotos === 1 ? 'voto' : 'votos'}`;
-            const novoTexto = `⭐ ${porcentagem}% gostaram (${textoVotos})`;
-
-            // Só atualiza o DOM se o conteúdo for realmente diferente (evita piscar)
-            if (percentDisplay && percentDisplay.innerText !== `${porcentagem}%`) {
-                percentDisplay.innerText = `${porcentagem}%`;
+            if (percentDisplay.innerText !== '0%') {
+                percentDisplay.innerText = '0%';
             }
-            if (ratingInfo && ratingInfo.innerHTML !== novoTexto) {
-                ratingInfo.innerHTML = novoTexto;
-            }
+            return;
+        }
 
-            // Guarda o último valor mostrado
-            ultimoPercentual[mediaId] = { porcentagem, totalVotos: dados.totalVotos };
-            atualizandoPercentual[mediaId] = false;
-        })
-        .catch(error => {
-            console.warn(error);
-            atualizandoPercentual[mediaId] = false;
-        });
+        // Cálculo correto
+        const media = dados.soma / dados.totalVotos;
+        const porcentagem = Math.round((media / 5) * 100);
+        const textoVotos = `${dados.totalVotos} ${dados.totalVotos === 1 ? 'voto' : 'votos'}`;
+        const novoTexto = `⭐ ${porcentagem}% gostaram (${textoVotos})`;
+
+        // Atualiza apenas se o conteúdo for diferente (evita piscar)
+        if (ratingInfo.innerHTML !== novoTexto) {
+            ratingInfo.innerHTML = novoTexto;
+        }
+        if (percentDisplay.innerText !== `${porcentagem}%`) {
+            percentDisplay.innerText = `${porcentagem}%`;
+        }
+    };
+
+    // Escuta mudanças em tempo real
+    statsRef.on('value', handler);
+    ratingListeners[mediaId] = { ref: statsRef, handler };
 }
 
 // ------------------------------------------------------
-// CARREGA AVALIAÇÕES (chamado uma única vez)
+// CARREGA TUDO (estrelas + estatísticas em tempo real)
 // ------------------------------------------------------
 function carregarAvaliacoes(mediaId) {
     if (!mediaId) return;
-    // Evita carregar a mesma mídia várias vezes
-    if (window._mediaIdsCarregadas && window._mediaIdsCarregadas.has(mediaId)) return;
-    if (!window._mediaIdsCarregadas) window._mediaIdsCarregadas = new Set();
-    window._mediaIdsCarregadas.add(mediaId);
 
-    atualizarPorcentagem(mediaId);
+    // Inicia o listener em tempo real (já trata de não duplicar)
+    iniciarAtualizacaoEmTempoReal(mediaId);
+
+    // Cria as estrelas (interativas ou não)
     criarEstrelas('ratingStarsContainer', mediaId);
 }
 
 // ------------------------------------------------------
-// EXPORTA FUNÇÕES
+// LIMPEZA (opcional: chamar quando a página for destruída)
+// ------------------------------------------------------
+function removerListenersRating(mediaId) {
+    if (ratingListeners[mediaId]) {
+        ratingListeners[mediaId].ref.off('value', ratingListeners[mediaId].handler);
+        delete ratingListeners[mediaId];
+    }
+}
+
+// ------------------------------------------------------
+// EXPORTA FUNÇÕES PARA USO GLOBAL
 // ------------------------------------------------------
 window.createRatingStars = criarEstrelas;
 window.saveRating = salvarAvaliacao;
 window.updateRatingStarsDisplay = carregarAvaliacoes;
 window.salvarAvaliacao = salvarAvaliacao;
+window.removerRatingListener = removerListenersRating;
 
-console.log('Sistema de avaliação carregado (versão sem piscadas)');
+console.log('✅ Sistema de avaliação carregado (versão estável, sem reset para 0%)');
 
 
 
