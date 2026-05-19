@@ -6,7 +6,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>NoiteFilmes - Rede Social para Cinéfilos</title>
-    <link rel="icon" type="image/png" href="https://i.ibb.co/prnRsYbD/fd0f7999-e91b-44ce-ba4d-cdccb1ff6473.jpg">
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+     <link rel="icon" type="image/png" href="https://i.ibb.co/prnRsYbD/fd0f7999-e91b-44ce-ba4d-cdccb1ff6473.jpg">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.8/dist/hls.min.js"></script>
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -3490,17 +3492,29 @@
                         <button id="saveBtn" class="action-btn ripple-btn"><i class="far fa-star"></i> Favoritar</button>
                         <button id="reportBtn" class="report-btn ripple-btn"><i class="fas fa-flag"></i> Reportar</button>
                         <div class="rating-wrapper" style="text-align: center;">
-                            <div id="ratingStarsContainer" class="rating-stars flex items-center justify-center"></div>
+                             <div id="ratingStarsContainer_${media.id}"> class="rating-stars flex items-center justify-center"></div>
                             <div class="rating-label">Avalie-me</div>
                         </div>
-                        <span id="ratingPercentDisplay" class="rating-percent text-yellow-400 font-bold">0%</span>
+                        <div class="rating-percent">
+
+    <span id="ratingPercentDisplay_${media.id}">
+
+        0%
+
+    </span>
+
+</div>
                     </div>
                 </div>
             </div>
             
             <div class="comments-section">
                 <div class="comments-header p-2"><span class="font-bold text-sm">💬 Comentários</span></div>
-                <div id="ratingInfo" class="rating-info p-2 text-xs border-b border-white/10"></div>
+                <div class="rating-info">
+
+    <span id="ratingInfo_${media.id}"></span>
+
+</div>
                 <div id="commentsList" class="comments-list"></div>
                 <div class="comment-input-area">
                     <input type="text" id="newCommentInput" class="bg-white/10 rounded-full px-3 py-1.5 text-xs" placeholder="Adicione um comentário...">
