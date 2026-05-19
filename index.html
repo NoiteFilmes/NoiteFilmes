@@ -12673,16 +12673,18 @@ setTimeout(() => {
 
 
 // ======================================================
-// SISTEMA DE AVALIAÇÃO PROFISSIONAL - FIREBASE
+// SISTEMA DE AVALIAÇÃO PROFISSIONAL - FIREBASE (CORRIGIDO)
 // ======================================================
+
+// Controle para evitar piscadas e atualizações duplicadas
+let ultimoPercentual = {};     // guarda o último valor mostrado para cada mídia
+let atualizandoPercentual = {}; // evita múltiplas chamadas ao mesmo tempo
 
 // ------------------------------------------------------
 // CRIA ESTRELAS
 // ------------------------------------------------------
-
 function criarEstrelas(containerId, mediaId) {
     const container = document.getElementById(containerId);
-
     if (!container) return;
 
     // Usuário não logado
@@ -12707,237 +12709,165 @@ function criarEstrelas(containerId, mediaId) {
 // ------------------------------------------------------
 // RENDERIZA ESTRELAS
 // ------------------------------------------------------
-
 function renderizarEstrelas(container, notaAtual, mediaId, interativo) {
-
     container.innerHTML = '';
-
     container.style.display = 'flex';
     container.style.alignItems = 'center';
     container.style.gap = '2px';
 
     for (let i = 1; i <= 5; i++) {
-
         const estrela = document.createElement('i');
-
-        // Estrela cheia ou vazia
-        estrela.className = i <= notaAtual
-            ? 'fas fa-star'
-            : 'far fa-star';
-
-        estrela.style.color = i <= notaAtual
-            ? '#FFC107'
-            : 'rgba(255,255,255,0.25)';
-
+        estrela.className = i <= notaAtual ? 'fas fa-star' : 'far fa-star';
+        estrela.style.color = i <= notaAtual ? '#FFC107' : 'rgba(255,255,255,0.25)';
         estrela.style.fontSize = '15px';
         estrela.style.cursor = interativo ? 'pointer' : 'default';
         estrela.style.transition = 'transform .15s ease';
-
-        // Evita interferência no player
         estrela.style.pointerEvents = interativo ? 'auto' : 'none';
 
         if (interativo) {
-
-            // Hover visual
             estrela.addEventListener('mouseenter', () => {
                 estrela.style.transform = 'scale(1.15)';
             });
-
             estrela.addEventListener('mouseleave', () => {
                 estrela.style.transform = 'scale(1)';
             });
-
-            // Clique
             estrela.addEventListener('click', (e) => {
-
-                // NÃO propaga para o player
                 e.preventDefault();
                 e.stopPropagation();
-
                 salvarAvaliacao(mediaId, i);
             });
         }
-
         container.appendChild(estrela);
     }
 }
 
 // ------------------------------------------------------
-// SALVAR AVALIAÇÃO
+// SALVAR AVALIAÇÃO (sem piscadas)
 // ------------------------------------------------------
-
 async function salvarAvaliacao(mediaId, novaNota) {
-
     if (!currentUser) {
         showToast('Faça login para avaliar');
         return;
     }
 
     try {
-
         const uid = currentUser.uid;
+        const votoRef = firebase.database().ref(`avaliacoes/${mediaId}/votos/${uid}`);
+        const statsRef = firebase.database().ref(`avaliacoes/${mediaId}/stats`);
 
-        const votoRef = firebase.database()
-            .ref(`avaliacoes/${mediaId}/votos/${uid}`);
-
-        const statsRef = firebase.database()
-            .ref(`avaliacoes/${mediaId}/stats`);
-
-        // Busca nota antiga
         const snapshot = await votoRef.once('value');
-
         const notaAntiga = snapshot.val() || 0;
 
-        // Se for mesma nota
         if (notaAntiga === novaNota) {
-
             showToast(`Sua avaliação já é ${novaNota}/5`);
-
             return;
         }
 
-        // Salva voto do usuário
         await votoRef.set(novaNota);
 
-        // Atualiza estatísticas
         await statsRef.transaction(stats => {
-
-            if (!stats) {
-                stats = {
-                    totalVotos: 0,
-                    soma: 0
-                };
-            }
-
+            if (!stats) stats = { totalVotos: 0, soma: 0 };
             let totalVotos = stats.totalVotos || 0;
             let soma = stats.soma || 0;
 
-            // Novo voto
             if (notaAntiga === 0) {
-
                 totalVotos += 1;
                 soma += novaNota;
-
             } else {
-
-                // Alterou voto
                 soma = soma - notaAntiga + novaNota;
             }
-
-            return {
-                totalVotos,
-                soma
-            };
+            return { totalVotos, soma };
         });
 
-        // Atualiza UI
-        const container =
-            document.getElementById('ratingStarsContainer');
-
+        // Atualiza estrelas
+        const container = document.getElementById('ratingStarsContainer');
         if (container) {
-            renderizarEstrelas(
-                container,
-                novaNota,
-                mediaId,
-                true
-            );
+            renderizarEstrelas(container, novaNota, mediaId, true);
         }
 
+        // Atualiza porcentagem (com proteção contra piscadas)
         atualizarPorcentagem(mediaId);
 
         showToast(`Avaliação ${novaNota}/5 salva`);
-
     } catch (error) {
-
         console.error(error);
-
         showToast('Erro ao salvar avaliação');
     }
 }
 
 // ------------------------------------------------------
-// ATUALIZA PORCENTAGEM
+// ATUALIZA PORCENTAGEM (sem piscar, sem zerar)
 // ------------------------------------------------------
-
 function atualizarPorcentagem(mediaId) {
+    // Evita múltiplas atualizações ao mesmo tempo
+    if (atualizandoPercentual[mediaId]) return;
+    atualizandoPercentual[mediaId] = true;
 
-    const statsRef = firebase.database()
-        .ref(`avaliacoes/${mediaId}/stats`);
-
+    const statsRef = firebase.database().ref(`avaliacoes/${mediaId}/stats`);
     statsRef.once('value')
         .then(snapshot => {
-
             const dados = snapshot.val();
+            const percentDisplay = document.getElementById('ratingPercentDisplay');
+            const ratingInfo = document.getElementById('ratingInfo');
 
-            const percentDisplay =
-                document.getElementById('ratingPercentDisplay');
-
-            const ratingInfo =
-                document.getElementById('ratingInfo');
-
-            // Sem votos
+            // Caso sem votos
             if (!dados || !dados.totalVotos) {
-
-                if (percentDisplay) {
+                if (percentDisplay && percentDisplay.innerText !== '0%') {
                     percentDisplay.innerText = '0%';
                 }
-
-                if (ratingInfo) {
-                    ratingInfo.innerHTML =
-                        '⭐ Seja o primeiro a avaliar';
+                if (ratingInfo && ratingInfo.innerHTML !== '⭐ Seja o primeiro a avaliar') {
+                    ratingInfo.innerHTML = '⭐ Seja o primeiro a avaliar';
                 }
-
+                atualizandoPercentual[mediaId] = false;
                 return;
             }
 
-            const media =
-                dados.soma / dados.totalVotos;
+            const media = dados.soma / dados.totalVotos;
+            const porcentagem = Math.round((media / 5) * 100);
+            const textoVotos = `${dados.totalVotos} ${dados.totalVotos === 1 ? 'voto' : 'votos'}`;
+            const novoTexto = `⭐ ${porcentagem}% gostaram (${textoVotos})`;
 
-            const porcentagem =
-                Math.round((media / 5) * 100);
-
-            if (percentDisplay) {
-                percentDisplay.innerText =
-                    `${porcentagem}%`;
+            // Só atualiza o DOM se o conteúdo for realmente diferente (evita piscar)
+            if (percentDisplay && percentDisplay.innerText !== `${porcentagem}%`) {
+                percentDisplay.innerText = `${porcentagem}%`;
+            }
+            if (ratingInfo && ratingInfo.innerHTML !== novoTexto) {
+                ratingInfo.innerHTML = novoTexto;
             }
 
-            if (ratingInfo) {
-
-                ratingInfo.innerHTML =
-                    `⭐ ${porcentagem}% gostaram (${dados.totalVotos} ${dados.totalVotos === 1 ? 'voto' : 'votos'})`;
-            }
+            // Guarda o último valor mostrado
+            ultimoPercentual[mediaId] = { porcentagem, totalVotos: dados.totalVotos };
+            atualizandoPercentual[mediaId] = false;
         })
         .catch(error => {
             console.warn(error);
+            atualizandoPercentual[mediaId] = false;
         });
 }
 
 // ------------------------------------------------------
-// CARREGA AVALIAÇÕES
+// CARREGA AVALIAÇÕES (chamado uma única vez)
 // ------------------------------------------------------
-
 function carregarAvaliacoes(mediaId) {
-
     if (!mediaId) return;
+    // Evita carregar a mesma mídia várias vezes
+    if (window._mediaIdsCarregadas && window._mediaIdsCarregadas.has(mediaId)) return;
+    if (!window._mediaIdsCarregadas) window._mediaIdsCarregadas = new Set();
+    window._mediaIdsCarregadas.add(mediaId);
 
     atualizarPorcentagem(mediaId);
-
-    criarEstrelas(
-        'ratingStarsContainer',
-        mediaId
-    );
+    criarEstrelas('ratingStarsContainer', mediaId);
 }
 
 // ------------------------------------------------------
 // EXPORTA FUNÇÕES
 // ------------------------------------------------------
-
 window.createRatingStars = criarEstrelas;
 window.saveRating = salvarAvaliacao;
 window.updateRatingStarsDisplay = carregarAvaliacoes;
 window.salvarAvaliacao = salvarAvaliacao;
 
-console.log('Sistema de avaliação carregado');
+console.log('Sistema de avaliação carregado (versão sem piscadas)');
 
 
 
