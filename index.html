@@ -12673,20 +12673,22 @@ setTimeout(() => {
 
 
 // ======================================================
-// SISTEMA DE AVALIAÇÃO ESTÁVEL - FIREBASE
+// SISTEMA DE AVALIAÇÃO POR CARD
 // ======================================================
 
-// Cache visual para evitar piscadas
-let ultimoPercentual = '0%';
-let ultimoTextoInfo = '⭐ Seja o primeiro a avaliar!';
+// Cache individual por mediaId
+const ratingCache = {};
 
 // ======================================================
 // CRIAR ESTRELAS
 // ======================================================
 
-function criarEstrelas(containerId, mediaId) {
+function criarEstrelas(mediaId) {
 
-    const container = document.getElementById(containerId);
+    const container =
+        document.getElementById(
+            `ratingStarsContainer_${mediaId}`
+        );
 
     if (!container) return;
 
@@ -12709,7 +12711,8 @@ function criarEstrelas(containerId, mediaId) {
     votoRef.once('value')
         .then(snapshot => {
 
-            const nota = snapshot.val() || 0;
+            const nota =
+                snapshot.val() || 0;
 
             renderizarEstrelas(
                 container,
@@ -12749,7 +12752,8 @@ function renderizarEstrelas(
 
     for (let i = 1; i <= 5; i++) {
 
-        const estrela = document.createElement('i');
+        const estrela =
+            document.createElement('i');
 
         estrela.className =
             i <= notaAtual
@@ -12761,19 +12765,17 @@ function renderizarEstrelas(
                 ? '#FFC107'
                 : 'rgba(255,255,255,0.25)';
 
-        // ESTRELAS MENORES
-        estrela.style.fontSize = '15px';
+        // Menor para mobile
+        estrela.style.fontSize = '14px';
 
         estrela.style.cursor =
-            interativo ? 'pointer' : 'default';
+            interativo
+                ? 'pointer'
+                : 'default';
 
         estrela.style.transition =
             'transform .15s ease';
 
-        estrela.style.pointerEvents =
-            interativo ? 'auto' : 'none';
-
-        // Evita quebrar linha no mobile
         estrela.style.flexShrink = '0';
 
         if (interativo) {
@@ -12809,7 +12811,9 @@ function renderizarEstrelas(
             );
         }
 
-        container.appendChild(estrela);
+        container.appendChild(
+            estrela
+        );
     }
 }
 
@@ -12833,13 +12837,16 @@ async function salvarAvaliacao(
 
     try {
 
-        const uid = currentUser.uid;
+        const uid =
+            currentUser.uid;
 
-        const votoRef = firebase.database()
-            .ref(`avaliacoes/${mediaId}/votos/${uid}`);
+        const votoRef =
+            firebase.database()
+                .ref(`avaliacoes/${mediaId}/votos/${uid}`);
 
-        const statsRef = firebase.database()
-            .ref(`avaliacoes/${mediaId}/stats`);
+        const statsRef =
+            firebase.database()
+                .ref(`avaliacoes/${mediaId}/stats`);
 
         // Busca voto antigo
         const snapshot =
@@ -12861,48 +12868,50 @@ async function salvarAvaliacao(
         // Salva voto
         await votoRef.set(novaNota);
 
-        // Atualiza estatísticas
-        await statsRef.transaction(stats => {
+        // Atualiza stats
+        await statsRef.transaction(
+            stats => {
 
-            if (!stats) {
+                if (!stats) {
 
-                stats = {
-                    totalVotos: 0,
-                    soma: 0
+                    stats = {
+                        totalVotos: 0,
+                        soma: 0
+                    };
+                }
+
+                let totalVotos =
+                    stats.totalVotos || 0;
+
+                let soma =
+                    stats.soma || 0;
+
+                // Primeiro voto
+                if (notaAntiga === 0) {
+
+                    totalVotos += 1;
+                    soma += novaNota;
+
+                } else {
+
+                    // Alteração
+                    soma =
+                        soma
+                        - notaAntiga
+                        + novaNota;
+                }
+
+                return {
+                    totalVotos,
+                    soma
                 };
             }
-
-            let totalVotos =
-                stats.totalVotos || 0;
-
-            let soma =
-                stats.soma || 0;
-
-            // Novo voto
-            if (notaAntiga === 0) {
-
-                totalVotos += 1;
-                soma += novaNota;
-
-            } else {
-
-                // Alteração de voto
-                soma =
-                    soma
-                    - notaAntiga
-                    + novaNota;
-            }
-
-            return {
-                totalVotos,
-                soma
-            };
-        });
+        );
 
         // Atualiza estrelas
         const container =
             document.getElementById(
-                'ratingStarsContainer'
+                `ratingStarsContainer_${mediaId}`
             );
 
         if (container) {
@@ -12916,7 +12925,9 @@ async function salvarAvaliacao(
         }
 
         // Atualiza porcentagem
-        atualizarPorcentagem(mediaId);
+        atualizarPorcentagem(
+            mediaId
+        );
 
         showToast(
             `Avaliação ${novaNota}/5 salva`
@@ -12936,42 +12947,55 @@ async function salvarAvaliacao(
 // ATUALIZAR PORCENTAGEM
 // ======================================================
 
-function atualizarPorcentagem(mediaId) {
+function atualizarPorcentagem(
+    mediaId
+) {
 
-    const statsRef = firebase.database()
-        .ref(`avaliacoes/${mediaId}/stats`);
+    const statsRef =
+        firebase.database()
+            .ref(`avaliacoes/${mediaId}/stats`);
 
     statsRef.once('value')
         .then(snapshot => {
 
-            const dados = snapshot.val();
+            const dados =
+                snapshot.val();
 
             const percentDisplay =
                 document.getElementById(
-                    'ratingPercentDisplay'
+                    `ratingPercentDisplay_${mediaId}`
                 );
 
             const ratingInfo =
                 document.getElementById(
-                    'ratingInfo'
+                    `ratingInfo_${mediaId}`
                 );
 
-            // Se stats ainda não existir
-            // NÃO limpa a tela
+            if (
+                !percentDisplay ||
+                !ratingInfo
+            ) return;
+
+            // Se não existir dados
             if (
                 !dados ||
-                typeof dados.totalVotos === 'undefined'
+                typeof dados.totalVotos ===
+                'undefined'
             ) {
 
-                if (percentDisplay) {
-                    percentDisplay.innerText =
-                        ultimoPercentual;
+                // Se já tiver cache,
+                // NÃO ALTERA
+                if (
+                    ratingCache[mediaId]
+                ) {
+                    return;
                 }
 
-                if (ratingInfo) {
-                    ratingInfo.innerHTML =
-                        ultimoTextoInfo;
-                }
+                percentDisplay.innerText =
+                    '0%';
+
+                ratingInfo.innerHTML =
+                    '';
 
                 return;
             }
@@ -12985,20 +13009,14 @@ function atualizarPorcentagem(mediaId) {
             // Sem votos
             if (totalVotos <= 0) {
 
-                ultimoPercentual = '0%';
+                percentDisplay.innerText =
+                    '0%';
 
-                ultimoTextoInfo =
-                    '⭐ Seja o primeiro a avaliar!';
+                // NÃO mostra mais:
+                // "Seja o primeiro a avaliar"
 
-                if (percentDisplay) {
-                    percentDisplay.innerText =
-                        ultimoPercentual;
-                }
-
-                if (ratingInfo) {
-                    ratingInfo.innerHTML =
-                        ultimoTextoInfo;
-                }
+                ratingInfo.innerHTML =
+                    '';
 
                 return;
             }
@@ -13011,25 +13029,17 @@ function atualizarPorcentagem(mediaId) {
                     (media / 5) * 100
                 );
 
-            // Salva cache visual
-            ultimoPercentual =
+            // Cache individual
+            ratingCache[mediaId] = {
+                porcentagem,
+                totalVotos
+            };
+
+            percentDisplay.innerText =
                 `${porcentagem}%`;
 
-            ultimoTextoInfo =
+            ratingInfo.innerHTML =
                 `⭐ ${porcentagem}% gostaram (${totalVotos} ${totalVotos === 1 ? 'voto' : 'votos'})`;
-
-            // Atualiza tela
-            if (percentDisplay) {
-
-                percentDisplay.innerText =
-                    ultimoPercentual;
-            }
-
-            if (ratingInfo) {
-
-                ratingInfo.innerHTML =
-                    ultimoTextoInfo;
-            }
         })
         .catch(error => {
 
@@ -13044,22 +13054,23 @@ function atualizarPorcentagem(mediaId) {
 // CARREGAR AVALIAÇÕES
 // ======================================================
 
-function carregarAvaliacoes(mediaId) {
+function carregarAvaliacoes(
+    mediaId
+) {
 
     if (!mediaId) return;
 
-    // Primeiro atualiza porcentagem
-    atualizarPorcentagem(mediaId);
+    atualizarPorcentagem(
+        mediaId
+    );
 
-    // Depois estrelas
     criarEstrelas(
-        'ratingStarsContainer',
         mediaId
     );
 }
 
 // ======================================================
-// EXPORTAR FUNÇÕES
+// EXPORTA
 // ======================================================
 
 window.createRatingStars =
@@ -13075,7 +13086,7 @@ window.salvarAvaliacao =
     salvarAvaliacao;
 
 console.log(
-    'Sistema de avaliação carregado com sucesso'
+    'Sistema de avaliação por card carregado'
 );
 
 
