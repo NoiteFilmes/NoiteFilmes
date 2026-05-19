@@ -1,3 +1,4 @@
+Noite filmes 18/05 - 4
 
 
 <!DOCTYPE html>
@@ -6,9 +7,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>NoiteFilmes - Rede Social para Cinéfilos</title>
-<link rel="stylesheet"
-href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-     <link rel="icon" type="image/png" href="https://i.ibb.co/prnRsYbD/fd0f7999-e91b-44ce-ba4d-cdccb1ff6473.jpg">
+    <link rel="icon" type="image/png" href="https://i.ibb.co/prnRsYbD/fd0f7999-e91b-44ce-ba4d-cdccb1ff6473.jpg">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.8/dist/hls.min.js"></script>
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -3492,29 +3491,17 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
                         <button id="saveBtn" class="action-btn ripple-btn"><i class="far fa-star"></i> Favoritar</button>
                         <button id="reportBtn" class="report-btn ripple-btn"><i class="fas fa-flag"></i> Reportar</button>
                         <div class="rating-wrapper" style="text-align: center;">
-                             <div id="ratingStarsContainer_${media.id}"> class="rating-stars flex items-center justify-center"></div>
+                            <div id="ratingStarsContainer" class="rating-stars flex items-center justify-center"></div>
                             <div class="rating-label">Avalie-me</div>
                         </div>
-                        <div class="rating-percent">
-
-    <span id="ratingPercentDisplay_${media.id}">
-
-        0%
-
-    </span>
-
-</div>
+                        <span id="ratingPercentDisplay" class="rating-percent text-yellow-400 font-bold">0%</span>
                     </div>
                 </div>
             </div>
             
             <div class="comments-section">
                 <div class="comments-header p-2"><span class="font-bold text-sm">💬 Comentários</span></div>
-                <div class="rating-info">
-
-    <span id="ratingInfo_${media.id}"></span>
-
-</div>
+                <div id="ratingInfo" class="rating-info p-2 text-xs border-b border-white/10"></div>
                 <div id="commentsList" class="comments-list"></div>
                 <div class="comment-input-area">
                     <input type="text" id="newCommentInput" class="bg-white/10 rounded-full px-3 py-1.5 text-xs" placeholder="Adicione um comentário...">
@@ -12686,263 +12673,170 @@ setTimeout(() => {
 
 
 
-// ======================================================
-// SISTEMA DE AVALIAÇÃO COMPLETO
-// ======================================================
-
-// Cache visual
-const ratingCache = {};
 
 // ======================================================
-// CRIAR ESTRELAS
+// SISTEMA DE AVALIAÇÃO PROFISSIONAL - FIREBASE
 // ======================================================
 
-function criarEstrelas(mediaId) {
+// ------------------------------------------------------
+// CRIA ESTRELAS
+// ------------------------------------------------------
 
-    const container =
-        document.getElementById(
-            `ratingStarsContainer_${mediaId}`
-        );
+function criarEstrelas(containerId, mediaId) {
+    const container = document.getElementById(containerId);
 
     if (!container) return;
 
-    // Evita duplicar estrelas
-    container.innerHTML = '';
-
     // Usuário não logado
     if (!currentUser) {
-
-        renderizarEstrelas(
-            container,
-            0,
-            mediaId,
-            false
-        );
-
+        renderizarEstrelas(container, 0, mediaId, false);
         return;
     }
 
     const votoRef = firebase.database()
-        .ref(
-            `avaliacoes/${mediaId}/votos/${currentUser.uid}`
-        );
+        .ref(`avaliacoes/${mediaId}/votos/${currentUser.uid}`);
 
     votoRef.once('value')
         .then(snapshot => {
-
-            const nota =
-                snapshot.val() || 0;
-
-            renderizarEstrelas(
-                container,
-                nota,
-                mediaId,
-                true
-            );
+            const nota = snapshot.val() || 0;
+            renderizarEstrelas(container, nota, mediaId, true);
         })
         .catch(() => {
-
-            renderizarEstrelas(
-                container,
-                0,
-                mediaId,
-                true
-            );
+            renderizarEstrelas(container, 0, mediaId, true);
         });
 }
 
-// ======================================================
-// RENDERIZAR ESTRELAS
-// ======================================================
+// ------------------------------------------------------
+// RENDERIZA ESTRELAS
+// ------------------------------------------------------
 
-function renderizarEstrelas(
-    container,
-    notaAtual,
-    mediaId,
-    interativo
-) {
+function renderizarEstrelas(container, notaAtual, mediaId, interativo) {
 
     container.innerHTML = '';
 
     container.style.display = 'flex';
     container.style.alignItems = 'center';
-    container.style.gap = '3px';
-    container.style.flexWrap = 'nowrap';
+    container.style.gap = '4px';
 
     for (let i = 1; i <= 5; i++) {
 
-        const estrela =
-            document.createElement('i');
+        const estrela = document.createElement('i');
 
-        // Ícone
-        estrela.className =
-            i <= notaAtual
-                ? 'fas fa-star'
-                : 'far fa-star';
+        // Estrela cheia ou vazia
+        estrela.className = i <= notaAtual
+            ? 'fas fa-star'
+            : 'far fa-star';
 
-        // Cor
-        estrela.style.color =
-            i <= notaAtual
-                ? '#FFC107'
-                : 'rgba(255,255,255,0.25)';
+        estrela.style.color = i <= notaAtual
+            ? '#FFC107'
+            : 'rgba(255,255,255,0.25)';
 
-        // Tamanho menor mobile
-        estrela.style.fontSize = '14px';
+        estrela.style.fontSize = '18px';
+        estrela.style.cursor = interativo ? 'pointer' : 'default';
+        estrela.style.transition = 'transform .15s ease';
 
-        estrela.style.cursor =
-            interativo
-                ? 'pointer'
-                : 'default';
-
-        estrela.style.transition =
-            'transform .15s ease';
-
-        estrela.style.flexShrink = '0';
+        // Evita interferência no player
+        estrela.style.pointerEvents = interativo ? 'auto' : 'none';
 
         if (interativo) {
 
-            // Hover
-            estrela.addEventListener(
-                'mouseenter',
-                () => {
-                    estrela.style.transform =
-                        'scale(1.08)';
-                }
-            );
+            // Hover visual
+            estrela.addEventListener('mouseenter', () => {
+                estrela.style.transform = 'scale(1.15)';
+            });
 
-            estrela.addEventListener(
-                'mouseleave',
-                () => {
-                    estrela.style.transform =
-                        'scale(1)';
-                }
-            );
+            estrela.addEventListener('mouseleave', () => {
+                estrela.style.transform = 'scale(1)';
+            });
 
             // Clique
-            estrela.addEventListener(
-                'click',
-                async (e) => {
+            estrela.addEventListener('click', (e) => {
 
-                    e.preventDefault();
-                    e.stopPropagation();
+                // NÃO propaga para o player
+                e.preventDefault();
+                e.stopPropagation();
 
-                    await salvarAvaliacao(
-                        mediaId,
-                        i
-                    );
-                }
-            );
+                salvarAvaliacao(mediaId, i);
+            });
         }
 
-        container.appendChild(
-            estrela
-        );
+        container.appendChild(estrela);
     }
 }
 
-// ======================================================
+// ------------------------------------------------------
 // SALVAR AVALIAÇÃO
-// ======================================================
+// ------------------------------------------------------
 
-async function salvarAvaliacao(
-    mediaId,
-    novaNota
-) {
+async function salvarAvaliacao(mediaId, novaNota) {
 
     if (!currentUser) {
-
-        showToast(
-            'Faça login para avaliar'
-        );
-
+        showToast('Faça login para avaliar');
         return;
     }
 
     try {
 
-        const uid =
-            currentUser.uid;
+        const uid = currentUser.uid;
 
-        const votoRef =
-            firebase.database()
-                .ref(
-                    `avaliacoes/${mediaId}/votos/${uid}`
-                );
+        const votoRef = firebase.database()
+            .ref(`avaliacoes/${mediaId}/votos/${uid}`);
 
-        const statsRef =
-            firebase.database()
-                .ref(
-                    `avaliacoes/${mediaId}/stats`
-                );
+        const statsRef = firebase.database()
+            .ref(`avaliacoes/${mediaId}/stats`);
 
-        // Nota antiga
-        const snapshot =
-            await votoRef.once('value');
+        // Busca nota antiga
+        const snapshot = await votoRef.once('value');
 
-        const notaAntiga =
-            snapshot.val() || 0;
+        const notaAntiga = snapshot.val() || 0;
 
-        // Mesma nota
+        // Se for mesma nota
         if (notaAntiga === novaNota) {
 
-            showToast(
-                `Sua avaliação já é ${novaNota}/5`
-            );
+            showToast(`Sua avaliação já é ${novaNota}/5`);
 
             return;
         }
 
-        // Salva voto
+        // Salva voto do usuário
         await votoRef.set(novaNota);
 
         // Atualiza estatísticas
-        await statsRef.transaction(
-            stats => {
+        await statsRef.transaction(stats => {
 
-                if (!stats) {
-
-                    stats = {
-                        totalVotos: 0,
-                        soma: 0
-                    };
-                }
-
-                let totalVotos =
-                    stats.totalVotos || 0;
-
-                let soma =
-                    stats.soma || 0;
-
-                // Primeiro voto
-                if (notaAntiga === 0) {
-
-                    totalVotos += 1;
-                    soma += novaNota;
-
-                } else {
-
-                    // Troca nota
-                    soma =
-                        soma
-                        - notaAntiga
-                        + novaNota;
-                }
-
-                return {
-                    totalVotos,
-                    soma
+            if (!stats) {
+                stats = {
+                    totalVotos: 0,
+                    soma: 0
                 };
             }
-        );
 
-        // Atualiza estrelas
+            let totalVotos = stats.totalVotos || 0;
+            let soma = stats.soma || 0;
+
+            // Novo voto
+            if (notaAntiga === 0) {
+
+                totalVotos += 1;
+                soma += novaNota;
+
+            } else {
+
+                // Alterou voto
+                soma = soma - notaAntiga + novaNota;
+            }
+
+            return {
+                totalVotos,
+                soma
+            };
+        });
+
+        // Atualiza UI
         const container =
-            document.getElementById(
-                `ratingStarsContainer_${mediaId}`
-            );
+            document.getElementById('ratingStarsContainer');
 
         if (container) {
-
             renderizarEstrelas(
                 container,
                 novaNota,
@@ -12951,170 +12845,101 @@ async function salvarAvaliacao(
             );
         }
 
-        // Atualiza %
-        atualizarPorcentagem(
-            mediaId
-        );
+        atualizarPorcentagem(mediaId);
 
-        showToast(
-            `Avaliação ${novaNota}/5 salva`
-        );
+        showToast(`Avaliação ${novaNota}/5 salva`);
 
     } catch (error) {
 
         console.error(error);
 
-        showToast(
-            'Erro ao salvar avaliação'
-        );
+        showToast('Erro ao salvar avaliação');
     }
 }
 
-// ======================================================
-// ATUALIZAR PORCENTAGEM
-// ======================================================
+// ------------------------------------------------------
+// ATUALIZA PORCENTAGEM
+// ------------------------------------------------------
 
-function atualizarPorcentagem(
-    mediaId
-) {
+function atualizarPorcentagem(mediaId) {
 
-    const statsRef =
-        firebase.database()
-            .ref(
-                `avaliacoes/${mediaId}/stats`
-            );
+    const statsRef = firebase.database()
+        .ref(`avaliacoes/${mediaId}/stats`);
 
     statsRef.once('value')
         .then(snapshot => {
 
-            const dados =
-                snapshot.val();
+            const dados = snapshot.val();
 
             const percentDisplay =
-                document.getElementById(
-                    `ratingPercentDisplay_${mediaId}`
-                );
+                document.getElementById('ratingPercentDisplay');
 
             const ratingInfo =
-                document.getElementById(
-                    `ratingInfo_${mediaId}`
-                );
-
-            if (
-                !percentDisplay ||
-                !ratingInfo
-            ) return;
-
-            // Sem dados
-            if (
-                !dados ||
-                typeof dados.totalVotos ===
-                'undefined'
-            ) {
-
-                // NÃO pisca
-                if (
-                    ratingCache[mediaId]
-                ) {
-                    return;
-                }
-
-                percentDisplay.innerText =
-                    '0%';
-
-                ratingInfo.innerHTML =
-                    '';
-
-                return;
-            }
-
-            const totalVotos =
-                dados.totalVotos || 0;
-
-            const soma =
-                dados.soma || 0;
+                document.getElementById('ratingInfo');
 
             // Sem votos
-            if (totalVotos <= 0) {
+            if (!dados || !dados.totalVotos) {
 
-                percentDisplay.innerText =
-                    '0%';
+                if (percentDisplay) {
+                    percentDisplay.innerText = '0%';
+                }
 
-                ratingInfo.innerHTML =
-                    '';
+                if (ratingInfo) {
+                    ratingInfo.innerHTML =
+                        '⭐ Seja o primeiro a avaliar';
+                }
 
                 return;
             }
 
-            // Média
             const media =
-                soma / totalVotos;
+                dados.soma / dados.totalVotos;
 
-            // %
             const porcentagem =
-                Math.round(
-                    (media / 5) * 100
-                );
+                Math.round((media / 5) * 100);
 
-            // Cache
-            ratingCache[mediaId] = {
-                porcentagem,
-                totalVotos
-            };
+            if (percentDisplay) {
+                percentDisplay.innerText =
+                    `${porcentagem}%`;
+            }
 
-            // Atualiza
-            percentDisplay.innerText =
-                `${porcentagem}%`;
+            if (ratingInfo) {
 
-            ratingInfo.innerHTML =
-                `⭐ ${porcentagem}% gostaram (${totalVotos} ${totalVotos === 1 ? 'voto' : 'votos'})`;
+                ratingInfo.innerHTML =
+                    `⭐ ${porcentagem}% gostaram (${dados.totalVotos} ${dados.totalVotos === 1 ? 'voto' : 'votos'})`;
+            }
         })
         .catch(error => {
-
-            console.warn(
-                'Erro avaliação:',
-                error
-            );
+            console.warn(error);
         });
 }
 
-// ======================================================
-// CARREGAR CARD
-// ======================================================
+// ------------------------------------------------------
+// CARREGA AVALIAÇÕES
+// ------------------------------------------------------
 
-function carregarAvaliacoes(
-    mediaId
-) {
+function carregarAvaliacoes(mediaId) {
+
+    if (!mediaId) return;
+
+    atualizarPorcentagem(mediaId);
 
     criarEstrelas(
-        mediaId
-    );
-
-    atualizarPorcentagem(
+        'ratingStarsContainer',
         mediaId
     );
 }
 
-// ======================================================
-// EXPORTA
-// ======================================================
+// ------------------------------------------------------
+// EXPORTA FUNÇÕES
+// ------------------------------------------------------
 
-window.createRatingStars =
-    criarEstrelas;
+window.createRatingStars = criarEstrelas;
+window.saveRating = salvarAvaliacao;
+window.updateRatingStarsDisplay = carregarAvaliacoes;
+window.salvarAvaliacao = salvarAvaliacao;
 
-window.saveRating =
-    salvarAvaliacao;
-
-window.updateRatingStarsDisplay =
-    carregarAvaliacoes;
-
-window.salvarAvaliacao =
-    salvarAvaliacao;
-
-console.log(
-    'Sistema de avaliação carregado'
-);
-
+console.log('Sistema de avaliação carregado');
 
 
 
