@@ -12671,7 +12671,230 @@ setTimeout(() => {
 
 
 
+// =====================================================
+// SUPORTE A TOKYVIDEO - EXTRAI PLAYER E REPRODUZ
+// =====================================================
+(function() {
+    console.log('🎬 Ativando suporte a TokyVideo...');
 
+    // Função para extrair o slug/ID do vídeo do TokyVideo
+    function extrairSlugTokyVideo(url) {
+        if (!url) return null;
+        // Exemplos de URLs suportadas:
+        // https://www.tokyvideo.com/br/video/entrevista-com-o-vampiro-dublado-logan
+        // https://www.tokyvideo.com/video/entrevista-com-o-vampiro-dublado-logan
+        // https://www.tokyvideo.com/embed/entrevista-com-o-vampiro-dublado-logan
+        let match = url.match(/tokyvideo\.com\/(?:br\/)?(?:video|embed)\/([a-zA-Z0-9\-_]+)/);
+        if (match && match[1]) return match[1];
+        // Se já for um embed direto, tenta pegar o slug após /embed/
+        match = url.match(/tokyvideo\.com\/embed\/([a-zA-Z0-9\-_]+)/);
+        return match ? match[1] : null;
+    }
+
+    // Função que gera o link de embed do TokyVideo
+    function obterEmbedTokyVideo(slug) {
+        return `https://www.tokyvideo.com/embed/${slug}`;
+    }
+
+    // Salva a função original de playMedia (se existir)
+    const originalPlayMedia = window.playMedia;
+
+    // Sobrescreve playMedia para incluir detecção do TokyVideo
+    window.playMedia = async function(item, type) {
+        // Verifica se o link do item é do TokyVideo
+        const isToky = item && item.link && (
+            item.link.includes('tokyvideo.com') ||
+            (item.mediaType === 'tokyvideo')
+        );
+
+        if (isToky) {
+            console.log('📺 Detectado TokyVideo:', item.link);
+            
+            // Extrai o slug do vídeo
+            let slug = extrairSlugTokyVideo(item.link);
+            if (!slug) {
+                showToast('❌ Não foi possível identificar o vídeo do TokyVideo.');
+                return;
+            }
+            
+            const embedUrl = obterEmbedTokyVideo(slug);
+            console.log('🔗 Embed URL:', embedUrl);
+            
+            // Mostra o container do player (caso não esteja visível)
+            const container = document.getElementById('playerCommentsContainer');
+            const overlay = document.getElementById('floatingPlayerOverlay');
+            if (container) container.classList.remove('hidden');
+            if (overlay) overlay.classList.remove('hidden');
+            
+            // Atualiza as informações do vídeo
+            const titleEl = document.getElementById('videoTitle');
+            if (titleEl) titleEl.innerText = item.title || 'Vídeo TokyVideo';
+            
+            const yearEl = document.getElementById('videoYear');
+            if (yearEl) yearEl.innerHTML = item.year ? `📅 ${item.year}` : '';
+            
+            const genreEl = document.getElementById('videoGenre');
+            if (genreEl) genreEl.innerHTML = item.category ? `🎭 ${item.category}` : '';
+            
+            const descEl = document.getElementById('videoDescription');
+            if (descEl) descEl.innerHTML = item.description || 'Vídeo do TokyVideo - Streaming';
+            
+            // Esconde os players existentes (YouTube, HLS, etc)
+            const youtubeDiv = document.getElementById('youtubePlayerDiv');
+            const hlsVideo = document.getElementById('hlsPlayer');
+            if (youtubeDiv) youtubeDiv.style.display = 'none';
+            if (hlsVideo) hlsVideo.style.display = 'none';
+            
+            // Cria ou reutiliza um iframe para o TokyVideo
+            let iframe = document.getElementById('tokyvideoIframe');
+            if (!iframe) {
+                iframe = document.createElement('iframe');
+                iframe.id = 'tokyvideoIframe';
+                iframe.style.width = '100%';
+                iframe.style.height = '100%';
+                iframe.style.border = 'none';
+                iframe.allowFullscreen = true;
+                iframe.setAttribute('allow', 'autoplay; encrypted-media; fullscreen');
+                
+                const playerWrapper = document.querySelector('.player-wrapper');
+                if (playerWrapper) {
+                    // Remove todos os filhos antigos
+                    while (playerWrapper.firstChild) playerWrapper.removeChild(playerWrapper.firstChild);
+                    playerWrapper.appendChild(iframe);
+                } else {
+                    const wrapper = document.getElementById('youtubePlayerDiv')?.parentElement;
+                    if (wrapper) wrapper.appendChild(iframe);
+                }
+            }
+            
+            iframe.src = embedUrl;
+            iframe.style.display = 'block';
+            
+            // Oculta a mensagem de "Carregando..."
+            const noContent = document.getElementById('noContent');
+            if (noContent) noContent.style.display = 'none';
+            
+            // Atualiza variáveis globais
+            window.currentMedia = item;
+            window.currentMediaType = type;
+            
+            // Incrementa contagem de visualizações (se a função existir)
+            if (typeof incrementViewCount === 'function') incrementViewCount(item.id);
+            if (typeof loadViewCount === 'function') loadViewCount(item.id);
+            if (typeof startRealtimeUpdates === 'function') startRealtimeUpdates(item.id);
+            
+            // Configura botões de ação (like, favorito, report, share)
+            const likeBtn = document.getElementById('likeBtn');
+            const saveBtn = document.getElementById('saveBtn');
+            const reportBtn = document.getElementById('reportBtn');
+            const shareNativeBtn = document.getElementById('shareNativeBtn');
+            
+            const updateButtons = () => {
+                if (typeof favoritos !== 'undefined') {
+                    const isLiked = favoritos.some(f => f.id === item.id && f.liked);
+                    if (likeBtn && likeBtn.querySelector('i')) {
+                        likeBtn.querySelector('i').className = isLiked ? 'fas fa-heart' : 'far fa-heart';
+                        likeBtn.classList.toggle('active', isLiked);
+                    }
+                    const isSaved = favoritos.some(f => f.id === item.id && f.saved);
+                    if (saveBtn) {
+                        saveBtn.innerHTML = isSaved ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>';
+                        saveBtn.classList.toggle('active', isSaved);
+                    }
+                }
+            };
+            
+            if (likeBtn) {
+                likeBtn.onclick = () => {
+                    if (typeof toggleLikeMedia === 'function') toggleLikeMedia(item.id);
+                    setTimeout(() => {
+                        if (typeof loadLikeCount === 'function') loadLikeCount(item.id);
+                    }, 500);
+                };
+            }
+            if (saveBtn) {
+                saveBtn.onclick = () => {
+                    if (!window.currentUser) { showToast('Faça login'); return; }
+                    const existing = (typeof favoritos !== 'undefined') ? favoritos.find(f => f.id === item.id) : null;
+                    if (existing && existing.saved) {
+                        firebase.database().ref(`favoritos/${window.currentUser.uid}/${item.id}`).remove();
+                    } else {
+                        firebase.database().ref(`favoritos/${window.currentUser.uid}/${item.id}`).set({
+                            id: item.id, title: item.title, thumb: item.thumb, type: type, saved: true
+                        });
+                    }
+                    updateButtons();
+                };
+            }
+            if (reportBtn) reportBtn.onclick = () => { if (typeof openReportPopup === 'function') openReportPopup(); };
+            if (shareNativeBtn) shareNativeBtn.onclick = () => { if (typeof shareNative === 'function') shareNative(); };
+            
+            updateButtons();
+            
+            // Carrega comentários e avaliações
+            if (typeof loadRatingsFromFirebase === 'function') loadRatingsFromFirebase(item.id);
+            if (typeof loadComments === 'function') loadComments(item.id);
+            if (typeof loadLikeCount === 'function') loadLikeCount(item.id);
+            
+            // Configura envio de comentário
+            const submitComment = document.getElementById('submitCommentBtn');
+            const newCommentInput = document.getElementById('newCommentInput');
+            if (submitComment && newCommentInput) {
+                submitComment.onclick = () => {
+                    if (typeof addCommentToVideo === 'function') addCommentToVideo(item.id, newCommentInput.value);
+                };
+                newCommentInput.onkeypress = (e) => {
+                    if (e.key === 'Enter' && typeof addCommentToVideo === 'function') addCommentToVideo(item.id, newCommentInput.value);
+                };
+            }
+            
+            // Atualiza estrelas de avaliação
+            if (typeof createRatingStars === 'function') createRatingStars('ratingStarsContainer', item.id);
+            
+            // Se houver sessão de cast ativa, tenta transmitir (se possível)
+            if (typeof castSession !== 'undefined' && castSession && typeof loadCurrentMediaToCast === 'function') {
+                loadCurrentMediaToCast();
+            }
+            
+            return; // Sai da função, não chama o playMedia original
+        }
+        
+        // Se não for TokyVideo, chama a função original (YouTube, IPTV, etc)
+        if (originalPlayMedia) {
+            originalPlayMedia(item, type);
+        } else {
+            console.warn('⚠️ playMedia original não encontrada');
+        }
+    };
+    
+    // Adiciona a opção "TokyVideo" no rádio do admin (se existir o formulário)
+    function adicionarOpcaoTokyVideoAdmin() {
+        const interval = setInterval(() => {
+            const radioGroup = document.querySelector('.save-row .radio-group');
+            if (radioGroup && !document.querySelector('input[name="mediaType"][value="tokyvideo"]')) {
+                const tokyLabel = document.createElement('label');
+                tokyLabel.className = 'text-xs text-gray-300';
+                tokyLabel.innerHTML = '<input type="radio" name="mediaType" value="tokyvideo"> 🎥 TokyVideo';
+                radioGroup.appendChild(tokyLabel);
+                console.log('✅ Opção TokyVideo adicionada ao admin');
+                clearInterval(interval);
+            }
+        }, 1000);
+    }
+    
+    // Aguarda o DOM carregar e tenta adicionar a opção no admin
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', adicionarOpcaoTokyVideoAdmin);
+    } else {
+        adicionarOpcaoTokyVideoAdmin();
+    }
+    
+    // Torna as funções auxiliares globais (opcional)
+    window.extrairSlugTokyVideo = extrairSlugTokyVideo;
+    window.obterEmbedTokyVideo = obterEmbedTokyVideo;
+    
+    console.log('✅ Suporte a TokyVideo ativado com sucesso!');
+})();
 
 
 
