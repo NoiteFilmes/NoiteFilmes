@@ -12672,12 +12672,12 @@ setTimeout(() => {
 
 
 // =====================================================
-// SUPORTE COMPLETO A TOKYVIDEO (player + auto extração)
+// SUPORTE COMPLETO E CORRIGIDO PARA TOKYVIDEO
 // =====================================================
 (function() {
-    console.log('🎬 Ativando suporte completo a TokyVideo...');
+    console.log('🎬 Ativando suporte a TokyVideo (versão melhorada)...');
 
-    // 1. Funções para extrair slug e montar embed (já existentes)
+    // ========== 1. FUNÇÕES AUXILIARES ==========
     function extrairSlugTokyVideo(url) {
         if (!url) return null;
         let match = url.match(/tokyvideo\.com\/(?:br\/)?(?:video|embed)\/([a-zA-Z0-9\-_]+)/);
@@ -12690,107 +12690,221 @@ setTimeout(() => {
         return `https://www.tokyvideo.com/embed/${slug}`;
     }
 
-    // 2. Função para extrair metadados via proxy (AllOrigins)
-    async function extrairMetadadosTokyVideo(url) {
-        const slug = extrairSlugTokyVideo(url);
-        if (!slug) return null;
-        
-        // URL da página do vídeo (não o embed)
-        const pageUrl = `https://www.tokyvideo.com/video/${slug}`;
-        
-        // Usamos o serviço AllOrigins para contornar CORS e obter o HTML
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(pageUrl)}`;
-        
-        try {
-            const response = await fetch(proxyUrl);
-            const data = await response.json();
-            const html = data.contents;
-            
-            // Parse do HTML
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            
-            // Extrair título
-            let titulo = '';
-            const titleElem = doc.querySelector('h1[class*="title"]') || 
-                              doc.querySelector('meta[property="og:title"]') ||
-                              doc.querySelector('title');
-            if (titleElem) {
-                titulo = titleElem.getAttribute('content') || titleElem.textContent || '';
-                titulo = titulo.replace(/\s*\|\s*TokyVideo.*$/i, '').trim();
+    // ========== 2. EXTRAÇÃO DE METADADOS COM PROXY + FALLBACKS ==========
+    async function fetchWithRetry(url, options = {}, retries = 2) {
+        for (let i = 0; i <= retries; i++) {
+            try {
+                const res = await fetch(url, options);
+                if (res.ok) return await res.text();
+            } catch (e) {
+                console.warn(`Tentativa ${i+1} falhou:`, e);
+                if (i === retries) throw e;
+                await new Promise(r => setTimeout(r, 1000));
             }
-            if (!titulo) titulo = `Vídeo TokyVideo (${slug})`;
-            
-            // Extrair miniatura (capa)
-            let thumb = '';
-            const ogImage = doc.querySelector('meta[property="og:image"]');
-            if (ogImage && ogImage.getAttribute('content')) {
-                thumb = ogImage.getAttribute('content');
-            }
-            if (!thumb) {
-                // Tenta encontrar uma imagem do player
-                const playerImg = doc.querySelector('img[class*="thumbnail"], img[class*="poster"]');
-                if (playerImg && playerImg.src) thumb = playerImg.src;
-            }
-            if (!thumb) {
-                // Fallback: tenta montar URL padrão do TokyVideo
-                thumb = `https://img.tokyvideo.com/videos/${slug}/poster.jpg`;
-            }
-            
-            // Extrair descrição (opcional)
-            let descricao = '';
-            const descElem = doc.querySelector('meta[property="og:description"]') || 
-                             doc.querySelector('meta[name="description"]');
-            if (descElem) descricao = descElem.getAttribute('content') || '';
-            if (!descricao) descricao = `Assista "${titulo}" no TokyVideo.`;
-            
-            // Extrair ano (tentar encontrar no texto)
-            let ano = '';
-            const dateMatch = html.match(/(20\d{2})/);
-            if (dateMatch) ano = dateMatch[1];
-            if (!ano) ano = new Date().getFullYear().toString();
-            
-            return {
-                title: titulo,
-                thumb: thumb,
-                description: descricao.substring(0, 500),
-                year: ano,
-                genre: 'TokyVideo'
-            };
-        } catch (error) {
-            console.error('Erro ao extrair metadados do TokyVideo:', error);
-            return null;
         }
+        throw new Error('Falha após retries');
     }
 
-    // 3. Sobrescrever a função autoFillFromLink para incluir TokyVideo
+    async function extrairMetadadosTokyVideo(url) {
+        const slug = extrairSlugTokyVideo(url);
+        if (!slug) {
+            console.error('Slug não encontrado na URL:', url);
+            return null;
+        }
+        
+        const pageUrl = `https://www.tokyvideo.com/video/${slug}`;
+        
+        // Lista de proxies (alguns podem falhar, então tentamos vários)
+        const proxies = [
+            `https://api.allorigins.win/get?url=${encodeURIComponent(pageUrl)}`,
+            `https://cors-anywhere.herokuapp.com/${pageUrl}`,
+            `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(pageUrl)}`,
+            null // último recurso: tentar diretamente (pode falhar por CORS)
+        ];
+        
+        let html = null;
+        let proxyUsado = null;
+        
+        for (const proxy of proxies) {
+            if (!proxy) {
+                try {
+                    html = await fetchWithRetry(pageUrl);
+                    if (html) {
+                        proxyUsado = 'direto';
+                        break;
+                    }
+                } catch(e) { continue; }
+            } else {
+                try {
+                    const resposta = await fetchWithRetry(proxy);
+                    // Se for AllOrigins, o JSON tem campo contents
+                    if (proxy.includes('allorigins')) {
+                        const json = JSON.parse(resposta);
+                        html = json.contents;
+                    } else {
+                        html = resposta;
+                    }
+                    if (html && html.length > 500) {
+                        proxyUsado = proxy;
+                        break;
+                    }
+                } catch(e) { continue; }
+            }
+        }
+        
+        if (!html) {
+            console.error('Não foi possível obter o HTML da página');
+            return null;
+        }
+        
+        // Parse do HTML
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        
+        // TÍTULO: várias tentativas
+        let titulo = '';
+        const selectoresTitulo = [
+            'h1[class*="title"]',
+            'meta[property="og:title"]',
+            'meta[name="twitter:title"]',
+            'title'
+        ];
+        for (const sel of selectoresTitulo) {
+            const elem = doc.querySelector(sel);
+            if (elem) {
+                titulo = elem.getAttribute('content') || elem.textContent || '';
+                if (titulo) break;
+            }
+        }
+        titulo = titulo.replace(/\s*\|\s*TokyVideo.*$/i, '').replace(/\s*-\s*TokyVideo.*$/i, '').trim();
+        if (!titulo) titulo = `Vídeo TokyVideo (${slug})`;
+        
+        // MINIATURA (capa)
+        let thumb = '';
+        const selectoresThumb = [
+            'meta[property="og:image"]',
+            'meta[name="twitter:image"]',
+            'img[class*="thumbnail"]',
+            'img[class*="poster"]',
+            'video[poster]'
+        ];
+        for (const sel of selectoresThumb) {
+            const elem = doc.querySelector(sel);
+            if (elem) {
+                thumb = elem.getAttribute('content') || elem.getAttribute('src') || elem.getAttribute('poster') || '';
+                if (thumb && thumb.startsWith('http')) break;
+            }
+        }
+        if (!thumb) {
+            thumb = `https://img.tokyvideo.com/videos/${slug}/poster.jpg`;
+        }
+        
+        // DESCRIÇÃO
+        let descricao = '';
+        const selectoresDesc = [
+            'meta[property="og:description"]',
+            'meta[name="description"]',
+            'meta[name="twitter:description"]',
+            'p[class*="description"]',
+            'div[class*="synopsis"]'
+        ];
+        for (const sel of selectoresDesc) {
+            const elem = doc.querySelector(sel);
+            if (elem) {
+                descricao = elem.getAttribute('content') || elem.textContent || '';
+                if (descricao && descricao.length > 20) break;
+            }
+        }
+        if (!descricao) descricao = `Assista "${titulo}" no TokyVideo. Compartilhe com seus amigos!`;
+        descricao = descricao.substring(0, 500);
+        
+        // ANO: busca no HTML por padrão de data (20xx)
+        let ano = '';
+        const regexAno = /\b(19|20)\d{2}\b/g;
+        const matches = html.match(regexAno);
+        if (matches && matches.length) {
+            // Pega o ano mais comum ou o primeiro
+            const anos = [...new Set(matches)];
+            ano = anos[0];
+        }
+        if (!ano) ano = new Date().getFullYear().toString();
+        
+        // GÊNERO (fixo ou tentar extrair)
+        let genero = 'TokyVideo';
+        const generoMatch = html.match(/(Ação|Comédia|Drama|Terror|Suspense|Ficção|Romance|Aventura)/i);
+        if (generoMatch) genero = generoMatch[1];
+        
+        console.log('✅ Metadados extraídos:', { titulo, thumb, ano, genero });
+        
+        return {
+            title: titulo,
+            thumb: thumb,
+            description: descricao,
+            year: ano,
+            genre: genero,
+            success: true
+        };
+    }
+
+    // ========== 3. SOBRESCREVER autoFillFromLink ==========
     const originalAutoFill = window.autoFillFromLink;
     window.autoFillFromLink = async function() {
-        const link = document.getElementById('itemLink').value.trim();
-        const mediaType = document.querySelector('input[name="mediaType"]:checked').value;
+        const linkInput = document.getElementById('itemLink');
+        const link = linkInput ? linkInput.value.trim() : '';
+        const mediaTypeRadio = document.querySelector('input[name="mediaType"]:checked');
+        const mediaType = mediaTypeRadio ? mediaTypeRadio.value : 'youtube';
         
-        // Detecta se é um link do TokyVideo
-        if (mediaType === 'tokyvideo' || (link.includes('tokyvideo.com') && !mediaType === 'iptv')) {
-            showToast('🔍 Buscando informações do TokyVideo...');
-            const dados = await extrairMetadadosTokyVideo(link);
-            if (dados) {
-                document.getElementById('itemTitle').value = dados.title;
-                document.getElementById('itemThumb').value = dados.thumb;
-                document.getElementById('itemYear').value = dados.year;
-                document.getElementById('itemCategory').value = dados.genre;
-                document.getElementById('itemDescription').value = dados.description;
-                showToast('✅ Dados do TokyVideo preenchidos!');
-            } else {
-                showToast('❌ Não foi possível obter os dados automaticamente. Preencha manualmente.');
+        // Verifica se é TokyVideo
+        const isToky = (mediaType === 'tokyvideo') || (link.includes('tokyvideo.com') && !mediaType === 'iptv');
+        
+        if (isToky) {
+            if (!link) {
+                showToast('❌ Cole o link do TokyVideo primeiro!');
+                return;
+            }
+            
+            showToast('🔍 Buscando informações do TokyVideo... (pode levar alguns segundos)');
+            
+            try {
+                const dados = await extrairMetadadosTokyVideo(link);
+                if (dados && dados.success) {
+                    document.getElementById('itemTitle').value = dados.title;
+                    document.getElementById('itemThumb').value = dados.thumb;
+                    document.getElementById('itemYear').value = dados.year;
+                    document.getElementById('itemCategory').value = dados.genre;
+                    document.getElementById('itemDescription').value = dados.description;
+                    showToast('✅ Dados do TokyVideo preenchidos com sucesso!');
+                    
+                    // Opcional: mostrar preview da capa
+                    const thumbField = document.getElementById('itemThumb');
+                    if (thumbField && dados.thumb) {
+                        const previewDiv = document.getElementById('facebookPreview') || document.createElement('div');
+                        if (!previewDiv.id) {
+                            previewDiv.id = 'tokyPreview';
+                            previewDiv.style.marginTop = '8px';
+                            thumbField.parentNode.appendChild(previewDiv);
+                        }
+                        previewDiv.innerHTML = `<img src="${dados.thumb}" style="max-width:100px; border-radius:8px; margin-top:5px;" onerror="this.style.display='none'">`;
+                    }
+                } else {
+                    showToast('⚠️ Não foi possível obter os dados automaticamente. Preencha manualmente.');
+                }
+            } catch (error) {
+                console.error('Erro na extração:', error);
+                showToast('❌ Erro ao buscar dados. Verifique o link ou preencha manualmente.');
             }
             return;
         }
         
         // Se não for TokyVideo, chama a função original
-        if (originalAutoFill) originalAutoFill();
+        if (originalAutoFill) {
+            await originalAutoFill();
+        } else {
+            showToast('Função Auto não disponível para este tipo de mídia');
+        }
     };
 
-    // 4. Sobrescrever playMedia para suportar TokyVideo (igual antes, mas chamando a função de extração se necessário)
+    // ========== 4. SOBRESCREVER playMedia para TokyVideo ==========
     const originalPlayMedia = window.playMedia;
     window.playMedia = async function(item, type) {
         const isToky = item && item.link && (
@@ -12799,22 +12913,22 @@ setTimeout(() => {
         );
 
         if (isToky) {
-            console.log('📺 Detectado TokyVideo:', item.link);
-            let slug = extrairSlugTokyVideo(item.link);
+            console.log('📺 Reproduzindo TokyVideo:', item.link);
+            const slug = extrairSlugTokyVideo(item.link);
             if (!slug) {
-                showToast('❌ Não foi possível identificar o vídeo do TokyVideo.');
+                showToast('❌ URL do TokyVideo inválida.');
                 return;
             }
             
             const embedUrl = obterEmbedTokyVideo(slug);
             
-            // Mostra container do player
+            // Mostrar container do player
             const container = document.getElementById('playerCommentsContainer');
             const overlay = document.getElementById('floatingPlayerOverlay');
             if (container) container.classList.remove('hidden');
             if (overlay) overlay.classList.remove('hidden');
             
-            // Atualiza informações (usa as que já existem no item)
+            // Atualizar informações na UI
             const titleEl = document.getElementById('videoTitle');
             if (titleEl) titleEl.innerText = item.title || 'Vídeo TokyVideo';
             const yearEl = document.getElementById('videoYear');
@@ -12824,13 +12938,13 @@ setTimeout(() => {
             const descEl = document.getElementById('videoDescription');
             if (descEl) descEl.innerHTML = item.description || 'Vídeo do TokyVideo - Streaming';
             
-            // Esconde outros players
+            // Esconder outros players
             const youtubeDiv = document.getElementById('youtubePlayerDiv');
             const hlsVideo = document.getElementById('hlsPlayer');
             if (youtubeDiv) youtubeDiv.style.display = 'none';
             if (hlsVideo) hlsVideo.style.display = 'none';
             
-            // Cria ou reutiliza iframe
+            // Criar iframe
             let iframe = document.getElementById('tokyvideoIframe');
             if (!iframe) {
                 iframe = document.createElement('iframe');
@@ -12844,9 +12958,6 @@ setTimeout(() => {
                 if (playerWrapper) {
                     while (playerWrapper.firstChild) playerWrapper.removeChild(playerWrapper.firstChild);
                     playerWrapper.appendChild(iframe);
-                } else {
-                    const wrapper = document.getElementById('youtubePlayerDiv')?.parentElement;
-                    if (wrapper) wrapper.appendChild(iframe);
                 }
             }
             iframe.src = embedUrl;
@@ -12855,42 +12966,27 @@ setTimeout(() => {
             const noContent = document.getElementById('noContent');
             if (noContent) noContent.style.display = 'none';
             
-            // Atualiza globais
+            // Atualizar variáveis globais
             window.currentMedia = item;
             window.currentMediaType = type;
             
-            // Incrementa views, etc (se existirem)
+            // Funções auxiliares se existirem
             if (typeof incrementViewCount === 'function') incrementViewCount(item.id);
             if (typeof loadViewCount === 'function') loadViewCount(item.id);
             if (typeof startRealtimeUpdates === 'function') startRealtimeUpdates(item.id);
             
-            // Configura botões (like, favorito, etc) - mesmo código do script anterior
+            // Botões like/favorito (simplificado)
             const likeBtn = document.getElementById('likeBtn');
             const saveBtn = document.getElementById('saveBtn');
             const reportBtn = document.getElementById('reportBtn');
             const shareNativeBtn = document.getElementById('shareNativeBtn');
             
-            const updateButtons = () => {
-                if (typeof favoritos !== 'undefined') {
-                    const isLiked = favoritos.some(f => f.id === item.id && f.liked);
-                    if (likeBtn && likeBtn.querySelector('i')) {
-                        likeBtn.querySelector('i').className = isLiked ? 'fas fa-heart' : 'far fa-heart';
-                        likeBtn.classList.toggle('active', isLiked);
-                    }
-                    const isSaved = favoritos.some(f => f.id === item.id && f.saved);
-                    if (saveBtn) {
-                        saveBtn.innerHTML = isSaved ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>';
-                        saveBtn.classList.toggle('active', isSaved);
-                    }
-                }
-            };
-            
-            if (likeBtn) likeBtn.onclick = () => { if (typeof toggleLikeMedia === 'function') toggleLikeMedia(item.id); setTimeout(() => { if (typeof loadLikeCount === 'function') loadLikeCount(item.id); }, 500); };
-            if (saveBtn) saveBtn.onclick = () => { if (!window.currentUser) { showToast('Faça login'); return; } const existing = (typeof favoritos !== 'undefined') ? favoritos.find(f => f.id === item.id) : null; if (existing && existing.saved) { firebase.database().ref(`favoritos/${window.currentUser.uid}/${item.id}`).remove(); } else { firebase.database().ref(`favoritos/${window.currentUser.uid}/${item.id}`).set({ id: item.id, title: item.title, thumb: item.thumb, type: type, saved: true }); } updateButtons(); };
+            if (likeBtn) likeBtn.onclick = () => { if (typeof toggleLikeMedia === 'function') toggleLikeMedia(item.id); };
+            if (saveBtn) saveBtn.onclick = () => { if (typeof toggleSaveMedia === 'function') toggleSaveMedia(item.id); };
             if (reportBtn) reportBtn.onclick = () => { if (typeof openReportPopup === 'function') openReportPopup(); };
             if (shareNativeBtn) shareNativeBtn.onclick = () => { if (typeof shareNative === 'function') shareNative(); };
-            updateButtons();
             
+            // Carregar comentários e avaliações
             if (typeof loadRatingsFromFirebase === 'function') loadRatingsFromFirebase(item.id);
             if (typeof loadComments === 'function') loadComments(item.id);
             if (typeof loadLikeCount === 'function') loadLikeCount(item.id);
@@ -12907,10 +13003,11 @@ setTimeout(() => {
             return;
         }
         
+        // Fallback para outros tipos
         if (originalPlayMedia) originalPlayMedia(item, type);
     };
 
-    // 5. Adicionar opção "TokyVideo" no rádio do admin
+    // ========== 5. ADICIONAR OPÇÃO TOKYVIDEO NO ADMIN ==========
     function adicionarOpcaoTokyVideoAdmin() {
         const interval = setInterval(() => {
             const radioGroup = document.querySelector('.save-row .radio-group');
@@ -12925,18 +13022,21 @@ setTimeout(() => {
         }, 1000);
     }
     
+    // Aguardar DOM
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', adicionarOpcaoTokyVideoAdmin);
     } else {
         adicionarOpcaoTokyVideoAdmin();
     }
     
-    // Exporta funções úteis globalmente
-    window.extrairSlugTokyVideo = extrairSlugTokyVideo;
-    window.obterEmbedTokyVideo = obterEmbedTokyVideo;
-    window.extrairMetadadosTokyVideo = extrairMetadadosTokyVideo;
+    // Exportar funções para debug
+    window.tokyVideo = {
+        extrairSlug: extrairSlugTokyVideo,
+        extrairMetadados: extrairMetadadosTokyVideo,
+        embed: obterEmbedTokyVideo
+    };
     
-    console.log('✅ Suporte completo a TokyVideo ativado (player + auto extração)');
+    console.log('✅ Suporte TokyVideo ativado (versão corrigida com múltiplos proxies)');
 })();
 
 
