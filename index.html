@@ -13057,239 +13057,198 @@ setTimeout(() => {
 
 
 // =====================================================
-// SCRIPT COMPLETO: PROPORÇÃO 2:3 PARA TODOS OS CARDS
+// SCRIPT OTIMIZADO: PROPORÇÃO 2:3 PARA TODOS OS CARDS
+// VERSÃO RÁPIDA - ACEITA TODOS OS FORMATOS
 // =====================================================
 (function() {
-    console.log('🎬 Iniciando script de padronização 2:3...');
+    console.log('🎬 Iniciando script de padronização 2:3 (versão rápida)...');
 
     // ========== 1. CONFIGURAÇÕES ==========
     const CONFIG = {
-        ASPECT_RATIO: '2:3',      // Proporção alvo
-        WIDTH: 500,               // Largura em pixels
-        HEIGHT: 750,              // Altura em pixels
-        CLOUDINARY_NAME: 'dama2etyy', // Seu Cloudinary Cloud Name
+        ASPECT_RATIO: '2:3',
+        WIDTH: 500,
+        HEIGHT: 750,
+        CLOUDINARY_NAME: 'dama2etyy',
         UPLOAD_PRESET: 'noitefilmes_unsigned',
         DEFAULT_IMAGE: 'https://via.placeholder.com/500x750/1a1a2a/e50914?text=Sem+Imagem'
     };
 
-    // ========== 2. FUNÇÃO PARA CORRIGIR UMA IMAGEM EXISTENTE ==========
-    async function corrigirImagemParaProporcao(url, titulo = 'imagem') {
+    // ========== 2. CACHE DE IMAGENS ==========
+    const imageCache = new Map();
+    const pendingRequests = new Map();
+
+    // ========== 3. FUNÇÃO RÁPIDA PARA CORRIGIR IMAGEM ==========
+    function corrigirImagemRapido(url) {
         if (!url) return CONFIG.DEFAULT_IMAGE;
         
-        // Se já for do Cloudinary, aplica transformação na URL
+        // Verificar cache
+        if (imageCache.has(url)) {
+            return imageCache.get(url);
+        }
+        
+        // Se for do Cloudinary, aplica transformação na URL (rápido, sem requisição)
         if (url.includes('cloudinary.com')) {
-            return url.replace(
+            const novaUrl = url.replace(
                 '/upload/',
                 `/upload/f_webp,c_fill,ar_2:3,w_${CONFIG.WIDTH},h_${CONFIG.HEIGHT}/`
             );
+            imageCache.set(url, novaUrl);
+            return novaUrl;
         }
         
-        // Se for do Firebase Storage, tenta converter via Cloudinary
-        if (url.includes('firebasestorage') || url.includes('googleapis.com')) {
-            try {
-                // Faz upload para Cloudinary com transformação
-                const response = await fetch(url);
-                const blob = await response.blob();
-                const file = new File([blob], `${titulo}.jpg`, { type: blob.type });
-                
-                const formData = new FormData();
-                formData.append('file', file);
-                formData.append('upload_preset', CONFIG.UPLOAD_PRESET);
-                formData.append('format', 'webp');
-                formData.append('crop', 'fill');
-                formData.append('aspect_ratio', CONFIG.ASPECT_RATIO);
-                formData.append('width', CONFIG.WIDTH);
-                formData.append('height', CONFIG.HEIGHT);
-                
-                const uploadRes = await fetch(
-                    `https://api.cloudinary.com/v1_1/${CONFIG.CLOUDINARY_NAME}/image/upload`,
-                    { method: 'POST', body: formData }
-                );
-                
-                if (uploadRes.ok) {
-                    const data = await uploadRes.json();
-                    return data.secure_url;
-                }
-            } catch (error) {
-                console.warn('Erro ao converter imagem:', error);
-            }
+        // Para qualquer outra URL, tenta converter via Cloudinary (assíncrono)
+        // Mas retorna a URL original imediatamente (não bloqueia)
+        if (!pendingRequests.has(url)) {
+            pendingRequests.set(url, true);
+            
+            // Processa em background
+            processarImagemBackground(url).then(novaUrl => {
+                imageCache.set(url, novaUrl);
+                pendingRequests.delete(url);
+                // Atualiza as imagens na página
+                document.querySelectorAll(`img[src="${url}"]`).forEach(img => {
+                    img.src = novaUrl;
+                });
+            }).catch(() => {
+                pendingRequests.delete(url);
+            });
         }
         
-        return url; // Retorna a URL original se não puder converter
+        // Retorna a URL original imediatamente (não bloqueia)
+        return url;
     }
 
-    // ========== 3. FUNÇÃO PARA CORRIGIR MÚLTIPLAS IMAGENS ==========
-    async function corrigirListaDeImagens(itens, campoImagem = 'thumb') {
-        console.log(`🔄 Corrigindo ${itens.length} imagens...`);
-        let corrigidos = 0;
-        
-        for (const item of itens) {
-            if (item && item[campoImagem]) {
-                const urlOriginal = item[campoImagem];
-                const urlCorrigida = await corrigirImagemParaProporcao(urlOriginal, item.title);
-                
-                if (urlCorrigida !== urlOriginal) {
-                    item[campoImagem] = urlCorrigida;
-                    corrigidos++;
-                }
-            }
-        }
-        
-        console.log(`✅ ${corrigidos} imagens corrigidas para proporção 2:3`);
-        return itens;
-    }
-
-    // ========== 4. CORRIGIR IMAGENS NO BANCO DE DADOS ==========
-    async function corrigirImagensNoBanco() {
-        if (!firebase || !firebase.database) {
-            console.warn('Firebase não disponível');
-            return;
-        }
-        
-        const db = firebase.database();
-        const tipos = ['filmes', 'series', 'canais'];
-        let totalCorrigidos = 0;
-        
-        for (const tipo of tipos) {
-            try {
-                const snapshot = await db.ref(tipo).once('value');
-                const dados = snapshot.val();
-                if (!dados) continue;
-                
-                const itens = Object.entries(dados);
-                let atualizacoes = {};
-                
-                for (const [id, item] of itens) {
-                    if (item.thumb) {
-                        const urlOriginal = item.thumb;
-                        const urlCorrigida = await corrigirImagemParaProporcao(urlOriginal, item.title);
-                        
-                        if (urlCorrigida !== urlOriginal) {
-                            atualizacoes[`${id}/thumb`] = urlCorrigida;
-                            totalCorrigidos++;
-                        }
-                    }
-                }
-                
-                if (Object.keys(atualizacoes).length > 0) {
-                    await db.ref(tipo).update(atualizacoes);
-                    console.log(`✅ ${tipo}: ${Object.keys(atualizacoes).length} corrigidos`);
-                }
-            } catch (error) {
-                console.error(`Erro ao corrigir ${tipo}:`, error);
-            }
-        }
-        
-        console.log(`🎉 Total de ${totalCorrigidos} imagens corrigidas no banco!`);
-        return totalCorrigidos;
-    }
-
-    // ========== 5. FUNÇÃO PARA CORRIGIR IMAGENS NO FEED ==========
-    async function corrigirImagensFeed() {
-        if (!firebase || !firebase.database) return 0;
-        
+    // ========== 4. PROCESSAR IMAGEM EM BACKGROUND ==========
+    async function processarImagemBackground(url) {
         try {
-            const snapshot = await firebase.database().ref('feed_posts').once('value');
-            const posts = snapshot.val();
-            if (!posts) return 0;
+            // Tenta fazer upload para Cloudinary
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Erro ao baixar imagem');
             
-            let corrigidos = 0;
-            let atualizacoes = {};
+            const blob = await response.blob();
+            const extensao = blob.type.split('/')[1] || 'jpg';
+            const file = new File([blob], `imagem.${extensao}`, { type: blob.type });
             
-            for (const [id, post] of Object.entries(posts)) {
-                if (post.mediaType === 'image' && post.mediaUrl) {
-                    const urlOriginal = post.mediaUrl;
-                    const urlCorrigida = await corrigirImagemParaProporcao(urlOriginal, 'post');
-                    
-                    if (urlCorrigida !== urlOriginal) {
-                        atualizacoes[`${id}/mediaUrl`] = urlCorrigida;
-                        corrigidos++;
-                    }
-                }
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', CONFIG.UPLOAD_PRESET);
+            formData.append('format', 'webp');
+            formData.append('crop', 'fill');
+            formData.append('aspect_ratio', CONFIG.ASPECT_RATIO);
+            formData.append('width', CONFIG.WIDTH);
+            formData.append('height', CONFIG.HEIGHT);
+            
+            const uploadRes = await fetch(
+                `https://api.cloudinary.com/v1_1/${CONFIG.CLOUDINARY_NAME}/image/upload`,
+                { method: 'POST', body: formData }
+            );
+            
+            if (uploadRes.ok) {
+                const data = await uploadRes.json();
+                return data.secure_url;
             }
             
-            if (Object.keys(atualizacoes).length > 0) {
-                await firebase.database().ref('feed_posts').update(atualizacoes);
-                console.log(`✅ Feed: ${corrigidos} imagens corrigidas`);
-            }
-            
-            return corrigidos;
+            return url;
         } catch (error) {
-            console.error('Erro ao corrigir feed:', error);
-            return 0;
+            console.warn('Erro ao processar imagem em background:', error);
+            return url;
         }
     }
 
-    // ========== 6. CSS PARA GARANTIR PROPORÇÃO 2:3 EM TODOS OS CARDS ==========
+    // ========== 5. CSS PARA PROPORÇÃO 2:3 (OTIMIZADO) ==========
     function aplicarCSSProporcao() {
         const style = document.createElement('style');
         style.id = 'proporcao-2-3';
         style.textContent = `
             /* Proporção 2:3 para TODOS os cards */
+            #contentGrid .glass-card img,
             .search-result-image,
             .feed-post-media,
             .post-grid-item img,
             .post-grid-item video,
-            .profile-picture img,
             .carousel-item img,
-            #contentGrid .glass-card img,
             .favorite-item img,
             .global-search-item-img,
-            .suggestion-avatar img,
+            .admin-item-card img,
             .user-admin-card img,
-            .admin-search-result img,
             .feed-post-avatar img,
             .chat-user-avatar img,
             .chat-header-avatar img,
             .message-avatar img,
-            .post-grid-item img,
-            .profile-picture img {
+            .profile-picture img,
+            .suggestion-avatar img {
                 aspect-ratio: 2 / 3 !important;
                 object-fit: cover !important;
                 width: 100% !important;
                 height: auto !important;
+                display: block !important;
             }
             
-            /* Container dos cards com proporção fixa */
+            /* Container dos cards */
             .glass-card,
             .search-result-card,
             .post-grid-item,
             .carousel-item,
             .feed-post,
-            .suggestion-card,
-            .user-admin-card {
+            .suggestion-card {
                 overflow: hidden !important;
                 position: relative !important;
             }
             
-            /* Fallback para imagens quebradas */
-            img[onerror] {
-                background: linear-gradient(135deg, #1a1a2a, #2a1a3a) !important;
+            /* Cards no grid */
+            #contentGrid .glass-card {
+                overflow: hidden !important;
+                border-radius: 12px !important;
+            }
+            
+            #contentGrid .glass-card img {
+                transition: transform 0.3s ease;
                 min-height: 150px !important;
+                background: #1a1a2a;
+            }
+            
+            #contentGrid .glass-card:hover img {
+                transform: scale(1.05);
+            }
+            
+            /* TOP 10 - MANTIDO COMO ORIGINAL */
+            .carousel-item {
+                flex-shrink: 0 !important;
+                width: 120px !important;
+            }
+            
+            .carousel-item .poster-wrapper {
+                aspect-ratio: 2 / 3 !important;
+                overflow: hidden !important;
+                border-radius: 8px !important;
+                position: relative !important;
+                background: #1a1a2a;
+            }
+            
+            .carousel-item .poster-wrapper img {
+                aspect-ratio: 2 / 3 !important;
+                object-fit: cover !important;
+                width: 100% !important;
+                height: 100% !important;
+                display: block !important;
+            }
+            
+            .carousel-item .rank-number {
+                position: absolute !important;
+                top: -8px !important;
+                left: -8px !important;
+                width: 28px !important;
+                height: 28px !important;
+                border-radius: 50% !important;
+                background: #e50914 !important;
                 display: flex !important;
                 align-items: center !important;
                 justify-content: center !important;
-                color: #e50914 !important;
-                font-size: 14px !important;
-            }
-            
-            /* Placeholder com proporção 2:3 */
-            .card-placeholder {
-                aspect-ratio: 2 / 3 !important;
-                background: linear-gradient(135deg, #1a1a2a, #2a1a3a);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                flex-direction: column;
-                gap: 8px;
-                color: #e50914;
-                font-size: 12px;
-                border-radius: 8px;
-            }
-            
-            .card-placeholder i {
-                font-size: 32px;
-                opacity: 0.5;
+                font-size: 12px !important;
+                font-weight: bold !important;
+                color: white !important;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+                z-index: 2 !important;
             }
             
             /* Grid de posts no perfil */
@@ -13305,19 +13264,53 @@ setTimeout(() => {
                 border-radius: 4px;
                 overflow: hidden;
                 cursor: pointer;
+                position: relative;
             }
             
-            /* Ajustes para mobile */
+            /* Avatares - mantém círculo */
+            .profile-picture,
+            .feed-post-avatar,
+            .comment-avatar-modal,
+            .chat-user-avatar,
+            .chat-header-avatar,
+            .message-avatar,
+            .suggestion-avatar {
+                aspect-ratio: 1 / 1 !important;
+                border-radius: 50% !important;
+                overflow: hidden !important;
+            }
+            
+            .profile-picture img,
+            .feed-post-avatar img,
+            .comment-avatar-modal img,
+            .chat-user-avatar img,
+            .chat-header-avatar img,
+            .message-avatar img,
+            .suggestion-avatar img {
+                aspect-ratio: 1 / 1 !important;
+                object-fit: cover !important;
+                width: 100% !important;
+                height: 100% !important;
+                border-radius: 50% !important;
+            }
+            
+            /* Imagens quebradas */
+            img[src=""],
+            img[src="#"],
+            img:not([src]) {
+                background: linear-gradient(135deg, #1a1a2a, #2a1a3a) !important;
+                min-height: 150px !important;
+            }
+            
+            /* Responsivo */
             @media (max-width: 640px) {
                 #contentGrid {
                     grid-template-columns: repeat(2, 1fr) !important;
                     gap: 8px !important;
                 }
                 
-                #contentGrid .glass-card img {
-                    aspect-ratio: 2 / 3 !important;
-                    object-fit: cover !important;
-                    height: auto !important;
+                .carousel-item {
+                    width: 100px !important;
                 }
             }
             
@@ -13334,321 +13327,155 @@ setTimeout(() => {
                     gap: 12px !important;
                 }
             }
-            
-            /* Animações suaves */
-            .glass-card img,
-            .search-result-image,
-            .post-grid-item img {
-                transition: transform 0.3s ease;
-            }
-            
-            .glass-card:hover img,
-            .search-result-card:hover img,
-            .post-grid-item:hover img {
-                transform: scale(1.05);
-            }
         `;
         
         document.head.appendChild(style);
         console.log('✅ CSS de proporção 2:3 aplicado');
     }
 
-    // ========== 7. FUNÇÃO PARA CORRIGIR IMAGENS NO RENDER GRID ==========
-    function patchRenderGrid() {
-        const originalRenderGrid = window.renderGrid;
+    // ========== 6. FUNÇÃO PARA CORRIGIR IMAGENS NA PÁGINA ==========
+    function corrigirImagensPagina() {
+        // Todas as imagens que precisam de proporção 2:3
+        const seletor = `
+            #contentGrid .glass-card img,
+            .search-result-image,
+            .feed-post-media,
+            .post-grid-item img,
+            .post-grid-item video,
+            .carousel-item .poster-wrapper img,
+            .favorite-item img,
+            .global-search-item-img,
+            .admin-item-card img,
+            .user-admin-card img
+        `;
         
-        if (!originalRenderGrid) {
-            console.warn('renderGrid não encontrado, aguardando...');
-            setTimeout(patchRenderGrid, 1000);
+        document.querySelectorAll(seletor).forEach(img => {
+            // Aplicar estilo
+            img.style.aspectRatio = '2/3';
+            img.style.objectFit = 'cover';
+            img.style.width = '100%';
+            img.style.height = 'auto';
+            img.style.display = 'block';
+            
+            // Corrigir URL se necessário
+            if (img.src && !img.src.includes('placeholder')) {
+                const novaUrl = corrigirImagemRapido(img.src);
+                if (novaUrl !== img.src) {
+                    img.src = novaUrl;
+                }
+            }
+            
+            // Fallback para imagens quebradas
+            img.onerror = function() {
+                if (!this.dataset.fallback) {
+                    this.dataset.fallback = 'true';
+                    this.src = CONFIG.DEFAULT_IMAGE;
+                }
+            };
+        });
+        
+        // Avatares (mantém círculo)
+        document.querySelectorAll(`
+            .profile-picture img,
+            .feed-post-avatar img,
+            .comment-avatar-modal img,
+            .chat-user-avatar img,
+            .chat-header-avatar img,
+            .message-avatar img,
+            .suggestion-avatar img
+        `).forEach(img => {
+            img.style.aspectRatio = '1/1';
+            img.style.objectFit = 'cover';
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.borderRadius = '50%';
+            
+            img.onerror = function() {
+                if (!this.dataset.fallback) {
+                    this.dataset.fallback = 'true';
+                    this.src = 'https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png';
+                }
+            };
+        });
+        
+        console.log('✅ Imagens da página corrigidas');
+    }
+
+    // ========== 7. PATCH DO RENDER GRID ==========
+    function patchRenderGrid() {
+        const original = window.renderGrid;
+        if (!original) {
+            setTimeout(patchRenderGrid, 500);
             return;
         }
         
         window.renderGrid = function() {
-            originalRenderGrid();
-            
-            // Corrigir imagens após renderizar
-            setTimeout(() => {
-                document.querySelectorAll('#contentGrid img').forEach(img => {
-                    // Garantir que todas as imagens tenham proporção 2:3
-                    img.style.aspectRatio = '2/3';
-                    img.style.objectFit = 'cover';
-                    img.style.width = '100%';
-                    img.style.height = 'auto';
-                    
-                    // Se a imagem estiver quebrada, usar placeholder
-                    if (!img.src || img.src.includes('placeholder') || img.naturalWidth === 0) {
-                        img.src = CONFIG.DEFAULT_IMAGE;
-                    }
-                });
-            }, 100);
+            original();
+            setTimeout(corrigirImagensPagina, 100);
         };
         
         console.log('✅ renderGrid patch aplicado');
     }
 
-    // ========== 8. FUNÇÃO PARA CORRIGIR IMAGENS NO FEED ==========
+    // ========== 8. PATCH DO RENDER FEED ==========
     function patchRenderFeed() {
-        const originalRenderFeed = window.renderFeed;
-        
-        if (!originalRenderFeed) {
-            console.warn('renderFeed não encontrado, aguardando...');
-            setTimeout(patchRenderFeed, 1000);
+        const original = window.renderFeed;
+        if (!original) {
+            setTimeout(patchRenderFeed, 500);
             return;
         }
         
         window.renderFeed = async function() {
-            await originalRenderFeed();
-            
-            setTimeout(() => {
-                document.querySelectorAll('.feed-post img, .feed-post video').forEach(el => {
-                    el.style.aspectRatio = '2/3';
-                    el.style.objectFit = 'cover';
-                    el.style.width = '100%';
-                    el.style.height = 'auto';
-                });
-            }, 200);
+            await original();
+            setTimeout(corrigirImagensPagina, 200);
         };
         
         console.log('✅ renderFeed patch aplicado');
     }
 
-    // ========== 9. FUNÇÃO PARA CORRIGIR O PLAYER ==========
+    // ========== 9. PATCH DO PLAY MEDIA ==========
     function patchPlayMedia() {
-        const originalPlayMedia = window.playMedia;
-        
-        if (!originalPlayMedia) {
-            console.warn('playMedia não encontrado, aguardando...');
-            setTimeout(patchPlayMedia, 1000);
+        const original = window.playMedia;
+        if (!original) {
+            setTimeout(patchPlayMedia, 500);
             return;
         }
         
-        window.playMedia = async function(item, type) {
+        window.playMedia = function(item, type) {
             if (item && item.thumb) {
-                item.thumb = await corrigirImagemParaProporcao(item.thumb, item.title);
+                item.thumb = corrigirImagemRapido(item.thumb);
             }
-            originalPlayMedia(item, type);
-            
-            // Corrigir capa do player
-            setTimeout(() => {
-                const videoElement = document.querySelector('.player-wrapper video');
-                if (videoElement && videoElement.poster) {
-                    corrigirImagemParaProporcao(videoElement.poster).then(url => {
-                        videoElement.poster = url;
-                    });
-                }
-            }, 500);
+            original(item, type);
         };
         
         console.log('✅ playMedia patch aplicado');
     }
 
-    // ========== 10. FUNÇÃO PARA PROCESSAR NOVAS IMAGENS ==========
-    function patchUploadFunctions() {
-        // Patch para submitPost
-        const originalSubmitPost = window.submitPost;
-        if (originalSubmitPost) {
-            window.submitPost = async function() {
-                if (selectedMediaType === 'image' && selectedPostMediaFile) {
-                    // A imagem será processada com proporção 2:3 no upload
-                }
-                await originalSubmitPost();
-            };
+    // ========== 10. PATCH DA BUSCA ==========
+    function patchSearch() {
+        const original = window.performSearchInSection;
+        if (!original) {
+            setTimeout(patchSearch, 500);
+            return;
         }
         
-        // Patch para uploadProfileAvatar
-        const originalUploadAvatar = window.uploadProfileAvatar;
-        if (originalUploadAvatar) {
-            window.uploadProfileAvatar = async function(file) {
-                // O upload já tem os parâmetros de proporção
-                await originalUploadAvatar(file);
-            };
-        }
+        window.performSearchInSection = function() {
+            original();
+            setTimeout(corrigirImagensPagina, 100);
+        };
         
-        console.log('✅ Upload functions patch aplicado');
+        console.log('✅ search patch aplicado');
     }
 
-    // ========== 11. FUNÇÃO PARA CORRIGIR AVATARES ==========
-    function patchAvatars() {
-        const originalRenderInstagramProfile = window.renderInstagramProfile;
+    // ========== 11. OBSERVADOR DE NOVAS IMAGENS ==========
+    function setupObserver() {
+        let timeoutId = null;
         
-        if (originalRenderInstagramProfile) {
-            window.renderInstagramProfile = function(userId) {
-                originalRenderInstagramProfile(userId);
-                
-                setTimeout(() => {
-                    document.querySelectorAll('.profile-picture img, .feed-post-avatar img, .comment-avatar-modal img').forEach(img => {
-                        img.style.aspectRatio = '1/1';
-                        img.style.objectFit = 'cover';
-                        img.style.borderRadius = '50%';
-                    });
-                }, 200);
-            };
-        }
-        
-        console.log('✅ Avatars patch aplicado');
-    }
-
-    // ========== 12. FUNÇÃO PARA CORRIGIR CARDS DE BUSCA ==========
-    function patchSearchCards() {
-        const originalPerformSearch = window.performSearchInSection;
-        
-        if (originalPerformSearch) {
-            window.performSearchInSection = function() {
-                originalPerformSearch();
-                
-                setTimeout(() => {
-                    document.querySelectorAll('#searchResults .search-result-card img').forEach(img => {
-                        img.style.aspectRatio = '2/3';
-                        img.style.objectFit = 'cover';
-                        img.style.width = '100%';
-                        img.style.height = 'auto';
-                    });
-                }, 100);
-            };
-        }
-        
-        console.log('✅ Search cards patch aplicado');
-    }
-
-    // ========== 13. FUNÇÃO PARA CORRIGIR O TOP 10 ==========
-    function patchTop10() {
-        const originalRenderTop10 = window.renderTop10Carousel;
-        
-        if (originalRenderTop10) {
-            window.renderTop10Carousel = function() {
-                originalRenderTop10();
-                
-                setTimeout(() => {
-                    document.querySelectorAll('#top10Track .carousel-item img').forEach(img => {
-                        img.style.aspectRatio = '2/3';
-                        img.style.objectFit = 'cover';
-                        img.style.width = '100%';
-                        img.style.height = 'auto';
-                    });
-                }, 100);
-            };
-        }
-        
-        console.log('✅ Top10 patch aplicado');
-    }
-
-    // ========== 14. FUNÇÃO PARA CORRIGIR FAVORITOS ==========
-    function patchFavorites() {
-        const originalRenderFavorites = window.renderFavoritesList;
-        
-        if (originalRenderFavorites) {
-            window.renderFavoritesList = function(items, searchTerm) {
-                originalRenderFavorites(items, searchTerm);
-                
-                setTimeout(() => {
-                    document.querySelectorAll('.favorite-item img').forEach(img => {
-                        img.style.aspectRatio = '2/3';
-                        img.style.objectFit = 'cover';
-                        img.style.width = '100%';
-                        img.style.height = 'auto';
-                    });
-                }, 100);
-            };
-        }
-        
-        console.log('✅ Favorites patch aplicado');
-    }
-
-    // ========== 15. FUNÇÃO PARA CORRIGIR SUGESTÕES ==========
-    function patchSuggestions() {
-        const originalCreateSuggestionCard = window.createSuggestionCard;
-        
-        if (originalCreateSuggestionCard) {
-            window.createSuggestionCard = function(user) {
-                const card = originalCreateSuggestionCard(user);
-                
-                setTimeout(() => {
-                    const img = card.querySelector('.suggestion-avatar img');
-                    if (img) {
-                        img.style.aspectRatio = '1/1';
-                        img.style.objectFit = 'cover';
-                        img.style.borderRadius = '50%';
-                    }
-                }, 50);
-                
-                return card;
-            };
-        }
-        
-        console.log('✅ Suggestions patch aplicado');
-    }
-
-    // ========== 16. FUNÇÃO PARA PROCESSAR IMAGENS NO ADMIN ==========
-    function patchAdmin() {
-        const originalRefreshAdminLists = window.refreshAdminLists;
-        
-        if (originalRefreshAdminLists) {
-            window.refreshAdminLists = function() {
-                originalRefreshAdminLists();
-                
-                setTimeout(() => {
-                    document.querySelectorAll('#adminListsContainer img').forEach(img => {
-                        if (img.closest('.admin-item-card') || img.closest('.user-admin-card')) {
-                            img.style.aspectRatio = '2/3';
-                            img.style.objectFit = 'cover';
-                            img.style.width = '100%';
-                            img.style.height = 'auto';
-                        }
-                    });
-                }, 200);
-            };
-        }
-        
-        console.log('✅ Admin patch aplicado');
-    }
-
-    // ========== 17. CORRIGIR IMAGENS QUE JÁ ESTÃO NA PÁGINA ==========
-    function corrigirImagensExistentes() {
-        // Corrigir todas as imagens que já estão na página
-        document.querySelectorAll('img').forEach(img => {
-            // Se a imagem tiver width e height definidos, ajustar
-            if (img.width && img.height) {
-                const ratio = img.width / img.height;
-                if (ratio !== 2/3) {
-                    img.style.aspectRatio = '2/3';
-                    img.style.objectFit = 'cover';
-                }
-            }
-            
-            // Se a imagem estiver quebrada
-            if (!img.src || img.naturalWidth === 0) {
-                img.src = CONFIG.DEFAULT_IMAGE;
-            }
-        });
-        
-        console.log('✅ Imagens existentes corrigidas');
-    }
-
-    // ========== 18. OBSERVADOR PARA NOVAS IMAGENS ==========
-    function setupImageObserver() {
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                mutation.addedNodes.forEach((node) => {
-                    if (node.nodeType === 1) { // Element
-                        // Verificar se o nó ou seus filhos têm imagens
-                        const images = node.querySelectorAll ? node.querySelectorAll('img') : [];
-                        if (node.tagName === 'IMG') images.push(node);
-                        
-                        images.forEach((img) => {
-                            // Aplicar proporção 2:3
-                            img.style.aspectRatio = '2/3';
-                            img.style.objectFit = 'cover';
-                            img.style.width = '100%';
-                            img.style.height = 'auto';
-                            
-                            // Corrigir imagem quebrada
-                            if (!img.src || img.src.includes('placeholder')) {
-                                img.src = CONFIG.DEFAULT_IMAGE;
-                            }
-                        });
-                    }
-                });
-            });
+        const observer = new MutationObserver(() => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                corrigirImagensPagina();
+            }, 100);
         });
         
         observer.observe(document.body, {
@@ -13656,124 +13483,60 @@ setTimeout(() => {
             subtree: true
         });
         
-        console.log('✅ Image observer iniciado');
+        console.log('✅ Observer iniciado');
         return observer;
     }
 
-    // ========== 19. BOTÃO PARA CORRIGIR MANUALMENTE ==========
-    function adicionarBotaoCorrecao() {
-        const botao = document.createElement('button');
-        botao.id = 'btnCorrigirProporcao';
-        botao.innerHTML = '<i class="fas fa-arrows-alt"></i> 2:3';
-        botao.title = 'Corrigir proporção 2:3 em todos os cards';
-        botao.style.cssText = `
-            position: fixed;
-            bottom: 140px;
-            right: 20px;
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #e50914, #b20710);
-            color: white;
-            border: none;
-            box-shadow: 0 4px 15px rgba(229, 9, 20, 0.4);
-            cursor: pointer;
-            z-index: 10000;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-        `;
+    // ========== 12. INICIALIZAÇÃO ==========
+    function init() {
+        console.log('🎬 Iniciando padronização 2:3 (versão rápida)...');
         
-        botao.addEventListener('mouseenter', () => {
-            botao.style.transform = 'scale(1.1)';
-            botao.style.boxShadow = '0 4px 25px rgba(229, 9, 20, 0.6)';
-        });
-        
-        botao.addEventListener('mouseleave', () => {
-            botao.style.transform = 'scale(1)';
-            botao.style.boxShadow = '0 4px 15px rgba(229, 9, 20, 0.4)';
-        });
-        
-        botao.addEventListener('click', async () => {
-            showToast('🔄 Corrigindo proporção 2:3...');
-            await corrigirImagensNoBanco();
-            corrigirImagensExistentes();
-            renderGrid();
-            showToast('✅ Proporção 2:3 aplicada em todos os cards!');
-        });
-        
-        document.body.appendChild(botao);
-        console.log('✅ Botão de correção 2:3 adicionado');
-    }
-
-    // ========== 20. INICIALIZAÇÃO ==========
-    async function init() {
-        console.log('🎬 Iniciando padronização 2:3...');
-        
-        // 1. Aplicar CSS
+        // Aplicar CSS
         aplicarCSSProporcao();
         
-        // 2. Patches das funções principais
+        // Aplicar patches
         patchRenderGrid();
         patchRenderFeed();
         patchPlayMedia();
-        patchUploadFunctions();
-        patchAvatars();
-        patchSearchCards();
-        patchTop10();
-        patchFavorites();
-        patchSuggestions();
-        patchAdmin();
+        patchSearch();
         
-        // 3. Configurar observador
-        setupImageObserver();
+        // Configurar observer
+        setupObserver();
         
-        // 4. Adicionar botão de correção
-        adicionarBotaoCorrecao();
-        
-        // 5. Corrigir imagens existentes após um delay
+        // Corrigir imagens existentes após carregar
         setTimeout(() => {
-            corrigirImagensExistentes();
+            corrigirImagensPagina();
             // Forçar recarga do grid
             if (typeof renderGrid === 'function') {
                 renderGrid();
             }
-            if (typeof renderFeed === 'function') {
-                renderFeed();
-            }
-        }, 1500);
+        }, 500);
         
-        // 6. Corrigir imagens no banco (opcional - comentado para não sobrecarregar)
-        // setTimeout(async () => {
-        //     await corrigirImagensNoBanco();
-        //     await corrigirImagensFeed();
-        // }, 3000);
+        // Segunda passagem para garantir
+        setTimeout(() => {
+            corrigirImagensPagina();
+        }, 2000);
         
-        console.log('✅ Padronização 2:3 inicializada com sucesso!');
-        console.log('ℹ️ Clique no botão 🔴 2:3 no canto inferior direito para corrigir manualmente.');
+        console.log('✅ Padronização 2:3 inicializada!');
+        console.log('ℹ️ Todas as imagens terão proporção 2:3 automaticamente.');
+        console.log('ℹ️ Top 10 mantido como no código original.');
     }
 
-    // ========== 21. EXPOR FUNÇÕES PARA USO GLOBAL ==========
+    // ========== 13. EXPOR FUNÇÕES ==========
     window.proporcao2_3 = {
-        corrigirImagem: corrigirImagemParaProporcao,
-        corrigirLista: corrigirListaDeImagens,
-        corrigirBanco: corrigirImagensNoBanco,
-        corrigirFeed: corrigirImagensFeed,
-        corrigirPagina: corrigirImagensExistentes,
-        aplicarCSS: aplicarCSSProporcao,
+        corrigir: corrigirImagensPagina,
+        cache: imageCache,
         CONFIG: CONFIG
     };
 
-    // ========== 22. INICIAR QUANDO O DOM ESTIVER PRONTO ==========
+    // ========== 14. INICIAR ==========
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
         init();
     }
 
-    console.log('🚀 Script 2:3 carregado! Use window.proporcao2_3 para funções manuais.');
+    console.log('🚀 Script 2:3 carregado! Use window.proporcao2_3.corrigir() para corrigir manualmente.');
 })();
 
 
