@@ -14528,6 +14528,944 @@ setTimeout(() => {
 
 
 
+
+
+
+
+
+
+
+
+
+// =====================================================
+// SISTEMA DE CLASSIFICAÇÃO POR GÊNEROS, ANOS E FRANQUIAS - VERSÃO COM BOTÃO SUTIL NA BORDA DA IMAGEM
+// =====================================================
+(function() {
+    console.log('🎬 Ativando sistema de classificação e franquias...');
+
+    // ========== 1. FUNÇÃO PARA FORMATAR ANO ==========
+    function formatarAno(item) {
+        if (!item) return '';
+        
+        const start = item.year_start || item.year || '';
+        const end = item.year_end;
+        
+        if (start && end) {
+            return `${start} - ${end}`;
+        } else if (start && end === null) {
+            return `${start} - Presente`;
+        } else if (start) {
+            return start;
+        }
+        return '';
+    }
+
+    // ========== 2. SISTEMA DE FRANQUIAS ==========
+    async function getFranquias() {
+        try {
+            const snapshot = await firebase.database().ref('franquias').once('value');
+            const data = snapshot.val();
+            if (!data) return [];
+            
+            const franquiasArray = Object.entries(data).map(([nome, dados]) => ({
+                nome: nome,
+                ...dados
+            }));
+            
+            return franquiasArray;
+        } catch (error) {
+            console.error('Erro ao carregar franquias:', error);
+            return [];
+        }
+    }
+
+    async function salvarFranquia(nome, filmesIds) {
+        if (!currentUser) {
+            showToast('Faça login para criar franquias');
+            return;
+        }
+        
+        if (!nome || nome.trim() === '') {
+            showToast('Digite um nome para a franquia');
+            return;
+        }
+        
+        if (!filmesIds || filmesIds.length === 0) {
+            showToast('Selecione pelo menos um filme');
+            return;
+        }
+        
+        try {
+            const franquiaData = {
+                nome: nome.trim(),
+                filmes: filmesIds,
+                createdBy: currentUser.uid,
+                createdByName: currentUsername,
+                createdAt: Date.now()
+            };
+            
+            await firebase.database().ref(`franquias/${nome.trim()}`).set(franquiaData);
+            
+            for (const id of filmesIds) {
+                const filme = filmes.find(f => f.id === id);
+                if (filme) {
+                    await firebase.database().ref(`filmes/${id}/franchise`).set(nome.trim());
+                    if (!filme.franchise_order) {
+                        const index = filmesIds.indexOf(id) + 1;
+                        await firebase.database().ref(`filmes/${id}/franchise_order`).set(index);
+                    }
+                }
+            }
+            
+            showToast(`✅ Franquia "${nome}" criada com ${filmesIds.length} filmes!`);
+            await loadFilmesFromFirebase();
+            renderGrid();
+            
+        } catch (error) {
+            console.error('Erro ao salvar franquia:', error);
+            showToast('❌ Erro ao criar franquia: ' + error.message);
+        }
+    }
+
+    async function getFilmesDaFranquia(nomeFranquia) {
+        try {
+            const snapshot = await firebase.database().ref(`franquias/${nomeFranquia}`).once('value');
+            const franquia = snapshot.val();
+            
+            if (!franquia || !franquia.filmes) return [];
+            
+            const filmesDaFranquia = [];
+            for (const id of franquia.filmes) {
+                const filme = filmes.find(f => f.id === id);
+                if (filme) {
+                    filmesDaFranquia.push(filme);
+                }
+            }
+            
+            filmesDaFranquia.sort((a, b) => {
+                const orderA = a.franchise_order || 999;
+                const orderB = b.franchise_order || 999;
+                if (orderA !== orderB) return orderA - orderB;
+                return (parseInt(a.year) || 0) - (parseInt(b.year) || 0);
+            });
+            
+            return filmesDaFranquia;
+        } catch (error) {
+            console.error('Erro ao buscar filmes da franquia:', error);
+            return [];
+        }
+    }
+
+    // ========== 3. BOTÃO DE FRANQUIA NA BORDA DA IMAGEM ==========
+    function adicionarBotaoFranquia(cardElement, item) {
+        if (!item.franchise) return;
+        if (cardElement.querySelector('.franchise-badge')) return;
+        
+        // Primeiro, encontrar a imagem dentro do card
+        const img = cardElement.querySelector('img');
+        if (!img) return;
+        
+        // Envolver a imagem em um container relativo se não tiver
+        let imgContainer = img.parentElement;
+        if (!imgContainer.style.position || imgContainer.style.position === 'static') {
+            imgContainer.style.position = 'relative';
+        }
+        
+        // Criar badge sutil na borda inferior da imagem
+        const badge = document.createElement('div');
+        badge.className = 'franchise-badge';
+        badge.innerHTML = `
+            <i class="fas fa-film" style="font-size: 7px; color: #e50914; flex-shrink: 0;"></i>
+            <span style="font-size: 7px; font-weight: 500; color: rgba(255,255,255,0.6);">Franquia:</span>
+            <span style="font-size: 7px; font-weight: 600; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60px;">${escapeHtml(item.franchise)}</span>
+        `;
+        
+        badge.style.cssText = `
+            position: absolute;
+            bottom: -1px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0 0 12px 12px;
+            padding: 2px 12px 3px 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            z-index: 6;
+            min-height: 18px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+            width: auto;
+            max-width: 90%;
+            pointer-events: auto;
+            border-top: none;
+        `;
+        
+        // Hover com expansão suave
+        badge.addEventListener('mouseenter', () => {
+            badge.style.background = 'rgba(229, 9, 20, 0.9)';
+            badge.style.borderColor = 'rgba(229, 9, 20, 0.4)';
+            badge.style.transform = 'translateX(-50%) scale(1.05)';
+            badge.style.boxShadow = '0 4px 20px rgba(229, 9, 20, 0.3)';
+            const span = badge.querySelector('span:last-child');
+            if (span) span.style.maxWidth = '120px';
+            badge.style.borderRadius = '0 0 14px 14px';
+        });
+        
+        badge.addEventListener('mouseleave', () => {
+            badge.style.background = 'rgba(0, 0, 0, 0.75)';
+            badge.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+            badge.style.transform = 'translateX(-50%) scale(1)';
+            badge.style.boxShadow = '0 2px 12px rgba(0, 0, 0, 0.3)';
+            const span = badge.querySelector('span:last-child');
+            if (span) span.style.maxWidth = '60px';
+            badge.style.borderRadius = '0 0 12px 12px';
+        });
+        
+        badge.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            
+            // Efeito de clique
+            badge.style.transform = 'translateX(-50%) scale(0.95)';
+            setTimeout(() => badge.style.transform = 'translateX(-50%) scale(1)', 150);
+            
+            // Mostrar loading no badge
+            const originalHtml = badge.innerHTML;
+            badge.innerHTML = `<i class="fas fa-spinner fa-spin" style="font-size: 10px; color: white; margin: 0 auto;"></i>`;
+            badge.style.justifyContent = 'center';
+            badge.style.padding = '2px 16px 3px 16px';
+            
+            try {
+                const filmesFranquia = await getFilmesDaFranquia(item.franchise);
+                
+                if (filmesFranquia.length === 0) {
+                    showToast('❌ Nenhum filme encontrado para esta franquia');
+                    badge.innerHTML = originalHtml;
+                    badge.style.justifyContent = 'flex-start';
+                    badge.style.padding = '2px 12px 3px 12px';
+                    return;
+                }
+                
+                abrirJanelaFranquia(item.franchise, filmesFranquia);
+                
+            } catch (error) {
+                console.error('Erro ao abrir franquia:', error);
+                showToast('❌ Erro ao carregar franquia');
+            }
+            
+            badge.innerHTML = originalHtml;
+            badge.style.justifyContent = 'flex-start';
+            badge.style.padding = '2px 12px 3px 12px';
+        });
+        
+        // Adicionar ao container da imagem (não ao card inteiro)
+        imgContainer.appendChild(badge);
+        
+        // Garantir que o card tenha position relative
+        cardElement.style.position = 'relative';
+    }
+
+    // ========== 4. JANELA DE FRANQUIA (Liquid Glass) ==========
+    function abrirJanelaFranquia(nomeFranquia, filmes) {
+        const existing = document.querySelector('.franchise-window-overlay');
+        if (existing) existing.remove();
+        
+        const overlay = document.createElement('div');
+        overlay.className = 'franchise-window-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            z-index: 20000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeInPopup 0.3s ease-out;
+            padding: 20px;
+        `;
+        
+        const content = document.createElement('div');
+        content.style.cssText = `
+            background: rgba(20, 25, 45, 0.95);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-radius: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 700px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: slideInPopup 0.3s ease-out;
+        `;
+        
+        content.innerHTML = `
+            <div style="
+                padding: 16px 20px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-shrink: 0;
+            ">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <i class="fas fa-film" style="color: #e50914; font-size: 24px;"></i>
+                    <div>
+                        <h2 style="font-size: 18px; font-weight: 700; color: white; margin: 0;">
+                            ${escapeHtml(nomeFranquia)}
+                        </h2>
+                        <p style="font-size: 12px; color: rgba(255,255,255,0.5); margin: 0;">
+                            ${filmes.length} ${filmes.length === 1 ? 'filme' : 'filmes'} na franquia
+                        </p>
+                    </div>
+                </div>
+                <button id="fecharFranquiaBtn" style="
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 50%;
+                    background: rgba(255, 255, 255, 0.1);
+                    border: none;
+                    color: white;
+                    font-size: 18px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                ">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div style="
+                flex: 1;
+                overflow-y: auto;
+                padding: 16px 20px;
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 12px;
+            " id="franquiaFilmesGrid">
+                ${filmes.map((filme, index) => `
+                    <div class="franchise-film-item" data-id="${filme.id}" style="
+                        background: rgba(255, 255, 255, 0.05);
+                        border-radius: 16px;
+                        overflow: hidden;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                        border: 1px solid rgba(255, 255, 255, 0.05);
+                    ">
+                        <div style="position: relative; aspect-ratio: 2/3; background: #1a1a2a;">
+                            <img src="${filme.thumb || 'https://via.placeholder.com/300x450'}" 
+                                 style="width:100%; height:100%; object-fit:cover; display:block;"
+                                 onerror="this.src='https://via.placeholder.com/300x450'">
+                            <div style="
+                                position: absolute;
+                                top: 8px;
+                                left: 8px;
+                                background: rgba(229, 9, 20, 0.9);
+                                border-radius: 50%;
+                                width: 28px;
+                                height: 28px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                font-size: 12px;
+                                font-weight: bold;
+                                color: white;
+                                box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+                            ">${index + 1}</div>
+                            ${filme.year ? `<div style="
+                                position: absolute;
+                                bottom: 8px;
+                                right: 8px;
+                                background: rgba(0,0,0,0.7);
+                                backdrop-filter: blur(10px);
+                                border-radius: 20px;
+                                padding: 2px 10px;
+                                font-size: 10px;
+                                color: white;
+                            ">${filme.year}</div>` : ''}
+                        </div>
+                        <div style="padding: 8px 10px;">
+                            <div style="
+                                font-size: 12px;
+                                font-weight: 600;
+                                color: white;
+                                white-space: nowrap;
+                                overflow: hidden;
+                                text-overflow: ellipsis;
+                            ">${escapeHtml(filme.title)}</div>
+                            <div style="
+                                font-size: 9px;
+                                color: rgba(255,255,255,0.4);
+                                margin-top: 2px;
+                            ">${filme.category || 'Geral'}</div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            
+            <div style="
+                padding: 12px 20px;
+                border-top: 1px solid rgba(255, 255, 255, 0.05);
+                flex-shrink: 0;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            ">
+                <span style="font-size: 11px; color: rgba(255,255,255,0.3);">
+                    <i class="fas fa-info-circle"></i> Clique em um filme para assistir
+                </span>
+                <button id="fecharFranquiaBottom" style="
+                    background: rgba(255, 255, 255, 0.1);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 30px;
+                    padding: 6px 18px;
+                    color: rgba(255,255,255,0.7);
+                    font-size: 11px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                ">
+                    Fechar
+                </button>
+            </div>
+        `;
+        
+        overlay.appendChild(content);
+        document.body.appendChild(overlay);
+        
+        const fechar = () => {
+            if (overlay && overlay.parentNode) {
+                overlay.remove();
+            }
+        };
+        
+        const closeBtn = content.querySelector('#fecharFranquiaBtn');
+        const closeBottom = content.querySelector('#fecharFranquiaBottom');
+        
+        if (closeBtn) closeBtn.addEventListener('click', fechar);
+        if (closeBottom) closeBottom.addEventListener('click', fechar);
+        
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) fechar();
+        });
+        
+        content.querySelectorAll('.franchise-film-item').forEach(el => {
+            el.addEventListener('click', () => {
+                const id = el.getAttribute('data-id');
+                const filme = filmes.find(f => f.id === id);
+                if (filme) {
+                    fechar();
+                    setTimeout(() => {
+                        playMedia(filme, 'filme');
+                    }, 200);
+                }
+            });
+            
+            el.addEventListener('mouseenter', () => {
+                el.style.transform = 'translateY(-4px)';
+                el.style.boxShadow = '0 8px 25px rgba(229, 9, 20, 0.2)';
+                el.style.borderColor = 'rgba(229, 9, 20, 0.3)';
+            });
+            el.addEventListener('mouseleave', () => {
+                el.style.transform = 'translateY(0)';
+                el.style.boxShadow = 'none';
+                el.style.borderColor = 'rgba(255, 255, 255, 0.05)';
+            });
+        });
+        
+        const keyframes = `
+            @keyframes slideInPopup {
+                from { opacity: 0; transform: translateY(30px) scale(0.95); }
+                to { opacity: 1; transform: translateY(0) scale(1); }
+            }
+            @keyframes fadeInPopup {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+        `;
+        if (!document.getElementById('franchise-keyframes')) {
+            const style = document.createElement('style');
+            style.id = 'franchise-keyframes';
+            style.textContent = keyframes;
+            document.head.appendChild(style);
+        }
+    }
+
+    // ========== 5. PATCH DO RENDER GRID ==========
+    function patchRenderGridParaFranquias() {
+        const original = window.renderGrid;
+        if (!original) {
+            setTimeout(patchRenderGridParaFranquias, 500);
+            return;
+        }
+        
+        window.renderGrid = function() {
+            original();
+            
+            setTimeout(() => {
+                const cards = document.querySelectorAll('#contentGrid .glass-card');
+                cards.forEach(card => {
+                    const id = card.getAttribute('data-id');
+                    if (id) {
+                        let item = null;
+                        if (window.currentNavTab === 'filmes') {
+                            item = filmes.find(f => f.id === id);
+                        } else if (window.currentNavTab === 'series') {
+                            item = series.find(s => s.id === id);
+                        }
+                        
+                        if (item && item.franchise) {
+                            adicionarBotaoFranquia(card, item);
+                        }
+                    }
+                });
+            }, 150);
+        };
+        
+        console.log('✅ renderGrid patch para franquias aplicado');
+    }
+
+    // ========== 6. PATCH DA BUSCA ==========
+    function patchSearchParaFranquias() {
+        const original = window.performSearchInSection;
+        if (!original) {
+            setTimeout(patchSearchParaFranquias, 500);
+            return;
+        }
+        
+        window.performSearchInSection = function() {
+            original();
+            
+            setTimeout(() => {
+                const cards = document.querySelectorAll('#searchResults .search-result-card');
+                cards.forEach(card => {
+                    const id = card.getAttribute('data-id');
+                    const type = card.getAttribute('data-type');
+                    if (id && type === 'filme') {
+                        const item = filmes.find(f => f.id === id);
+                        if (item && item.franchise) {
+                            adicionarBotaoFranquia(card, item);
+                        }
+                    }
+                });
+            }, 150);
+        };
+        
+        console.log('✅ search patch para franquias aplicado');
+    }
+
+    // ========== 7. ADMIN - CRIAR FRANQUIAS ==========
+    function criarInterfaceFranquiasAdmin() {
+        const adminPanel = document.getElementById('adminPanel');
+        if (!adminPanel) return;
+        
+        if (document.getElementById('adminFranquiasArea')) return;
+        
+        const franquiaArea = document.createElement('div');
+        franquiaArea.id = 'adminFranquiasArea';
+        franquiaArea.className = 'bg-gray-800/50 p-3 rounded-xl mb-3';
+        franquiaArea.innerHTML = `
+            <h3 class="font-semibold text-sm mb-2 text-white flex items-center gap-2">
+                <i class="fas fa-film text-red-500"></i> Gerenciar Franquias
+            </h3>
+            <div class="flex flex-wrap gap-2 items-center">
+                <input type="text" id="franquiaNomeInput" placeholder="Nome da Franquia" 
+                       style="flex:1; min-width:120px;" class="admin-input">
+                <button id="franquiaSelecionarFilmes" class="bg-blue-700 hover:bg-blue-800 px-3 py-1.5 rounded-full text-xs transition ripple-btn">
+                    <i class="fas fa-plus"></i> Selecionar Filmes
+                </button>
+                <button id="franquiaSalvarBtn" class="bg-green-700 hover:bg-green-800 px-3 py-1.5 rounded-full text-xs transition ripple-btn" disabled>
+                    <i class="fas fa-save"></i> Salvar Franquia
+                </button>
+            </div>
+            <div id="franquiaFilmesSelecionados" class="mt-2 flex flex-wrap gap-1"></div>
+            <div id="franquiaListaExistente" class="mt-3"></div>
+        `;
+        
+        const batchArea = document.getElementById('batchFilmesArea');
+        if (batchArea) {
+            batchArea.parentNode.insertBefore(franquiaArea, batchArea.nextSibling);
+        } else {
+            adminPanel.appendChild(franquiaArea);
+        }
+        
+        window._franquiaFilmesSelecionados = [];
+        
+        document.getElementById('franquiaSelecionarFilmes')?.addEventListener('click', () => {
+            abrirSeletorFilmesParaFranquia();
+        });
+        
+        document.getElementById('franquiaSalvarBtn')?.addEventListener('click', async () => {
+            const nome = document.getElementById('franquiaNomeInput').value.trim();
+            const filmesIds = window._franquiaFilmesSelecionados || [];
+            
+            if (!nome) {
+                showToast('Digite um nome para a franquia');
+                return;
+            }
+            if (filmesIds.length === 0) {
+                showToast('Selecione pelo menos um filme');
+                return;
+            }
+            
+            await salvarFranquia(nome, filmesIds);
+            window._franquiaFilmesSelecionados = [];
+            document.getElementById('franquiaFilmesSelecionados').innerHTML = '';
+            document.getElementById('franquiaNomeInput').value = '';
+            document.getElementById('franquiaSalvarBtn').disabled = true;
+            carregarFranquiasExistentes();
+        });
+        
+        carregarFranquiasExistentes();
+    }
+
+    // ========== 8. SELETOR DE FILMES ==========
+    function abrirSeletorFilmesParaFranquia() {
+        const existing = document.querySelector('.franquia-selector-overlay');
+        if (existing) existing.remove();
+        
+        const overlay = document.createElement('div');
+        overlay.className = 'franquia-selector-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(20px);
+            z-index: 30000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        `;
+        
+        const content = document.createElement('div');
+        content.style.cssText = `
+            background: rgba(25, 25, 45, 0.95);
+            backdrop-filter: blur(24px);
+            border-radius: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            width: 100%;
+            max-width: 600px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        `;
+        
+        content.innerHTML = `
+            <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="font-size: 16px; font-weight: 600; color: white;">
+                    <i class="fas fa-film mr-2" style="color: #e50914;"></i>
+                    Selecionar Filmes para Franquia
+                </h3>
+                <button id="fecharSeletorFranquia" style="background:none; border:none; color:white; font-size:20px; cursor:pointer;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div style="padding: 12px 20px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <input type="text" id="seletorFranquiaBusca" placeholder="Buscar filmes..." 
+                       style="width:100%; padding:8px 14px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); border-radius:30px; color:white; font-size:13px; outline:none;">
+            </div>
+            <div style="flex:1; overflow-y: auto; padding: 12px 16px;" id="seletorFranquiaLista">
+                <div class="text-center text-gray-500 py-4">Carregando filmes...</div>
+            </div>
+            <div style="padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 12px; color: rgba(255,255,255,0.5);">
+                    <span id="seletorFranquiaContador">0</span> filmes selecionados
+                </span>
+                <button id="confirmarSeletorFranquia" style="
+                    background: linear-gradient(135deg, #e50914, #b20710);
+                    border: none;
+                    border-radius: 30px;
+                    padding: 8px 24px;
+                    color: white;
+                    font-weight: 600;
+                    font-size: 13px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                ">
+                    <i class="fas fa-check mr-2"></i> Confirmar
+                </button>
+            </div>
+        `;
+        
+        overlay.appendChild(content);
+        document.body.appendChild(overlay);
+        
+        let selecionados = [];
+        
+        function renderizarLista(filtro = '') {
+            const lista = document.getElementById('seletorFranquiaLista');
+            const termo = filtro.toLowerCase().trim();
+            
+            let filmesFiltrados = filmes;
+            if (termo) {
+                filmesFiltrados = filmes.filter(f => 
+                    f.title.toLowerCase().includes(termo) ||
+                    (f.category && f.category.toLowerCase().includes(termo))
+                );
+            }
+            
+            if (filmesFiltrados.length === 0) {
+                lista.innerHTML = '<div class="text-center text-gray-500 py-4">Nenhum filme encontrado</div>';
+                return;
+            }
+            
+            lista.innerHTML = filmesFiltrados.map(f => {
+                const selecionado = selecionados.includes(f.id);
+                return `
+                    <div class="seletor-filme-item" data-id="${f.id}" style="
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                        padding: 8px 12px;
+                        border-radius: 12px;
+                        margin-bottom: 6px;
+                        background: ${selecionado ? 'rgba(229, 9, 20, 0.15)' : 'rgba(255, 255, 255, 0.03)'};
+                        border: 1px solid ${selecionado ? 'rgba(229, 9, 20, 0.3)' : 'rgba(255, 255, 255, 0.05)'};
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    ">
+                        <img src="${f.thumb || 'https://via.placeholder.com/40x60'}" style="
+                            width: 40px;
+                            height: 60px;
+                            object-fit: cover;
+                            border-radius: 6px;
+                            flex-shrink: 0;
+                        " onerror="this.src='https://via.placeholder.com/40x60'">
+                        <div style="flex:1; min-width:0;">
+                            <div style="font-size: 13px; font-weight: 500; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                ${escapeHtml(f.title)}
+                            </div>
+                            <div style="font-size: 10px; color: rgba(255,255,255,0.4);">
+                                ${f.category || 'Geral'} ${f.year ? `• ${f.year}` : ''}
+                            </div>
+                        </div>
+                        <div style="
+                            width: 22px;
+                            height: 22px;
+                            border-radius: 50%;
+                            border: 2px solid ${selecionado ? '#e50914' : 'rgba(255,255,255,0.3)'};
+                            background: ${selecionado ? '#e50914' : 'transparent'};
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            flex-shrink: 0;
+                            transition: all 0.2s;
+                        ">
+                            ${selecionado ? '<i class="fas fa-check" style="color:white; font-size:10px;"></i>' : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            lista.querySelectorAll('.seletor-filme-item').forEach(el => {
+                el.addEventListener('click', () => {
+                    const id = el.getAttribute('data-id');
+                    const index = selecionados.indexOf(id);
+                    if (index > -1) {
+                        selecionados.splice(index, 1);
+                    } else {
+                        selecionados.push(id);
+                    }
+                    renderizarLista(document.getElementById('seletorFranquiaBusca').value);
+                    document.getElementById('seletorFranquiaContador').textContent = selecionados.length;
+                });
+            });
+        }
+        
+        document.getElementById('seletorFranquiaBusca').addEventListener('input', (e) => {
+            renderizarLista(e.target.value);
+        });
+        
+        document.getElementById('fecharSeletorFranquia').addEventListener('click', () => {
+            overlay.remove();
+        });
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) overlay.remove();
+        });
+        
+        document.getElementById('confirmarSeletorFranquia').addEventListener('click', () => {
+            window._franquiaFilmesSelecionados = [...selecionados];
+            
+            const container = document.getElementById('franquiaFilmesSelecionados');
+            if (container) {
+                container.innerHTML = selecionados.map(id => {
+                    const f = filmes.find(f => f.id === id);
+                    return `<span style="
+                        background: rgba(229, 9, 20, 0.2);
+                        border: 1px solid rgba(229, 9, 20, 0.3);
+                        border-radius: 20px;
+                        padding: 2px 10px;
+                        font-size: 10px;
+                        color: white;
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 4px;
+                    "><i class="fas fa-film" style="color:#e50914; font-size:8px;"></i> ${escapeHtml(f ? f.title.substring(0, 20) : id)}</span>`;
+                }).join('');
+            }
+            
+            const saveBtn = document.getElementById('franquiaSalvarBtn');
+            if (saveBtn) {
+                saveBtn.disabled = selecionados.length === 0;
+            }
+            
+            document.getElementById('seletorFranquiaContador').textContent = selecionados.length;
+            
+            const nomeInput = document.getElementById('franquiaNomeInput');
+            if (nomeInput && nomeInput.value.trim() === '' && selecionados.length > 0) {
+                const primeiroFilme = filmes.find(f => f.id === selecionados[0]);
+                if (primeiroFilme && primeiroFilme.franchise) {
+                    nomeInput.value = primeiroFilme.franchise;
+                }
+            }
+            
+            overlay.remove();
+            showToast(`✅ ${selecionados.length} filmes selecionados!`);
+        });
+        
+        renderizarLista('');
+        document.getElementById('seletorFranquiaContador').textContent = '0';
+    }
+
+    // ========== 9. CARREGAR FRANQUIAS EXISTENTES ==========
+    async function carregarFranquiasExistentes() {
+        const container = document.getElementById('franquiaListaExistente');
+        if (!container) return;
+        
+        try {
+            const franquias = await getFranquias();
+            
+            if (franquias.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-500 text-xs py-2">Nenhuma franquia criada ainda</div>';
+                return;
+            }
+            
+            container.innerHTML = `
+                <div style="font-size: 11px; color: rgba(255,255,255,0.4); margin-bottom: 6px;">
+                    <i class="fas fa-list"></i> Franquias existentes (${franquias.length})
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                    ${franquias.map(f => `
+                        <span style="
+                            background: rgba(229, 9, 20, 0.15);
+                            border: 1px solid rgba(229, 9, 20, 0.2);
+                            border-radius: 20px;
+                            padding: 2px 12px;
+                            font-size: 10px;
+                            color: white;
+                            display: inline-flex;
+                            align-items: center;
+                            gap: 6px;
+                        ">
+                            <i class="fas fa-film" style="color:#e50914; font-size:8px;"></i>
+                            ${escapeHtml(f.nome)}
+                            <span style="color: rgba(255,255,255,0.3); font-size: 9px;">
+                                (${f.filmes ? f.filmes.length : 0})
+                            </span>
+                            <button class="ver-franquia-btn" data-nome="${escapeHtml(f.nome)}" style="
+                                background: none;
+                                border: none;
+                                color: #3b82f6;
+                                font-size: 10px;
+                                cursor: pointer;
+                                padding: 0 4px;
+                            ">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </span>
+                    `).join('')}
+                </div>
+            `;
+            
+            container.querySelectorAll('.ver-franquia-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const nome = btn.getAttribute('data-nome');
+                    const filmesFranquia = await getFilmesDaFranquia(nome);
+                    if (filmesFranquia.length > 0) {
+                        abrirJanelaFranquia(nome, filmesFranquia);
+                    } else {
+                        showToast('❌ Nenhum filme encontrado para esta franquia');
+                    }
+                });
+            });
+            
+        } catch (error) {
+            console.error('Erro ao carregar franquias:', error);
+            container.innerHTML = '<div class="text-center text-red-500 text-xs py-2">Erro ao carregar franquias</div>';
+        }
+    }
+
+    // ========== 10. INICIALIZAÇÃO ==========
+    function init() {
+        console.log('🎬 Inicializando sistema de classificação e franquias...');
+        
+        patchRenderGridParaFranquias();
+        patchSearchParaFranquias();
+        
+        setTimeout(() => {
+            criarInterfaceFranquiasAdmin();
+        }, 1000);
+        
+        const observer = new MutationObserver(() => {
+            const cards = document.querySelectorAll('#contentGrid .glass-card:not([data-franquia-checked])');
+            cards.forEach(card => {
+                const id = card.getAttribute('data-id');
+                if (id) {
+                    const item = filmes.find(f => f.id === id);
+                    if (item && item.franchise) {
+                        adicionarBotaoFranquia(card, item);
+                    }
+                }
+                card.setAttribute('data-franquia-checked', 'true');
+            });
+        });
+        
+        const grid = document.getElementById('contentGrid');
+        if (grid) {
+            observer.observe(grid, { childList: true, subtree: true });
+        }
+        
+        console.log('✅ Sistema de classificação e franquias ativado!');
+    }
+    
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+    
+    window.franquias = {
+        getFranquias,
+        salvarFranquia,
+        getFilmesDaFranquia,
+        abrirJanelaFranquia,
+        formatarAno
+    };
+    
+    console.log('🚀 Sistema de franquias carregado com botões sutis na borda da imagem!');
+})();
+
+
+
+
                 
          </script>  
         </body>
