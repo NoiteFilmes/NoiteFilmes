@@ -14538,7 +14538,7 @@ setTimeout(() => {
 
 
 // =====================================================
-// SISTEMA DE CLASSIFICAÇÃO POR GÊNEROS, ANOS E FRANQUIAS - BADGE POSICIONADO A 85%
+// SISTEMA DE CLASSIFICAÇÃO POR GÊNEROS, ANOS E FRANQUIAS - BADGE POSICIONADO A 80%
 // =====================================================
 (function() {
     console.log('🎬 Ativando sistema de classificação e franquias...');
@@ -14656,7 +14656,7 @@ setTimeout(() => {
         }
     }
 
-    // ========== 3. BADGE DE FRANQUIA POSICIONADO A 85% ==========
+    // ========== 3. BADGE DE FRANQUIA POSICIONADO A 80% ==========
     function adicionarBotaoFranquia(cardElement, item) {
         if (!item.franchise) return;
         if (cardElement.querySelector('.franchise-badge')) return;
@@ -14671,7 +14671,7 @@ setTimeout(() => {
             imgContainer.style.position = 'relative';
         }
         
-        // Criar badge - POSICIONADO A 85% (próximo ao fundo da imagem)
+        // Criar badge - POSICIONADO A 80%
         const badge = document.createElement('div');
         badge.className = 'franchise-badge';
         badge.innerHTML = `
@@ -15062,7 +15062,7 @@ setTimeout(() => {
         console.log('✅ search patch para franquias aplicado');
     }
 
-    // ========== 7. ADMIN - CRIAR FRANQUIAS ==========
+    // ========== 7. ADMIN - CRIAR FRANQUIAS (SÓ APARECE EM CANAIS, FILMES E SÉRIES) ==========
     function criarInterfaceFranquiasAdmin() {
         const adminPanel = document.getElementById('adminPanel');
         if (!adminPanel) return;
@@ -15125,6 +15125,51 @@ setTimeout(() => {
         });
         
         carregarFranquiasExistentes();
+        
+        // ========== CONTROLE DE VISIBILIDADE ==========
+        function atualizarVisibilidadeFranquia() {
+            const adminCanaisList = document.getElementById('adminCanaisList');
+            const adminFilmesList = document.getElementById('adminFilmesList');
+            const adminSeriesList = document.getElementById('adminSeriesList');
+            const adminDuplicadosList = document.getElementById('adminDuplicadosList');
+            const reportsList = document.getElementById('reportsList');
+            const adminUsersList = document.getElementById('adminUsersList');
+
+            const isContentTab = 
+                (adminCanaisList && !adminCanaisList.classList.contains('hidden')) ||
+                (adminFilmesList && !adminFilmesList.classList.contains('hidden')) ||
+                (adminSeriesList && !adminSeriesList.classList.contains('hidden'));
+
+            const isHiddenTab = 
+                (adminDuplicadosList && !adminDuplicadosList.classList.contains('hidden')) ||
+                (reportsList && !reportsList.classList.contains('hidden')) ||
+                (adminUsersList && !adminUsersList.classList.contains('hidden'));
+
+            franquiaArea.style.display = (isContentTab && !isHiddenTab) ? 'block' : 'none';
+        }
+
+        // Observar mudanças nas abas
+        const observer = new MutationObserver(() => {
+            setTimeout(atualizarVisibilidadeFranquia, 100);
+        });
+
+        ['adminCanaisList', 'adminFilmesList', 'adminSeriesList', 'adminDuplicadosList', 'reportsList', 'adminUsersList'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+        });
+
+        // Observar cliques nos botões das abas
+        ['adminTabCanais', 'adminTabFilmes', 'adminTabSeries', 'adminTabDuplicados', 'adminTabReportados', 'adminTabUsuarios'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) {
+                btn.addEventListener('click', () => {
+                    setTimeout(atualizarVisibilidadeFranquia, 150);
+                });
+            }
+        });
+
+        // Verificação inicial
+        setTimeout(atualizarVisibilidadeFranquia, 200);
     }
 
     // ========== 8. SELETOR DE FILMES ==========
@@ -15455,7 +15500,7 @@ setTimeout(() => {
         formatarAno
     };
     
-    console.log('🚀 Sistema de franquias carregado com badge posicionado a 85%!');
+    console.log('🚀 Sistema de franquias carregado com badge posicionado a 80%!');
 })();
 
 
