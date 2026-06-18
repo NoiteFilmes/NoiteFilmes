@@ -13566,15 +13566,15 @@ setTimeout(() => {
 
 // =====================================================
 // SCRIPT CORRIGIDO: UPLOAD DE IMAGEM COM POPUP
-// FIX: Erro 400 - Upload Preset e Parâmetros
+// CSS ISOLADO - SEM INTERFERÊNCIA EM OUTRAS FUNÇÕES
 // =====================================================
 (function() {
-    console.log('🎬 Iniciando sistema de upload com popup (versão corrigida)...');
+    console.log('🎬 Iniciando sistema de upload com popup (CSS isolado)...');
 
     // ========== 1. CONFIGURAÇÕES ==========
     const CONFIG = {
         CLOUDINARY_NAME: 'dama2etyy',
-        UPLOAD_PRESET: 'noitefilmes_unsigned', // VERIFIQUE SE ESTE PRESET EXISTE!
+        UPLOAD_PRESET: 'noitefilmes_unsigned',
         ASPECT_RATIO: '2:3',
         WIDTH: 500,
         HEIGHT: 750,
@@ -13583,12 +13583,245 @@ setTimeout(() => {
         ALLOWED_TYPES: ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/bmp', 'image/svg+xml']
     };
 
-    // ========== 2. VERIFICAR CONFIGURAÇÃO DO CLOUDINARY ==========
+    // ========== 2. CSS ISOLADO - APENAS PARA O POPUP ==========
+    function injectPopupStyles() {
+        if (document.getElementById('uploadPopupStyles')) return;
+
+        const style = document.createElement('style');
+        style.id = 'uploadPopupStyles';
+        style.textContent = `
+            /* ========== ESTILOS EXCLUSIVOS DO POPUP ========== */
+            /* NENHUM SELETOR GLOBAL - TUDO COM IDs E CLASSES ESPECÍFICAS */
+            
+            #uploadPopupModal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.85);
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                display: none;
+                align-items: center;
+                justify-content: center;
+                z-index: 100000;
+                animation: uploadFadeInPopup 0.3s ease-out;
+            }
+            
+            #uploadPopupModal .upload-popup-content {
+                animation: uploadSlideInPopup 0.3s ease-out;
+                background: rgba(25, 25, 45, 0.98);
+                backdrop-filter: blur(24px);
+                -webkit-backdrop-filter: blur(24px);
+                border-radius: 32px;
+                padding: 30px;
+                width: 92%;
+                max-width: 550px;
+                max-height: 90vh;
+                overflow-y: auto;
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+                position: relative;
+            }
+            
+            #uploadPopupModal .upload-drop-zone-highlight {
+                border-color: #a855f7 !important;
+                background: rgba(168, 85, 247, 0.15) !important;
+            }
+            
+            #uploadPopupModal .upload-progress-bar {
+                transition: width 0.3s ease;
+            }
+            
+            #uploadPopupModal .upload-popup-close-btn {
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                border: none;
+                color: white;
+                font-size: 18px;
+                cursor: pointer;
+                transition: all 0.2s;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            #uploadPopupModal .upload-popup-close-btn:hover {
+                background: rgba(255, 255, 255, 0.2);
+                transform: rotate(90deg);
+            }
+            
+            #uploadPopupModal .upload-preview-image {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                display: block;
+            }
+            
+            #uploadPopupModal .upload-remove-image-btn {
+                position: absolute;
+                top: 8px;
+                right: 8px;
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                background: rgba(239, 68, 68, 0.9);
+                border: none;
+                color: white;
+                cursor: pointer;
+                font-size: 14px;
+                transition: all 0.2s;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            }
+            
+            #uploadPopupModal .upload-remove-image-btn:hover {
+                transform: scale(1.1);
+                background: #ef4444;
+            }
+            
+            #uploadPopupModal .upload-btn-primary {
+                background: linear-gradient(135deg, #a855f7, #ec4899);
+                border: none;
+                border-radius: 14px;
+                padding: 10px 28px;
+                color: white;
+                font-size: 13px;
+                font-weight: 700;
+                cursor: pointer;
+                transition: all 0.2s;
+                box-shadow: 0 4px 20px rgba(168, 85, 247, 0.3);
+            }
+            
+            #uploadPopupModal .upload-btn-primary:hover:not(:disabled) {
+                transform: scale(1.02);
+                box-shadow: 0 4px 30px rgba(168, 85, 247, 0.5);
+            }
+            
+            #uploadPopupModal .upload-btn-primary:disabled {
+                opacity: 0.6;
+                cursor: not-allowed;
+                transform: none;
+            }
+            
+            #uploadPopupModal .upload-btn-secondary {
+                background: rgba(255, 255, 255, 0.08);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 14px;
+                padding: 10px 24px;
+                color: rgba(255, 255, 255, 0.6);
+                font-size: 13px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+            
+            #uploadPopupModal .upload-btn-secondary:hover {
+                background: rgba(255, 255, 255, 0.15);
+            }
+            
+            #uploadPopupModal .upload-btn-success {
+                background: linear-gradient(135deg, #22c55e, #16a34a);
+                border: none;
+                border-radius: 12px;
+                padding: 8px 16px;
+                color: white;
+                font-size: 12px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+            
+            #uploadPopupModal .upload-btn-success:hover {
+                transform: scale(1.02);
+            }
+            
+            /* Keyframes específicos do popup */
+            @keyframes uploadFadeInPopup {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            
+            @keyframes uploadSlideInPopup {
+                from { opacity: 0; transform: translateY(30px) scale(0.95); }
+                to { opacity: 1; transform: translateY(0) scale(1); }
+            }
+            
+            /* Toast específico do upload */
+            .upload-toast-popup {
+                position: fixed;
+                bottom: 100px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0, 0, 0, 0.92);
+                backdrop-filter: blur(20px);
+                color: white;
+                padding: 10px 24px;
+                border-radius: 60px;
+                z-index: 100001;
+                font-size: 13px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+                animation: uploadFadeInToast 0.3s ease-out;
+                max-width: 90%;
+            }
+            
+            @keyframes uploadFadeInToast {
+                from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+                to { opacity: 1; transform: translateX(-50%) translateY(0); }
+            }
+            
+            /* BOTÃO DE UPLOAD NO ADMIN - SEM INTERFERÊNCIA */
+            #uploadPopupContainer {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                flex-wrap: wrap;
+                margin-top: 8px;
+            }
+            
+            #btnUploadImagemPopup {
+                background: linear-gradient(135deg, #a855f7, #ec4899);
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 9999px;
+                font-size: 12px;
+                font-weight: 700;
+                cursor: pointer;
+                transition: all 0.2s;
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                box-shadow: 0 2px 10px rgba(168, 85, 247, 0.3);
+            }
+            
+            #btnUploadImagemPopup:hover {
+                transform: scale(1.05);
+                box-shadow: 0 4px 20px rgba(168, 85, 247, 0.5);
+            }
+            
+            #uploadPopupContainer .upload-help-text {
+                font-size: 10px;
+                color: rgba(255, 255, 255, 0.4);
+            }
+            
+            /* ========== NENHUM SELETOR GLOBAL ========== */
+            /* NADA AQUI AFETA .profile-picture, .avatar, .user-card, etc. */
+        `;
+        document.head.appendChild(style);
+        console.log('✅ CSS do popup isolado (sem interferência)');
+    }
+
+    // ========== 3. VERIFICAR CLOUDINARY ==========
     async function verificarCloudinary() {
         try {
-            // Testa se o preset existe fazendo um upload de teste
             const testFormData = new FormData();
-            // Cria um blob vazio para teste
             const testBlob = new Blob(['test'], { type: 'text/plain' });
             testFormData.append('file', testBlob, 'test.txt');
             testFormData.append('upload_preset', CONFIG.UPLOAD_PRESET);
@@ -13600,29 +13833,19 @@ setTimeout(() => {
             
             if (response.status === 400) {
                 const errorData = await response.json();
-                console.error('❌ Erro no Cloudinary:', errorData);
-                
-                // Verifica se é erro de preset
-                if (errorData.error && errorData.error.message) {
-                    if (errorData.error.message.includes('upload preset')) {
-                        showToastPopup('⚠️ O upload_preset "' + CONFIG.UPLOAD_PRESET + '" não existe ou está incorreto!');
-                        showToastPopup('📌 Verifique no Console do Cloudinary: Settings → Upload → Upload Presets');
-                    } else {
-                        showToastPopup('❌ Erro no Cloudinary: ' + errorData.error.message);
-                    }
-                }
+                console.warn('⚠️ Cloudinary:', errorData);
                 return false;
             }
             
             console.log('✅ Cloudinary configurado corretamente!');
             return true;
         } catch (error) {
-            console.warn('Não foi possível verificar Cloudinary:', error);
-            return true; // Assume que está funcionando
+            console.warn('⚠️ Não foi possível verificar Cloudinary:', error);
+            return true;
         }
     }
 
-    // ========== 3. CRIAR BOTÃO "ENVIAR IMAGEM" ==========
+    // ========== 4. CRIAR BOTÃO ==========
     function adicionarBotaoUpload() {
         const interval = setInterval(() => {
             const adminFormArea = document.getElementById('adminFormArea');
@@ -13638,24 +13861,26 @@ setTimeout(() => {
 
             const container = document.createElement('div');
             container.id = 'uploadPopupContainer';
-            container.className = 'mt-2 flex items-center gap-2 flex-wrap';
-            container.style.display = 'none';
 
             const btnUpload = document.createElement('button');
             btnUpload.id = 'btnUploadImagemPopup';
-            btnUpload.className = 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-xs font-bold py-2 px-4 rounded-full transition transform hover:scale-105 shadow-lg flex items-center gap-2 ripple-btn';
             btnUpload.innerHTML = `
                 <i class="fas fa-cloud-upload-alt"></i>
                 <span>Enviar Imagem</span>
             `;
+            btnUpload.title = 'Clique para fazer upload de uma imagem personalizada';
 
             const helpText = document.createElement('span');
-            helpText.className = 'text-[10px] text-gray-400';
-            helpText.innerHTML = 'JPG, PNG, WebP • 500x750 • 2:3';
+            helpText.className = 'upload-help-text';
+            helpText.textContent = 'JPG, PNG, WebP • 500x750 • 2:3';
 
             container.appendChild(btnUpload);
             container.appendChild(helpText);
-            thumbInput.parentNode.insertBefore(container, thumbInput.nextSibling);
+
+            // Inserir após o campo de miniatura
+            if (thumbInput.parentNode) {
+                thumbInput.parentNode.insertBefore(container, thumbInput.nextSibling);
+            }
 
             btnUpload.addEventListener('click', abrirPopupUpload);
             configurarVisibilidade();
@@ -13665,70 +13890,20 @@ setTimeout(() => {
         }, 500);
     }
 
-    // ========== 4. CRIAR O POPUP ==========
+    // ========== 5. CRIAR POPUP ==========
     function criarPopupUpload() {
         if (document.getElementById('uploadPopupModal')) {
             return document.getElementById('uploadPopupModal');
         }
 
+        // Injetar CSS primeiro
+        injectPopupStyles();
+
         const overlay = document.createElement('div');
         overlay.id = 'uploadPopupModal';
-        overlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 100000;
-            animation: fadeInPopup 0.3s ease-out;
-        `;
-
-        if (!document.getElementById('uploadPopupKeyframes')) {
-            const style = document.createElement('style');
-            style.id = 'uploadPopupKeyframes';
-            style.textContent = `
-                @keyframes fadeInPopup {
-                    from { opacity: 0; transform: scale(0.95); }
-                    to { opacity: 1; transform: scale(1); }
-                }
-                @keyframes slideInPopup {
-                    from { opacity: 0; transform: translateY(30px) scale(0.95); }
-                    to { opacity: 1; transform: translateY(0) scale(1); }
-                }
-                .upload-popup-content {
-                    animation: slideInPopup 0.3s ease-out;
-                }
-                .upload-drop-zone-highlight {
-                    border-color: #a855f7 !important;
-                    background: rgba(168, 85, 247, 0.15) !important;
-                }
-                .upload-progress-bar {
-                    transition: width 0.3s ease;
-                }
-            `;
-            document.head.appendChild(style);
-        }
 
         overlay.innerHTML = `
-            <div class="upload-popup-content" style="
-                background: rgba(25, 25, 45, 0.98);
-                backdrop-filter: blur(24px);
-                border-radius: 32px;
-                padding: 30px;
-                width: 92%;
-                max-width: 550px;
-                max-height: 90vh;
-                overflow-y: auto;
-                border: 1px solid rgba(255, 255, 255, 0.15);
-                box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
-                position: relative;
-            ">
+            <div class="upload-popup-content">
                 <!-- Cabeçalho -->
                 <div style="
                     display: flex;
@@ -13762,20 +13937,7 @@ setTimeout(() => {
                             </p>
                         </div>
                     </div>
-                    <button id="closeUploadPopup" style="
-                        width: 36px;
-                        height: 36px;
-                        border-radius: 50%;
-                        background: rgba(255, 255, 255, 0.1);
-                        border: none;
-                        color: white;
-                        font-size: 18px;
-                        cursor: pointer;
-                        transition: all 0.2s;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                    ">
+                    <button class="upload-popup-close-btn" id="closeUploadPopup">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -13863,30 +14025,8 @@ setTimeout(() => {
                     position: relative;
                 ">
                     <div style="position: relative; aspect-ratio: 2/3; max-height: 300px;">
-                        <img id="previewImagePopup" style="
-                            width: 100%;
-                            height: 100%;
-                            object-fit: cover;
-                            display: block;
-                        ">
-                        <button id="removeImagePopup" style="
-                            position: absolute;
-                            top: 8px;
-                            right: 8px;
-                            width: 32px;
-                            height: 32px;
-                            border-radius: 50%;
-                            background: rgba(239, 68, 68, 0.9);
-                            border: none;
-                            color: white;
-                            cursor: pointer;
-                            font-size: 14px;
-                            transition: all 0.2s;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-                        ">
+                        <img id="previewImagePopup" class="upload-preview-image">
+                        <button class="upload-remove-image-btn" id="removeImagePopup">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -13920,12 +14060,11 @@ setTimeout(() => {
                         border-radius: 10px;
                         overflow: hidden;
                     ">
-                        <div id="progressBarPopup" style="
+                        <div id="progressBarPopup" class="upload-progress-bar" style="
                             height: 100%;
                             width: 0%;
                             background: linear-gradient(90deg, #a855f7, #ec4899);
                             border-radius: 10px;
-                            transition: width 0.3s ease;
                         "></div>
                     </div>
                     <div id="progressDetailsPopup" style="
@@ -13936,7 +14075,7 @@ setTimeout(() => {
                     "></div>
                 </div>
 
-                <!-- Resultado do upload -->
+                <!-- Resultado -->
                 <div id="resultContainerPopup" style="display: none; margin-top: 15px;">
                     <div style="
                         background: rgba(34, 197, 94, 0.15);
@@ -14053,32 +14192,10 @@ setTimeout(() => {
                     justify-content: flex-end;
                     gap: 10px;
                 ">
-                    <button id="cancelUploadPopup" style="
-                        background: rgba(255, 255, 255, 0.08);
-                        border: 1px solid rgba(255, 255, 255, 0.1);
-                        border-radius: 14px;
-                        padding: 10px 24px;
-                        color: rgba(255, 255, 255, 0.6);
-                        font-size: 13px;
-                        font-weight: 600;
-                        cursor: pointer;
-                        transition: all 0.2s;
-                    ">
+                    <button class="upload-btn-secondary" id="cancelUploadPopup">
                         Cancelar
                     </button>
-                    <button id="confirmUploadPopup" style="
-                        background: linear-gradient(135deg, #a855f7, #ec4899);
-                        border: none;
-                        border-radius: 14px;
-                        padding: 10px 28px;
-                        color: white;
-                        font-size: 13px;
-                        font-weight: 700;
-                        cursor: pointer;
-                        transition: all 0.2s;
-                        box-shadow: 0 4px 20px rgba(168, 85, 247, 0.3);
-                        display: none;
-                    ">
+                    <button class="upload-btn-primary" id="confirmUploadPopup" style="display: none;">
                         <i class="fas fa-upload mr-2"></i> Enviar Imagem
                     </button>
                 </div>
@@ -14091,7 +14208,7 @@ setTimeout(() => {
         return overlay;
     }
 
-    // ========== 5. CONFIGURAR EVENTOS DO POPUP ==========
+    // ========== 6. CONFIGURAR EVENTOS ==========
     function configurarEventosPopup() {
         const popup = document.getElementById('uploadPopupModal');
         if (!popup) return;
@@ -14125,7 +14242,6 @@ setTimeout(() => {
 
         let selectedFile = null;
         let uploadedUrl = '';
-        let lastError = '';
 
         function fecharPopup() {
             popup.style.display = 'none';
@@ -14145,7 +14261,7 @@ setTimeout(() => {
             dropZone.style.borderColor = 'rgba(255, 255, 255, 0.2)';
             confirmBtn.disabled = false;
             confirmBtn.innerHTML = '<i class="fas fa-upload mr-2"></i> Enviar Imagem';
-            const titulo = document.getElementById('itemTitle').value.trim();
+            const titulo = document.getElementById('itemTitle')?.value?.trim();
             if (titulo) {
                 fileNameInput.placeholder = `Ex: ${gerarNomeArquivo(titulo)}`;
             }
@@ -14158,7 +14274,7 @@ setTimeout(() => {
         });
 
         gerarNomeBtn.addEventListener('click', () => {
-            const titulo = document.getElementById('itemTitle').value.trim();
+            const titulo = document.getElementById('itemTitle')?.value?.trim();
             if (titulo) {
                 const nome = gerarNomeArquivo(titulo);
                 fileNameInput.value = nome;
@@ -14199,7 +14315,7 @@ setTimeout(() => {
                     errorContainer.style.display = 'none';
                     resultContainer.style.display = 'none';
                     if (!fileNameInput.value.trim()) {
-                        const titulo = document.getElementById('itemTitle').value.trim() || 'imagem';
+                        const titulo = document.getElementById('itemTitle')?.value?.trim() || 'imagem';
                         fileNameInput.value = gerarNomeArquivo(titulo);
                     }
                 } else {
@@ -14210,7 +14326,7 @@ setTimeout(() => {
 
         removeImageBtn.addEventListener('click', resetarEstado);
 
-        // ========== FUNÇÃO PRINCIPAL DE UPLOAD CORRIGIDA ==========
+        // ========== UPLOAD ==========
         confirmBtn.addEventListener('click', async () => {
             if (!selectedFile) return;
 
@@ -14227,47 +14343,35 @@ setTimeout(() => {
             progressDetails.textContent = 'Preparando...';
 
             try {
-                // 🔥 UPLOAD CORRIGIDO - SEM PARÂMETROS ADICIONAIS PROBLEMÁTICOS
                 const url = await uploadParaCloudinarySimples(selectedFile, nomeArquivo);
-                
                 uploadedUrl = url;
                 progressContainer.style.display = 'none';
                 resultContainer.style.display = 'block';
                 resultUrl.textContent = url;
                 resultFileName.textContent = nomeArquivo + '.webp';
                 showToastPopup('✅ Imagem enviada com sucesso!');
-
                 confirmBtn.disabled = false;
                 confirmBtn.innerHTML = '<i class="fas fa-upload mr-2"></i> Enviar Imagem';
-
             } catch (error) {
                 console.error('Erro no upload:', error);
-                lastError = error.message || 'Erro desconhecido';
-                
-                // Mostrar erro detalhado
                 errorContainer.style.display = 'block';
-                errorMessage.textContent = lastError;
-                
-                // Se for erro 400, mostrar dicas
-                if (lastError.includes('400')) {
+                errorMessage.textContent = error.message || 'Erro desconhecido';
+                if (error.message.includes('400')) {
                     errorMessage.innerHTML = `
                         <strong>Erro 400 - Upload Preset inválido</strong><br>
                         <span style="font-size: 11px; color: rgba(255,255,255,0.5);">
                             1. Verifique se o upload_preset <strong>"${CONFIG.UPLOAD_PRESET}"</strong> existe no Cloudinary<br>
                             2. Acesse: Cloudinary Dashboard → Settings → Upload → Upload Presets<br>
-                            3. Crie um preset com o nome <strong>"noitefilmes_unsigned"</strong> e marque "Unsigned"<br>
-                            4. Ou altere o nome do preset no código
+                            3. Crie um preset com o nome <strong>"noitefilmes_unsigned"</strong> e marque "Unsigned"
                         </span>
                     `;
                 }
-                
                 progressContainer.style.display = 'none';
                 confirmBtn.disabled = false;
                 confirmBtn.innerHTML = '<i class="fas fa-upload mr-2"></i> Enviar Imagem';
             }
         });
 
-        // ========== RETRY ==========
         retryBtn.addEventListener('click', () => {
             errorContainer.style.display = 'none';
             confirmBtn.click();
@@ -14304,19 +14408,14 @@ setTimeout(() => {
         uploadAnotherBtn.addEventListener('click', resetarEstado);
     }
 
-    // ========== 6. FUNÇÃO DE UPLOAD SIMPLES E CORRIGIDA ==========
+    // ========== 7. UPLOAD PARA CLOUDINARY ==========
     async function uploadParaCloudinarySimples(file, nomeArquivo) {
         return new Promise((resolve, reject) => {
             const formData = new FormData();
             formData.append('file', file);
             formData.append('upload_preset', CONFIG.UPLOAD_PRESET);
             
-            // 🔥 IMPORTANTE: SÓ ENVIAR PARÂMETROS BÁSICOS PARA EVITAR ERRO 400
-            // As transformações serão aplicadas via URL, não via parâmetros
-            
             const xhr = new XMLHttpRequest();
-            
-            // 🔥 URL CORRETA COM TRANSFORMAÇÕES NA URL
             const uploadUrl = `https://api.cloudinary.com/v1_1/${CONFIG.CLOUDINARY_NAME}/image/upload`;
             
             xhr.open('POST', uploadUrl, true);
@@ -14352,9 +14451,7 @@ setTimeout(() => {
                 if (xhr.status === 200) {
                     try {
                         const response = JSON.parse(xhr.responseText);
-                        // 🔥 APLICAR TRANSFORMAÇÕES NA URL RETORNADA
                         let finalUrl = response.secure_url;
-                        // Adicionar transformações na URL
                         finalUrl = finalUrl.replace(
                             '/upload/',
                             `/upload/f_webp,c_fill,ar_2:3,w_${CONFIG.WIDTH},h_${CONFIG.HEIGHT}/`
@@ -14364,7 +14461,6 @@ setTimeout(() => {
                         reject(new Error('Erro ao processar resposta do servidor: ' + error.message));
                     }
                 } else {
-                    // 🔥 LER MENSAGEM DE ERRO DO CLOUDINARY
                     let errorMsg = `Erro ${xhr.status}`;
                     try {
                         const errorResponse = JSON.parse(xhr.responseText);
@@ -14386,7 +14482,7 @@ setTimeout(() => {
         });
     }
 
-    // ========== 7. FUNÇÕES AUXILIARES ==========
+    // ========== 8. FUNÇÕES AUXILIARES ==========
     function mostrarPreview(file) {
         const previewContainer = document.getElementById('previewContainerPopup');
         const previewImage = document.getElementById('previewImagePopup');
@@ -14437,29 +14533,12 @@ setTimeout(() => {
     }
 
     function showToastPopup(msg) {
-        const existing = document.querySelector('.toast-popup-upload');
+        const existing = document.querySelector('.upload-toast-popup');
         if (existing) existing.remove();
 
         let toast = document.createElement('div');
-        toast.className = 'toast-popup-upload';
+        toast.className = 'upload-toast-popup';
         toast.innerHTML = msg;
-        toast.style.cssText = `
-            position: fixed;
-            bottom: 100px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.92);
-            backdrop-filter: blur(20px);
-            color: white;
-            padding: 10px 24px;
-            border-radius: 60px;
-            z-index: 100001;
-            font-size: 13px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
-            animation: fadeInToast 0.3s ease-out;
-            max-width: 90%;
-        `;
         document.body.appendChild(toast);
         setTimeout(() => {
             toast.style.transition = 'opacity 0.3s ease';
@@ -14471,7 +14550,7 @@ setTimeout(() => {
     function abrirPopupUpload() {
         const popup = criarPopupUpload();
         if (popup) {
-            const titulo = document.getElementById('itemTitle').value.trim();
+            const titulo = document.getElementById('itemTitle')?.value?.trim();
             const fileNameInput = document.getElementById('uploadFileName');
             if (fileNameInput && titulo) {
                 fileNameInput.placeholder = `Ex: ${gerarNomeArquivo(titulo)}`;
@@ -14532,29 +14611,24 @@ setTimeout(() => {
         setTimeout(atualizarVisibilidade, 300);
     }
 
-    // ========== 8. INICIALIZAÇÃO ==========
+    // ========== 9. INICIALIZAÇÃO ==========
     function init() {
-        console.log('🎬 Iniciando sistema de upload com popup (versão corrigida)...');
+        console.log('🎬 Iniciando sistema de upload com popup (CSS isolado)...');
+        injectPopupStyles();
         adicionarBotaoUpload();
-        
-        // Verificar Cloudinary após carregar
-        setTimeout(() => {
-            verificarCloudinary();
-        }, 2000);
-        
+        setTimeout(verificarCloudinary, 2000);
         console.log('✅ Sistema de upload com popup inicializado!');
-        console.log('📌 IMPORTANTE: Verifique se o upload_preset "' + CONFIG.UPLOAD_PRESET + '" existe no Cloudinary');
-        console.log('📌 Acesse: Cloudinary Dashboard → Settings → Upload → Upload Presets');
+        console.log('📌 CSS isolado - NENHUMA interferência em outras funções');
     }
 
-    // ========== 9. INICIAR ==========
+    // ========== 10. INICIAR ==========
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
         init();
     }
 
-    // ========== 10. EXPOR FUNÇÕES ==========
+    // ========== 11. EXPOR FUNÇÕES ==========
     window.uploadPopup = {
         abrir: abrirPopupUpload,
         fechar: () => {
@@ -14568,7 +14642,7 @@ setTimeout(() => {
     };
 
     console.log('🚀 Script de upload com popup carregado!');
-    console.log('ℹ️ Use window.uploadPopup.verificar() para testar a conexão com Cloudinary.');
+    console.log('ℹ️ Use window.uploadPopup.verificar() para testar a conexão.');
 })();
 
                 
