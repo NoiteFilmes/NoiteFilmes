@@ -14538,7 +14538,7 @@ setTimeout(() => {
 
 
 // =====================================================
-// SISTEMA DE CLASSIFICAÇÃO POR GÊNEROS, ANOS E FRANQUIAS - VERSÃO COM BOTÃO SUTIL NA BORDA DA IMAGEM
+// SISTEMA DE CLASSIFICAÇÃO POR GÊNEROS, ANOS E FRANQUIAS - BADGE POSICIONADO A 85%
 // =====================================================
 (function() {
     console.log('🎬 Ativando sistema de classificação e franquias...');
@@ -14656,74 +14656,71 @@ setTimeout(() => {
         }
     }
 
-    // ========== 3. BOTÃO DE FRANQUIA NA BORDA DA IMAGEM ==========
+    // ========== 3. BADGE DE FRANQUIA POSICIONADO A 85% ==========
     function adicionarBotaoFranquia(cardElement, item) {
         if (!item.franchise) return;
         if (cardElement.querySelector('.franchise-badge')) return;
         
-        // Primeiro, encontrar a imagem dentro do card
+        // Encontrar a imagem dentro do card
         const img = cardElement.querySelector('img');
         if (!img) return;
         
-        // Envolver a imagem em um container relativo se não tiver
+        // Encontrar o container da imagem
         let imgContainer = img.parentElement;
         if (!imgContainer.style.position || imgContainer.style.position === 'static') {
             imgContainer.style.position = 'relative';
         }
         
-        // Criar badge sutil na borda inferior da imagem
+        // Criar badge - POSICIONADO A 85% (próximo ao fundo da imagem)
         const badge = document.createElement('div');
         badge.className = 'franchise-badge';
         badge.innerHTML = `
-            <i class="fas fa-film" style="font-size: 7px; color: #e50914; flex-shrink: 0;"></i>
-            <span style="font-size: 7px; font-weight: 500; color: rgba(255,255,255,0.6);">Franquia:</span>
-            <span style="font-size: 7px; font-weight: 600; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60px;">${escapeHtml(item.franchise)}</span>
+            <i class="fas fa-film" style="font-size: 9px; color: #e50914; flex-shrink: 0;"></i>
+            <span style="font-size: 9px; font-weight: 500; color: rgba(255,255,255,0.7);">Franquia:</span>
+            <span style="font-size: 9px; font-weight: 600; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70px;">${escapeHtml(item.franchise)}</span>
         `;
         
         badge.style.cssText = `
             position: absolute;
-            bottom: -1px;
+            top: 80%;
             left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.75);
+            transform: translate(-50%, -50%) scale(1);
+            background: rgba(0, 0, 0, 0.7);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 0 0 12px 12px;
-            padding: 2px 12px 3px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            padding: 5px 14px 6px 14px;
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 5px;
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
             z-index: 6;
-            min-height: 18px;
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+            min-height: 28px;
+            box-shadow: 0 3px 20px rgba(0, 0, 0, 0.5);
             width: auto;
             max-width: 90%;
             pointer-events: auto;
-            border-top: none;
         `;
         
         // Hover com expansão suave
         badge.addEventListener('mouseenter', () => {
             badge.style.background = 'rgba(229, 9, 20, 0.9)';
-            badge.style.borderColor = 'rgba(229, 9, 20, 0.4)';
-            badge.style.transform = 'translateX(-50%) scale(1.05)';
-            badge.style.boxShadow = '0 4px 20px rgba(229, 9, 20, 0.3)';
+            badge.style.borderColor = 'rgba(229, 9, 20, 0.5)';
+            badge.style.transform = 'translate(-50%, -50%) scale(1.08)';
+            badge.style.boxShadow = '0 6px 30px rgba(229, 9, 20, 0.4)';
             const span = badge.querySelector('span:last-child');
-            if (span) span.style.maxWidth = '120px';
-            badge.style.borderRadius = '0 0 14px 14px';
+            if (span) span.style.maxWidth = '150px';
         });
         
         badge.addEventListener('mouseleave', () => {
-            badge.style.background = 'rgba(0, 0, 0, 0.75)';
-            badge.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-            badge.style.transform = 'translateX(-50%) scale(1)';
-            badge.style.boxShadow = '0 2px 12px rgba(0, 0, 0, 0.3)';
+            badge.style.background = 'rgba(0, 0, 0, 0.7)';
+            badge.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+            badge.style.transform = 'translate(-50%, -50%) scale(1)';
+            badge.style.boxShadow = '0 3px 20px rgba(0, 0, 0, 0.5)';
             const span = badge.querySelector('span:last-child');
-            if (span) span.style.maxWidth = '60px';
-            badge.style.borderRadius = '0 0 12px 12px';
+            if (span) span.style.maxWidth = '70px';
         });
         
         badge.addEventListener('click', async (e) => {
@@ -14731,14 +14728,14 @@ setTimeout(() => {
             e.preventDefault();
             
             // Efeito de clique
-            badge.style.transform = 'translateX(-50%) scale(0.95)';
-            setTimeout(() => badge.style.transform = 'translateX(-50%) scale(1)', 150);
+            badge.style.transform = 'translate(-50%, -50%) scale(0.92)';
+            setTimeout(() => badge.style.transform = 'translate(-50%, -50%) scale(1)', 150);
             
             // Mostrar loading no badge
             const originalHtml = badge.innerHTML;
-            badge.innerHTML = `<i class="fas fa-spinner fa-spin" style="font-size: 10px; color: white; margin: 0 auto;"></i>`;
+            badge.innerHTML = `<i class="fas fa-spinner fa-spin" style="font-size: 11px; color: white; margin: 0 auto;"></i>`;
             badge.style.justifyContent = 'center';
-            badge.style.padding = '2px 16px 3px 16px';
+            badge.style.padding = '5px 20px 6px 20px';
             
             try {
                 const filmesFranquia = await getFilmesDaFranquia(item.franchise);
@@ -14747,7 +14744,7 @@ setTimeout(() => {
                     showToast('❌ Nenhum filme encontrado para esta franquia');
                     badge.innerHTML = originalHtml;
                     badge.style.justifyContent = 'flex-start';
-                    badge.style.padding = '2px 12px 3px 12px';
+                    badge.style.padding = '5px 14px 6px 14px';
                     return;
                 }
                 
@@ -14760,13 +14757,11 @@ setTimeout(() => {
             
             badge.innerHTML = originalHtml;
             badge.style.justifyContent = 'flex-start';
-            badge.style.padding = '2px 12px 3px 12px';
+            badge.style.padding = '5px 14px 6px 14px';
         });
         
-        // Adicionar ao container da imagem (não ao card inteiro)
+        // Adicionar ao container da imagem
         imgContainer.appendChild(badge);
-        
-        // Garantir que o card tenha position relative
         cardElement.style.position = 'relative';
     }
 
@@ -15460,7 +15455,7 @@ setTimeout(() => {
         formatarAno
     };
     
-    console.log('🚀 Sistema de franquias carregado com botões sutis na borda da imagem!');
+    console.log('🚀 Sistema de franquias carregado com badge posicionado a 85%!');
 })();
 
 
