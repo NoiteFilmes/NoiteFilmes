@@ -14998,7 +14998,7 @@ setTimeout(() => {
         }
     }
 
-    // ========== 5. JANELA COM TODAS AS FRANQUIAS (CORRIGIDA - MESMO LAYOUT DA SEGUNDA POPUP) ==========
+    // ========== 5. JANELA COM TODAS AS FRANQUIAS (COM IMAGENS ROTATIVAS) ==========
     let franquiaRotateIntervals = [];
 
     async function abrirJanelaTodasFranquias() {
@@ -15016,7 +15016,6 @@ setTimeout(() => {
         const existing = document.querySelector('.todas-franquias-overlay');
         if (existing) existing.remove();
         
-        // ========== MESMA ESTRUTURA DA SEGUNDA POPUP ==========
         const overlay = document.createElement('div');
         overlay.className = 'todas-franquias-overlay';
         overlay.style.cssText = `
@@ -15091,7 +15090,6 @@ setTimeout(() => {
                 </button>
             </div>
             
-            <!-- ========== GRID IGUAL AO DA SEGUNDA POPUP ========== -->
             <div style="
                 flex: 1;
                 overflow-y: auto;
@@ -15164,7 +15162,6 @@ setTimeout(() => {
                 }).join('')}
             </div>
             
-            <!-- ========== RODAPÉ IGUAL AO DA SEGUNDA POPUP ========== -->
             <div style="
                 padding: 12px 20px;
                 border-top: 1px solid rgba(255, 255, 255, 0.05);
@@ -15272,79 +15269,69 @@ setTimeout(() => {
         });
     }
 
-    // ========== 6. BOTÃO "FRANQUIAS" NA TELA ==========
+    // ========== 6. BOTÃO "FRANQUIAS" NA LINHA DO TOP 10 ==========
     function adicionarBotaoFranquiasTela() {
         // Verificar se já existe
         if (document.getElementById('btnFranquiasTela')) return;
         
+        // ========== BUSCAR A LINHA DO "TOP 10 MAIS ASSISTIDOS" ==========
+        // Procurar a div que contém o título e o botão
+        const containerTop10 = document.querySelector('.container.mx-auto.px-3.mt-2 .flex.items-center.gap-2.mb-2');
+        
+        if (!containerTop10) {
+            console.warn('⚠️ Container do Top 10 não encontrado, tentando novamente...');
+            setTimeout(adicionarBotaoFranquiasTela, 500);
+            return;
+        }
+        
+        // Verificar se o botão já foi adicionado
+        if (containerTop10.querySelector('#btnFranquiasTela')) return;
+        
+        // ========== CRIAR O BOTÃO ==========
         const btn = document.createElement('button');
         btn.id = 'btnFranquiasTela';
         btn.className = 'ripple-btn';
         btn.innerHTML = `
-            <i class="fas fa-film" style="font-size: 12px;"></i>
-            <span style="font-size: 10px; font-weight: 600;">Franquias</span>
+            <i class="fas fa-film" style="font-size: 11px;"></i>
+            <span style="font-size: 9px; font-weight: 600;">Franquias</span>
         `;
         btn.style.cssText = `
-            position: fixed;
-            bottom: 140px;
-            right: 20px;
             background: linear-gradient(135deg, #e50914, #b20710);
             border: none;
             border-radius: 30px;
-            padding: 8px 16px;
+            padding: 4px 14px;
             color: white;
             cursor: pointer;
-            z-index: 1000;
-            box-shadow: 0 4px 20px rgba(229, 9, 20, 0.4);
+            box-shadow: 0 2px 12px rgba(229, 9, 20, 0.4);
             transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.15);
+            height: 100%;
+            min-height: 28px;
+            flex-shrink: 0;
+            margin-left: auto;
         `;
         
         btn.addEventListener('mouseenter', () => {
             btn.style.transform = 'scale(1.05)';
-            btn.style.boxShadow = '0 6px 30px rgba(229, 9, 20, 0.6)';
+            btn.style.boxShadow = '0 4px 20px rgba(229, 9, 20, 0.6)';
         });
         btn.addEventListener('mouseleave', () => {
             btn.style.transform = 'scale(1)';
-            btn.style.boxShadow = '0 4px 20px rgba(229, 9, 20, 0.4)';
+            btn.style.boxShadow = '0 2px 12px rgba(229, 9, 20, 0.4)';
         });
         
         btn.addEventListener('click', abrirJanelaTodasFranquias);
         
-        document.body.appendChild(btn);
+        // ========== ADICIONAR O BOTÃO NA LINHA ==========
+        // O container já tem display:flex e justify-content:space-between
+        // Vamos adicionar o botão no final da linha (lado direito)
+        containerTop10.appendChild(btn);
         
-        // Controlar visibilidade do botão
-        function atualizarVisibilidadeBtnFranquias() {
-            const secaoAtiva = document.querySelector('.section.active-section');
-            if (secaoAtiva) {
-                const id = secaoAtiva.id;
-                if (id === 'filmesSection' || id === 'seriesSection' || id === 'canaisSection' || id === 'searchSection') {
-                    btn.style.display = 'flex';
-                } else {
-                    btn.style.display = 'none';
-                }
-            } else {
-                btn.style.display = 'none';
-            }
-        }
-        
-        // Observar mudanças de seção
-        const observer = new MutationObserver(() => {
-            setTimeout(atualizarVisibilidadeBtnFranquias, 100);
-        });
-        
-        document.querySelectorAll('.section').forEach(section => {
-            observer.observe(section, { attributes: true, attributeFilter: ['class'] });
-        });
-        
-        // Verificação inicial
-        setTimeout(atualizarVisibilidadeBtnFranquias, 300);
-        
-        console.log('✅ Botão "Franquias" adicionado à tela');
+        console.log('✅ Botão "Franquias" adicionado à linha do Top 10');
     }
 
     // ========== 7. PATCH DO RENDER GRID ==========
