@@ -14078,6 +14078,464 @@ setTimeout(() => {
 
 
 
+// =====================================================
+// SCRIPT OTIMIZADO: PROPORÇÃO 2:3 PARA CARDS APENAS
+// SEM INTERFERÊNCIA EM AVATARES/USUÁRIOS
+// =====================================================
+(function() {
+    console.log('🎬 Iniciando script de padronização 2:3 (sem interferência)...');
+
+    // ========== 1. CONFIGURAÇÕES ==========
+    const CONFIG = {
+        ASPECT_RATIO: '2:3',
+        WIDTH: 500,
+        HEIGHT: 750,
+        CLOUDINARY_NAME: 'dama2etyy',
+        UPLOAD_PRESET: 'noitefilmes_unsigned',
+        DEFAULT_IMAGE: 'https://via.placeholder.com/500x750/1a1a2a/e50914?text=Sem+Imagem'
+    };
+
+    // ========== 2. CACHE DE IMAGENS ==========
+    const imageCache = new Map();
+    const pendingRequests = new Map();
+
+    // ========== 3. FUNÇÃO RÁPIDA PARA CORRIGIR IMAGEM ==========
+    function corrigirImagemRapido(url) {
+        if (!url) return CONFIG.DEFAULT_IMAGE;
+        
+        if (imageCache.has(url)) {
+            return imageCache.get(url);
+        }
+        
+        if (url.includes('cloudinary.com')) {
+            const novaUrl = url.replace(
+                '/upload/',
+                `/upload/f_webp,c_fill,ar_2:3,w_${CONFIG.WIDTH},h_${CONFIG.HEIGHT}/`
+            );
+            imageCache.set(url, novaUrl);
+            return novaUrl;
+        }
+        
+        if (!pendingRequests.has(url)) {
+            pendingRequests.set(url, true);
+            processarImagemBackground(url).then(novaUrl => {
+                imageCache.set(url, novaUrl);
+                pendingRequests.delete(url);
+                document.querySelectorAll(`img[src="${url}"]`).forEach(img => {
+                    img.src = novaUrl;
+                });
+            }).catch(() => {
+                pendingRequests.delete(url);
+            });
+        }
+        
+        return url;
+    }
+
+    // ========== 4. PROCESSAR IMAGEM EM BACKGROUND ==========
+    async function processarImagemBackground(url) {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Erro ao baixar imagem');
+            
+            const blob = await response.blob();
+            const extensao = blob.type.split('/')[1] || 'jpg';
+            const file = new File([blob], `imagem.${extensao}`, { type: blob.type });
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', CONFIG.UPLOAD_PRESET);
+            formData.append('format', 'webp');
+            formData.append('crop', 'fill');
+            formData.append('aspect_ratio', CONFIG.ASPECT_RATIO);
+            formData.append('width', CONFIG.WIDTH);
+            formData.append('height', CONFIG.HEIGHT);
+            
+            const uploadRes = await fetch(
+                `https://api.cloudinary.com/v1_1/${CONFIG.CLOUDINARY_NAME}/image/upload`,
+                { method: 'POST', body: formData }
+            );
+            
+            if (uploadRes.ok) {
+                const data = await uploadRes.json();
+                return data.secure_url;
+            }
+            
+            return url;
+        } catch (error) {
+            console.warn('Erro ao processar imagem em background:', error);
+            return url;
+        }
+    }
+
+    // ========== 5. CSS ISOLADO - APENAS PARA CARDS ==========
+    function aplicarCSSProporcao() {
+        if (document.getElementById('proporcao-2-3')) return;
+
+        const style = document.createElement('style');
+        style.id = 'proporcao-2-3';
+        style.textContent = `
+            /* =====================================================
+               PROPORÇÃO 2:3 - APENAS PARA CARDS DE CONTEÚDO
+               SEM INTERFERÊNCIA EM AVATARES/USUÁRIOS
+               ===================================================== */
+            
+            /* ---------- CARDS DE FILMES/SÉRIES/CANAIS ---------- */
+            #contentGrid .glass-card img,
+            #contentGrid .glass-card video,
+            .search-result-image,
+            .feed-post-media,
+            .post-grid-item img,
+            .post-grid-item video,
+            .carousel-item .poster-wrapper img,
+            .favorite-item img,
+            .global-search-item-img {
+                aspect-ratio: 2 / 3 !important;
+                object-fit: cover !important;
+                width: 100% !important;
+                height: auto !important;
+                display: block !important;
+                background: #1a1a2a;
+            }
+            
+            /* ---------- CONTAINERS DOS CARDS ---------- */
+            #contentGrid .glass-card,
+            .search-result-card,
+            .post-grid-item,
+            .carousel-item,
+            .feed-post,
+            .suggestion-card {
+                overflow: hidden !important;
+                position: relative !important;
+            }
+            
+            /* ---------- GRID DE FILMES ---------- */
+            #contentGrid .glass-card {
+                overflow: hidden !important;
+                border-radius: 12px !important;
+            }
+            
+            #contentGrid .glass-card img,
+            #contentGrid .glass-card video {
+                transition: transform 0.3s ease;
+                min-height: 150px !important;
+            }
+            
+            #contentGrid .glass-card:hover img,
+            #contentGrid .glass-card:hover video {
+                transform: scale(1.05);
+            }
+            
+            /* ---------- TOP 10 (MANTIDO ORIGINAL) ---------- */
+            .carousel-item {
+                flex-shrink: 0 !important;
+                width: 120px !important;
+            }
+            
+            .carousel-item .poster-wrapper {
+                aspect-ratio: 2 / 3 !important;
+                overflow: hidden !important;
+                border-radius: 8px !important;
+                position: relative !important;
+                background: #1a1a2a;
+            }
+            
+            .carousel-item .poster-wrapper img {
+                aspect-ratio: 2 / 3 !important;
+                object-fit: cover !important;
+                width: 100% !important;
+                height: 100% !important;
+                display: block !important;
+            }
+            
+            .carousel-item .rank-number {
+                position: absolute !important;
+                top: -8px !important;
+                left: -8px !important;
+                width: 28px !important;
+                height: 28px !important;
+                border-radius: 50% !important;
+                background: #e50914 !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                font-size: 12px !important;
+                font-weight: bold !important;
+                color: white !important;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+                z-index: 2 !important;
+            }
+            
+            /* ---------- GRID DE POSTS NO PERFIL ---------- */
+            .post-grid {
+                display: grid !important;
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 4px !important;
+            }
+            
+            .post-grid-item {
+                aspect-ratio: 2 / 3 !important;
+                background: #1a1a2a;
+                border-radius: 4px;
+                overflow: hidden;
+                cursor: pointer;
+                position: relative;
+            }
+            
+            /* ---------- IMAGENS QUEBRADAS ---------- */
+            #contentGrid .glass-card img[src=""],
+            #contentGrid .glass-card img[src="#"],
+            #contentGrid .glass-card img:not([src]),
+            .search-result-image[src=""],
+            .search-result-image[src="#"],
+            .search-result-image:not([src]),
+            .feed-post-media[src=""],
+            .feed-post-media[src="#"],
+            .feed-post-media:not([src]) {
+                background: linear-gradient(135deg, #1a1a2a, #2a1a3a) !important;
+                min-height: 150px !important;
+            }
+            
+            /* ---------- RESPONSIVO ---------- */
+            @media (max-width: 640px) {
+                #contentGrid {
+                    grid-template-columns: repeat(2, 1fr) !important;
+                    gap: 8px !important;
+                }
+                .carousel-item {
+                    width: 100px !important;
+                }
+            }
+            
+            @media (min-width: 641px) and (max-width: 1024px) {
+                #contentGrid {
+                    grid-template-columns: repeat(3, 1fr) !important;
+                    gap: 10px !important;
+                }
+            }
+            
+            @media (min-width: 1025px) {
+                #contentGrid {
+                    grid-template-columns: repeat(4, 1fr) !important;
+                    gap: 12px !important;
+                }
+            }
+            
+            /* =====================================================
+               ⚠️ NENHUM SELETOR PARA AVATARES/USUÁRIOS
+               Os avatares mantêm suas proporções originais (1:1)
+               ===================================================== */
+        `;
+        
+        document.head.appendChild(style);
+        console.log('✅ CSS de proporção 2:3 aplicado (SEM interferência em avatares)');
+    }
+
+    // ========== 6. FUNÇÃO PARA CORRIGIR IMAGENS NA PÁGINA ==========
+    function corrigirImagensPagina() {
+        // ========== APENAS CARDS DE CONTEÚDO ==========
+        const seletorCards = `
+            #contentGrid .glass-card img,
+            #contentGrid .glass-card video,
+            .search-result-image,
+            .feed-post-media,
+            .post-grid-item img,
+            .post-grid-item video,
+            .carousel-item .poster-wrapper img,
+            .favorite-item img,
+            .global-search-item-img
+        `;
+        
+        document.querySelectorAll(seletorCards).forEach(img => {
+            // Aplicar estilo 2:3
+            img.style.aspectRatio = '2/3';
+            img.style.objectFit = 'cover';
+            img.style.width = '100%';
+            img.style.height = 'auto';
+            img.style.display = 'block';
+            img.style.background = '#1a1a2a';
+            
+            // Corrigir URL se necessário
+            if (img.src && !img.src.includes('placeholder') && !img.src.includes('avatar')) {
+                const novaUrl = corrigirImagemRapido(img.src);
+                if (novaUrl !== img.src) {
+                    img.src = novaUrl;
+                }
+            }
+            
+            // Fallback para imagens quebradas
+            img.onerror = function() {
+                if (!this.dataset.fallback) {
+                    this.dataset.fallback = 'true';
+                    this.src = CONFIG.DEFAULT_IMAGE;
+                }
+            };
+        });
+        
+        // ========== IGNORAR AVATARES COMPLETAMENTE ==========
+        // NÃO FAZER NADA COM:
+        // .profile-picture img
+        // .feed-post-avatar img
+        // .comment-avatar-modal img
+        // .chat-user-avatar img
+        // .chat-header-avatar img
+        // .message-avatar img
+        // .suggestion-avatar img
+        // .user-admin-card img (avatar do admin)
+        // .follow-list-avatar img
+        
+        console.log('✅ Cards corrigidos (avatares mantidos intactos)');
+    }
+
+    // ========== 7. PATCH DO RENDER GRID ==========
+    function patchRenderGrid() {
+        const original = window.renderGrid;
+        if (!original) {
+            setTimeout(patchRenderGrid, 500);
+            return;
+        }
+        
+        window.renderGrid = function() {
+            original();
+            setTimeout(corrigirImagensPagina, 100);
+        };
+        
+        console.log('✅ renderGrid patch aplicado');
+    }
+
+    // ========== 8. PATCH DO RENDER FEED ==========
+    function patchRenderFeed() {
+        const original = window.renderFeed;
+        if (!original) {
+            setTimeout(patchRenderFeed, 500);
+            return;
+        }
+        
+        window.renderFeed = async function() {
+            await original();
+            setTimeout(corrigirImagensPagina, 200);
+        };
+        
+        console.log('✅ renderFeed patch aplicado');
+    }
+
+    // ========== 9. PATCH DO PLAY MEDIA ==========
+    function patchPlayMedia() {
+        const original = window.playMedia;
+        if (!original) {
+            setTimeout(patchPlayMedia, 500);
+            return;
+        }
+        
+        window.playMedia = function(item, type) {
+            if (item && item.thumb) {
+                item.thumb = corrigirImagemRapido(item.thumb);
+            }
+            original(item, type);
+        };
+        
+        console.log('✅ playMedia patch aplicado');
+    }
+
+    // ========== 10. PATCH DA BUSCA ==========
+    function patchSearch() {
+        const original = window.performSearchInSection;
+        if (!original) {
+            setTimeout(patchSearch, 500);
+            return;
+        }
+        
+        window.performSearchInSection = function() {
+            original();
+            setTimeout(corrigirImagensPagina, 100);
+        };
+        
+        console.log('✅ search patch aplicado');
+    }
+
+    // ========== 11. OBSERVADOR DE NOVAS IMAGENS ==========
+    function setupObserver() {
+        let timeoutId = null;
+        
+        const observer = new MutationObserver(() => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                corrigirImagensPagina();
+            }, 100);
+        });
+        
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+        
+        console.log('✅ Observer iniciado (ignora avatares)');
+        return observer;
+    }
+
+    // ========== 12. INICIALIZAÇÃO ==========
+    function init() {
+        console.log('🎬 Iniciando padronização 2:3 (sem interferência)...');
+        
+        aplicarCSSProporcao();
+        patchRenderGrid();
+        patchRenderFeed();
+        patchPlayMedia();
+        patchSearch();
+        setupObserver();
+        
+        setTimeout(() => {
+            corrigirImagensPagina();
+            if (typeof renderGrid === 'function') {
+                renderGrid();
+            }
+        }, 500);
+        
+        setTimeout(() => {
+            corrigirImagensPagina();
+        }, 2000);
+        
+        console.log('✅ Padronização 2:3 inicializada!');
+        console.log('📌 APENAS cards de conteúdo (filmes/séries/canais)');
+        console.log('📌 AVATARES de usuários mantidos intactos (1:1)');
+    }
+
+    // ========== 13. EXPOR FUNÇÕES ==========
+    window.proporcao2_3 = {
+        corrigir: corrigirImagensPagina,
+        cache: imageCache,
+        CONFIG: CONFIG
+    };
+
+    // ========== 14. INICIAR ==========
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+
+    console.log('🚀 Script 2:3 carregado!');
+    console.log('ℹ️ Use window.proporcao2_3.corrigir() para corrigir manualmente.');
+    console.log('✅ AVATARES NÃO SÃO AFETADOS!');
+})();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // =====================================================
 // SISTEMA DE CLASSIFICAÇÃO POR GÊNEROS, ANOS E FRANQUIAS - COM BOTÃO FRANQUIAS E IMAGENS ROTATIVAS
@@ -14198,19 +14656,22 @@ setTimeout(() => {
         }
     }
 
-    // ========== 3. BADGE DE FRANQUIA ==========
+    // ========== 3. BADGE DE FRANQUIA POSICIONADO A 80% ==========
     function adicionarBotaoFranquia(cardElement, item) {
         if (!item.franchise) return;
         if (cardElement.querySelector('.franchise-badge')) return;
         
+        // Encontrar a imagem dentro do card
         const img = cardElement.querySelector('img');
         if (!img) return;
         
+        // Encontrar o container da imagem
         let imgContainer = img.parentElement;
         if (!imgContainer.style.position || imgContainer.style.position === 'static') {
             imgContainer.style.position = 'relative';
         }
         
+        // Criar badge - POSICIONADO A 80%
         const badge = document.createElement('div');
         badge.className = 'franchise-badge';
         badge.innerHTML = `
@@ -14243,6 +14704,7 @@ setTimeout(() => {
             pointer-events: auto;
         `;
         
+        // Hover com expansão suave
         badge.addEventListener('mouseenter', () => {
             badge.style.background = 'rgba(229, 9, 20, 0.9)';
             badge.style.borderColor = 'rgba(229, 9, 20, 0.5)';
@@ -14265,9 +14727,11 @@ setTimeout(() => {
             e.stopPropagation();
             e.preventDefault();
             
+            // Efeito de clique
             badge.style.transform = 'translate(-50%, -50%) scale(0.92)';
             setTimeout(() => badge.style.transform = 'translate(-50%, -50%) scale(1)', 150);
             
+            // Mostrar loading no badge
             const originalHtml = badge.innerHTML;
             badge.innerHTML = `<i class="fas fa-spinner fa-spin" style="font-size: 11px; color: white; margin: 0 auto;"></i>`;
             badge.style.justifyContent = 'center';
@@ -14296,11 +14760,12 @@ setTimeout(() => {
             badge.style.padding = '5px 14px 6px 14px';
         });
         
+        // Adicionar ao container da imagem
         imgContainer.appendChild(badge);
         cardElement.style.position = 'relative';
     }
 
-    // ========== 4. JANELA DE FILMES DA FRANQUIA ==========
+    // ========== 4. JANELA DE FRANQUIA (Liquid Glass) ==========
     function abrirJanelaFranquia(nomeFranquia, filmes) {
         const existing = document.querySelector('.franchise-window-overlay');
         if (existing) existing.remove();
@@ -14384,7 +14849,7 @@ setTimeout(() => {
                 overflow-y: auto;
                 padding: 16px 20px;
                 display: grid;
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
                 gap: 12px;
             " id="franquiaFilmesGrid">
                 ${filmes.map((filme, index) => `
@@ -14395,11 +14860,8 @@ setTimeout(() => {
                         cursor: pointer;
                         transition: all 0.2s ease;
                         border: 1px solid rgba(255, 255, 255, 0.05);
-                        aspect-ratio: 2/3;
-                        width: 100%;
-                        position: relative;
                     ">
-                        <div style="position: relative; width: 100%; height: 100%; background: #1a1a2a;">
+                        <div style="position: relative; aspect-ratio: 2/3; background: #1a1a2a;">
                             <img src="${filme.thumb || 'https://via.placeholder.com/300x450'}" 
                                  style="width:100%; height:100%; object-fit:cover; display:block;"
                                  onerror="this.src='https://via.placeholder.com/300x450'">
@@ -14430,28 +14892,21 @@ setTimeout(() => {
                                 font-size: 10px;
                                 color: white;
                             ">${filme.year}</div>` : ''}
+                        </div>
+                        <div style="padding: 8px 10px;">
                             <div style="
-                                position: absolute;
-                                bottom: 0;
-                                left: 0;
-                                right: 0;
-                                background: linear-gradient(transparent, rgba(0,0,0,0.8));
-                                padding: 30px 12px 14px 12px;
-                            ">
-                                <div style="
-                                    font-size: 13px;
-                                    font-weight: 600;
-                                    color: white;
-                                    text-align: center;
-                                    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
-                                ">${escapeHtml(filme.title)}</div>
-                                <div style="
-                                    font-size: 10px;
-                                    color: rgba(255,255,255,0.5);
-                                    text-align: center;
-                                    margin-top: 2px;
-                                ">${filme.category || 'Geral'}</div>
-                            </div>
+                                font-size: 12px;
+                                font-weight: 600;
+                                color: white;
+                                white-space: nowrap;
+                                overflow: hidden;
+                                text-overflow: ellipsis;
+                            ">${escapeHtml(filme.title)}</div>
+                            <div style="
+                                font-size: 9px;
+                                color: rgba(255,255,255,0.4);
+                                margin-top: 2px;
+                            ">${filme.category || 'Geral'}</div>
                         </div>
                     </div>
                 `).join('')}
@@ -14544,7 +14999,7 @@ setTimeout(() => {
         }
     }
 
-    // ========== 5. JANELA COM TODAS AS FRANQUIAS (ESTILO LOCADORA - 2 COLUNAS) ==========
+    // ========== 5. JANELA COM TODAS AS FRANQUIAS (COM IMAGENS ROTATIVAS) ==========
     let franquiaRotateIntervals = [];
 
     async function abrirJanelaTodasFranquias() {
@@ -14598,116 +15053,6 @@ setTimeout(() => {
             animation: slideInPopup 0.3s ease-out;
         `;
         
-        // GERAR CARDS EM 2 COLUNAS - ESTILO LOCADORA
-        let franquiasHTML = '';
-        
-        for (let i = 0; i < franquias.length; i++) {
-            const f = franquias[i];
-            const filmesDaFranquia = filmes.filter(filme => filme.franchise === f.nome);
-            const imagens = filmesDaFranquia.map(filme => filme.thumb).filter(img => img && img !== '');
-            const imagemPadrao = 'https://via.placeholder.com/300x450/1a1a2a/e50914?text=' + encodeURIComponent(f.nome);
-            const primeiraImagem = imagens.length > 0 ? imagens[0] : imagemPadrao;
-            
-            franquiasHTML += `
-                <div class="franquia-card-item" data-nome="${escapeHtml(f.nome)}" data-index="${i}" style="
-                    background: rgba(255, 255, 255, 0.05);
-                    border-radius: 16px;
-                    overflow: hidden;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                    border: 1px solid rgba(255, 255, 255, 0.08);
-                    aspect-ratio: 2/3;
-                    width: 100%;
-                    position: relative;
-                    display: flex;
-                    flex-direction: column;
-                ">
-                    <div style="position: relative; width: 100%; height: 100%; background: #1a1a2a; overflow: hidden; flex: 1;">
-                        <img src="${primeiraImagem}" 
-                             class="franquia-carousel-img" 
-                             data-index="${i}"
-                             data-imagens='${JSON.stringify(imagens)}'
-                             style="width:100%; height:100%; object-fit:cover; display:block; transition: opacity 0.5s ease;"
-                             onerror="this.src='${imagemPadrao}'">
-                        
-                        <!-- Número da franquia -->
-                        <div style="
-                            position: absolute;
-                            top: 10px;
-                            left: 10px;
-                            background: rgba(229, 9, 20, 0.9);
-                            border-radius: 50%;
-                            width: 28px;
-                            height: 28px;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            font-size: 12px;
-                            font-weight: bold;
-                            color: white;
-                            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-                            z-index: 2;
-                        ">
-                            ${i + 1}
-                        </div>
-                        
-                        <!-- Ícone de filme -->
-                        <div style="
-                            position: absolute;
-                            top: 10px;
-                            right: 10px;
-                            background: rgba(229, 9, 20, 0.9);
-                            border-radius: 50%;
-                            width: 28px;
-                            height: 28px;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            font-size: 12px;
-                            font-weight: bold;
-                            color: white;
-                            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-                            z-index: 2;
-                        ">
-                            <i class="fas fa-film" style="font-size: 12px;"></i>
-                        </div>
-                        
-                        <!-- Nome da franquia e contador -->
-                        <div style="
-                            position: absolute;
-                            bottom: 0;
-                            left: 0;
-                            right: 0;
-                            background: linear-gradient(transparent, rgba(0,0,0,0.85));
-                            padding: 35px 12px 14px 12px;
-                            z-index: 2;
-                        ">
-                            <div style="
-                                font-weight: 700; 
-                                font-size: 14px; 
-                                color: white; 
-                                text-shadow: 0 2px 8px rgba(0,0,0,0.5);
-                                text-align: center;
-                                white-space: nowrap;
-                                overflow: hidden;
-                                text-overflow: ellipsis;
-                            ">
-                                ${escapeHtml(f.nome)}
-                            </div>
-                            <div style="
-                                font-size: 11px; 
-                                color: rgba(255,255,255,0.6);
-                                text-align: center;
-                                margin-top: 2px;
-                            ">
-                                ${f.filmes ? f.filmes.length : 0} ${f.filmes && f.filmes.length === 1 ? 'filme' : 'filmes'}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        
         content.innerHTML = `
             <div style="
                 padding: 16px 20px;
@@ -14750,15 +15095,72 @@ setTimeout(() => {
                 flex: 1;
                 overflow-y: auto;
                 padding: 16px 20px;
-            ">
-                <div style="
-                    display: grid;
-                    grid-template-columns: repeat(2, 1fr);
-                    gap: 16px;
-                    width: 100%;
-                " id="todasFranquiasGrid">
-                    ${franquiasHTML}
-                </div>
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                gap: 12px;
+            " id="todasFranquiasGrid">
+                ${franquias.map((f, index) => {
+                    // Buscar filmes da franquia para pegar as imagens
+                    const filmesDaFranquia = filmes.filter(filme => filme.franchise === f.nome);
+                    const imagens = filmesDaFranquia.map(filme => filme.thumb).filter(img => img && img !== '');
+                    const imagemPadrao = 'https://via.placeholder.com/300x450/1a1a2a/e50914?text=' + encodeURIComponent(f.nome);
+                    const primeiraImagem = imagens.length > 0 ? imagens[0] : imagemPadrao;
+                    
+                    return `
+                        <div class="franquia-card-item" data-nome="${escapeHtml(f.nome)}" data-index="${index}" style="
+                            background: rgba(255, 255, 255, 0.05);
+                            border-radius: 16px;
+                            overflow: hidden;
+                            cursor: pointer;
+                            transition: all 0.3s ease;
+                            border: 1px solid rgba(255, 255, 255, 0.08);
+                            text-align: center;
+                            position: relative;
+                        ">
+                            <div style="position: relative; aspect-ratio: 2/3; background: #1a1a2a; overflow: hidden;">
+                                <img src="${primeiraImagem}" 
+                                     class="franquia-carousel-img" 
+                                     data-index="${index}"
+                                     data-imagens='${JSON.stringify(imagens)}'
+                                     style="width:100%; height:100%; object-fit:cover; display:block; transition: opacity 0.5s ease;"
+                                     onerror="this.src='${imagemPadrao}'">
+                                <div style="
+                                    position: absolute;
+                                    bottom: 0;
+                                    left: 0;
+                                    right: 0;
+                                    background: linear-gradient(transparent, rgba(0,0,0,0.7));
+                                    padding: 20px 12px 12px 12px;
+                                ">
+                                    <div style="font-weight: 700; font-size: 14px; color: white; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">
+                                        ${escapeHtml(f.nome)}
+                                    </div>
+                                    <div style="font-size: 11px; color: rgba(255,255,255,0.6);">
+                                        ${f.filmes ? f.filmes.length : 0} ${f.filmes && f.filmes.length === 1 ? 'filme' : 'filmes'}
+                                    </div>
+                                </div>
+                                <div style="
+                                    position: absolute;
+                                    top: 8px;
+                                    right: 8px;
+                                    background: rgba(229, 9, 20, 0.9);
+                                    border-radius: 50%;
+                                    width: 24px;
+                                    height: 24px;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    font-size: 10px;
+                                    font-weight: bold;
+                                    color: white;
+                                    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+                                ">
+                                    <i class="fas fa-film" style="font-size: 10px;"></i>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
             </div>
             
             <div style="
@@ -14767,7 +15169,7 @@ setTimeout(() => {
                 flex-shrink: 0;
                 text-align: center;
             ">
-                <span style="font-size: 11px; color: rgba(255,255,255,0.3);">
+                <span style="font-size: 10px; color: rgba(255,255,255,0.3);">
                     <i class="fas fa-info-circle"></i> Clique em uma franquia para ver todos os filmes
                 </span>
             </div>
@@ -14780,10 +15182,12 @@ setTimeout(() => {
         const carouselImgs = content.querySelectorAll('.franquia-carousel-img');
         carouselImgs.forEach(img => {
             const imagens = JSON.parse(img.getAttribute('data-imagens') || '[]');
+            const index = parseInt(img.getAttribute('data-index'));
             
             if (imagens.length > 1) {
                 let currentImgIndex = 0;
                 const interval = setInterval(() => {
+                    // Escolher um índice aleatório diferente do atual
                     let newIndex;
                     do {
                         newIndex = Math.floor(Math.random() * imagens.length);
@@ -14850,31 +15254,26 @@ setTimeout(() => {
         });
     }
 
-    // ========== 6. BOTÃO "FRANQUIAS" REPOSICIONADO ==========
+    // ========== 6. BOTÃO "FRANQUIAS" NA TELA ==========
     function adicionarBotaoFranquiasTela() {
+        // Verificar se já existe
         if (document.getElementById('btnFranquiasTela')) return;
-        
-        let tituloElement = null;
-        const allHeadings = document.querySelectorAll('h1, h2, h3, h4, h5, h6, .section-title, .top-title, .title');
-        for (const heading of allHeadings) {
-            if (heading.textContent && heading.textContent.includes('Top 10')) {
-                tituloElement = heading;
-                break;
-            }
-        }
         
         const btn = document.createElement('button');
         btn.id = 'btnFranquiasTela';
         btn.className = 'ripple-btn';
         btn.innerHTML = `
-            <i class="fas fa-film" style="font-size: 13px;"></i>
-            <span style="font-size: 11px; font-weight: 600;">Franquias</span>
+            <i class="fas fa-film" style="font-size: 12px;"></i>
+            <span style="font-size: 10px; font-weight: 600;">Franquias</span>
         `;
         btn.style.cssText = `
+            position: fixed;
+            bottom: 140px;
+            right: 20px;
             background: linear-gradient(135deg, #e50914, #b20710);
             border: none;
             border-radius: 30px;
-            padding: 8px 20px;
+            padding: 8px 16px;
             color: white;
             cursor: pointer;
             z-index: 1000;
@@ -14882,11 +15281,9 @@ setTimeout(() => {
             transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.15);
-            font-family: inherit;
-            white-space: nowrap;
         `;
         
         btn.addEventListener('mouseenter', () => {
@@ -14900,61 +15297,9 @@ setTimeout(() => {
         
         btn.addEventListener('click', abrirJanelaTodasFranquias);
         
-        if (tituloElement) {
-            const parent = tituloElement.parentElement;
-            let wrapper = parent.querySelector('.top10-wrapper');
-            if (!wrapper) {
-                wrapper = document.createElement('div');
-                wrapper.className = 'top10-wrapper';
-                wrapper.style.cssText = `
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    width: 100%;
-                    gap: 15px;
-                `;
-                parent.insertBefore(wrapper, tituloElement);
-                wrapper.appendChild(tituloElement);
-                wrapper.appendChild(btn);
-            } else {
-                wrapper.appendChild(btn);
-            }
-        } else {
-            const grid = document.getElementById('contentGrid');
-            if (grid) {
-                const gridParent = grid.parentElement;
-                if (gridParent) {
-                    let header = gridParent.querySelector('.grid-header-with-franquias');
-                    if (!header) {
-                        header = document.createElement('div');
-                        header.className = 'grid-header-with-franquias';
-                        header.style.cssText = `
-                            display: flex;
-                            justify-content: space-between;
-                            align-items: center;
-                            width: 100%;
-                            padding: 0 0 10px 0;
-                            gap: 15px;
-                        `;
-                        const existingTitle = gridParent.querySelector('h1, h2, h3, h4, .section-title');
-                        if (existingTitle) {
-                            gridParent.insertBefore(header, existingTitle);
-                            header.appendChild(existingTitle);
-                        } else {
-                            gridParent.insertBefore(header, grid);
-                            const defaultTitle = document.createElement('h2');
-                            defaultTitle.textContent = 'Top 10 mais assistidos';
-                            defaultTitle.style.cssText = 'margin: 0; font-size: 1.5rem; font-weight: 700; color: white;';
-                            header.appendChild(defaultTitle);
-                        }
-                        header.appendChild(btn);
-                    } else {
-                        header.appendChild(btn);
-                    }
-                }
-            }
-        }
+        document.body.appendChild(btn);
         
+        // Controlar visibilidade do botão
         function atualizarVisibilidadeBtnFranquias() {
             const secaoAtiva = document.querySelector('.section.active-section');
             if (secaoAtiva) {
@@ -14969,6 +15314,7 @@ setTimeout(() => {
             }
         }
         
+        // Observar mudanças de seção
         const observer = new MutationObserver(() => {
             setTimeout(atualizarVisibilidadeBtnFranquias, 100);
         });
@@ -14977,128 +15323,13 @@ setTimeout(() => {
             observer.observe(section, { attributes: true, attributeFilter: ['class'] });
         });
         
+        // Verificação inicial
         setTimeout(atualizarVisibilidadeBtnFranquias, 300);
-        console.log('✅ Botão "Franquias" reposicionado');
+        
+        console.log('✅ Botão "Franquias" adicionado à tela');
     }
 
-    // ========== 7. ESTILOS DOS CARDS ==========
-    function aplicarEstilosCardsCinema() {
-        const styleId = 'cinema-card-styles';
-        if (document.getElementById(styleId)) return;
-        
-        const style = document.createElement('style');
-        style.id = styleId;
-        style.textContent = `
-            .glass-card {
-                aspect-ratio: 2/3 !important;
-                max-width: 100% !important;
-                height: auto !important;
-                display: flex !important;
-                flex-direction: column !important;
-                overflow: hidden !important;
-                border-radius: 12px !important;
-                background: #1a1a2e !important;
-                transition: transform 0.3s ease, box-shadow 0.3s ease !important;
-            }
-            
-            .glass-card .relative {
-                flex: 1 !important;
-                min-height: 0 !important;
-                position: relative !important;
-                overflow: hidden !important;
-            }
-            
-            .glass-card img {
-                width: 100% !important;
-                height: 100% !important;
-                object-fit: cover !important;
-                display: block !important;
-            }
-            
-            #contentGrid {
-                display: grid !important;
-                grid-template-columns: repeat(2, 1fr) !important;
-                gap: 12px !important;
-                padding: 8px !important;
-            }
-            
-            @media (min-width: 640px) {
-                #contentGrid {
-                    gap: 16px !important;
-                }
-            }
-            
-            @media (min-width: 768px) {
-                #contentGrid {
-                    gap: 20px !important;
-                }
-            }
-            
-            @media (min-width: 1024px) {
-                #contentGrid {
-                    gap: 24px !important;
-                }
-            }
-            
-            .grid-container {
-                max-width: 800px !important;
-                margin: 0 auto !important;
-            }
-            
-            .franchise-badge {
-                font-size: 8px !important;
-                padding: 3px 10px 4px 10px !important;
-                min-height: 22px !important;
-            }
-            
-            .top10-wrapper {
-                display: flex !important;
-                justify-content: space-between !important;
-                align-items: center !important;
-                width: 100% !important;
-                gap: 15px !important;
-                padding: 0 8px 12px 8px !important;
-            }
-            
-            .top10-wrapper h1,
-            .top10-wrapper h2,
-            .top10-wrapper h3,
-            .top10-wrapper h4 {
-                margin: 0 !important;
-                font-size: clamp(1rem, 4vw, 1.5rem) !important;
-                color: white !important;
-            }
-            
-            #btnFranquiasTela {
-                flex-shrink: 0 !important;
-                padding: 6px 16px !important;
-                font-size: 10px !important;
-            }
-            
-            #searchResults {
-                display: grid !important;
-                grid-template-columns: repeat(2, 1fr) !important;
-                gap: 12px !important;
-            }
-            
-            #searchResults .search-result-card {
-                aspect-ratio: 2/3 !important;
-                overflow: hidden !important;
-                border-radius: 12px !important;
-            }
-            
-            #searchResults .search-result-card img {
-                width: 100% !important;
-                height: 100% !important;
-                object-fit: cover !important;
-            }
-        `;
-        
-        document.head.appendChild(style);
-        console.log('✅ Estilos de cinema aplicados');
-    }
-
-    // ========== 8. PATCH DO RENDER GRID ==========
+    // ========== 7. PATCH DO RENDER GRID ==========
     function patchRenderGridParaFranquias() {
         const original = window.renderGrid;
         if (!original) {
@@ -15110,8 +15341,6 @@ setTimeout(() => {
             original();
             
             setTimeout(() => {
-                aplicarEstilosCardsCinema();
-                
                 const cards = document.querySelectorAll('#contentGrid .glass-card');
                 cards.forEach(card => {
                     const id = card.getAttribute('data-id');
@@ -15131,10 +15360,10 @@ setTimeout(() => {
             }, 150);
         };
         
-        console.log('✅ renderGrid patch aplicado');
+        console.log('✅ renderGrid patch para franquias aplicado');
     }
 
-    // ========== 9. PATCH DA BUSCA ==========
+    // ========== 8. PATCH DA BUSCA (CORRIGIDO) ==========
     function patchSearchParaFranquias() {
         const original = window.performSearchInSection;
         if (!original) {
@@ -15149,6 +15378,8 @@ setTimeout(() => {
                 const cards = document.querySelectorAll('#searchResults .search-result-card');
                 cards.forEach(card => {
                     const id = card.getAttribute('data-id');
+                    const type = card.getAttribute('data-type');
+                    // Buscar em filmes para verificar se tem franquia
                     if (id) {
                         let item = filmes.find(f => f.id === id);
                         if (item && item.franchise) {
@@ -15159,13 +15390,14 @@ setTimeout(() => {
             }, 200);
         };
         
-        console.log('✅ search patch aplicado');
+        console.log('✅ search patch para franquias aplicado');
     }
 
-    // ========== 10. ADMIN ==========
+    // ========== 9. ADMIN - CRIAR FRANQUIAS ==========
     function criarInterfaceFranquiasAdmin() {
         const adminPanel = document.getElementById('adminPanel');
         if (!adminPanel) return;
+        
         if (document.getElementById('adminFranquiasArea')) return;
         
         const franquiaArea = document.createElement('div');
@@ -15225,6 +15457,7 @@ setTimeout(() => {
         
         carregarFranquiasExistentes();
         
+        // ========== CONTROLE DE VISIBILIDADE ==========
         function atualizarVisibilidadeFranquia() {
             const adminCanaisList = document.getElementById('adminCanaisList');
             const adminFilmesList = document.getElementById('adminFilmesList');
@@ -15267,7 +15500,7 @@ setTimeout(() => {
         setTimeout(atualizarVisibilidadeFranquia, 200);
     }
 
-    // ========== 11. SELETOR DE FILMES ==========
+    // ========== 10. SELETOR DE FILMES ==========
     function abrirSeletorFilmesParaFranquia() {
         const existing = document.querySelector('.franquia-selector-overlay');
         if (existing) existing.remove();
@@ -15480,7 +15713,7 @@ setTimeout(() => {
         document.getElementById('seletorFranquiaContador').textContent = '0';
     }
 
-    // ========== 12. CARREGAR FRANQUIAS EXISTENTES ==========
+    // ========== 11. CARREGAR FRANQUIAS EXISTENTES ==========
     async function carregarFranquiasExistentes() {
         const container = document.getElementById('franquiaListaExistente');
         if (!container) return;
@@ -15548,11 +15781,10 @@ setTimeout(() => {
         }
     }
 
-    // ========== 13. INICIALIZAÇÃO ==========
+    // ========== 12. INICIALIZAÇÃO ==========
     function init() {
-        console.log('🎬 Inicializando sistema...');
+        console.log('🎬 Inicializando sistema de classificação e franquias...');
         
-        aplicarEstilosCardsCinema();
         patchRenderGridParaFranquias();
         patchSearchParaFranquias();
         
@@ -15580,7 +15812,7 @@ setTimeout(() => {
             observer.observe(grid, { childList: true, subtree: true });
         }
         
-        console.log('✅ Sistema ativado!');
+        console.log('✅ Sistema de classificação e franquias ativado!');
     }
     
     if (document.readyState === 'loading') {
@@ -15598,8 +15830,12 @@ setTimeout(() => {
         formatarAno
     };
     
-    console.log('🚀 Sistema de franquias carregado!');
+    console.log('🚀 Sistema de franquias carregado com imagens rotativas!');
 })();
+
+
+
+
 
 
 
