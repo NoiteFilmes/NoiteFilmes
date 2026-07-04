@@ -14536,7 +14536,6 @@ setTimeout(() => {
 
 
 
-
 // =====================================================
 // SISTEMA DE CLASSIFICAÇÃO POR GÊNEROS, ANOS E FRANQUIAS - COM BOTÃO FRANQUIAS E IMAGENS ROTATIVAS
 // =====================================================
@@ -14999,7 +14998,7 @@ setTimeout(() => {
         }
     }
 
-    // ========== 5. JANELA COM TODAS AS FRANQUIAS (COM IMAGENS ROTATIVAS) ==========
+    // ========== 5. JANELA COM TODAS AS FRANQUIAS (CORRIGIDA - MESMO LAYOUT DA SEGUNDA POPUP) ==========
     let franquiaRotateIntervals = [];
 
     async function abrirJanelaTodasFranquias() {
@@ -15017,6 +15016,7 @@ setTimeout(() => {
         const existing = document.querySelector('.todas-franquias-overlay');
         if (existing) existing.remove();
         
+        // ========== MESMA ESTRUTURA DA SEGUNDA POPUP ==========
         const overlay = document.createElement('div');
         overlay.className = 'todas-franquias-overlay';
         overlay.style.cssText = `
@@ -15091,12 +15091,13 @@ setTimeout(() => {
                 </button>
             </div>
             
+            <!-- ========== GRID IGUAL AO DA SEGUNDA POPUP ========== -->
             <div style="
                 flex: 1;
                 overflow-y: auto;
                 padding: 16px 20px;
                 display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
                 gap: 12px;
             " id="todasFranquiasGrid">
                 ${franquias.map((f, index) => {
@@ -15163,15 +15164,30 @@ setTimeout(() => {
                 }).join('')}
             </div>
             
+            <!-- ========== RODAPÉ IGUAL AO DA SEGUNDA POPUP ========== -->
             <div style="
                 padding: 12px 20px;
                 border-top: 1px solid rgba(255, 255, 255, 0.05);
                 flex-shrink: 0;
-                text-align: center;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
             ">
-                <span style="font-size: 10px; color: rgba(255,255,255,0.3);">
-                    <i class="fas fa-info-circle"></i> Clique em uma franquia para ver todos os filmes
+                <span style="font-size: 11px; color: rgba(255,255,255,0.3);">
+                    <i class="fas fa-info-circle"></i> Clique em uma franquia para ver os filmes
                 </span>
+                <button id="fecharTodasFranquiasBottom" style="
+                    background: rgba(255, 255, 255, 0.1);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 30px;
+                    padding: 6px 18px;
+                    color: rgba(255,255,255,0.7);
+                    font-size: 11px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                ">
+                    Fechar
+                </button>
             </div>
         `;
         
@@ -15187,7 +15203,6 @@ setTimeout(() => {
             if (imagens.length > 1) {
                 let currentImgIndex = 0;
                 const interval = setInterval(() => {
-                    // Escolher um índice aleatório diferente do atual
                     let newIndex;
                     do {
                         newIndex = Math.floor(Math.random() * imagens.length);
@@ -15218,7 +15233,10 @@ setTimeout(() => {
         };
         
         const closeBtn = content.querySelector('#fecharTodasFranquiasBtn');
+        const closeBottom = content.querySelector('#fecharTodasFranquiasBottom');
+        
         if (closeBtn) closeBtn.addEventListener('click', fechar);
+        if (closeBottom) closeBottom.addEventListener('click', fechar);
         
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) fechar();
@@ -15833,7 +15851,6 @@ setTimeout(() => {
     console.log('🚀 Sistema de franquias carregado com imagens rotativas!');
 })();
 
-                
 
 
 
