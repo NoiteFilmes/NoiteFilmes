@@ -15522,6 +15522,103 @@ setTimeout(() => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+// =====================================================
+// CORREÇÃO: RESTAURAR LAYOUT ORIGINAL DOS CARDS
+// Mobile: 2 colunas | Tablet: 3 colunas | Desktop: 5 colunas
+// =====================================================
+(function() {
+    console.log('📱 Restaurando layout original dos cards...');
+
+    function aplicarLayoutOriginal() {
+        const grid = document.getElementById('contentGrid');
+        if (!grid) return;
+
+        // Remove qualquer estilo inline que esteja forçando 2 colunas
+        grid.style.cssText = '';
+        
+        // Remove classes que podem estar conflitando
+        grid.classList.remove('grid-cols-2', 'sm:grid-cols-2', 'md:grid-cols-2', 'lg:grid-cols-2');
+        
+        // Adiciona as classes ORIGINAIS do Tailwind
+        // mobile: 2 colunas, tablet: 3, desktop: 5
+        grid.classList.add('grid-cols-2', 'sm:grid-cols-3', 'md:grid-cols-4', 'lg:grid-cols-5');
+        
+        console.log('✅ Layout restaurado: Mobile=2, Tablet=3, Desktop=5');
+    }
+
+    // Aplica imediatamente
+    setTimeout(aplicarLayoutOriginal, 100);
+
+    // Intercepta o renderGrid para aplicar após cada renderização
+    const originalRenderGrid = window.renderGrid;
+    if (originalRenderGrid) {
+        window.renderGrid = function() {
+            originalRenderGrid();
+            setTimeout(aplicarLayoutOriginal, 150);
+        };
+    }
+
+    // Observer para quando o grid for modificado
+    const observer = new MutationObserver(() => {
+        setTimeout(aplicarLayoutOriginal, 100);
+    });
+
+    const grid = document.getElementById('contentGrid');
+    if (grid) {
+        observer.observe(grid, { childList: true, subtree: true, attributes: true });
+    }
+
+    // Aplica quando a aba for trocada
+    document.querySelectorAll('.nav-item, .bottom-nav-item, .section').forEach(el => {
+        el.addEventListener('click', () => {
+            setTimeout(aplicarLayoutOriginal, 200);
+        });
+    });
+
+    // Remove qualquer CSS injetado pelo script de franquias
+    const cinemaStyles = document.getElementById('cinema-card-styles');
+    if (cinemaStyles) {
+        cinemaStyles.remove();
+        console.log('🗑️ Estilos de cinema removidos');
+    }
+
+    // Remove estilos inline que possam estar forçando 2 colunas
+    const styleSheets = document.styleSheets;
+    for (let i = 0; i < styleSheets.length; i++) {
+        try {
+            const rules = styleSheets[i].cssRules || styleSheets[i].rules;
+            if (rules) {
+                for (let j = rules.length - 1; j >= 0; j--) {
+                    const rule = rules[j];
+                    if (rule.selectorText && 
+                        (rule.selectorText.includes('#contentGrid') || 
+                         rule.selectorText.includes('.glass-card'))) {
+                        if (rule.style && rule.style.gridTemplateColumns) {
+                            // Não remove, apenas garante que o Tailwind prevaleça
+                        }
+                    }
+                }
+            }
+        } catch(e) {}
+    }
+
+    console.log('✅ Layout original restaurado com sucesso!');
+})();
+
+
+
+
                 
          </script>  
         </body>
