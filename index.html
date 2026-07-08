@@ -16036,6 +16036,273 @@ setTimeout(() => {
 
 
 
+
+(function() {
+    console.log('🛠️ Inicializando correção da aba Usuários (carregamento de dados)...');
+
+    // ============================================================
+    // 1. Função principal para carregar e exibir usuários
+    // ============================================================
+    window.loadAllUsersForAdmin = async function() {
+        const container = document.getElementById('usersListContainer');
+        if (!container) {
+            console.warn('⚠️ usersListContainer não encontrado. Aguardando...');
+            // Tenta novamente após 500ms
+            setTimeout(window.loadAllUsersForAdmin, 500);
+            return;
+        }
+
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            container.innerHTML = `
+                <div class="text-center text-yellow-400 py-4">
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    Faça login para ver a lista de usuários.
+                    <br>
+                    <button onclick="document.getElementById('loginModal')?.classList.remove('hidden')" 
+                            class="mt-2 bg-red-600 px-4 py-1 rounded-full text-white text-xs">
+                        <i class="fas fa-sign-in-alt"></i> Fazer login
+                    </button>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = '<div class="text-center text-gray-400 py-4"><i class="fas fa-spinner fa-pulse"></i> Carregando usuários...</div>';
+
+        try {
+            const snapshot = await firebase.database().ref('usuarios').once('value');
+            const users = snapshot.val();
+
+            if (!users) {
+                container.innerHTML = '<div class="text-center text-gray-500 py-4">Nenhum usuário cadastrado ainda.</div>';
+                const totalSpan = document.getElementById('totalUsersCount');
+                if (totalSpan) totalSpan.innerText = '0';
+                const onlineSpan = document.getElementById('onlineUsersCount');
+                if (onlineSpan) onlineSpan.innerText = '0';
+                return;
+            }
+
+            const usersArray = Object.entries(users).map(([uid, data]) => ({
+                uid,
+                email: data.email || 'Email não informado',
+                nickname: data.nickname || uid.substring(0, 8),
+                displayName: data.displayName || data.nickname || 'Usuário',
+                bio: data.bio || 'Sem bio',
+                avatarUrl: data.avatarUrl || 'https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png',
+                lastSeen: data.lastSeen || null,
+                createdAt: data.createdAt || null,
+                isAdmin: data.isAdmin || false
+            }));
+
+            // Ordenar por último visto
+            usersArray.sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0));
+
+            const now = Date.now();
+            const onlineUsers = usersArray.filter(u => u.lastSeen && (now - u.lastSeen < 60000));
+
+            // Atualizar contadores
+            const totalSpan = document.getElementById('totalUsersCount');
+            if (totalSpan) totalSpan.innerText = usersArray.length;
+            const onlineSpan = document.getElementById('onlineUsersCount');
+            if (onlineSpan) onlineSpan.innerText = onlineUsers.length;
+
+            if (usersArray.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-500 py-4">Nenhum usuário encontrado.</div>';
+                return;
+            }
+
+            // Renderizar cada usuário
+            container.innerHTML = usersArray.map(user => {
+                const isOnline = user.lastSeen && (now - user.lastSeen < 60000);
+                const lastSeenText = formatLastSeen(user.lastSeen);
+                const createdDate = user.createdAt ? new Date(user.createdAt).toLocaleDateString('pt-BR') : 'Desconhecido';
+
+                return `
+                    <div class="user-admin-card glass-card p-3 transition-all hover:scale-[1.01] border border-white/10 rounded-xl" data-uid="${user.uid}">
+                        <div class="flex items-start gap-3">
+                            <div class="relative flex-shrink-0">
+                                <img src="${user.avatarUrl}" class="w-12 h-12 rounded-full object-cover border-2 ${isOnline ? 'border-green-500' : 'border-gray-500'}" onerror="this.src='https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png'">
+                                ${isOnline ? '<div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-black"></div>' : ''}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex flex-wrap justify-between items-start gap-1">
+                                    <div>
+                                        <p class="font-bold text-sm truncate">${escapeHtml(user.displayName)}</p>
+                                        <p class="text-xs text-red-400">@${escapeHtml(user.nickname)}</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="text-[10px] ${isOnline ? 'text-green-400' : 'text-gray-400'}">
+                                            ${isOnline ? '<i class="fas fa-circle text-[8px]"></i> Online' : lastSeenText}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="text-xs text-gray-300 mt-1 break-all">
+                                    <i class="fas fa-envelope mr-1"></i> ${escapeHtml(user.email)}
+                                </div>
+                                <div class="text-[10px] text-gray-500 mt-1 flex flex-wrap gap-2">
+                                    <span><i class="far fa-calendar-alt"></i> Cadastro: ${createdDate}</span>
+                                    <span><i class="fas fa-id-card"></i> UID: ${user.uid.substring(0, 8)}...</span>
+                                </div>
+                                ${user.bio ? `<div class="text-[11px] text-gray-400 mt-2 border-l-2 border-red-500 pl-2 italic">${escapeHtml(user.bio.substring(0, 100))}${user.bio.length > 100 ? '...' : ''}</div>` : ''}
+                            </div>
+                        </div>
+                        <div class="flex justify-end gap-2 mt-2 pt-2 border-t border-white/10">
+                            <button class="view-user-profile-btn text-xs bg-blue-600/50 hover:bg-blue-600 px-3 py-1 rounded-full transition" data-uid="${user.uid}">
+                                <i class="fas fa-user-circle"></i> Ver Perfil
+                            </button>
+                            ${!user.isAdmin ? `<button class="delete-user-btn text-xs bg-red-600/50 hover:bg-red-600 px-3 py-1 rounded-full transition" data-uid="${user.uid}" data-name="${escapeHtml(user.displayName)}">
+                                <i class="fas fa-trash-alt"></i> Excluir
+                            </button>` : '<span class="text-xs bg-yellow-600/50 px-2 py-1 rounded-full"><i class="fas fa-shield-alt"></i> Admin</span>'}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Adicionar eventos aos botões
+            container.querySelectorAll('.view-user-profile-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const uid = btn.getAttribute('data-uid');
+                    if (uid && window.renderInstagramProfile) {
+                        window.renderInstagramProfile(uid);
+                        window.switchSection('perfil');
+                        document.getElementById('adminModal')?.classList.add('hidden');
+                    }
+                });
+            });
+
+            container.querySelectorAll('.delete-user-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const uid = btn.getAttribute('data-uid');
+                    const name = btn.getAttribute('data-name');
+                    if (confirm(`Tem certeza que deseja excluir permanentemente o usuário "${name}"?`)) {
+                        if (window.deleteUserAccount) {
+                            await window.deleteUserAccount(uid);
+                            showToast(`Usuário ${name} excluído!`);
+                            window.loadAllUsersForAdmin();
+                        }
+                    }
+                });
+            });
+
+        } catch (error) {
+            console.error('Erro ao carregar usuários:', error);
+            container.innerHTML = `
+                <div class="text-center text-red-400 py-4">
+                    <i class="fas fa-times-circle"></i> 
+                    Erro ao carregar usuários: ${error.message || 'tente novamente'}
+                    <br>
+                    <button onclick="window.loadAllUsersForAdmin()" 
+                            class="mt-2 bg-blue-600 px-4 py-1 rounded-full text-white text-xs">
+                        <i class="fas fa-redo"></i> Tentar novamente
+                    </button>
+                </div>
+            `;
+        }
+    };
+
+    // ============================================================
+    // 2. Funções auxiliares (caso não existam globalmente)
+    // ============================================================
+    if (typeof escapeHtml !== 'function') {
+        window.escapeHtml = function(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        };
+    }
+
+    if (typeof formatLastSeen !== 'function') {
+        window.formatLastSeen = function(timestamp) {
+            if (!timestamp) return 'nunca';
+            const diff = Date.now() - timestamp;
+            const minutes = Math.floor(diff / 60000);
+            if (minutes < 1) return 'agora';
+            if (minutes < 60) return `${minutes} min`;
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours} h`;
+            const days = Math.floor(hours / 24);
+            if (days === 1) return 'ontem';
+            return `${days} dias`;
+        };
+    }
+
+    if (typeof showToast !== 'function') {
+        window.showToast = function(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerText = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        };
+    }
+
+    // ============================================================
+    // 3. Configurar evento de clique da aba "Usuários"
+    // ============================================================
+    function configurarAbaUsuarios() {
+        const usersTab = document.getElementById('adminTabUsuarios');
+        if (!usersTab) {
+            console.warn('⚠️ adminTabUsuarios não encontrado. Tentando novamente em 500ms...');
+            setTimeout(configurarAbaUsuarios, 500);
+            return;
+        }
+
+        // Remove listeners antigos clonando o elemento
+        const newTab = usersTab.cloneNode(true);
+        usersTab.parentNode.replaceChild(newTab, usersTab);
+
+        newTab.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Verifica se está logado
+            const user = firebase.auth().currentUser;
+            if (!user) {
+                showToast('🔒 Faça login para acessar a lista de usuários.');
+                document.getElementById('loginModal')?.classList.remove('hidden');
+                return;
+            }
+
+            // Chama a função de carregar
+            if (window.loadAllUsersForAdmin) {
+                window.loadAllUsersForAdmin();
+            } else {
+                showToast('Erro: função de carregamento não encontrada.');
+            }
+        });
+
+        console.log('✅ Evento da aba Usuários configurado.');
+    }
+
+    // ============================================================
+    // 4. Executar após o DOM estar pronto
+    // ============================================================
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', configurarAbaUsuarios);
+    } else {
+        configurarAbaUsuarios();
+    }
+
+    // ============================================================
+    // 5. Se o modal admin for aberto, garantir que a aba funcione
+    // ============================================================
+    const adminModal = document.getElementById('adminModal');
+    if (adminModal) {
+        const observer = new MutationObserver(() => {
+            if (!adminModal.classList.contains('hidden')) {
+                // Se o modal foi aberto, tenta configurar a aba novamente (caso ainda não esteja)
+                configurarAbaUsuarios();
+            }
+        });
+        observer.observe(adminModal, { attributes: true, attributeFilter: ['class'] });
+    }
+
+    console.log('✅ Correção completa da aba Usuários aplicada.');
+})();
+
                 
          </script>  
         </body>
