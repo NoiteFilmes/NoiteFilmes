@@ -15864,93 +15864,86 @@ setTimeout(() => {
 
 
 // =====================================================
-// SCRIPT DEFINITIVO - LISTA DE USUÁRIOS SEM RECARGA
-// CORRIGE O PROBLEMA DE "PÁGINA RECARREGADA"
+// SCRIPT ULTRA ESTÁVEL - LISTA DE USUÁRIOS
+// SEM RECARGAS E SEM ERROS
 // =====================================================
 
 (function() {
-    console.log('🛡️ Iniciando script definitivo de usuários (sem recargas)...');
+    console.log('🛡️ Iniciando script ultra estável...');
 
-    // ========== CONTROLE DE EXECUÇÃO ==========
-    let isRunning = false;
-    let isLoading = false;
-    let refreshTimer = null;
-    let observerInstance = null;
-    let isComponentMounted = false;
-    let usuariosCache = [];
-    let lastLoadTime = 0;
-
-    // ========== CONFIGURAÇÕES ==========
-    const CONFIG = {
-        ONLINE_THRESHOLD: 60000,
-        REFRESH_INTERVAL: 60000, // 1 minuto (mais seguro)
-        MAX_USERS: 200,
-        AVATAR_PADRAO: 'https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png',
-        MIN_LOAD_INTERVAL: 2000 // Evita carregamentos múltiplos
+    // ========== ESTADO GLOBAL ==========
+    let estado = {
+        inicializado: false,
+        carregando: false,
+        recarregando: false,
+        usuariosCache: [],
+        timeoutRecarga: null,
+        observerAtivo: false
     };
 
-    // ========== FUNÇÃO SEGURA PARA CARREGAR USUÁRIOS ==========
-    async function carregarUsuariosAdminSeguro() {
-        // PREVINE CARREGAMENTO MÚLTIPLO
-        if (isLoading) {
+    // ========== FUNÇÃO PRINCIPAL - COM CHECAGENS ==========
+    async function carregarUsuarios() {
+        // 🔥 VERIFICAÇÕES DE SEGURANÇA
+        if (estado.carregando) {
             console.log('⏳ Já está carregando, aguarde...');
             return;
         }
 
-        // PREVINE CARREGAMENTO FREQUENTE
-        const now = Date.now();
-        if (now - lastLoadTime < CONFIG.MIN_LOAD_INTERVAL) {
-            console.log('⏳ Aguarde um pouco antes de recarregar...');
+        // Verifica se o Firebase está disponível
+        if (typeof firebase === 'undefined' || !firebase.database) {
+            console.warn('⚠️ Firebase não disponível, tentando novamente...');
+            setTimeout(carregarUsuarios, 500);
             return;
         }
 
-        isLoading = true;
-        lastLoadTime = now;
+        // Verifica se o admin está logado
+        if (typeof isAdminLogged === 'undefined' || !isAdminLogged) {
+            console.warn('⚠️ Admin não está logado');
+            return;
+        }
+
+        // Verifica se a lista está visível
+        const usersList = document.getElementById('adminUsersList');
+        if (!usersList || usersList.classList.contains('hidden')) {
+            console.log('👤 Lista de usuários não está visível');
+            return;
+        }
+
+        const container = document.getElementById('usersListContainer');
+        if (!container) {
+            console.warn('⚠️ Container não encontrado');
+            criarContainerUsuarios();
+            setTimeout(carregarUsuarios, 300);
+            return;
+        }
+
+        estado.carregando = true;
 
         try {
-            // Verifica se o admin está logado
-            if (typeof isAdminLogged === 'undefined' || !isAdminLogged) {
-                console.warn('⚠️ Admin não está logado');
-                isLoading = false;
-                return;
-            }
-
-            // Verifica se a lista está visível
-            const usersList = document.getElementById('adminUsersList');
-            if (!usersList || usersList.classList.contains('hidden')) {
-                console.log('👤 Lista de usuários não está visível');
-                isLoading = false;
-                return;
-            }
-
-            const container = document.getElementById('usersListContainer');
-            if (!container) {
-                console.warn('⚠️ Container não encontrado');
-                criarContainerSeguro();
-                isLoading = false;
-                setTimeout(carregarUsuariosAdminSeguro, 500);
-                return;
-            }
-
-            // Mostra loading (apenas se não tiver dados em cache)
-            if (usuariosCache.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center text-gray-400 text-sm py-4">
-                        <div class="inline-block w-6 h-6 border-2 border-red-500 border-t-transparent rounded-full animate-spin mb-2"></div>
-                        <br>
-                        <span>Carregando usuários...</span>
+            // Mostra loading
+            container.innerHTML = `
+                <div class="text-center text-gray-400 text-sm py-6">
+                    <div class="flex justify-center mb-3">
+                        <div class="w-6 h-6 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
                     </div>
-                `;
-            }
+                    <span>Carregando usuários...</span>
+                </div>
+            `;
 
-            // ========== CARREGA OS DADOS ==========
-            console.log('📋 Carregando usuários...');
+            // 🔥 CARREGA OS DADOS
+            console.log('📋 Buscando usuários...');
             const snapshot = await firebase.database().ref('usuarios').once('value');
             const usuarios = snapshot.val();
 
             if (!usuarios) {
-                mostrarMensagemVaziaSegura(container);
-                isLoading = false;
+                container.innerHTML = `
+                    <div class="text-center text-gray-500 py-6">
+                        <i class="fas fa-users text-2xl block mb-2 opacity-30"></i>
+                        <p>Nenhum usuário cadastrado ainda.</p>
+                    </div>
+                `;
+                atualizarContadores(0, 0);
+                estado.carregando = false;
                 return;
             }
 
@@ -15965,82 +15958,80 @@ setTimeout(() => {
                 externalLink: dados.externalLink || '',
                 phone: dados.phone || '',
                 whatsapp: dados.whatsapp || '',
-                avatarUrl: dados.avatarUrl || CONFIG.AVATAR_PADRAO,
+                avatarUrl: dados.avatarUrl || 'https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png',
                 lastSeen: dados.lastSeen || null,
                 createdAt: dados.createdAt || Date.now(),
                 isAdmin: dados.isAdmin || false,
-                isOnline: dados.lastSeen && (agora - dados.lastSeen < CONFIG.ONLINE_THRESHOLD)
+                isOnline: dados.lastSeen && (agora - dados.lastSeen < 60000)
             }));
 
             // Salva no cache
-            usuariosCache = usuariosArray;
+            estado.usuariosCache = usuariosArray;
 
-            // ========== ORDENAÇÃO ==========
+            // Ordena: online primeiro, depois por data de criação
             const online = usuariosArray.filter(u => u.isOnline);
             const offline = usuariosArray.filter(u => !u.isOnline);
-            
             online.sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0));
             offline.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
             
             const usuariosOrdenados = [...online, ...offline];
 
             // Atualiza contadores
-            const totalEl = document.getElementById('totalUsersCount');
-            const onlineEl = document.getElementById('onlineUsersCount');
-            if (totalEl) totalEl.innerText = usuariosOrdenados.length;
-            if (onlineEl) onlineEl.innerText = online.length;
+            atualizarContadores(usuariosOrdenados.length, online.length);
 
             if (usuariosOrdenados.length === 0) {
-                mostrarMensagemVaziaSegura(container);
-                isLoading = false;
+                container.innerHTML = `
+                    <div class="text-center text-gray-500 py-6">
+                        <i class="fas fa-users text-2xl block mb-2 opacity-30"></i>
+                        <p>Nenhum usuário encontrado.</p>
+                    </div>
+                `;
+                estado.carregando = false;
                 return;
             }
 
-            // ========== RENDERIZA COM SEGURANÇA ==========
-            renderizarListaSegura(container, usuariosOrdenados);
+            // 🔥 RENDERIZA A LISTA
+            renderizarLista(container, usuariosOrdenados);
+
+            console.log(`✅ ${usuariosOrdenados.length} usuários carregados (${online.length} online)`);
 
         } catch (error) {
             console.error('❌ Erro ao carregar usuários:', error);
-            // Não mostra erro se tiver cache
-            if (usuariosCache.length === 0) {
-                const container = document.getElementById('usersListContainer');
-                if (container) {
-                    container.innerHTML = `
-                        <div class="text-center text-red-400 py-4 text-sm">
-                            <i class="fas fa-exclamation-triangle text-xl block mb-2"></i>
-                            Erro ao carregar usuários
-                            <br>
-                            <button onclick="window.recarregarUsuariosSeguro()" 
-                                    class="mt-2 bg-red-600 hover:bg-red-700 px-3 py-1 rounded-full text-xs transition">
-                                <i class="fas fa-sync-alt"></i> Tentar novamente
-                            </button>
-                        </div>
-                    `;
-                }
+            
+            // Mostra erro apenas se não tiver cache
+            if (estado.usuariosCache.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-red-400 py-6 text-sm">
+                        <i class="fas fa-exclamation-triangle text-xl block mb-2"></i>
+                        <p>Erro ao carregar usuários</p>
+                        <p class="text-xs text-gray-400 mt-1">${error.message}</p>
+                        <button onclick="window.recarregarUsuariosEstavel()" 
+                                class="mt-3 bg-red-600 hover:bg-red-700 px-4 py-1.5 rounded-full text-xs transition">
+                            <i class="fas fa-sync-alt"></i> Tentar novamente
+                        </button>
+                    </div>
+                `;
             }
         } finally {
-            isLoading = false;
-            isRunning = false;
+            estado.carregando = false;
         }
     }
 
-    // ========== RENDERIZAR LISTA COM SEGURANÇA ==========
-    function renderizarListaSegura(container, usuarios) {
-        // Limita a quantidade
-        const usuariosExibir = usuarios.slice(0, CONFIG.MAX_USERS);
-        
+    // ========== RENDERIZAR LISTA ==========
+    function renderizarLista(container, usuarios) {
+        const usuariosExibir = usuarios.slice(0, 200);
         let html = '';
-        let onlineCount = 0;
+        let contadorOnline = 0;
         const agora = Date.now();
 
         usuariosExibir.forEach((user, index) => {
-            const isOnline = user.isOnline || (user.lastSeen && (agora - user.lastSeen < CONFIG.ONLINE_THRESHOLD));
-            const lastSeenText = formatarTempoAtraso(user.lastSeen);
+            const isOnline = user.isOnline || (user.lastSeen && (agora - user.lastSeen < 60000));
+            const lastSeenText = formatarTempo(user.lastSeen);
             const createdDate = user.createdAt ? new Date(user.createdAt).toLocaleDateString('pt-BR') : 'Desconhecido';
-            const avatarUrl = user.avatarUrl || CONFIG.AVATAR_PADRAO;
+            const avatarUrl = user.avatarUrl || 'https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png';
 
             // Separador ONLINE
-            if (isOnline && onlineCount === 0 && usuarios.filter(u => u.isOnline).length > 0) {
+            if (isOnline && contadorOnline === 0) {
                 const totalOnline = usuarios.filter(u => u.isOnline).length;
                 html += `
                     <div class="online-separator flex items-center gap-2 my-2 px-2">
@@ -16052,11 +16043,11 @@ setTimeout(() => {
                         <span class="text-[10px] text-gray-500">${totalOnline} usuários</span>
                     </div>
                 `;
-                onlineCount++;
+                contadorOnline++;
             }
 
             // Separador OFFLINE
-            if (!isOnline && onlineCount === 1 && index === usuarios.filter(u => u.isOnline).length) {
+            if (!isOnline && contadorOnline === 1) {
                 const totalOffline = usuarios.filter(u => !u.isOnline).length;
                 html += `
                     <div class="offline-separator flex items-center gap-2 my-2 px-2">
@@ -16068,24 +16059,21 @@ setTimeout(() => {
                         <span class="text-[10px] text-gray-500">${totalOffline} usuários</span>
                     </div>
                 `;
-                onlineCount++;
+                contadorOnline++;
             }
 
             // CARD DO USUÁRIO
             html += `
-                <div class="user-admin-card glass-card p-3 transition-all border ${isOnline ? 'border-green-500/30' : 'border-white/10'} rounded-xl" 
-                     data-uid="${user.uid}"
-                     data-online="${isOnline}">
-                    
+                <div class="user-card glass-card p-3 border ${isOnline ? 'border-green-500/30' : 'border-white/10'} rounded-xl" 
+                     data-uid="${user.uid}">
                     <div class="flex items-start gap-3">
                         <div class="relative flex-shrink-0">
                             <img src="${avatarUrl}" 
                                  class="w-12 h-12 rounded-full object-cover border-2 ${isOnline ? 'border-green-500' : 'border-gray-600'}" 
                                  loading="lazy"
-                                 onerror="this.src='${CONFIG.AVATAR_PADRAO}'">
+                                 onerror="this.src='https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png'">
                             ${isOnline ? '<div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-black"></div>' : ''}
                         </div>
-                        
                         <div class="flex-1 min-w-0">
                             <div class="flex flex-wrap justify-between items-start gap-1">
                                 <div class="min-w-0 flex-1">
@@ -16098,28 +16086,19 @@ setTimeout(() => {
                                     </span>
                                 </div>
                             </div>
-                            
                             <div class="text-xs text-gray-300 mt-1 break-all">
                                 <i class="fas fa-envelope mr-1"></i> ${escapeHtml(user.email)}
                             </div>
-                            
-                            ${user.phone ? `<div class="text-xs text-gray-400 mt-0.5"><i class="fas fa-phone mr-1"></i> ${escapeHtml(user.phone)}</div>` : ''}
-                            ${user.whatsapp ? `<div class="text-xs text-gray-400 mt-0.5"><i class="fab fa-whatsapp mr-1 text-green-400"></i> ${escapeHtml(user.whatsapp)}</div>` : ''}
-                            ${user.externalLink ? `<div class="text-xs text-blue-400 mt-0.5 truncate"><i class="fas fa-link mr-1"></i> <a href="${user.externalLink}" target="_blank" class="hover:underline">${escapeHtml(user.externalLink)}</a></div>` : ''}
-                            
-                            <div class="text-[10px] text-gray-500 mt-1 flex flex-wrap gap-2">
-                                <span><i class="far fa-calendar-alt"></i> Cadastro: ${createdDate}</span>
-                                <span><i class="fas fa-id-card"></i> UID: ${user.uid.substring(0, 8)}...</span>
-                            </div>
-                            
                             ${user.bio ? `<div class="text-[11px] text-gray-400 mt-2 border-l-2 border-red-500 pl-2 italic line-clamp-2">${escapeHtml(user.bio)}</div>` : ''}
+                            <div class="text-[10px] text-gray-500 mt-1">
+                                <i class="far fa-calendar-alt"></i> Cadastro: ${createdDate}
+                            </div>
                         </div>
                     </div>
-                    
-                    <div class="flex justify-end gap-2 mt-2 pt-2 border-t border-white/10 flex-wrap">
-                        <button class="view-user-profile-btn text-xs bg-blue-600/50 hover:bg-blue-600 px-3 py-1 rounded-full transition" 
+                    <div class="flex justify-end gap-2 mt-2 pt-2 border-t border-white/10">
+                        <button class="view-profile-btn text-xs bg-blue-600/50 hover:bg-blue-600 px-3 py-1 rounded-full transition" 
                                 data-uid="${user.uid}">
-                            <i class="fas fa-user-circle"></i> Ver Perfil
+                            <i class="fas fa-user-circle"></i> Perfil
                         </button>
                         ${!user.isAdmin ? `<button class="delete-user-btn text-xs bg-red-600/50 hover:bg-red-600 px-3 py-1 rounded-full transition" 
                                 data-uid="${user.uid}" 
@@ -16131,43 +16110,23 @@ setTimeout(() => {
             `;
         });
 
-        // Substitui o conteúdo de uma vez (evita múltiplas manipulações do DOM)
         container.innerHTML = html;
-
-        // Adiciona eventos APENAS UMA VEZ
-        adicionarEventosUnicos(container);
+        adicionarEventos(container);
     }
 
-    // ========== ADICIONAR EVENTOS APENAS UMA VEZ ==========
-    let eventosAdicionados = false;
-
-    function adicionarEventosUnicos(container) {
-        // Se já adicionou, não adiciona novamente
-        if (eventosAdicionados) return;
-        eventosAdicionados = true;
-
-        // ===== BOTÕES "VER PERFIL" =====
-        container.querySelectorAll('.view-user-profile-btn').forEach(btn => {
+    // ========== ADICIONAR EVENTOS ==========
+    function adicionarEventos(container) {
+        // Botões "Ver Perfil"
+        container.querySelectorAll('.view-profile-btn').forEach(btn => {
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 const uid = this.getAttribute('data-uid');
-                if (uid) {
-                    try {
-                        if (typeof renderInstagramProfile === 'function') {
-                            renderInstagramProfile(uid);
-                            switchSection('perfil');
-                            const adminModal = document.getElementById('adminModal');
-                            if (adminModal) adminModal.classList.add('hidden');
-                        }
-                    } catch (err) {
-                        console.error('Erro ao abrir perfil:', err);
-                    }
-                }
+                if (uid) abrirPerfil(uid);
             });
         });
 
-        // ===== BOTÕES "EXCLUIR" =====
+        // Botões "Excluir"
         container.querySelectorAll('.delete-user-btn').forEach(btn => {
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -16175,60 +16134,47 @@ setTimeout(() => {
                 const uid = this.getAttribute('data-uid');
                 const name = this.getAttribute('data-name');
                 if (uid && name) {
-                    if (confirm(`⚠️ Tem certeza que deseja excluir permanentemente o usuário "${name}"?\n\nEsta ação não pode ser desfeita!`)) {
-                        excluirUsuarioSeguro(uid).then(() => {
-                            const toast = document.createElement('div');
-                            toast.className = 'toast';
-                            toast.innerText = `✅ Usuário ${name} excluído!`;
-                            document.body.appendChild(toast);
-                            setTimeout(() => toast.remove(), 3000);
-                            // Recarrega após excluir
-                            setTimeout(carregarUsuariosAdminSeguro, 500);
-                        }).catch(err => {
-                            console.error('Erro ao excluir:', err);
-                            const toast = document.createElement('div');
-                            toast.className = 'toast';
-                            toast.innerText = '❌ Erro ao excluir: ' + err.message;
-                            document.body.appendChild(toast);
-                            setTimeout(() => toast.remove(), 3000);
-                        });
+                    if (confirm(`⚠️ Excluir "${name}" permanentemente?`)) {
+                        excluirUsuario(uid, name);
                     }
                 }
             });
         });
 
-        // ===== CLICK NOS CARDS =====
-        container.querySelectorAll('.user-admin-card').forEach(card => {
+        // Clique nos cards
+        container.querySelectorAll('.user-card').forEach(card => {
             card.addEventListener('click', function(e) {
-                // Ignora se clicou em um botão
                 if (e.target.closest('button')) return;
                 const uid = this.getAttribute('data-uid');
-                if (uid) {
-                    try {
-                        if (typeof renderInstagramProfile === 'function') {
-                            renderInstagramProfile(uid);
-                            switchSection('perfil');
-                            const adminModal = document.getElementById('adminModal');
-                            if (adminModal) adminModal.classList.add('hidden');
-                        }
-                    } catch (err) {
-                        console.error('Erro ao abrir perfil:', err);
-                    }
-                }
+                if (uid) abrirPerfil(uid);
             });
         });
-
-        console.log('✅ Eventos adicionados uma única vez');
     }
 
-    // ========== EXCLUIR USUÁRIO COM SEGURANÇA ==========
-    async function excluirUsuarioSeguro(uid) {
-        if (!uid) throw new Error('UID não fornecido');
-        
-        console.log(`🗑️ Excluindo usuário ${uid}...`);
-        
+    // ========== FUNÇÕES DE AÇÃO ==========
+    function abrirPerfil(uid) {
         try {
-            // Remove dados do usuário
+            // Tenta usar a função global
+            if (typeof window.renderInstagramProfile === 'function') {
+                window.renderInstagramProfile(uid);
+                if (typeof window.switchSection === 'function') {
+                    window.switchSection('perfil');
+                }
+                // Fecha o modal admin
+                const adminModal = document.getElementById('adminModal');
+                if (adminModal) adminModal.classList.add('hidden');
+            } else {
+                console.warn('⚠️ Função renderInstagramProfile não encontrada');
+                showToastEstavel('Função de perfil não disponível');
+            }
+        } catch (error) {
+            console.error('Erro ao abrir perfil:', error);
+            showToastEstavel('Erro ao abrir perfil');
+        }
+    }
+
+    async function excluirUsuario(uid, name) {
+        try {
             await firebase.database().ref(`usuarios/${uid}`).remove();
             
             // Remove posts
@@ -16247,15 +16193,18 @@ setTimeout(() => {
             await firebase.database().ref(`followers/${uid}`).remove();
             await firebase.database().ref(`following/${uid}`).remove();
             
-            console.log(`✅ Usuário ${uid} excluído`);
+            showToastEstavel(`✅ Usuário ${name} excluído!`);
+            
+            // Recarrega a lista
+            setTimeout(carregarUsuarios, 500);
         } catch (error) {
             console.error('Erro ao excluir:', error);
-            throw error;
+            showToastEstavel('❌ Erro ao excluir: ' + error.message);
         }
     }
 
     // ========== FUNÇÕES AUXILIARES ==========
-    function formatarTempoAtraso(timestamp) {
+    function formatarTempo(timestamp) {
         if (!timestamp) return 'nunca';
         const diff = Date.now() - timestamp;
         const minutos = Math.floor(diff / 60000);
@@ -16276,20 +16225,22 @@ setTimeout(() => {
         return div.innerHTML;
     }
 
-    function mostrarMensagemVaziaSegura(container) {
-        container.innerHTML = `
-            <div class="text-center text-gray-500 py-8">
-                <i class="fas fa-users text-3xl block mb-3 opacity-30"></i>
-                <p>Nenhum usuário cadastrado ainda.</p>
-            </div>
-        `;
+    function atualizarContadores(total, online) {
         const totalEl = document.getElementById('totalUsersCount');
         const onlineEl = document.getElementById('onlineUsersCount');
-        if (totalEl) totalEl.innerText = '0';
-        if (onlineEl) onlineEl.innerText = '0';
+        if (totalEl) totalEl.innerText = total;
+        if (onlineEl) onlineEl.innerText = online;
     }
 
-    function criarContainerSeguro() {
+    function showToastEstavel(mensagem) {
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.innerText = mensagem;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    function criarContainerUsuarios() {
         const adminListsContainer = document.getElementById('adminListsContainer');
         if (!adminListsContainer) return;
         if (document.getElementById('adminUsersList')) return;
@@ -16305,11 +16256,11 @@ setTimeout(() => {
                         Usuários Registrados
                     </h3>
                     <div class="flex gap-2 text-xs flex-wrap">
-                        <span class="bg-blue-600/50 px-2 py-1 rounded-full flex items-center gap-1">
+                        <span class="bg-blue-600/50 px-2 py-1 rounded-full">
                             <i class="fas fa-database"></i> 
                             Total: <span id="totalUsersCount">0</span>
                         </span>
-                        <span class="bg-green-600/50 px-2 py-1 rounded-full flex items-center gap-1">
+                        <span class="bg-green-600/50 px-2 py-1 rounded-full">
                             <i class="fas fa-circle text-green-400 text-[8px]"></i> 
                             Online: <span id="onlineUsersCount">0</span>
                         </span>
@@ -16322,10 +16273,10 @@ setTimeout(() => {
     }
 
     // ========== CONFIGURAR ABA USUÁRIOS ==========
-    function configurarAbaUsuarios() {
+    function configurarAba() {
         const usersTab = document.getElementById('adminTabUsuarios');
         if (!usersTab) {
-            setTimeout(configurarAbaUsuarios, 500);
+            setTimeout(configurarAba, 300);
             return;
         }
 
@@ -16335,7 +16286,8 @@ setTimeout(() => {
 
         newTab.addEventListener('click', function(e) {
             e.preventDefault();
-            
+            e.stopPropagation();
+
             // Resetar abas
             document.querySelectorAll('.admin-tab-btn').forEach(btn => {
                 btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500');
@@ -16360,19 +16312,14 @@ setTimeout(() => {
             const usersList = document.getElementById('adminUsersList');
             if (usersList) {
                 usersList.classList.remove('hidden');
-                // Recarrega apenas se não estiver carregando
-                if (!isLoading) {
-                    setTimeout(carregarUsuariosAdminSeguro, 200);
-                }
+                setTimeout(carregarUsuarios, 200);
             } else {
-                criarContainerSeguro();
+                criarContainerUsuarios();
                 setTimeout(() => {
                     const newList = document.getElementById('adminUsersList');
                     if (newList) {
                         newList.classList.remove('hidden');
-                        if (!isLoading) {
-                            carregarUsuariosAdminSeguro();
-                        }
+                        carregarUsuarios();
                     }
                 }, 300);
             }
@@ -16381,155 +16328,83 @@ setTimeout(() => {
         console.log('✅ Aba Usuários configurada');
     }
 
-    // ========== ATUALIZAÇÃO AUTOMÁTICA (MAIS SEGURA) ==========
-    function iniciarAtualizacaoSegura() {
-        if (refreshTimer) {
-            clearInterval(refreshTimer);
-            refreshTimer = null;
-        }
+    // ========== INICIALIZAÇÃO PRINCIPAL ==========
+    function inicializar() {
+        console.log('🚀 Inicializando sistema de usuários...');
 
-        refreshTimer = setInterval(() => {
-            // Verifica se a lista está visível e se não está carregando
-            const usersList = document.getElementById('adminUsersList');
-            if (usersList && !usersList.classList.contains('hidden') && !isLoading) {
-                carregarUsuariosAdminSeguro();
-            }
-        }, CONFIG.REFRESH_INTERVAL);
-
-        console.log('🔄 Atualização automática iniciada');
-    }
-
-    // ========== OBSERVER SEGURO (SEM LOOP) ==========
-    function configurarObserverSeguro() {
-        if (observerInstance) {
-            observerInstance.disconnect();
-            observerInstance = null;
-        }
-
-        observerInstance = new MutationObserver(() => {
-            const adminPanel = document.getElementById('adminPanel');
-            if (adminPanel && !adminPanel.classList.contains('hidden')) {
-                if (typeof isAdminLogged !== 'undefined' && isAdminLogged) {
-                    const usersTab = document.getElementById('adminTabUsuarios');
-                    if (usersTab && usersTab.classList.contains('border-red-600')) {
-                        const usersList = document.getElementById('adminUsersList');
-                        if (usersList && !usersList.classList.contains('hidden') && !isLoading) {
-                            carregarUsuariosAdminSeguro();
-                        }
-                    }
-                }
-            }
-        });
-
-        observerInstance.observe(document.body, { 
-            attributes: true, 
-            subtree: true, 
-            attributeFilter: ['class'] 
-        });
-
-        console.log('👁️ Observer configurado');
-    }
-
-    // ========== INICIALIZAÇÃO ==========
-    function initSeguro() {
-        console.log('🚀 Iniciando script definitivo de usuários...');
-
-        // Previne execução múltipla
-        if (isRunning) {
-            console.log('⏳ Script já está rodando');
-            return;
-        }
-        isRunning = true;
-
-        // Adiciona estilos se não existir
-        if (!document.getElementById('admin-users-seguro-styles')) {
+        // Adiciona estilos
+        if (!document.getElementById('users-estavel-styles')) {
             const style = document.createElement('style');
-            style.id = 'admin-users-seguro-styles';
+            style.id = 'users-estavel-styles';
             style.textContent = `
                 @media (max-width: 768px) {
-                    .user-admin-card {
+                    .user-card {
                         padding: 12px !important;
                         margin-bottom: 10px !important;
-                        border-radius: 16px !important;
                     }
-                    .user-admin-card .w-12 {
+                    .user-card .w-12 {
                         width: 44px !important;
                         height: 44px !important;
                     }
-                }
-                .online-separator, .offline-separator {
-                    padding: 4px 0 !important;
+                    .user-card .flex-wrap {
+                        flex-wrap: wrap !important;
+                    }
                 }
                 #usersListContainer {
                     max-height: 55vh !important;
                     -webkit-overflow-scrolling: touch !important;
                 }
-                .user-admin-card {
-                    transition: all 0.2s ease !important;
-                }
-                .user-admin-card:hover {
-                    transform: scale(1.01) !important;
+                .online-separator, .offline-separator {
+                    padding: 4px 0 !important;
                 }
             `;
             document.head.appendChild(style);
         }
 
         // Cria container
-        criarContainerSeguro();
+        criarContainerUsuarios();
 
         // Configura aba
-        setTimeout(configurarAbaUsuarios, 300);
+        setTimeout(configurarAba, 500);
 
-        // Configura observer
-        setTimeout(configurarObserverSeguro, 500);
-
-        // Inicia atualização automática
-        setTimeout(iniciarAtualizacaoSegura, 1000);
-
-        // Carrega pela primeira vez se o admin já estiver logado
+        // Se admin já estiver logado, carrega
         if (typeof isAdminLogged !== 'undefined' && isAdminLogged) {
             const adminModal = document.getElementById('adminModal');
             if (adminModal && !adminModal.classList.contains('hidden')) {
                 setTimeout(() => {
                     const usersList = document.getElementById('adminUsersList');
-                    if (usersList && !usersList.classList.contains('hidden') && !isLoading) {
-                        carregarUsuariosAdminSeguro();
+                    if (usersList && !usersList.classList.contains('hidden')) {
+                        carregarUsuarios();
                     }
-                }, 800);
+                }, 600);
             }
         }
 
-        console.log('✅ Script definitivo inicializado com sucesso!');
+        estado.inicializado = true;
+        console.log('✅ Sistema de usuários inicializado com sucesso!');
     }
 
     // ========== EXPOR FUNÇÕES ==========
-    window.carregarUsuariosAdminSeguro = carregarUsuariosAdminSeguro;
-    window.recarregarUsuariosSeguro = function() {
-        if (!isLoading) {
-            carregarUsuariosAdminSeguro();
+    window.carregarUsuariosEstavel = carregarUsuarios;
+    window.recarregarUsuariosEstavel = function() {
+        if (!estado.carregando) {
+            carregarUsuarios();
         }
     };
-    window.excluirUsuarioSeguro = excluirUsuarioSeguro;
 
     // ========== EXECUTAR ==========
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initSeguro);
+        document.addEventListener('DOMContentLoaded', inicializar);
     } else {
-        // Pequeno delay para garantir que o DOM está pronto
-        setTimeout(initSeguro, 200);
+        // Garante que o DOM está pronto
+        setTimeout(inicializar, 300);
     }
 
-    // ========== PREVENIR RECARGA DA PÁGINA ==========
-    // Bloqueia recarga acidental
-    window.addEventListener('beforeunload', function(e) {
-        // Não faz nada, só previne recargas acidentais
-    });
-
-    console.log('🛡️ Script definitivo carregado! O problema de recarga foi corrigido.');
-    console.log('ℹ️ Use window.recarregarUsuariosSeguro() para recarregar manualmente.');
-    console.log('📱 Compatível com desktop, celular e tablet.');
+    console.log('🛡️ Script ultra estável carregado!');
+    console.log('📱 Compatível com todos os dispositivos');
 
 })();
+
 
 
 
