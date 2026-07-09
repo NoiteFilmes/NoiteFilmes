@@ -15870,7 +15870,477 @@ setTimeout(() => {
 
 
 
+// =====================================================
+// CORREÇÃO COMPLETA DO PERFIL - POSTS, FAVORITOS, SALVOS, MARCAÇÕES, ASSISTIDOS
+// =====================================================
+(function() {
+    console.log('🔄 CORREÇÃO: Perfil - Posts, Favoritos, Salvos, Marcações, Assistidos');
 
+    // =====================================================
+    // 1. LIMPAR FUNÇÕES EXISTENTES
+    // =====================================================
+    const originalRenderInstagramProfile = window.renderInstagramProfile;
+    const originalLoadProfileTabContent = window.loadProfileTabContent;
+
+    // =====================================================
+    // 2. FUNÇÃO PRINCIPAL - RENDER PERFIL
+    // =====================================================
+    window.renderInstagramProfile = function(showOtherUserId = null) {
+        const container = document.getElementById('instagramProfileContainer');
+        if (!container) {
+            console.warn('Container do perfil não encontrado');
+            return;
+        }
+
+        if (!currentUser) {
+            container.innerHTML = `<div class="text-center p-4">Faça login para acessar o perfil</div>`;
+            return;
+        }
+
+        let targetUserId = currentUser.uid;
+        let isOwnProfile = true;
+        let targetNickname = currentUsername;
+
+        if (showOtherUserId && showOtherUserId !== currentUser.uid) {
+            targetUserId = showOtherUserId;
+            isOwnProfile = false;
+            currentViewingUserId = targetUserId;
+        } else {
+            currentViewingUserId = null;
+        }
+
+        // Buscar dados do usuário
+        database.ref(`usuarios/${targetUserId}`).once('value').then(async (snap) => {
+            const userData = snap.val() || {};
+            
+            if (userData.nickname) targetNickname = userData.nickname;
+            userProfileData.displayName = userData.displayName || '';
+            userProfileData.bio = userData.bio || "🎬 Apaixonado por cinema e séries. NoiteFilmes é minha segunda casa! 🍿✨";
+            userProfileData.externalLink = userData.externalLink || '';
+            userProfileData.phone = userData.phone || '';
+            userProfileData.whatsapp = userData.whatsapp || '';
+            userProfileData.avatarUrl = getAvatarUrl(userData.avatarUrl);
+
+            // Buscar contagens
+            const postsSnap = await database.ref('feed_posts').orderByChild('userId').equalTo(targetUserId).once('value');
+            const posts = postsSnap.val();
+            const postsList = posts ? Object.values(posts).filter(p => !p.originalPostId) : [];
+            const totalPosts = postsList.length;
+
+            const followersSnap = await database.ref(`followers/${targetUserId}`).once('value');
+            const followingSnap = await database.ref(`following/${targetUserId}`).once('value');
+            const followersCount = followersSnap.val() ? Object.keys(followersSnap.val()).length : 0;
+            const followingCount = followingSnap.val() ? Object.keys(followingSnap.val()).length : 0;
+
+            let isFollowing = false;
+            if (!isOwnProfile && currentUser) {
+                const followCheck = await database.ref(`followers/${targetUserId}/${currentUser.uid}`).once('value');
+                isFollowing = followCheck.val() === true;
+            }
+
+            // Montar HTML do perfil
+            const avatarUrl = userProfileData.avatarUrl || DEFAULT_AVATAR_URL;
+            const displayNameText = userProfileData.displayName || targetNickname;
+
+            let actionButtonHtml = '';
+            if (!isOwnProfile) {
+                actionButtonHtml = `<button class="follow-button ${isFollowing ? 'following' : ''}" id="followActionBtn">${isFollowing ? 'Seguindo' : 'Seguir'}</button>`;
+            }
+
+            let avatarUploadHtml = '';
+            if (isOwnProfile) {
+                avatarUploadHtml = `<div class="avatar-upload-overlay" onclick="document.getElementById('avatarUploadInput').click()"><i class="fas fa-camera"></i></div>`;
+            }
+
+            container.innerHTML = `
+                <div class="profile-header-instagram">
+                    <div class="top-bar">
+                        <div class="profile-username-top">${escapeHtml(targetNickname)}</div>
+                        ${isOwnProfile ? `<div class="profile-options-icon" onclick="openEditProfileModal()"><i class="fas fa-ellipsis-h"></i></div>` : ''}
+                    </div>
+                    <div class="profile-info-row">
+                        <div class="profile-picture avatar-upload-container" id="profilePictureContainer">
+                            <img src="${avatarUrl}" id="profileAvatarImg" onerror="this.src='${DEFAULT_AVATAR_URL}'" style="width:100%; height:100%; object-fit:cover;">
+                            ${avatarUploadHtml}
+                        </div>
+                        <div class="profile-stats-grid">
+                            <div><span class="stat-number" id="statPosts">${totalPosts}</span><span class="stat-label"> posts</span></div>
+                            <div><span class="stat-number" onclick="showFollowersList('${targetUserId}')">${followersCount}</span><span class="stat-label" onclick="showFollowersList('${targetUserId}')"> seguidores</span></div>
+                            <div><span class="stat-number" onclick="showFollowingList('${targetUserId}')">${followingCount}</span><span class="stat-label" onclick="showFollowingList('${targetUserId}')"> seguindo</span></div>
+                        </div>
+                    </div>
+                    <div class="profile-bio">
+                        <div class="profile-bio-text">${makeNicknamesClickable(escapeHtml(userProfileData.bio))}</div>
+                    </div>
+                    ${userProfileData.externalLink ? `<a href="${userProfileData.externalLink}" target="_blank" class="profile-external-link"><i class="fas fa-link"></i> ${userProfileData.externalLink}</a>` : ''}
+                    ${actionButtonHtml}
+                    <div class="profile-tabs-container">
+                        <div class="profile-tabs">
+                            <div class="profile-tab ${currentProfileTab === 'posts' ? 'active' : ''}" data-tab="posts"><i class="fas fa-th"></i> POSTS</div>
+                            <div class="profile-tab ${currentProfileTab === 'favoritos' ? 'active' : ''}" data-tab="favoritos"><i class="fas fa-heart"></i> FAVORITOS</div>
+                            <div class="profile-tab ${currentProfileTab === 'salvos' ? 'active' : ''}" data-tab="salvos"><i class="fas fa-bookmark"></i> SALVOS</div>
+                            <div class="profile-tab ${currentProfileTab === 'marcacoes' ? 'active' : ''}" data-tab="marcacoes"><i class="fas fa-at"></i> MARCAÇÕES</div>
+                            <div class="profile-tab ${currentProfileTab === 'assistidos' ? 'active' : ''}" data-tab="assistidos"><i class="fas fa-history"></i> ASSISTIDOS</div>
+                        </div>
+                    </div>
+                    <div id="profileTabContent"></div>
+                </div>
+            `;
+
+            // Eventos das abas
+            document.querySelectorAll('.profile-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabName = tab.getAttribute('data-tab');
+                    currentProfileTab = tabName;
+                    renderInstagramProfile(showOtherUserId);
+                });
+            });
+
+            // Evento de seguir
+            const followBtn = document.getElementById('followActionBtn');
+            if (followBtn) {
+                followBtn.addEventListener('click', async () => {
+                    if (!currentUser) { showToast('Faça login para seguir'); return; }
+                    const newStatus = !isFollowing;
+                    if (newStatus) {
+                        await database.ref(`followers/${targetUserId}/${currentUser.uid}`).set(true);
+                        await database.ref(`following/${currentUser.uid}/${targetUserId}`).set(true);
+                        showToast(`Você agora segue @${targetNickname}`);
+                    } else {
+                        await database.ref(`followers/${targetUserId}/${currentUser.uid}`).remove();
+                        await database.ref(`following/${currentUser.uid}/${targetUserId}`).remove();
+                        showToast(`Você deixou de seguir @${targetNickname}`);
+                    }
+                    renderInstagramProfile(showOtherUserId);
+                });
+            }
+
+            // Carregar conteúdo da aba
+            await carregarAbaPerfil(targetUserId, currentProfileTab);
+            setupNicknameClickHandlers();
+        }).catch(error => {
+            console.error('Erro ao carregar perfil:', error);
+            container.innerHTML = `<div class="text-center p-4 text-red-500">Erro ao carregar perfil</div>`;
+        });
+    };
+
+    // =====================================================
+    // 3. CARREGAR ABA - POSTS, FAVORITOS, SALVOS, MARCAÇÕES, ASSISTIDOS
+    // =====================================================
+    window.carregarAbaPerfil = async function(userId, tab) {
+        const container = document.getElementById('profileTabContent');
+        if (!container) return;
+
+        // =============================================
+        // ABA POSTS
+        // =============================================
+        if (tab === 'posts') {
+            try {
+                const postsSnap = await database.ref('feed_posts').orderByChild('userId').equalTo(userId).once('value');
+                const posts = postsSnap.val();
+                const postsList = posts ? Object.values(posts).filter(p => !p.originalPostId).sort((a, b) => b.createdAt - a.createdAt) : [];
+
+                if (postsList.length === 0) {
+                    container.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Nenhuma publicação ainda</div>';
+                    return;
+                }
+
+                container.innerHTML = '<div class="post-grid" id="profilePostGrid"></div>';
+                const grid = document.getElementById('profilePostGrid');
+
+                for (const post of postsList) {
+                    const div = document.createElement('div');
+                    div.className = 'post-grid-item';
+                    div.onclick = () => viewPostDetail(post.id);
+                    
+                    if (post.mediaType === 'video') {
+                        div.innerHTML = `<video src="${post.mediaUrl}" style="width:100%; height:100%; object-fit:cover;"></video>`;
+                    } else {
+                        div.innerHTML = `<img src="${post.mediaUrl}" onerror="this.src='https://via.placeholder.com/300x300'" style="width:100%; height:100%; object-fit:cover;">`;
+                    }
+                    grid.appendChild(div);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar posts:', error);
+                container.innerHTML = '<div class="text-center text-red-500 py-8 text-sm">Erro ao carregar publicações</div>';
+            }
+            return;
+        }
+
+        // =============================================
+        // ABA FAVORITOS (filmes/séries/canais favoritos)
+        // =============================================
+        if (tab === 'favoritos') {
+            try {
+                const favSnap = await database.ref(`favoritos/${userId}`).once('value');
+                const favs = favSnap.val();
+
+                if (!favs || Object.keys(favs).length === 0) {
+                    container.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Nenhum favorito ainda</div>';
+                    return;
+                }
+
+                const favList = Object.values(favs);
+                container.innerHTML = '<div class="post-grid" id="profileFavGrid"></div>';
+                const grid = document.getElementById('profileFavGrid');
+
+                for (const fav of favList) {
+                    const div = document.createElement('div');
+                    div.className = 'post-grid-item';
+                    div.onclick = () => playMediaById(fav.id, fav.type || 'filme');
+                    div.innerHTML = `<img src="${fav.thumb || 'https://via.placeholder.com/300x300'}" onerror="this.src='https://via.placeholder.com/300x300'" style="width:100%; height:100%; object-fit:cover;">`;
+                    grid.appendChild(div);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar favoritos:', error);
+                container.innerHTML = '<div class="text-center text-red-500 py-8 text-sm">Erro ao carregar favoritos</div>';
+            }
+            return;
+        }
+
+        // =============================================
+        // ABA SALVOS (posts salvos)
+        // =============================================
+        if (tab === 'salvos') {
+            try {
+                const allPostsSnap = await database.ref('feed_posts').once('value');
+                const allPosts = allPostsSnap.val();
+
+                if (!allPosts) {
+                    container.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Nenhum post salvo</div>';
+                    return;
+                }
+
+                const savedPosts = [];
+                for (const [postId, post] of Object.entries(allPosts)) {
+                    if (post.saves && post.saves[userId] === true) {
+                        savedPosts.push({ id: postId, ...post });
+                    }
+                }
+
+                if (savedPosts.length === 0) {
+                    container.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Nenhum post salvo</div>';
+                    return;
+                }
+
+                savedPosts.sort((a, b) => b.createdAt - a.createdAt);
+                container.innerHTML = '<div class="post-grid" id="profileSavedGrid"></div>';
+                const grid = document.getElementById('profileSavedGrid');
+
+                for (const post of savedPosts) {
+                    const div = document.createElement('div');
+                    div.className = 'post-grid-item';
+                    div.onclick = () => viewPostDetail(post.id);
+                    
+                    if (post.mediaType === 'video') {
+                        div.innerHTML = `<video src="${post.mediaUrl}" style="width:100%; height:100%; object-fit:cover;"></video>`;
+                    } else {
+                        div.innerHTML = `<img src="${post.mediaUrl}" onerror="this.src='https://via.placeholder.com/300x300'" style="width:100%; height:100%; object-fit:cover;">`;
+                    }
+                    grid.appendChild(div);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar salvos:', error);
+                container.innerHTML = '<div class="text-center text-red-500 py-8 text-sm">Erro ao carregar salvos</div>';
+            }
+            return;
+        }
+
+        // =============================================
+        // ABA MARCAÇÕES (menções em comentários)
+        // =============================================
+        if (tab === 'marcacoes') {
+            try {
+                const nicknameSnap = await database.ref(`usuarios/${userId}/nickname`).once('value');
+                const nick = nicknameSnap.val();
+
+                if (!nick) {
+                    container.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Nenhuma marcação ainda</div>';
+                    return;
+                }
+
+                const allPostsSnap = await database.ref('feed_posts').once('value');
+                const allPosts = allPostsSnap.val();
+
+                if (!allPosts) {
+                    container.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Nenhuma marcação ainda</div>';
+                    return;
+                }
+
+                const mentions = [];
+                const searchPattern = `@${nick}`;
+
+                for (const [postId, post] of Object.entries(allPosts)) {
+                    // Verificar legenda
+                    if (post.caption && post.caption.includes(searchPattern)) {
+                        mentions.push({ postId, type: 'caption', post });
+                    }
+                    // Verificar comentários
+                    if (post.comments) {
+                        for (const [commentId, comment] of Object.entries(post.comments)) {
+                            if (comment.text && comment.text.includes(searchPattern)) {
+                                mentions.push({ postId, commentId, type: 'comment', comment, post });
+                            }
+                            // Verificar respostas
+                            if (comment.replies) {
+                                for (const [replyId, reply] of Object.entries(comment.replies)) {
+                                    if (reply.text && reply.text.includes(searchPattern)) {
+                                        mentions.push({ postId, commentId, replyId, type: 'reply', reply, post });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (mentions.length === 0) {
+                    container.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Nenhuma marcação ainda</div>';
+                    return;
+                }
+
+                mentions.sort((a, b) => (b.post.createdAt || 0) - (a.post.createdAt || 0));
+                container.innerHTML = '<div class="post-grid" id="profileMentionsGrid"></div>';
+                const grid = document.getElementById('profileMentionsGrid');
+
+                for (const m of mentions) {
+                    const div = document.createElement('div');
+                    div.className = 'post-grid-item';
+                    div.onclick = () => viewPostDetail(m.postId);
+                    
+                    if (m.post.mediaType === 'video') {
+                        div.innerHTML = `<video src="${m.post.mediaUrl}" style="width:100%; height:100%; object-fit:cover;"></video><div style="position:absolute; bottom:8px; right:8px; background:rgba(229,9,20,0.9); border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center;"><i class="fas fa-at" style="color:white; font-size:10px;"></i></div>`;
+                    } else {
+                        div.innerHTML = `<img src="${m.post.mediaUrl}" onerror="this.src='https://via.placeholder.com/300x300'" style="width:100%; height:100%; object-fit:cover;"><div style="position:absolute; bottom:8px; right:8px; background:rgba(229,9,20,0.9); border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center;"><i class="fas fa-at" style="color:white; font-size:10px;"></i></div>`;
+                    }
+                    grid.appendChild(div);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar marcações:', error);
+                container.innerHTML = '<div class="text-center text-red-500 py-8 text-sm">Erro ao carregar marcações</div>';
+            }
+            return;
+        }
+
+        // =============================================
+        // ABA ASSISTIDOS (histórico de visualização)
+        // =============================================
+        if (tab === 'assistidos') {
+            try {
+                const historySnap = await database.ref(`watched_history/${userId}`).once('value');
+                const history = historySnap.val();
+
+                if (!history || Object.keys(history).length === 0) {
+                    container.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm">Nenhum conteúdo assistido ainda</div>';
+                    return;
+                }
+
+                const historyList = Object.values(history).sort((a, b) => b.watchedAt - a.watchedAt);
+                container.innerHTML = '<div class="post-grid" id="profileHistoryGrid"></div>';
+                const grid = document.getElementById('profileHistoryGrid');
+
+                for (const item of historyList.slice(0, 50)) {
+                    const div = document.createElement('div');
+                    div.className = 'post-grid-item';
+                    div.onclick = () => playMediaById(item.mediaId, item.mediaType || 'filme');
+                    
+                    div.innerHTML = `
+                        <img src="${item.thumb || 'https://via.placeholder.com/300x300'}" onerror="this.src='https://via.placeholder.com/300x300'" style="width:100%; height:100%; object-fit:cover;">
+                        <div style="position:absolute; bottom:0; left:0; height:3px; background:linear-gradient(90deg, #e50914, #b20710); width:${item.progress || 0}%; transition: width 0.3s;"></div>
+                        ${item.progress && item.progress > 80 ? `<div style="position:absolute; top:8px; right:8px; background:rgba(34,197,94,0.9); border-radius:20px; padding:2px 8px; font-size:8px; color:white;"><i class="fas fa-check"></i></div>` : ''}
+                    `;
+                    grid.appendChild(div);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar assistidos:', error);
+                container.innerHTML = '<div class="text-center text-red-500 py-8 text-sm">Erro ao carregar assistidos</div>';
+            }
+            return;
+        }
+    };
+
+    // =====================================================
+    // 4. FUNÇÃO PARA VER PERFIL DE OUTRO USUÁRIO
+    // =====================================================
+    window.verPerfilUsuario = function(userId) {
+        if (!userId) return;
+        if (currentUser && userId === currentUser.uid) {
+            renderInstagramProfile();
+        } else {
+            renderInstagramProfile(userId);
+        }
+        switchSection('perfil');
+    };
+
+    // =====================================================
+    // 5. PATCH DO FEED - CLICK NO NOME VAI PARA PERFIL
+    // =====================================================
+    const renderFeedOriginal = window.renderFeed;
+    if (renderFeedOriginal) {
+        window.renderFeed = async function() {
+            await renderFeedOriginal();
+            setTimeout(() => {
+                document.querySelectorAll('.feed-post-username, .feed-post-avatar').forEach(el => {
+                    el.style.cursor = 'pointer';
+                    const onclickAttr = el.getAttribute('onclick');
+                    if (onclickAttr && onclickAttr.includes('viewProfileFromPost')) {
+                        // Já tem evento
+                    } else {
+                        const post = el.closest('.feed-post');
+                        if (post) {
+                            const userId = post.getAttribute('data-user-id') || 
+                                          post.querySelector('[data-user-id]')?.getAttribute('data-user-id');
+                            if (userId) {
+                                el.addEventListener('click', (e) => {
+                                    e.stopPropagation();
+                                    verPerfilUsuario(userId);
+                                });
+                            }
+                        }
+                    }
+                });
+            }, 200);
+        };
+    }
+
+    // =====================================================
+    // 6. FUNÇÃO AUXILIAR viewProfileFromPost
+    // =====================================================
+    window.viewProfileFromPost = function(userId) {
+        verPerfilUsuario(userId);
+    };
+
+    // =====================================================
+    // 7. RECARREGAR PERFIL AO TROCAR DE ABA
+    // =====================================================
+    const switchSectionOriginal = window.switchSection;
+    if (switchSectionOriginal) {
+        window.switchSection = function(sectionId) {
+            switchSectionOriginal(sectionId);
+            if (sectionId === 'perfil') {
+                setTimeout(() => {
+                    if (currentViewingUserId) {
+                        renderInstagramProfile(currentViewingUserId);
+                    } else {
+                        renderInstagramProfile();
+                    }
+                }, 100);
+            }
+        };
+    }
+
+    // =====================================================
+    // 8. EXPOR FUNÇÕES
+    // =====================================================
+    window.carregarAbaPerfil = carregarAbaPerfil;
+
+    console.log('✅ CORREÇÃO APLICADA: Perfil com Posts, Favoritos, Salvos, Marcações e Assistidos');
+    console.log('📌 Como usar:');
+    console.log('   - Acesse o perfil de @mack');
+    console.log('   - Clique em "ASSISTIDOS" → mostra o que @mack assistiu');
+    console.log('   - Clique em "FAVORITOS" → mostra o que @mack favoritou');
+    console.log('   - Clique em "SALVOS" → mostra os posts que @mack salvou');
+    console.log('   - Clique em "MARCAÇÕES" → mostra onde @mack foi mencionado');
+})();
 
 
                 
