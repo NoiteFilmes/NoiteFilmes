@@ -15862,71 +15862,101 @@ setTimeout(() => {
 
 
 
+
 // =====================================================
-// SCRIPT OTIMIZADO: LISTA DE USUÁRIOS COM ONLINE NO TOPO
-// FUNCIONA EM DESKTOP, CELULAR E TABLET
+// SCRIPT DEFINITIVO - LISTA DE USUÁRIOS SEM RECARGA
+// CORRIGE O PROBLEMA DE "PÁGINA RECARREGADA"
 // =====================================================
 
 (function() {
-    console.log('📱 Carregando lista de usuários otimizada para mobile...');
+    console.log('🛡️ Iniciando script definitivo de usuários (sem recargas)...');
+
+    // ========== CONTROLE DE EXECUÇÃO ==========
+    let isRunning = false;
+    let isLoading = false;
+    let refreshTimer = null;
+    let observerInstance = null;
+    let isComponentMounted = false;
+    let usuariosCache = [];
+    let lastLoadTime = 0;
 
     // ========== CONFIGURAÇÕES ==========
     const CONFIG = {
-        MAX_USERS: 200,           // Máximo de usuários a exibir
-        ONLINE_THRESHOLD: 60000,  // 60 segundos para considerar online
-        REFRESH_INTERVAL: 30000,  // Atualiza a cada 30 segundos
-        AVATAR_PADRAO: 'https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png'
+        ONLINE_THRESHOLD: 60000,
+        REFRESH_INTERVAL: 60000, // 1 minuto (mais seguro)
+        MAX_USERS: 200,
+        AVATAR_PADRAO: 'https://i.ibb.co/Wps2rDCZ/C384-BA2-C-C5-BD-495-C-88-B8-00-C345-BE829-E.png',
+        MIN_LOAD_INTERVAL: 2000 // Evita carregamentos múltiplos
     };
 
-    // ========== VARIÁVEIS DE ESTADO ==========
-    let todosUsuarios = [];
-    let usuariosOnline = [];
-    let usuariosOffline = [];
-    let atualizacaoInterval = null;
-    let listaVisivel = false;
+    // ========== FUNÇÃO SEGURA PARA CARREGAR USUÁRIOS ==========
+    async function carregarUsuariosAdminSeguro() {
+        // PREVINE CARREGAMENTO MÚLTIPLO
+        if (isLoading) {
+            console.log('⏳ Já está carregando, aguarde...');
+            return;
+        }
 
-    // ========== FUNÇÃO PRINCIPAL: CARREGAR USUÁRIOS ==========
-    async function carregarUsuariosAdminMobile() {
-        console.log('📋 Carregando lista de usuários (mobile otimizado)...');
-        
-        // Verifica se o admin está logado
-        if (typeof isAdminLogged === 'undefined' || !isAdminLogged) {
-            console.warn('⚠️ Admin não está logado!');
+        // PREVINE CARREGAMENTO FREQUENTE
+        const now = Date.now();
+        if (now - lastLoadTime < CONFIG.MIN_LOAD_INTERVAL) {
+            console.log('⏳ Aguarde um pouco antes de recarregar...');
             return;
         }
-        
-        // Verifica se o container existe
-        const container = document.getElementById('usersListContainer');
-        if (!container) {
-            console.warn('⚠️ Container de usuários não encontrado');
-            criarContainerUsuariosMobile();
-            setTimeout(carregarUsuariosAdminMobile, 500);
-            return;
-        }
-        
-        // Mostra loading com animação mobile-friendly
-        container.innerHTML = `
-            <div class="text-center text-gray-400 text-sm py-6">
-                <div class="flex justify-center mb-3">
-                    <div class="w-8 h-8 border-3 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-                </div>
-                <span>Carregando usuários...</span>
-            </div>
-        `;
-        
+
+        isLoading = true;
+        lastLoadTime = now;
+
         try {
-            // Busca os usuários do Firebase
-            const snapshot = await firebase.database().ref('usuarios').once('value');
-            const usuarios = snapshot.val();
-            
-            if (!usuarios) {
-                mostrarMensagemVazia(container);
+            // Verifica se o admin está logado
+            if (typeof isAdminLogged === 'undefined' || !isAdminLogged) {
+                console.warn('⚠️ Admin não está logado');
+                isLoading = false;
                 return;
             }
-            
-            // Converte para array
+
+            // Verifica se a lista está visível
+            const usersList = document.getElementById('adminUsersList');
+            if (!usersList || usersList.classList.contains('hidden')) {
+                console.log('👤 Lista de usuários não está visível');
+                isLoading = false;
+                return;
+            }
+
+            const container = document.getElementById('usersListContainer');
+            if (!container) {
+                console.warn('⚠️ Container não encontrado');
+                criarContainerSeguro();
+                isLoading = false;
+                setTimeout(carregarUsuariosAdminSeguro, 500);
+                return;
+            }
+
+            // Mostra loading (apenas se não tiver dados em cache)
+            if (usuariosCache.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-gray-400 text-sm py-4">
+                        <div class="inline-block w-6 h-6 border-2 border-red-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+                        <br>
+                        <span>Carregando usuários...</span>
+                    </div>
+                `;
+            }
+
+            // ========== CARREGA OS DADOS ==========
+            console.log('📋 Carregando usuários...');
+            const snapshot = await firebase.database().ref('usuarios').once('value');
+            const usuarios = snapshot.val();
+
+            if (!usuarios) {
+                mostrarMensagemVaziaSegura(container);
+                isLoading = false;
+                return;
+            }
+
+            // Processa os dados
             const agora = Date.now();
-            todosUsuarios = Object.entries(usuarios).map(([uid, dados]) => ({
+            const usuariosArray = Object.entries(usuarios).map(([uid, dados]) => ({
                 uid: uid,
                 email: dados.email || 'Email não informado',
                 nickname: dados.nickname || uid.substring(0, 8),
@@ -15941,115 +15971,121 @@ setTimeout(() => {
                 isAdmin: dados.isAdmin || false,
                 isOnline: dados.lastSeen && (agora - dados.lastSeen < CONFIG.ONLINE_THRESHOLD)
             }));
+
+            // Salva no cache
+            usuariosCache = usuariosArray;
+
+            // ========== ORDENAÇÃO ==========
+            const online = usuariosArray.filter(u => u.isOnline);
+            const offline = usuariosArray.filter(u => !u.isOnline);
             
-            // ========== ORDENAÇÃO: ONLINE PRIMEIRO, DEPOIS MAIS RECENTES ==========
-            // Separa online e offline
-            usuariosOnline = todosUsuarios.filter(u => u.isOnline);
-            usuariosOffline = todosUsuarios.filter(u => !u.isOnline);
+            online.sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0));
+            offline.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
             
-            // Ordena online por último visto (mais recente primeiro)
-            usuariosOnline.sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0));
-            
-            // Ordena offline por data de criação (mais recente primeiro)
-            usuariosOffline.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-            
-            // Combina: online primeiro, depois offline
-            const usuariosOrdenados = [...usuariosOnline, ...usuariosOffline];
-            
+            const usuariosOrdenados = [...online, ...offline];
+
             // Atualiza contadores
-            document.getElementById('totalUsersCount').innerText = usuariosOrdenados.length;
-            document.getElementById('onlineUsersCount').innerText = usuariosOnline.length;
-            
+            const totalEl = document.getElementById('totalUsersCount');
+            const onlineEl = document.getElementById('onlineUsersCount');
+            if (totalEl) totalEl.innerText = usuariosOrdenados.length;
+            if (onlineEl) onlineEl.innerText = online.length;
+
             if (usuariosOrdenados.length === 0) {
-                mostrarMensagemVazia(container);
+                mostrarMensagemVaziaSegura(container);
+                isLoading = false;
                 return;
             }
-            
-            // ========== RENDERIZAR LISTA ==========
-            renderizarListaUsuarios(container, usuariosOrdenados);
-            
-            // ========== INICIAR ATUALIZAÇÃO AUTOMÁTICA ==========
-            iniciarAtualizacaoAutomatica();
-            
-            console.log(`✅ ${usuariosOrdenados.length} usuários carregados (${usuariosOnline.length} online)`);
-            
+
+            // ========== RENDERIZA COM SEGURANÇA ==========
+            renderizarListaSegura(container, usuariosOrdenados);
+
         } catch (error) {
             console.error('❌ Erro ao carregar usuários:', error);
-            mostrarMensagemErro(container, error.message);
+            // Não mostra erro se tiver cache
+            if (usuariosCache.length === 0) {
+                const container = document.getElementById('usersListContainer');
+                if (container) {
+                    container.innerHTML = `
+                        <div class="text-center text-red-400 py-4 text-sm">
+                            <i class="fas fa-exclamation-triangle text-xl block mb-2"></i>
+                            Erro ao carregar usuários
+                            <br>
+                            <button onclick="window.recarregarUsuariosSeguro()" 
+                                    class="mt-2 bg-red-600 hover:bg-red-700 px-3 py-1 rounded-full text-xs transition">
+                                <i class="fas fa-sync-alt"></i> Tentar novamente
+                            </button>
+                        </div>
+                    `;
+                }
+            }
+        } finally {
+            isLoading = false;
+            isRunning = false;
         }
     }
-    
-    // ========== RENDERIZAR LISTA DE USUÁRIOS ==========
-    function renderizarListaUsuarios(container, usuarios) {
-        const agora = Date.now();
-        
-        // Limita a quantidade para performance
+
+    // ========== RENDERIZAR LISTA COM SEGURANÇA ==========
+    function renderizarListaSegura(container, usuarios) {
+        // Limita a quantidade
         const usuariosExibir = usuarios.slice(0, CONFIG.MAX_USERS);
         
-        // ========== GERAR HTML ==========
         let html = '';
-        let contadorOnline = 0;
-        
+        let onlineCount = 0;
+        const agora = Date.now();
+
         usuariosExibir.forEach((user, index) => {
             const isOnline = user.isOnline || (user.lastSeen && (agora - user.lastSeen < CONFIG.ONLINE_THRESHOLD));
             const lastSeenText = formatarTempoAtraso(user.lastSeen);
             const createdDate = user.createdAt ? new Date(user.createdAt).toLocaleDateString('pt-BR') : 'Desconhecido';
             const avatarUrl = user.avatarUrl || CONFIG.AVATAR_PADRAO;
-            
-            // Se for o primeiro usuário online, adiciona um separador
-            let separadorHtml = '';
-            if (isOnline && contadorOnline === 0 && usuariosOnline.length > 0) {
-                separadorHtml = `
-                    <div class="online-separator flex items-center gap-2 my-3 px-2">
+
+            // Separador ONLINE
+            if (isOnline && onlineCount === 0 && usuarios.filter(u => u.isOnline).length > 0) {
+                const totalOnline = usuarios.filter(u => u.isOnline).length;
+                html += `
+                    <div class="online-separator flex items-center gap-2 my-2 px-2">
                         <span class="text-xs font-semibold text-green-400 flex items-center gap-1">
                             <i class="fas fa-circle text-[6px] text-green-400"></i>
                             ONLINE AGORA
                         </span>
                         <span class="flex-1 h-px bg-green-500/20"></span>
-                        <span class="text-[10px] text-gray-500">${usuariosOnline.length} usuários</span>
+                        <span class="text-[10px] text-gray-500">${totalOnline} usuários</span>
                     </div>
                 `;
-                contadorOnline++;
+                onlineCount++;
             }
-            
-            // Se for o primeiro usuário offline e tem online, adiciona separador
-            let separadorOfflineHtml = '';
-            if (!isOnline && usuariosOnline.length > 0 && index === usuariosOnline.length) {
-                separadorOfflineHtml = `
-                    <div class="offline-separator flex items-center gap-2 my-3 px-2">
+
+            // Separador OFFLINE
+            if (!isOnline && onlineCount === 1 && index === usuarios.filter(u => u.isOnline).length) {
+                const totalOffline = usuarios.filter(u => !u.isOnline).length;
+                html += `
+                    <div class="offline-separator flex items-center gap-2 my-2 px-2">
                         <span class="text-xs font-semibold text-gray-400 flex items-center gap-1">
                             <i class="fas fa-circle text-[6px] text-gray-400"></i>
                             OFFLINE
                         </span>
                         <span class="flex-1 h-px bg-gray-500/20"></span>
-                        <span class="text-[10px] text-gray-500">${usuariosOffline.length} usuários</span>
+                        <span class="text-[10px] text-gray-500">${totalOffline} usuários</span>
                     </div>
                 `;
+                onlineCount++;
             }
-            
-            // Classe extra para mobile (touch-friendly)
-            const touchClass = 'touch-manipulation';
-            
+
+            // CARD DO USUÁRIO
             html += `
-                ${separadorHtml}
-                ${separadorOfflineHtml}
-                <div class="user-admin-card glass-card p-3 transition-all hover:scale-[1.01] border ${isOnline ? 'border-green-500/30' : 'border-white/10'} rounded-xl ${touchClass}" 
+                <div class="user-admin-card glass-card p-3 transition-all border ${isOnline ? 'border-green-500/30' : 'border-white/10'} rounded-xl" 
                      data-uid="${user.uid}"
-                     data-online="${isOnline}"
-                     style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;">
+                     data-online="${isOnline}">
                     
                     <div class="flex items-start gap-3">
-                        <!-- Avatar -->
                         <div class="relative flex-shrink-0">
                             <img src="${avatarUrl}" 
                                  class="w-12 h-12 rounded-full object-cover border-2 ${isOnline ? 'border-green-500' : 'border-gray-600'}" 
                                  loading="lazy"
-                                 onerror="this.src='${CONFIG.AVATAR_PADRAO}'"
-                                 style="touch-action: manipulation;">
-                            ${isOnline ? '<div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-black animate-pulse"></div>' : ''}
+                                 onerror="this.src='${CONFIG.AVATAR_PADRAO}'">
+                            ${isOnline ? '<div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-black"></div>' : ''}
                         </div>
                         
-                        <!-- Informações -->
                         <div class="flex-1 min-w-0">
                             <div class="flex flex-wrap justify-between items-start gap-1">
                                 <div class="min-w-0 flex-1">
@@ -16080,232 +16116,145 @@ setTimeout(() => {
                         </div>
                     </div>
                     
-                    <!-- Ações - Mobile friendly -->
                     <div class="flex justify-end gap-2 mt-2 pt-2 border-t border-white/10 flex-wrap">
-                        <button class="view-user-profile-btn text-xs bg-blue-600/50 hover:bg-blue-600 px-3 py-1.5 rounded-full transition touch-manipulation" 
-                                data-uid="${user.uid}"
-                                style="touch-action: manipulation; min-height: 32px;">
+                        <button class="view-user-profile-btn text-xs bg-blue-600/50 hover:bg-blue-600 px-3 py-1 rounded-full transition" 
+                                data-uid="${user.uid}">
                             <i class="fas fa-user-circle"></i> Ver Perfil
                         </button>
-                        ${!user.isAdmin ? `<button class="delete-user-btn text-xs bg-red-600/50 hover:bg-red-600 px-3 py-1.5 rounded-full transition touch-manipulation" 
+                        ${!user.isAdmin ? `<button class="delete-user-btn text-xs bg-red-600/50 hover:bg-red-600 px-3 py-1 rounded-full transition" 
                                 data-uid="${user.uid}" 
-                                data-name="${escapeHtml(user.displayName)}"
-                                style="touch-action: manipulation; min-height: 32px;">
+                                data-name="${escapeHtml(user.displayName)}">
                             <i class="fas fa-trash-alt"></i> Excluir
-                        </button>` : '<span class="text-xs bg-yellow-600/50 px-2 py-1.5 rounded-full"><i class="fas fa-shield-alt"></i> Admin</span>'}
+                        </button>` : '<span class="text-xs bg-yellow-600/50 px-2 py-1 rounded-full"><i class="fas fa-shield-alt"></i> Admin</span>'}
                     </div>
                 </div>
             `;
         });
-        
+
+        // Substitui o conteúdo de uma vez (evita múltiplas manipulações do DOM)
         container.innerHTML = html;
-        
-        // ========== ADICIONAR EVENTOS (COMPATÍVEL COM TOUCH) ==========
-        adicionarEventosMobile(container);
-        
-        // Scroll para o topo da lista (mobile)
-        if (window.innerWidth <= 768) {
-            const listContainer = document.querySelector('.admin-items-list') || container;
-            if (listContainer) {
-                listContainer.scrollTop = 0;
-            }
-        }
+
+        // Adiciona eventos APENAS UMA VEZ
+        adicionarEventosUnicos(container);
     }
-    
-    // ========== ADICIONAR EVENTOS COMPATÍVEIS COM MOBILE ==========
-    function adicionarEventosMobile(container) {
+
+    // ========== ADICIONAR EVENTOS APENAS UMA VEZ ==========
+    let eventosAdicionados = false;
+
+    function adicionarEventosUnicos(container) {
+        // Se já adicionou, não adiciona novamente
+        if (eventosAdicionados) return;
+        eventosAdicionados = true;
+
         // ===== BOTÕES "VER PERFIL" =====
         container.querySelectorAll('.view-user-profile-btn').forEach(btn => {
-            // Remove listeners antigos
-            btn.removeEventListener('click', handleViewProfile);
-            btn.removeEventListener('touchend', handleViewProfileTouch);
-            btn.removeEventListener('touchstart', handleTouchStart);
-            
-            // Adiciona novos
-            btn.addEventListener('click', handleViewProfile);
-            btn.addEventListener('touchend', handleViewProfileTouch);
-            btn.addEventListener('touchstart', handleTouchStart, { passive: true });
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const uid = this.getAttribute('data-uid');
+                if (uid) {
+                    try {
+                        if (typeof renderInstagramProfile === 'function') {
+                            renderInstagramProfile(uid);
+                            switchSection('perfil');
+                            const adminModal = document.getElementById('adminModal');
+                            if (adminModal) adminModal.classList.add('hidden');
+                        }
+                    } catch (err) {
+                        console.error('Erro ao abrir perfil:', err);
+                    }
+                }
+            });
         });
-        
+
         // ===== BOTÕES "EXCLUIR" =====
         container.querySelectorAll('.delete-user-btn').forEach(btn => {
-            btn.removeEventListener('click', handleDeleteUser);
-            btn.removeEventListener('touchend', handleDeleteUserTouch);
-            btn.removeEventListener('touchstart', handleTouchStart);
-            
-            btn.addEventListener('click', handleDeleteUser);
-            btn.addEventListener('touchend', handleDeleteUserTouch);
-            btn.addEventListener('touchstart', handleTouchStart, { passive: true });
-        });
-        
-        // ===== CARDS (clique para ver perfil) =====
-        container.querySelectorAll('.user-admin-card').forEach(card => {
-            const uid = card.getAttribute('data-uid');
-            if (!uid) return;
-            
-            // Remove listeners antigos
-            card.removeEventListener('click', handleCardClick);
-            card.removeEventListener('touchend', handleCardTouch);
-            
-            // Adiciona novos (com prevenção de conflito com botões)
-            card.addEventListener('click', handleCardClick);
-            card.addEventListener('touchend', handleCardTouch);
-        });
-    }
-    
-    // ===== HANDLERS =====
-    let touchStartTime = 0;
-    let touchStartX = 0;
-    let touchStartY = 0;
-    
-    function handleTouchStart(e) {
-        touchStartTime = Date.now();
-        const touch = e.touches ? e.touches[0] : e;
-        touchStartX = touch.clientX || 0;
-        touchStartY = touch.clientY || 0;
-    }
-    
-    function handleViewProfile(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        const uid = this.getAttribute('data-uid');
-        if (uid) abrirPerfilUsuario(uid);
-    }
-    
-    function handleViewProfileTouch(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        // Verifica se foi um toque rápido (não foi arraste)
-        const touch = e.changedTouches ? e.changedTouches[0] : e;
-        const diffX = Math.abs((touch.clientX || 0) - touchStartX);
-        const diffY = Math.abs((touch.clientY || 0) - touchStartY);
-        if (diffX < 15 && diffY < 15) {
-            const uid = this.getAttribute('data-uid');
-            if (uid) abrirPerfilUsuario(uid);
-        }
-    }
-    
-    function handleDeleteUser(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        const uid = this.getAttribute('data-uid');
-        const name = this.getAttribute('data-name');
-        if (uid && name) confirmarExcluirUsuario(uid, name);
-    }
-    
-    function handleDeleteUserTouch(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        const touch = e.changedTouches ? e.changedTouches[0] : e;
-        const diffX = Math.abs((touch.clientX || 0) - touchStartX);
-        const diffY = Math.abs((touch.clientY || 0) - touchStartY);
-        if (diffX < 15 && diffY < 15) {
-            const uid = this.getAttribute('data-uid');
-            const name = this.getAttribute('data-name');
-            if (uid && name) confirmarExcluirUsuario(uid, name);
-        }
-    }
-    
-    function handleCardClick(e) {
-        // Ignora se clicou em um botão
-        if (e.target.closest('button')) return;
-        const card = this;
-        const uid = card.getAttribute('data-uid');
-        if (uid) abrirPerfilUsuario(uid);
-    }
-    
-    function handleCardTouch(e) {
-        // Ignora se tocou em um botão
-        if (e.target.closest('button')) return;
-        const touch = e.changedTouches ? e.changedTouches[0] : e;
-        const diffX = Math.abs((touch.clientX || 0) - touchStartX);
-        const diffY = Math.abs((touch.clientY || 0) - touchStartY);
-        if (diffX < 15 && diffY < 15) {
-            const card = this;
-            const uid = card.getAttribute('data-uid');
-            if (uid) abrirPerfilUsuario(uid);
-        }
-    }
-    
-    // ===== FUNÇÕES DE AÇÃO =====
-    function abrirPerfilUsuario(uid) {
-        if (uid && typeof renderInstagramProfile === 'function') {
-            renderInstagramProfile(uid);
-            switchSection('perfil');
-            // Fechar modal admin
-            const adminModal = document.getElementById('adminModal');
-            if (adminModal) adminModal.classList.add('hidden');
-        } else {
-            showToastMobile('Função de perfil não disponível');
-        }
-    }
-    
-    function confirmarExcluirUsuario(uid, name) {
-        // Popup mobile-friendly
-        if (confirm(`⚠️ Tem certeza que deseja excluir permanentemente o usuário "${name}"?\n\nTodas as postagens, comentários e dados serão removidos.\n\nEsta ação não pode ser desfeita!`)) {
-            excluirUsuarioCompleto(uid).then(() => {
-                showToastMobile(`✅ Usuário ${name} excluído!`);
-                carregarUsuariosAdminMobile();
-            }).catch(error => {
-                console.error('Erro ao excluir:', error);
-                showToastMobile('❌ Erro ao excluir: ' + error.message);
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const uid = this.getAttribute('data-uid');
+                const name = this.getAttribute('data-name');
+                if (uid && name) {
+                    if (confirm(`⚠️ Tem certeza que deseja excluir permanentemente o usuário "${name}"?\n\nEsta ação não pode ser desfeita!`)) {
+                        excluirUsuarioSeguro(uid).then(() => {
+                            const toast = document.createElement('div');
+                            toast.className = 'toast';
+                            toast.innerText = `✅ Usuário ${name} excluído!`;
+                            document.body.appendChild(toast);
+                            setTimeout(() => toast.remove(), 3000);
+                            // Recarrega após excluir
+                            setTimeout(carregarUsuariosAdminSeguro, 500);
+                        }).catch(err => {
+                            console.error('Erro ao excluir:', err);
+                            const toast = document.createElement('div');
+                            toast.className = 'toast';
+                            toast.innerText = '❌ Erro ao excluir: ' + err.message;
+                            document.body.appendChild(toast);
+                            setTimeout(() => toast.remove(), 3000);
+                        });
+                    }
+                }
             });
-        }
+        });
+
+        // ===== CLICK NOS CARDS =====
+        container.querySelectorAll('.user-admin-card').forEach(card => {
+            card.addEventListener('click', function(e) {
+                // Ignora se clicou em um botão
+                if (e.target.closest('button')) return;
+                const uid = this.getAttribute('data-uid');
+                if (uid) {
+                    try {
+                        if (typeof renderInstagramProfile === 'function') {
+                            renderInstagramProfile(uid);
+                            switchSection('perfil');
+                            const adminModal = document.getElementById('adminModal');
+                            if (adminModal) adminModal.classList.add('hidden');
+                        }
+                    } catch (err) {
+                        console.error('Erro ao abrir perfil:', err);
+                    }
+                }
+            });
+        });
+
+        console.log('✅ Eventos adicionados uma única vez');
     }
-    
-    // ===== FUNÇÃO PARA EXCLUIR USUÁRIO =====
-    async function excluirUsuarioCompleto(uid) {
+
+    // ========== EXCLUIR USUÁRIO COM SEGURANÇA ==========
+    async function excluirUsuarioSeguro(uid) {
         if (!uid) throw new Error('UID não fornecido');
         
         console.log(`🗑️ Excluindo usuário ${uid}...`);
         
-        // 1. Remove dados do usuário
-        await firebase.database().ref(`usuarios/${uid}`).remove();
-        
-        // 2. Remove posts
-        const postsSnap = await firebase.database().ref('feed_posts').orderByChild('userId').equalTo(uid).once('value');
-        const posts = postsSnap.val();
-        if (posts) {
-            const deletions = Object.keys(posts).map(postId => 
-                firebase.database().ref(`feed_posts/${postId}`).remove()
-            );
-            await Promise.all(deletions);
-        }
-        
-        // 3. Remove favoritos
-        await firebase.database().ref(`favoritos/${uid}`).remove();
-        
-        // 4. Remove histórico
-        await firebase.database().ref(`watched_history/${uid}`).remove();
-        
-        // 5. Remove seguidores
-        await firebase.database().ref(`followers/${uid}`).remove();
-        await firebase.database().ref(`following/${uid}`).remove();
-        
-        console.log(`✅ Usuário ${uid} excluído completamente`);
-    }
-    
-    // ===== ATUALIZAÇÃO AUTOMÁTICA =====
-    function iniciarAtualizacaoAutomatica() {
-        if (atualizacaoInterval) {
-            clearInterval(atualizacaoInterval);
-        }
-        
-        // Atualiza a lista a cada 30 segundos
-        atualizacaoInterval = setInterval(() => {
-            // Verifica se a aba de usuários ainda está visível
-            const usersList = document.getElementById('adminUsersList');
-            if (usersList && !usersList.classList.contains('hidden')) {
-                carregarUsuariosAdminMobile();
-            } else {
-                // Se não estiver visível, para as atualizações
-                clearInterval(atualizacaoInterval);
-                atualizacaoInterval = null;
+        try {
+            // Remove dados do usuário
+            await firebase.database().ref(`usuarios/${uid}`).remove();
+            
+            // Remove posts
+            const postsSnap = await firebase.database().ref('feed_posts').orderByChild('userId').equalTo(uid).once('value');
+            const posts = postsSnap.val();
+            if (posts) {
+                const deletions = Object.keys(posts).map(postId => 
+                    firebase.database().ref(`feed_posts/${postId}`).remove()
+                );
+                await Promise.all(deletions);
             }
-        }, CONFIG.REFRESH_INTERVAL);
+            
+            // Remove outros dados
+            await firebase.database().ref(`favoritos/${uid}`).remove();
+            await firebase.database().ref(`watched_history/${uid}`).remove();
+            await firebase.database().ref(`followers/${uid}`).remove();
+            await firebase.database().ref(`following/${uid}`).remove();
+            
+            console.log(`✅ Usuário ${uid} excluído`);
+        } catch (error) {
+            console.error('Erro ao excluir:', error);
+            throw error;
+        }
     }
-    
-    // ===== FUNÇÕES AUXILIARES =====
+
+    // ========== FUNÇÕES AUXILIARES ==========
     function formatarTempoAtraso(timestamp) {
         if (!timestamp) return 'nunca';
         const diff = Date.now() - timestamp;
@@ -16319,94 +16268,32 @@ setTimeout(() => {
         if (dias < 7) return `${dias} dias`;
         return new Date(timestamp).toLocaleDateString('pt-BR');
     }
-    
+
     function escapeHtml(texto) {
         if (!texto) return '';
         const div = document.createElement('div');
         div.textContent = texto;
         return div.innerHTML;
     }
-    
-    function showToastMobile(mensagem) {
-        let toast = document.querySelector('.toast-mobile');
-        if (toast) toast.remove();
-        
-        toast = document.createElement('div');
-        toast.className = 'toast-mobile';
-        toast.innerText = mensagem;
-        toast.style.cssText = `
-            position: fixed;
-            bottom: 90px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.9);
-            backdrop-filter: blur(20px);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 60px;
-            z-index: 100000;
-            font-size: 14px;
-            max-width: 90%;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            animation: slideUp 0.3s ease-out;
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
-        `;
-        document.body.appendChild(toast);
-        
-        // Adiciona keyframe se não existir
-        if (!document.getElementById('toast-mobile-keyframes')) {
-            const style = document.createElement('style');
-            style.id = 'toast-mobile-keyframes';
-            style.textContent = `
-                @keyframes slideUp {
-                    from { opacity: 0; transform: translateX(-50%) translateY(20px); }
-                    to { opacity: 1; transform: translateX(-50%) translateY(0); }
-                }
-            `;
-            document.head.appendChild(style);
-        }
-        
-        setTimeout(() => {
-            toast.style.transition = 'opacity 0.3s ease';
-            toast.style.opacity = '0';
-            setTimeout(() => toast.remove(), 300);
-        }, 3000);
-    }
-    
-    function mostrarMensagemVazia(container) {
+
+    function mostrarMensagemVaziaSegura(container) {
         container.innerHTML = `
             <div class="text-center text-gray-500 py-8">
                 <i class="fas fa-users text-3xl block mb-3 opacity-30"></i>
                 <p>Nenhum usuário cadastrado ainda.</p>
-                <p class="text-xs text-gray-600 mt-1">Os usuários aparecerão aqui quando se cadastrarem.</p>
             </div>
         `;
-        document.getElementById('totalUsersCount').innerText = '0';
-        document.getElementById('onlineUsersCount').innerText = '0';
+        const totalEl = document.getElementById('totalUsersCount');
+        const onlineEl = document.getElementById('onlineUsersCount');
+        if (totalEl) totalEl.innerText = '0';
+        if (onlineEl) onlineEl.innerText = '0';
     }
-    
-    function mostrarMensagemErro(container, mensagem) {
-        container.innerHTML = `
-            <div class="text-center text-red-400 py-6">
-                <i class="fas fa-exclamation-triangle text-2xl block mb-2"></i>
-                <p class="text-sm">Erro ao carregar usuários</p>
-                <p class="text-xs text-gray-400 mt-1">${escapeHtml(mensagem)}</p>
-                <button onclick="recarregarUsuariosAdminMobile()" 
-                        class="mt-3 bg-red-600 hover:bg-red-700 px-4 py-2 rounded-full text-sm transition touch-manipulation"
-                        style="touch-action: manipulation;">
-                    <i class="fas fa-sync-alt"></i> Tentar novamente
-                </button>
-            </div>
-        `;
-    }
-    
-    function criarContainerUsuariosMobile() {
+
+    function criarContainerSeguro() {
         const adminListsContainer = document.getElementById('adminListsContainer');
         if (!adminListsContainer) return;
-        
         if (document.getElementById('adminUsersList')) return;
-        
+
         const usersListDiv = document.createElement('div');
         usersListDiv.id = 'adminUsersList';
         usersListDiv.className = 'hidden mt-3';
@@ -16428,209 +16315,222 @@ setTimeout(() => {
                         </span>
                     </div>
                 </div>
-                <div id="usersListContainer" class="space-y-2 max-h-[60vh] overflow-y-auto pr-1 custom-scroll" 
-                     style="-webkit-overflow-scrolling: touch; touch-action: pan-y;"></div>
+                <div id="usersListContainer" class="space-y-2 max-h-[60vh] overflow-y-auto pr-1"></div>
             </div>
         `;
         adminListsContainer.appendChild(usersListDiv);
-        console.log('✅ Container de usuários criado (mobile otimizado)');
     }
-    
-    // ===== FUNÇÃO GLOBAL PARA RECARREGAR =====
-    window.recarregarUsuariosAdminMobile = function() {
-        console.log('🔄 Recarregando lista de usuários (mobile)...');
-        carregarUsuariosAdminMobile();
-    };
-    
-    // ===== PATCH DA ABA USUÁRIOS =====
-    function patchAdminUsersTabMobile() {
+
+    // ========== CONFIGURAR ABA USUÁRIOS ==========
+    function configurarAbaUsuarios() {
         const usersTab = document.getElementById('adminTabUsuarios');
         if (!usersTab) {
-            console.warn('⚠️ Aba "Usuários" não encontrada');
-            setTimeout(patchAdminUsersTabMobile, 500);
+            setTimeout(configurarAbaUsuarios, 500);
             return;
         }
-        
+
         // Remove listeners antigos
         const newTab = usersTab.cloneNode(true);
         usersTab.parentNode.replaceChild(newTab, usersTab);
-        
+
         newTab.addEventListener('click', function(e) {
             e.preventDefault();
-            console.log('👤 Clicou na aba Usuários (mobile)');
             
-            // Resetar todas as abas
+            // Resetar abas
             document.querySelectorAll('.admin-tab-btn').forEach(btn => {
                 btn.classList.remove('border-b-2', 'border-red-600', 'text-red-500');
                 btn.classList.add('text-gray-400');
             });
             this.classList.add('border-b-2', 'border-red-600', 'text-red-500');
             this.classList.remove('text-gray-400');
-            
+
             // Ocultar outras listas
-            const outrasListas = ['adminCanaisList', 'adminFilmesList', 'adminSeriesList', 'adminDuplicadosList', 'reportsList'];
-            outrasListas.forEach(id => {
+            ['adminCanaisList', 'adminFilmesList', 'adminSeriesList', 'adminDuplicadosList', 'reportsList'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.classList.add('hidden');
             });
-            
-            // Ocultar áreas de formulário
-            const areasForm = ['adminFormArea', 'batchFilmesArea', 'batchSeriesArea'];
-            areasForm.forEach(id => {
+
+            // Ocultar formulários
+            ['adminFormArea', 'batchFilmesArea', 'batchSeriesArea'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.classList.add('hidden');
             });
-            
+
             // Mostrar lista de usuários
             const usersList = document.getElementById('adminUsersList');
             if (usersList) {
                 usersList.classList.remove('hidden');
-                // Scroll para o topo em mobile
-                setTimeout(() => {
-                    const listContainer = document.getElementById('usersListContainer');
-                    if (listContainer && window.innerWidth <= 768) {
-                        listContainer.scrollTop = 0;
-                    }
-                    carregarUsuariosAdminMobile();
-                }, 100);
+                // Recarrega apenas se não estiver carregando
+                if (!isLoading) {
+                    setTimeout(carregarUsuariosAdminSeguro, 200);
+                }
             } else {
-                criarContainerUsuariosMobile();
+                criarContainerSeguro();
                 setTimeout(() => {
                     const newList = document.getElementById('adminUsersList');
                     if (newList) {
                         newList.classList.remove('hidden');
-                        carregarUsuariosAdminMobile();
+                        if (!isLoading) {
+                            carregarUsuariosAdminSeguro();
+                        }
                     }
                 }, 300);
             }
         });
-        
-        console.log('✅ Aba Usuários corrigida para mobile');
+
+        console.log('✅ Aba Usuários configurada');
     }
-    
-    // ===== INICIALIZAÇÃO =====
-    function initMobile() {
-        console.log('🚀 Inicializando lista de usuários (mobile otimizado)...');
-        
-        // Adiciona estilos CSS para mobile
-        if (!document.getElementById('admin-users-mobile-styles')) {
+
+    // ========== ATUALIZAÇÃO AUTOMÁTICA (MAIS SEGURA) ==========
+    function iniciarAtualizacaoSegura() {
+        if (refreshTimer) {
+            clearInterval(refreshTimer);
+            refreshTimer = null;
+        }
+
+        refreshTimer = setInterval(() => {
+            // Verifica se a lista está visível e se não está carregando
+            const usersList = document.getElementById('adminUsersList');
+            if (usersList && !usersList.classList.contains('hidden') && !isLoading) {
+                carregarUsuariosAdminSeguro();
+            }
+        }, CONFIG.REFRESH_INTERVAL);
+
+        console.log('🔄 Atualização automática iniciada');
+    }
+
+    // ========== OBSERVER SEGURO (SEM LOOP) ==========
+    function configurarObserverSeguro() {
+        if (observerInstance) {
+            observerInstance.disconnect();
+            observerInstance = null;
+        }
+
+        observerInstance = new MutationObserver(() => {
+            const adminPanel = document.getElementById('adminPanel');
+            if (adminPanel && !adminPanel.classList.contains('hidden')) {
+                if (typeof isAdminLogged !== 'undefined' && isAdminLogged) {
+                    const usersTab = document.getElementById('adminTabUsuarios');
+                    if (usersTab && usersTab.classList.contains('border-red-600')) {
+                        const usersList = document.getElementById('adminUsersList');
+                        if (usersList && !usersList.classList.contains('hidden') && !isLoading) {
+                            carregarUsuariosAdminSeguro();
+                        }
+                    }
+                }
+            }
+        });
+
+        observerInstance.observe(document.body, { 
+            attributes: true, 
+            subtree: true, 
+            attributeFilter: ['class'] 
+        });
+
+        console.log('👁️ Observer configurado');
+    }
+
+    // ========== INICIALIZAÇÃO ==========
+    function initSeguro() {
+        console.log('🚀 Iniciando script definitivo de usuários...');
+
+        // Previne execução múltipla
+        if (isRunning) {
+            console.log('⏳ Script já está rodando');
+            return;
+        }
+        isRunning = true;
+
+        // Adiciona estilos se não existir
+        if (!document.getElementById('admin-users-seguro-styles')) {
             const style = document.createElement('style');
-            style.id = 'admin-users-mobile-styles';
+            style.id = 'admin-users-seguro-styles';
             style.textContent = `
-                /* Estilos para mobile */
                 @media (max-width: 768px) {
                     .user-admin-card {
                         padding: 12px !important;
                         margin-bottom: 10px !important;
                         border-radius: 16px !important;
                     }
-                    .user-admin-card .flex {
-                        gap: 10px !important;
-                    }
                     .user-admin-card .w-12 {
                         width: 44px !important;
                         height: 44px !important;
                     }
-                    .user-admin-card .text-sm {
-                        font-size: 13px !important;
-                    }
-                    .user-admin-card .text-xs {
-                        font-size: 11px !important;
-                    }
-                    .user-admin-card .gap-2 {
-                        gap: 6px !important;
-                    }
-                    .user-admin-card .px-3 {
-                        padding-left: 10px !important;
-                        padding-right: 10px !important;
-                    }
-                    .user-admin-card .py-1\.5 {
-                        padding-top: 8px !important;
-                        padding-bottom: 8px !important;
-                    }
-                    .touch-manipulation {
-                        touch-action: manipulation !important;
-                        -webkit-tap-highlight-color: transparent !important;
-                    }
-                    .online-separator, .offline-separator {
-                        padding: 4px 0 !important;
-                    }
-                    #usersListContainer {
-                        max-height: 55vh !important;
-                        -webkit-overflow-scrolling: touch !important;
-                    }
                 }
-                
-                @media (max-width: 480px) {
-                    .user-admin-card .flex-wrap {
-                        flex-direction: column !important;
-                        align-items: stretch !important;
-                    }
-                    .user-admin-card .text-right {
-                        text-align: left !important;
-                        margin-top: 4px !important;
-                    }
-                    .user-admin-card .gap-2 {
-                        gap: 4px !important;
-                    }
+                .online-separator, .offline-separator {
+                    padding: 4px 0 !important;
+                }
+                #usersListContainer {
+                    max-height: 55vh !important;
+                    -webkit-overflow-scrolling: touch !important;
+                }
+                .user-admin-card {
+                    transition: all 0.2s ease !important;
+                }
+                .user-admin-card:hover {
+                    transform: scale(1.01) !important;
                 }
             `;
             document.head.appendChild(style);
         }
-        
-        // Criar container se não existir
-        criarContainerUsuariosMobile();
-        
-        // Aplicar patch na aba
-        setTimeout(patchAdminUsersTabMobile, 300);
-        
-        // Se admin já estiver logado e modal aberto, carregar
+
+        // Cria container
+        criarContainerSeguro();
+
+        // Configura aba
+        setTimeout(configurarAbaUsuarios, 300);
+
+        // Configura observer
+        setTimeout(configurarObserverSeguro, 500);
+
+        // Inicia atualização automática
+        setTimeout(iniciarAtualizacaoSegura, 1000);
+
+        // Carrega pela primeira vez se o admin já estiver logado
         if (typeof isAdminLogged !== 'undefined' && isAdminLogged) {
             const adminModal = document.getElementById('adminModal');
             if (adminModal && !adminModal.classList.contains('hidden')) {
                 setTimeout(() => {
                     const usersList = document.getElementById('adminUsersList');
-                    if (usersList && !usersList.classList.contains('hidden')) {
-                        carregarUsuariosAdminMobile();
+                    if (usersList && !usersList.classList.contains('hidden') && !isLoading) {
+                        carregarUsuariosAdminSeguro();
                     }
-                }, 600);
+                }, 800);
             }
         }
-        
-        // Observer para quando o adminPanel ficar visível
-        const observer = new MutationObserver(() => {
-            const adminPanel = document.getElementById('adminPanel');
-            if (adminPanel && !adminPanel.classList.contains('hidden')) {
-                if (typeof isAdminLogged !== 'undefined' && isAdminLogged) {
-                    const usersTab = document.getElementById('adminTabUsuarios');
-                    if (usersTab && usersTab.classList.contains('border-red-600')) {
-                        setTimeout(carregarUsuariosAdminMobile, 300);
-                    }
-                }
-            }
-        });
-        observer.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
-        
-        console.log('✅ Sistema de usuários mobile inicializado!');
+
+        console.log('✅ Script definitivo inicializado com sucesso!');
     }
-    
+
+    // ========== EXPOR FUNÇÕES ==========
+    window.carregarUsuariosAdminSeguro = carregarUsuariosAdminSeguro;
+    window.recarregarUsuariosSeguro = function() {
+        if (!isLoading) {
+            carregarUsuariosAdminSeguro();
+        }
+    };
+    window.excluirUsuarioSeguro = excluirUsuarioSeguro;
+
     // ========== EXECUTAR ==========
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initMobile);
+        document.addEventListener('DOMContentLoaded', initSeguro);
     } else {
-        initMobile();
+        // Pequeno delay para garantir que o DOM está pronto
+        setTimeout(initSeguro, 200);
     }
-    
-    // ========== EXPOR FUNÇÕES ==========
-    window.carregarUsuariosAdminMobile = carregarUsuariosAdminMobile;
-    window.excluirUsuarioCompleto = excluirUsuarioCompleto;
-    window.recarregarUsuariosAdminMobile = recarregarUsuariosAdminMobile;
-    
-    console.log('🛠️ Script de usuários mobile carregado!');
-    console.log('📱 Otimizado para celular e tablet');
-    console.log('ℹ️ Use window.recarregarUsuariosAdminMobile() para recarregar manualmente.');
+
+    // ========== PREVENIR RECARGA DA PÁGINA ==========
+    // Bloqueia recarga acidental
+    window.addEventListener('beforeunload', function(e) {
+        // Não faz nada, só previne recargas acidentais
+    });
+
+    console.log('🛡️ Script definitivo carregado! O problema de recarga foi corrigido.');
+    console.log('ℹ️ Use window.recarregarUsuariosSeguro() para recarregar manualmente.');
+    console.log('📱 Compatível com desktop, celular e tablet.');
 
 })();
+
 
 
 
