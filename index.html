@@ -15023,9 +15023,45 @@ setTimeout(() => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                 // =====================================================
 // SISTEMA DE CLASSIFICAÇÃO POR GÊNEROS, ANOS E FRANQUIAS - COM BOTÃO FRANQUIAS E IMAGENS ROTATIVAS
-// CORRIGIDO: Layout 2:3, Busca em Todas as Franquias, Botão Voltar
+// CORRIGIDO: Layout 2:3 consistente em AMBAS as popups
 // =====================================================
 (function() {
     console.log('🎬 Ativando sistema de classificação e franquias...');
@@ -15252,7 +15288,6 @@ setTimeout(() => {
         const existing = document.querySelector('.franchise-window-overlay');
         if (existing) existing.remove();
         
-        // Salvar qual franquia está aberta para poder voltar
         ultimaPaginaFranquia = nomeFranquia;
         
         const overlay = document.createElement('div');
@@ -15361,6 +15396,7 @@ setTimeout(() => {
                         cursor: pointer;
                         transition: all 0.2s ease;
                         border: 1px solid rgba(255, 255, 255, 0.05);
+                        position: relative;
                     ">
                         <div style="position: relative; aspect-ratio: 2/3; background: #1a1a2a; overflow: hidden;">
                             <img src="${filme.thumb || 'https://via.placeholder.com/300x450'}" 
@@ -15381,6 +15417,7 @@ setTimeout(() => {
                                 font-weight: bold;
                                 color: white;
                                 box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+                                z-index: 2;
                             ">${index + 1}</div>
                             ${filme.year ? `<div style="
                                 position: absolute;
@@ -15392,22 +15429,35 @@ setTimeout(() => {
                                 padding: 2px 10px;
                                 font-size: 10px;
                                 color: white;
+                                z-index: 2;
                             ">${filme.year}</div>` : ''}
-                        </div>
-                        <div style="padding: 8px 10px;">
+                            <!-- Título sobreposto na imagem (estilo igual ao da primeira popup) -->
                             <div style="
-                                font-size: 12px;
-                                font-weight: 600;
-                                color: white;
-                                white-space: nowrap;
-                                overflow: hidden;
-                                text-overflow: ellipsis;
-                            ">${escapeHtml(filme.title)}</div>
-                            <div style="
-                                font-size: 9px;
-                                color: rgba(255,255,255,0.4);
-                                margin-top: 2px;
-                            ">${filme.category || 'Geral'}</div>
+                                position: absolute;
+                                bottom: 0;
+                                left: 0;
+                                right: 0;
+                                background: linear-gradient(transparent, rgba(0,0,0,0.8));
+                                padding: 30px 10px 12px 10px;
+                                z-index: 2;
+                            ">
+                                <div style="
+                                    font-size: 12px;
+                                    font-weight: 600;
+                                    color: white;
+                                    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+                                    white-space: nowrap;
+                                    overflow: hidden;
+                                    text-overflow: ellipsis;
+                                    text-align: center;
+                                ">${escapeHtml(filme.title)}</div>
+                                <div style="
+                                    font-size: 9px;
+                                    color: rgba(255,255,255,0.5);
+                                    text-align: center;
+                                    margin-top: 2px;
+                                ">${filme.category || 'Geral'}</div>
+                            </div>
                         </div>
                     </div>
                 `).join('')}
@@ -15448,7 +15498,7 @@ setTimeout(() => {
             voltarBtn.addEventListener('click', () => {
                 fecharJanelaFranquia();
                 setTimeout(() => {
-                    abrirJanelaTodasFranquias();
+                    abrirJanelaTodasFranquias('');
                 }, 300);
             });
         }
@@ -15705,10 +15755,10 @@ setTimeout(() => {
                                     background: linear-gradient(transparent, rgba(0,0,0,0.7));
                                     padding: 20px 12px 12px 12px;
                                 ">
-                                    <div style="font-weight: 700; font-size: 14px; color: white; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">
+                                    <div style="font-weight: 700; font-size: 14px; color: white; text-shadow: 0 2px 8px rgba(0,0,0,0.5); text-align: center;">
                                         ${escapeHtml(f.nome)}
                                     </div>
-                                    <div style="font-size: 11px; color: rgba(255,255,255,0.6);">
+                                    <div style="font-size: 11px; color: rgba(255,255,255,0.6); text-align: center;">
                                         ${f.filmes ? f.filmes.length : 0} ${f.filmes && f.filmes.length === 1 ? 'filme' : 'filmes'}
                                     </div>
                                 </div>
@@ -15727,6 +15777,7 @@ setTimeout(() => {
                                     font-weight: bold;
                                     color: white;
                                     box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+                                    z-index: 2;
                                 ">
                                     <i class="fas fa-film" style="font-size: 10px;"></i>
                                 </div>
@@ -15799,7 +15850,6 @@ setTimeout(() => {
         if (buscarInput) {
             buscarInput.addEventListener('input', (e) => {
                 const valor = e.target.value;
-                // Fechar overlay atual e reabrir com filtro
                 fechar();
                 setTimeout(() => {
                     abrirJanelaTodasFranquias(valor);
