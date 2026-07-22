@@ -16605,13 +16605,12 @@ setTimeout(() => {
 
 
 
-
-                // =====================================================
-// SCRIPT DE COMPATIBILIDADE UNIVERSAL - v2.0
-// Para Smart TVs, Xbox, PlayStation e todos os dispositivos
+// =====================================================
+// PLAYER UNIVERSAL COMPLETO - v3.0
+// Mantém todas as funcionalidades originais + compatibilidade
 // =====================================================
 (function() {
-    console.log('🎬 Iniciando Player Universal...');
+    console.log('🎬 Iniciando Player Universal Completo...');
 
     // =====================================================
     // 1. DETECÇÃO DE PLATAFORMA
@@ -16638,6 +16637,7 @@ setTimeout(() => {
         console.log('📱 Plataforma detectada:', {
             console: plataforma.isConsole,
             smartTV: plataforma.isSmartTV,
+            mobile: plataforma.isMobile,
             browser: plataforma.isEdge ? 'Edge' : (plataforma.isSafari ? 'Safari' : (plataforma.isChrome ? 'Chrome' : (plataforma.isFirefox ? 'Firefox' : 'Outro')))
         });
         
@@ -16645,518 +16645,90 @@ setTimeout(() => {
     }
 
     // =====================================================
-    // 2. DETECÇÃO DE SUPORTE A FORMATOS
+    // 2. SALVAR A FUNÇÃO ORIGINAL
     // =====================================================
-    function detectarSuporteVideo() {
-        const video = document.createElement('video');
-        
-        return {
-            hls: video.canPlayType('application/vnd.apple.mpegurl') !== '',
-            hlsWithMime: video.canPlayType('application/vnd.apple.mpegurl'),
-            mp4: video.canPlayType('video/mp4') !== '',
-            webm: video.canPlayType('video/webm') !== '',
-            h264: video.canPlayType('video/mp4; codecs="avc1.42E01E"') !== '',
-            hlsJs: typeof Hls !== 'undefined' && Hls.isSupported ? Hls.isSupported() : false
-        };
-    }
+    const originalPlayMedia = window.playMedia;
+    const originalClosePlayer = window.closePlayer;
 
     // =====================================================
-    // 3. REDIRECIONAMENTO INTELIGENTE (NÃO BLOQUEIA CONSOLES)
+    // 3. NOVA FUNÇÃO playMedia (Mantém tudo original + melhorias)
     // =====================================================
-    function redirecionarSeNecessario() {
+    window.playMedia = async function(item, tipo) {
+        console.log('🎬 playMedia chamado:', item?.title, '| Tipo:', tipo);
+
+        if (!item || !item.link) {
+            showToast('❌ Link não disponível');
+            return;
+        }
+
         const plataforma = detectarPlataforma();
-        
-        // Só redireciona se for WebView de aplicativo (Instagram, Facebook, etc)
-        // NÃO redireciona consoles ou Smart TVs
-        if (plataforma.isWebView && !plataforma.isConsole && !plataforma.isSmartTV) {
-            const currentUrl = window.location.href;
-            
-            if (sessionStorage.getItem('redirectAttempted')) return;
-            sessionStorage.setItem('redirectAttempted', 'true');
-            
-            // Android
-            if (navigator.userAgent.includes('Android')) {
-                window.location.href = 'intent://' + currentUrl.replace(/^https?:\/\//, '') + '#Intent;scheme=http;package=com.android.chrome;end';
-            } 
-            // iOS
-            else if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
-                window.location.href = 'googlechrome://' + currentUrl.replace(/^https?:\/\//, '');
-                setTimeout(function() {
-                    window.location.href = currentUrl;
-                }, 500);
-            }
-            else {
-                // Exibe mensagem para abrir no navegador
-                const overlay = document.createElement('div');
-                overlay.style.cssText = `
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background: rgba(0,0,0,0.95);
-                    z-index: 999999;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-family: system-ui, sans-serif;
-                    padding: 20px;
-                `;
-                overlay.innerHTML = `
-                    <div style="text-align:center; max-width:400px; background:#1a1a2a; padding:40px; border-radius:24px; border:1px solid #e50914;">
-                        <i class="fas fa-external-link-alt" style="font-size:48px; color:#e50914; margin-bottom:16px;"></i>
-                        <h2 style="color:white; font-size:20px; margin-bottom:8px;">🔓 Abra no navegador</h2>
-                        <p style="color:rgba(255,255,255,0.7); font-size:14px; margin-bottom:24px;">
-                            O NoiteFilmes não funciona dentro do Instagram/Facebook.
-                            <br><br>
-                            <strong>Clique no botão abaixo para abrir no navegador.</strong>
-                        </p>
-                        <button onclick="location.href='${currentUrl}'" style="
-                            background: #e50914;
-                            color: white;
-                            border: none;
-                            padding: 14px 32px;
-                            border-radius: 40px;
-                            font-size: 16px;
-                            font-weight: bold;
-                            cursor: pointer;
-                            transition: transform 0.2s;
-                        ">
-                            <i class="fas fa-globe"></i> Abrir no Navegador
-                        </button>
-                        <p style="color:rgba(255,255,255,0.4); font-size:12px; margin-top:16px;">
-                            Se não abrir, copie o link e cole no Chrome/Safari.
-                        </p>
-                    </div>
-                `;
-                document.body.appendChild(overlay);
-            }
-        }
-    }
+        const isYoutube = extractYoutubeId(item.link) !== null;
+        const isHls = isIptvLink(item.link) || item.link.includes('.m3u8') || item.link.includes('.m3u');
+        const isMp4 = item.link.toLowerCase().endsWith('.mp4');
+        const isTokyVideo = item.link.includes('tokyvideo.com');
+        const isImdb = item.mediaType === 'imdb' || item.link.includes('imdb.com');
 
-    // =====================================================
-    // 4. PLAYER UNIVERSAL - SUBSTITUI O playMedia ORIGINAL
-    // =====================================================
-    function criarPlayerUniversal() {
-        // Salva o original para fallback
-        const originalPlayMedia = window.playMedia;
-        
-        window.playMedia = async function(item, tipo) {
-            if (!item || !item.link) {
-                showToast('❌ Link não disponível');
-                return;
-            }
-
-            const plataforma = detectarPlataforma();
-            const suporte = detectarSuporteVideo();
-            const isYoutube = extractYoutubeId(item.link) !== null;
-            const isHls = isIptvLink(item.link) || item.link.includes('.m3u8') || item.link.includes('.m3u');
-            const isMp4 = item.link.toLowerCase().endsWith('.mp4');
-            const isTokyVideo = item.link.includes('tokyvideo.com');
-            const isImdb = item.mediaType === 'imdb' || item.link.includes('imdb.com');
-
-            console.log('🎬 Reproduzindo:', item.title, '| Tipo:', tipo, '| Plataforma:', plataforma.isLimited ? 'Limitada' : 'Completa');
-
-            // =====================================================
-            // CASO 1: YouTube
-            // =====================================================
-            if (isYoutube) {
-                await reproduzirYouTube(item, plataforma);
-                return;
-            }
-
-            // =====================================================
-            // CASO 2: TokyVideo
-            // =====================================================
-            if (isTokyVideo) {
-                await reproduzirTokyVideo(item, plataforma);
-                return;
-            }
-
-            // =====================================================
-            // CASO 3: IMDb
-            // =====================================================
-            if (isImdb) {
-                await reproduzirImdb(item, plataforma);
-                return;
-            }
-
-            // =====================================================
-            // CASO 4: MP4 Direto
-            // =====================================================
-            if (isMp4) {
-                await reproduzirMp4(item, plataforma);
-                return;
-            }
-
-            // =====================================================
-            // CASO 5: HLS (.m3u8) - COM FALLBACK INTELIGENTE
-            // =====================================================
-            if (isHls) {
-                await reproduzirHls(item, plataforma, suporte);
-                return;
-            }
-
-            // =====================================================
-            // CASO 6: FALLBACK - Tentar como MP4
-            // =====================================================
-            showToast('⚠️ Formato não reconhecido. Tentando como vídeo...');
-            await reproduzirMp4(item, plataforma);
-        };
-
-        console.log('✅ Player Universal instalado!');
-    }
-
-    // =====================================================
-    // 5. REPRODUZIR YOUTUBE (COM RESILIÊNCIA)
-    // =====================================================
-    async function reproduzirYouTube(item, plataforma) {
-        const videoId = extractYoutubeId(item.link);
-        if (!videoId) {
-            showToast('❌ ID do YouTube inválido');
-            return;
-        }
-
-        // Mostra o container do player
-        mostrarPlayer(item, 'youtube');
-
-        const youtubeDiv = document.getElementById('youtubePlayerDiv');
-        const hlsVideo = document.getElementById('hlsPlayer');
-        
-        if (youtubeDiv) youtubeDiv.style.display = 'block';
-        if (hlsVideo) hlsVideo.style.display = 'none';
-
-        // Para dispositivos limitados (consoles, Smart TVs), tenta usar o iframe diretamente
+        // =====================================================
+        // 4. PARA DISPOSITIVOS LIMITADOS (Consoles, Smart TVs)
+        //    Usa versão simplificada MAS mantém funcionalidades
+        // =====================================================
         if (plataforma.isLimited) {
-            youtubeDiv.innerHTML = `
-                <iframe 
-                    src="https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1&rel=0&modestbranding=1&playsinline=1"
-                    style="width:100%; height:100%; border:none;"
-                    allow="autoplay; encrypted-media; fullscreen"
-                    allowfullscreen
-                ></iframe>
-            `;
-            return;
-        }
-
-        // Para navegadores modernos, usa a API do YouTube
-        try {
-            if (typeof YT === 'undefined' || typeof YT.Player === 'undefined') {
-                // Aguarda a API carregar
-                await carregarYouTubeAPI();
-            }
-
-            // Destroi player antigo se existir
-            if (window.ytPlayer) {
-                try { window.ytPlayer.destroy(); } catch(e) {}
-                window.ytPlayer = null;
-            }
-
-            // Cria novo player com timeout
-            const playerPromise = new Promise((resolve, reject) => {
-                const timeout = setTimeout(() => {
-                    reject(new Error('Timeout ao carregar player do YouTube'));
-                }, 15000);
-
-                window.ytPlayer = new YT.Player('youtubePlayerDiv', {
-                    videoId: videoId,
-                    height: '100%',
-                    width: '100%',
-                    playerVars: {
-                        'autoplay': 1,
-                        'controls': 1,
-                        'modestbranding': 1,
-                        'rel': 0,
-                        'showinfo': 0,
-                        'fs': 1,
-                        'playsinline': 1
-                    },
-                    events: {
-                        'onReady': function(event) {
-                            clearTimeout(timeout);
-                            event.target.playVideo();
-                            resolve(event.target);
-                        },
-                        'onError': function(event) {
-                            clearTimeout(timeout);
-                            reject(new Error('Erro no player do YouTube: ' + event.data));
-                        }
-                    }
-                });
-            });
-
-            await playerPromise;
-            console.log('✅ YouTube player carregado com sucesso');
-
-        } catch (error) {
-            console.warn('⚠️ Erro ao carregar player YouTube:', error);
-            // Fallback: usa iframe
-            youtubeDiv.innerHTML = `
-                <iframe 
-                    src="https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1&rel=0&modestbranding=1&playsinline=1"
-                    style="width:100%; height:100%; border:none;"
-                    allow="autoplay; encrypted-media; fullscreen"
-                    allowfullscreen
-                ></iframe>
-            `;
-            showToast('🎬 Abrindo YouTube em modo compatível');
-        }
-    }
-
-    // =====================================================
-    // 6. REPRODUZIR HLS COM FALLBACK
-    // =====================================================
-    async function reproduzirHls(item, plataforma, suporte) {
-        mostrarPlayer(item, 'hls');
-
-        const hlsVideo = document.getElementById('hlsPlayer');
-        const youtubeDiv = document.getElementById('youtubePlayerDiv');
-        
-        if (youtubeDiv) youtubeDiv.style.display = 'none';
-        if (hlsVideo) hlsVideo.style.display = 'block';
-
-        // =====================================================
-        // ESTRATÉGIA 1: Player nativo (HLS suportado nativamente)
-        // =====================================================
-        if (suporte.hls && (plataforma.isSafari || plataforma.isConsole || plataforma.isSmartTV)) {
-            console.log('📺 Usando player nativo HLS');
-            hlsVideo.src = item.link;
-            hlsVideo.setAttribute('playsinline', '');
-            
-            // Limpa qualquer listener antigo
-            const newVideo = hlsVideo.cloneNode(true);
-            hlsVideo.parentNode.replaceChild(newVideo, hlsVideo);
-            const video = newVideo;
-            
-            video.addEventListener('loadedmetadata', function() {
-                this.play().catch(e => console.warn('Autoplay bloqueado:', e));
-            });
-            
-            video.addEventListener('error', function(e) {
-                console.warn('Erro no player nativo:', e);
-                // Fallback para hls.js ou mensagem
-                if (suporte.hlsJs) {
-                    usarHlsJs(item, video);
-                } else {
-                    showToast('❌ Não foi possível reproduzir. Tente outro link.');
-                }
-            });
-            
+            console.log('📺 Modo compatível para dispositivos limitados');
+            await playMediaModoCompativel(item, tipo, plataforma);
             return;
         }
 
         // =====================================================
-        // ESTRATÉGIA 2: hls.js (para navegadores modernos)
+        // 5. PARA DISPOSITIVOS MÓVEIS E DESKTOP
+        //    Usa a função original com melhorias pontuais
         // =====================================================
-        if (suporte.hlsJs && !plataforma.isLimited) {
-            console.log('📺 Usando hls.js');
-            usarHlsJs(item, hlsVideo);
-            return;
-        }
+        console.log('💻 Modo completo para desktop/mobile');
 
-        // =====================================================
-        // ESTRATÉGIA 3: Fallback para MP4 (tenta converter)
-        // =====================================================
-        console.log('📺 HLS não suportado. Tentando MP4...');
-        const linkMp4 = item.link.replace(/\.m3u8$/, '.mp4').replace(/\.m3u$/, '.mp4');
-        
-        hlsVideo.src = linkMp4;
-        hlsVideo.setAttribute('playsinline', '');
-        
-        hlsVideo.addEventListener('error', function() {
-            // Se falhar, exibe mensagem
-            mostrarMensagemIncompativel(item);
-        });
-        
-        hlsVideo.play().catch(() => {
-            mostrarMensagemIncompativel(item);
-        });
-    }
-
-    // =====================================================
-    // 7. FUNÇÃO AUXILIAR - USAR HLS.JS
-    // =====================================================
-    function usarHlsJs(item, videoElement) {
-        try {
-            if (window.hlsInstance) {
-                window.hlsInstance.destroy();
-            }
-            
-            const hls = new Hls({
-                enableWorker: true,
-                lowLatencyMode: true,
-                backbufferLength: 30
-            });
-            
-            hls.loadSource(item.link);
-            hls.attachMedia(videoElement);
-            
-            hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                videoElement.play().catch(e => console.warn('Autoplay bloqueado:', e));
-            });
-            
-            hls.on(Hls.Events.ERROR, function(event, data) {
-                console.warn('Erro no HLS:', data);
-                if (data.fatal) {
-                    hls.destroy();
-                    mostrarMensagemIncompativel(item);
-                }
-            });
-            
-            window.hlsInstance = hls;
-            
-        } catch (error) {
-            console.error('Erro ao iniciar hls.js:', error);
-            mostrarMensagemIncompativel(item);
-        }
-    }
-
-    // =====================================================
-    // 8. REPRODUZIR MP4
-    // =====================================================
-    async function reproduzirMp4(item, plataforma) {
-        mostrarPlayer(item, 'mp4');
-
-        const hlsVideo = document.getElementById('hlsPlayer');
-        const youtubeDiv = document.getElementById('youtubePlayerDiv');
-        
-        if (youtubeDiv) youtubeDiv.style.display = 'none';
-        if (hlsVideo) hlsVideo.style.display = 'block';
-
-        hlsVideo.src = item.link;
-        hlsVideo.setAttribute('playsinline', '');
-        hlsVideo.setAttribute('controls', 'true');
-        
-        // Para consoles, adiciona suporte a gamepad
-        if (plataforma.isConsole) {
-            hlsVideo.style.cursor = 'pointer';
-            hlsVideo.addEventListener('click', function() {
-                if (this.paused) {
-                    this.play();
-                } else {
-                    this.pause();
-                }
-            });
-        }
-        
-        hlsVideo.addEventListener('loadedmetadata', function() {
-            this.play().catch(e => console.warn('Autoplay bloqueado:', e));
-        });
-        
-        hlsVideo.addEventListener('error', function(e) {
-            console.warn('Erro no MP4:', e);
-            mostrarMensagemIncompativel(item);
-        });
-    }
-
-    // =====================================================
-    // 9. REPRODUZIR TOKYVIDEO
-    // =====================================================
-    async function reproduzirTokyVideo(item, plataforma) {
-        const slug = extrairSlugTokyVideo(item.link);
-        if (!slug) {
-            showToast('❌ Slug do TokyVideo inválido');
-            return;
-        }
-
-        mostrarPlayer(item, 'tokyvideo');
-
-        const wrapper = document.querySelector('.player-wrapper');
-        if (!wrapper) return;
-
-        // Limpa o wrapper
-        while (wrapper.firstChild) wrapper.removeChild(wrapper.firstChild);
-
-        const embedUrl = `https://www.tokyvideo.com/br/embed/${slug}`;
-        
-        // Para dispositivos limitados, usa iframe simples
-        if (plataforma.isLimited) {
-            const iframe = document.createElement('iframe');
-            iframe.src = embedUrl;
-            iframe.style.cssText = 'width:100%; height:100%; border:none;';
-            iframe.allowFullscreen = true;
-            iframe.setAttribute('allow', 'autoplay; encrypted-media; fullscreen');
-            wrapper.appendChild(iframe);
-            return;
-        }
-
-        // Para navegadores modernos, tenta o embed com API
-        try {
-            const iframe = document.createElement('iframe');
-            iframe.src = embedUrl;
-            iframe.style.cssText = 'width:100%; height:100%; border:none;';
-            iframe.allowFullscreen = true;
-            iframe.setAttribute('allow', 'autoplay; encrypted-media; fullscreen');
-            wrapper.appendChild(iframe);
-            
-            // Adiciona um timeout para verificar se carregou
-            setTimeout(() => {
-                if (!iframe.contentWindow) {
-                    // Fallback: abre em nova aba
-                    if (confirm('O player do TokyVideo não carregou. Deseja abrir no navegador?')) {
-                        window.open(item.link, '_blank');
-                    }
-                }
-            }, 5000);
-            
-        } catch (error) {
-            console.warn('Erro no TokyVideo:', error);
-            // Fallback: link direto
-            if (confirm('Não foi possível carregar o TokyVideo. Deseja abrir no navegador?')) {
-                window.open(item.link, '_blank');
+        // Se for YouTube, garante que a API está carregada
+        if (isYoutube) {
+            try {
+                await garantirYouTubeAPI();
+            } catch (e) {
+                console.warn('⚠️ Erro ao carregar YouTube API, usando fallback');
             }
         }
-    }
 
-    // =====================================================
-    // 10. REPRODUZIR IMDb
-    // =====================================================
-    async function reproduzirImdb(item, plataforma) {
-        mostrarPlayer(item, 'imdb');
-
-        const wrapper = document.querySelector('.player-wrapper');
-        if (!wrapper) return;
-
-        while (wrapper.firstChild) wrapper.removeChild(wrapper.firstChild);
-
-        const embedUrl = item.link.includes('playimdb.com') ? 
-            item.link : 
-            `https://playimdb.com/pt/title/${extractImdbId(item.link)}/`;
-
-        // Para dispositivos limitados, sugere abrir no navegador
-        if (plataforma.isLimited) {
-            wrapper.innerHTML = `
-                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; background:#0a0a1a; padding:20px; text-align:center;">
-                    <i class="fas fa-film" style="font-size:48px; color:#e50914; margin-bottom:16px;"></i>
-                    <h3 style="color:white; margin-bottom:8px;">${escapeHtml(item.title)}</h3>
-                    <p style="color:rgba(255,255,255,0.6); font-size:14px; margin-bottom:16px;">
-                        O player do IMDb pode não funcionar neste dispositivo.
-                    </p>
-                    <button onclick="window.open('${embedUrl}', '_blank')" style="
-                        background:#e50914; color:white; border:none; padding:12px 24px; 
-                        border-radius:40px; font-size:16px; cursor:pointer;
-                    ">
-                        <i class="fas fa-external-link-alt"></i> Abrir no Navegador
-                    </button>
-                </div>
-            `;
+        // Se for HLS e estiver no Safari, usa o player nativo
+        if (isHls && plataforma.isSafari) {
+            console.log('📺 Safari detectado, usando player nativo HLS');
+            // Chama a função original mas com modificação para HLS
+            await playMediaHLSModoSafari(item, tipo);
             return;
         }
 
-        // Para navegadores modernos, carrega o iframe
-        const iframe = document.createElement('iframe');
-        iframe.src = embedUrl;
-        iframe.style.cssText = 'width:100%; height:100%; border:none;';
-        iframe.allowFullscreen = true;
-        iframe.setAttribute('allow', 'autoplay; encrypted-media; fullscreen');
-        wrapper.appendChild(iframe);
-    }
+        // Se for HLS e estiver no Edge (desktop), usa hls.js
+        if (isHls && plataforma.isEdge) {
+            console.log('📺 Edge detectado, usando hls.js');
+        }
+
+        // =====================================================
+        // 6. CHAMA A FUNÇÃO ORIGINAL para manter TUDO funcionando
+        //    (progresso, likes, comentários, avaliações, etc)
+        // =====================================================
+        if (originalPlayMedia) {
+            console.log('📺 Usando player original (completo)');
+            await originalPlayMedia(item, tipo);
+        } else {
+            console.error('❌ Função original playMedia não encontrada!');
+            showToast('❌ Erro no player. Recarregue a página.');
+        }
+    };
 
     // =====================================================
-    // 11. FUNÇÕES AUXILIARES DO PLAYER
+    // 7. MODO COMPATÍVEL PARA CONSOLES E SMART TVs
+    //    Mantém o máximo de funcionalidades possível
     // =====================================================
-    
-    function mostrarPlayer(item, tipo) {
+    async function playMediaModoCompativel(item, tipo, plataforma) {
+        console.log('🎬 Modo compatível para:', plataforma.isXbox ? 'Xbox' : (plataforma.isPlayStation ? 'PlayStation' : 'Smart TV'));
+
+        // =====================================================
+        // 7.1 MOSTRA O PLAYER (mantém a UI igual)
+        // =====================================================
         const container = document.getElementById('playerCommentsContainer');
         const overlay = document.getElementById('floatingPlayerOverlay');
         
@@ -17189,10 +16761,193 @@ setTimeout(() => {
         window.currentMedia = item;
         window.currentMediaType = tipo;
 
-        // Configura botões
+        // =====================================================
+        // 7.2 CONFIGURA BOTÕES (like, favorito, report, share)
+        // =====================================================
         configurarBotoesPlayer(item);
+
+        // =====================================================
+        // 7.3 CARREGA COMENTÁRIOS E AVALIAÇÕES
+        // =====================================================
+        if (typeof loadRatingsFromFirebase === 'function') loadRatingsFromFirebase(item.id);
+        if (typeof loadComments === 'function') loadComments(item.id);
+        if (typeof loadLikeCount === 'function') loadLikeCount(item.id);
+        if (typeof createRatingStars === 'function') createRatingStars('ratingStarsContainer', item.id);
+
+        // =====================================================
+        // 7.4 CONFIGURA O PLAYER (compatível com o dispositivo)
+        // =====================================================
+        const youtubeDiv = document.getElementById('youtubePlayerDiv');
+        const hlsVideo = document.getElementById('hlsPlayer');
+        
+        if (youtubeDiv) youtubeDiv.style.display = 'none';
+        if (hlsVideo) hlsVideo.style.display = 'none';
+
+        const isYoutube = extractYoutubeId(item.link) !== null;
+        const isHls = isIptvLink(item.link) || item.link.includes('.m3u8') || item.link.includes('.m3u');
+        const isMp4 = item.link.toLowerCase().endsWith('.mp4');
+
+        // =====================================================
+        // 7.4.1 YOUTUBE (fallback para iframe)
+        // =====================================================
+        if (isYoutube) {
+            const videoId = extractYoutubeId(item.link);
+            if (youtubeDiv) {
+                youtubeDiv.style.display = 'block';
+                youtubeDiv.innerHTML = `
+                    <iframe 
+                        src="https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1&rel=0&modestbranding=1&playsinline=1"
+                        style="width:100%; height:100%; border:none;"
+                        allow="autoplay; encrypted-media; fullscreen"
+                        allowfullscreen
+                    ></iframe>
+                `;
+            }
+            return;
+        }
+
+        // =====================================================
+        // 7.4.2 HLS (tenta player nativo ou MP4)
+        // =====================================================
+        if (isHls) {
+            if (hlsVideo) {
+                hlsVideo.style.display = 'block';
+                
+                // Tenta usar HLS nativo se disponível
+                if (hlsVideo.canPlayType('application/vnd.apple.mpegurl')) {
+                    hlsVideo.src = item.link;
+                    hlsVideo.setAttribute('playsinline', '');
+                    hlsVideo.addEventListener('loadedmetadata', function() {
+                        this.play().catch(e => console.warn('Autoplay bloqueado:', e));
+                    });
+                    return;
+                }
+
+                // Fallback: tenta MP4
+                const linkMp4 = item.link.replace(/\.m3u8$/, '.mp4').replace(/\.m3u$/, '.mp4');
+                if (linkMp4 !== item.link) {
+                    hlsVideo.src = linkMp4;
+                    hlsVideo.setAttribute('playsinline', '');
+                    hlsVideo.addEventListener('loadedmetadata', function() {
+                        this.play().catch(e => console.warn('Autoplay bloqueado:', e));
+                    });
+                    return;
+                }
+
+                // Último recurso: mostrar mensagem com botão
+                mostrarMensagemIncompativel(item);
+            }
+            return;
+        }
+
+        // =====================================================
+        // 7.4.3 MP4 DIRETO
+        // =====================================================
+        if (isMp4 && hlsVideo) {
+            hlsVideo.style.display = 'block';
+            hlsVideo.src = item.link;
+            hlsVideo.setAttribute('playsinline', '');
+            hlsVideo.setAttribute('controls', 'true');
+            
+            // Para consoles, suporte a clique
+            if (plataforma.isConsole) {
+                hlsVideo.style.cursor = 'pointer';
+                hlsVideo.addEventListener('click', function() {
+                    if (this.paused) {
+                        this.play();
+                    } else {
+                        this.pause();
+                    }
+                });
+            }
+            
+            hlsVideo.addEventListener('loadedmetadata', function() {
+                this.play().catch(e => console.warn('Autoplay bloqueado:', e));
+            });
+            return;
+        }
+
+        // =====================================================
+        // 7.4.4 OUTROS FORMATOS (TokyVideo, IMDb, etc)
+        // =====================================================
+        if (item.link.includes('tokyvideo.com')) {
+            const slug = extrairSlugTokyVideo(item.link);
+            if (slug && youtubeDiv) {
+                youtubeDiv.style.display = 'block';
+                youtubeDiv.innerHTML = `
+                    <iframe 
+                        src="https://www.tokyvideo.com/br/embed/${slug}"
+                        style="width:100%; height:100%; border:none;"
+                        allow="autoplay; encrypted-media; fullscreen"
+                        allowfullscreen
+                    ></iframe>
+                `;
+                return;
+            }
+        }
+
+        // Fallback final: abrir no navegador
+        if (confirm(`O formato deste vídeo pode não ser suportado no seu dispositivo.\n\nDeseja abrir no navegador?`)) {
+            window.open(item.link, '_blank');
+        }
     }
 
+    // =====================================================
+    // 8. PLAYER HLS PARA SAFARI (modo nativo)
+    // =====================================================
+    async function playMediaHLSModoSafari(item, tipo) {
+        // Mostra o player normalmente
+        if (originalPlayMedia) {
+            // Modifica o item para usar o player nativo
+            const itemModificado = {
+                ...item,
+                mediaType: 'mp4' // Força o uso do player de MP4
+            };
+            await originalPlayMedia(itemModificado, tipo);
+        }
+    }
+
+    // =====================================================
+    // 9. GARANTIR QUE A API DO YOUTUBE ESTÁ CARREGADA
+    // =====================================================
+    function garantirYouTubeAPI() {
+        return new Promise((resolve) => {
+            if (typeof YT !== 'undefined' && typeof YT.Player !== 'undefined') {
+                resolve();
+                return;
+            }
+
+            // Se a API não estiver carregada, recarrega
+            const script = document.createElement('script');
+            script.src = 'https://www.youtube.com/iframe_api';
+            script.async = true;
+            
+            script.onload = function() {
+                // Aguarda a API ficar disponível
+                let attempts = 0;
+                const checkAPI = setInterval(() => {
+                    attempts++;
+                    if (typeof YT !== 'undefined' && typeof YT.Player !== 'undefined') {
+                        clearInterval(checkAPI);
+                        resolve();
+                    } else if (attempts > 30) {
+                        clearInterval(checkAPI);
+                        resolve(); // Resolve mesmo se falhar
+                    }
+                }, 100);
+            };
+            
+            script.onerror = function() {
+                resolve(); // Resolve mesmo se falhar
+            };
+
+            document.head.appendChild(script);
+        });
+    }
+
+    // =====================================================
+    // 10. CONFIGURAR BOTÕES DO PLAYER
+    // =====================================================
     function configurarBotoesPlayer(item) {
         // Like
         const likeBtn = document.getElementById('likeBtn');
@@ -17257,19 +17012,18 @@ setTimeout(() => {
             };
         }
 
-        // Avaliações
-        if (typeof createRatingStars === 'function') {
-            createRatingStars('ratingStarsContainer', item.id);
-        }
-
         // Views
         if (typeof incrementViewCount === 'function') incrementViewCount(item.id);
         if (typeof loadViewCount === 'function') loadViewCount(item.id);
         if (typeof loadRatingsFromFirebase === 'function') loadRatingsFromFirebase(item.id);
         if (typeof loadComments === 'function') loadComments(item.id);
         if (typeof loadLikeCount === 'function') loadLikeCount(item.id);
+        if (typeof startRealtimeUpdates === 'function') startRealtimeUpdates(item.id);
     }
 
+    // =====================================================
+    // 11. MENSAGEM DE INCOMPATIBILIDADE
+    // =====================================================
     function mostrarMensagemIncompativel(item) {
         const hlsVideo = document.getElementById('hlsPlayer');
         if (hlsVideo) {
@@ -17293,116 +17047,139 @@ setTimeout(() => {
     }
 
     // =====================================================
-    // 12. CARREGAR API DO YOUTUBE
+    // 12. EXTRAIR SLUG DO TOKYVIDEO
     // =====================================================
-    function carregarYouTubeAPI() {
-        return new Promise((resolve, reject) => {
-            if (typeof YT !== 'undefined' && typeof YT.Player !== 'undefined') {
-                resolve();
-                return;
+    function extrairSlugTokyVideo(url) {
+        if (!url) return null;
+        
+        const cleanUrl = url.split('?')[0].split('#')[0];
+        
+        const patterns = [
+            /tokyvideo\.com\/br\/embed\/(\d+)/,
+            /tokyvideo\.com\/embed\/(\d+)/,
+            /tokyvideo\.com\/br\/video\/([a-zA-Z0-9\-_]+)/,
+            /tokyvideo\.com\/video\/([a-zA-Z0-9\-_]+)/
+        ];
+        
+        for (const pattern of patterns) {
+            const match = cleanUrl.match(pattern);
+            if (match && match[1]) return match[1];
+        }
+        
+        const parts = cleanUrl.split('/');
+        for (let i = parts.length - 1; i >= 0; i--) {
+            const part = parts[i];
+            if (part && part.length > 0 && /^[a-zA-Z0-9\-_]+$/.test(part)) {
+                return part;
             }
-
-            // Remove listeners antigos
-            window.onYouTubeIframeAPIReady = null;
-
-            // Cria e carrega o script
-            const script = document.createElement('script');
-            script.src = 'https://www.youtube.com/iframe_api';
-            script.async = true;
-            
-            script.onload = function() {
-                // Aguarda a API ficar disponível
-                let attempts = 0;
-                const checkAPI = setInterval(() => {
-                    attempts++;
-                    if (typeof YT !== 'undefined' && typeof YT.Player !== 'undefined') {
-                        clearInterval(checkAPI);
-                        resolve();
-                    } else if (attempts > 50) { // 5 segundos
-                        clearInterval(checkAPI);
-                        reject(new Error('Timeout ao carregar YouTube API'));
-                    }
-                }, 100);
-            };
-            
-            script.onerror = function() {
-                reject(new Error('Erro ao carregar YouTube API'));
-            };
-
-            document.head.appendChild(script);
-        });
+        }
+        
+        return null;
     }
 
     // =====================================================
-    // 13. EXTRAIR ID DO IMDb
+    // 13. REDIRECIONAMENTO INTELIGENTE
     // =====================================================
-    function extractImdbId(url) {
-        if (!url) return null;
-        const match = url.match(/tt\d+/);
-        return match ? match[0] : null;
+    function redirecionarSeNecessario() {
+        const plataforma = detectarPlataforma();
+        
+        // Só redireciona se for WebView de aplicativo
+        if (plataforma.isWebView && !plataforma.isConsole && !plataforma.isSmartTV) {
+            const currentUrl = window.location.href;
+            
+            if (sessionStorage.getItem('redirectAttempted')) return;
+            sessionStorage.setItem('redirectAttempted', 'true');
+            
+            if (navigator.userAgent.includes('Android')) {
+                window.location.href = 'intent://' + currentUrl.replace(/^https?:\/\//, '') + '#Intent;scheme=http;package=com.android.chrome;end';
+            } 
+            else if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+                window.location.href = 'googlechrome://' + currentUrl.replace(/^https?:\/\//, '');
+                setTimeout(function() {
+                    window.location.href = currentUrl;
+                }, 500);
+            }
+            else {
+                // Exibe mensagem para abrir no navegador
+                const overlay = document.createElement('div');
+                overlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0,0,0,0.95);
+                    z-index: 999999;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-family: system-ui, sans-serif;
+                    padding: 20px;
+                `;
+                overlay.innerHTML = `
+                    <div style="text-align:center; max-width:400px; background:#1a1a2a; padding:40px; border-radius:24px; border:1px solid #e50914;">
+                        <i class="fas fa-external-link-alt" style="font-size:48px; color:#e50914; margin-bottom:16px;"></i>
+                        <h2 style="color:white; font-size:20px; margin-bottom:8px;">🔓 Abra no navegador</h2>
+                        <p style="color:rgba(255,255,255,0.7); font-size:14px; margin-bottom:24px;">
+                            O NoiteFilmes não funciona dentro do Instagram/Facebook.
+                            <br><br>
+                            <strong>Clique no botão abaixo para abrir no navegador.</strong>
+                        </p>
+                        <button onclick="location.href='${currentUrl}'" style="
+                            background: #e50914;
+                            color: white;
+                            border: none;
+                            padding: 14px 32px;
+                            border-radius: 40px;
+                            font-size: 16px;
+                            font-weight: bold;
+                            cursor: pointer;
+                            transition: transform 0.2s;
+                        ">
+                            <i class="fas fa-globe"></i> Abrir no Navegador
+                        </button>
+                        <p style="color:rgba(255,255,255,0.4); font-size:12px; margin-top:16px;">
+                            Se não abrir, copie o link e cole no Chrome/Safari.
+                        </p>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+            }
+        }
     }
 
     // =====================================================
     // 14. INICIALIZAÇÃO
     // =====================================================
     function init() {
-        console.log('🚀 Iniciando Player Universal...');
+        console.log('🚀 Iniciando Player Universal Completo...');
         
-        // 1. Redirecionamento inteligente (não bloqueia consoles)
+        // Redirecionamento inteligente
         redirecionarSeNecessario();
         
-        // 2. Substitui o playMedia original
-        criarPlayerUniversal();
-        
-        // 3. Adiciona suporte para o botão de fechar
-        const closeBtn = document.getElementById('closePlayerComments');
-        if (closeBtn) {
-            closeBtn.onclick = function() {
-                const container = document.getElementById('playerCommentsContainer');
-                const overlay = document.getElementById('floatingPlayerOverlay');
-                if (container) container.classList.add('hidden');
-                if (overlay) overlay.classList.add('hidden');
-                
-                // Para o YouTube player
-                if (window.ytPlayer) {
-                    try { window.ytPlayer.stopVideo(); } catch(e) {}
-                }
-                
-                // Para HLS
-                if (window.hlsInstance) {
-                    try { window.hlsInstance.destroy(); } catch(e) {}
-                    window.hlsInstance = null;
-                }
-                
-                // Limpa o wrapper
-                const wrapper = document.querySelector('.player-wrapper');
-                if (wrapper) {
-                    // Mantém o iframe do YouTube se existir
-                    const youtubeDiv = document.getElementById('youtubePlayerDiv');
-                    if (youtubeDiv) {
-                        wrapper.innerHTML = '';
-                        wrapper.appendChild(youtubeDiv);
-                    }
-                }
-            };
-        }
-
-        console.log('✅ Player Universal inicializado com sucesso!');
-        console.log('📌 Suporte a: YouTube, HLS, MP4, TokyVideo, IMDb');
-        console.log('📌 Compatível com: Smart TVs, Xbox, PlayStation, Navegadores');
+        // A função playMedia já foi substituída acima
+        console.log('✅ Player Universal Completo inicializado!');
+        console.log('📌 Funcionalidades mantidas:');
+        console.log('   ✅ Progresso (salva onde parou)');
+        console.log('   ✅ Likes, Favoritos, Compartilhamento');
+        console.log('   ✅ Comentários e Avaliações');
+        console.log('   ✅ Contador de visualizações');
+        console.log('   ✅ Todos os formatos (YouTube, HLS, MP4, etc)');
+        console.log('📌 Compatibilidade:');
+        console.log('   ✅ Desktop (Chrome, Firefox, Edge, Safari)');
+        console.log('   ✅ Mobile (Android, iOS)');
+        console.log('   ✅ Tablets (iPad, Android)');
+        console.log('   ✅ Smart TVs (Samsung, LG, Android TV)');
+        console.log('   ✅ Consoles (Xbox, PlayStation)');
     }
 
     // =====================================================
-    // 15. EXPOR FUNÇÕES GLOBAIS
+    // 15. EXPOR FUNÇÕES
     // =====================================================
     window.playerUniversal = {
         detectarPlataforma: detectarPlataforma,
-        detectarSuporteVideo: detectarSuporteVideo,
-        reproduzirYouTube: reproduzirYouTube,
-        reproduzirHls: reproduzirHls,
-        reproduzirMp4: reproduzirMp4,
-        reproduzirTokyVideo: reproduzirTokyVideo,
-        reproduzirImdb: reproduzirImdb
+        playMediaModoCompativel: playMediaModoCompativel,
+        garantirYouTubeAPI: garantirYouTubeAPI
     };
 
     // =====================================================
@@ -17414,7 +17191,7 @@ setTimeout(() => {
         init();
     }
 
-    console.log('🎬 Player Universal carregado!');
+    console.log('🎬 Player Universal Completo carregado!');
 })();
                 
          </script>  
